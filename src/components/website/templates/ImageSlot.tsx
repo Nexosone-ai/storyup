@@ -6,7 +6,7 @@ import { cn } from "@/utils/cn";
 import type { ImageRenderer } from "./shared";
 
 /** Downscale + compress an image in the browser before upload. */
-async function resizeImage(file: File, maxW: number): Promise<File> {
+export async function resizeImage(file: File, maxW: number): Promise<File> {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, maxW / bitmap.width);
   const w = Math.round(bitmap.width * scale);

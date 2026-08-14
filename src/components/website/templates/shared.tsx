@@ -23,10 +23,14 @@ export interface ImageArgs {
 /** Renders an image slot — either a static <img> or an editable uploader. */
 export type ImageRenderer = (args: ImageArgs) => ReactNode;
 
+/** Renders the photo gallery grid — static or editable (add/remove). */
+export type GalleryRenderer = (images: string[]) => ReactNode;
+
 export interface TemplateProps {
   content: WebsiteContent;
   T: TextRenderer;
   Img: ImageRenderer;
+  Gallery: GalleryRenderer;
   blogHref?: string;
   scoped?: boolean;
   editable?: boolean;
@@ -44,6 +48,24 @@ export const staticText: TextRenderer = ({
     <Tag className={className} style={style}>
       {value}
     </Tag>
+  );
+};
+
+/** Server-safe gallery renderer for the public site. */
+export const staticGallery: GalleryRenderer = (images) => {
+  if (!images?.length) return null;
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      {images.map((src, i) => (
+        <div
+          key={i}
+          className="relative aspect-square overflow-hidden rounded-xl border border-border"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={src} alt="" className="h-full w-full object-cover" />
+        </div>
+      ))}
+    </div>
   );
 };
 

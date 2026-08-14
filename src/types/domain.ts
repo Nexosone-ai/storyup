@@ -84,6 +84,8 @@ export interface WebsiteContent {
     instagram: string;
     website: string;
   };
+  /** Optional photo gallery band (user-uploaded image URLs). */
+  gallery?: string[];
 }
 
 // ---- AI generation payloads ----

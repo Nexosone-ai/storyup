@@ -14,11 +14,13 @@ export function ClassicTemplate({
   content,
   T,
   Img,
+  Gallery,
   blogHref,
   editable,
 }: TemplateProps) {
   const { hero, story, offers, whyChooseUs, contact } = content;
   const heroPhoto = !!hero.image;
+  const gallery = content.gallery ?? [];
 
   return (
     <div>
@@ -94,6 +96,17 @@ export function ClassicTemplate({
           ))}
         </div>
       </section>
+
+      {(gallery.length > 0 || editable) && (
+        <section className="border-t border-border">
+          <div className="mx-auto max-w-5xl px-5 py-16">
+            <h2 className="mb-8 text-center text-2xl font-semibold tracking-tight">
+              Gallery
+            </h2>
+            {Gallery(gallery)}
+          </div>
+        </section>
+      )}
 
       <section id="contact" className="bg-surface-muted/50">
         <div className="mx-auto max-w-3xl px-5 py-16 text-center">

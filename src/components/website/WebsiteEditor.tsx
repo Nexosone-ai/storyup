@@ -9,6 +9,7 @@ import { cn } from "@/utils/cn";
 import { TemplateRenderer, TEMPLATE_META, setPath } from "./templates";
 import { makeEditableRenderer } from "./templates/EditableText";
 import { makeEditableImageRenderer } from "./templates/ImageSlot";
+import { makeEditableGallery } from "./templates/GallerySection";
 import { saveWebsiteAction, publishWebsiteAction } from "@/app/business/actions";
 import type { WebsiteContent, WebsiteTemplateId } from "@/types/domain";
 import type { WebsiteRow } from "@/types/database";
@@ -39,6 +40,13 @@ export function WebsiteEditor({
   const editImgRenderer = useMemo(
     () => makeEditableImageRenderer(businessId, onEdit),
     [businessId, onEdit],
+  );
+  const editGallery = useMemo(
+    () =>
+      makeEditableGallery(businessId, (next) =>
+        setContent((c) => ({ ...c, gallery: next })),
+      ),
+    [businessId],
   );
 
   const setTemplate = (id: WebsiteTemplateId) =>
@@ -152,6 +160,7 @@ export function WebsiteEditor({
               content={content}
               T={editRenderer}
               Img={editImgRenderer}
+              Gallery={editGallery}
               editable
               scoped
             />

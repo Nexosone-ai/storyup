@@ -14,10 +14,12 @@ export function SplitTemplate({
   content,
   T,
   Img,
+  Gallery,
   blogHref,
   editable,
 }: TemplateProps) {
   const { hero, story, offers, whyChooseUs, contact } = content;
+  const gallery = content.gallery ?? [];
 
   return (
     <div className="bg-white">
@@ -105,6 +107,16 @@ export function SplitTemplate({
           </div>
         </div>
       </section>
+
+      {(gallery.length > 0 || editable) && (
+        <section className="border-b border-border">
+          <div className="mx-auto max-w-6xl px-6 py-16">
+            <p className="eyebrow mb-2">Gallery</p>
+            <h2 className="mb-8 text-2xl font-semibold tracking-tight">공간</h2>
+            {Gallery(gallery)}
+          </div>
+        </section>
+      )}
 
       {/* Contact */}
       <section id="contact">
