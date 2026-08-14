@@ -93,6 +93,11 @@ export function SplitTemplate({
           <div className="grid gap-8 md:grid-cols-3">
             {whyChooseUs.items.map((item, i) => (
               <div key={i}>
+                {(item.image || editable) && (
+                  <div className="relative mb-4 aspect-[4/3] w-full overflow-hidden rounded-xl border border-border">
+                    {Img({ path: `whyChooseUs.items.${i}.image`, value: item.image })}
+                  </div>
+                )}
                 {T({ path: `whyChooseUs.items.${i}.title`, value: item.title, as: "h3", className: "mb-2 text-lg font-semibold" })}
                 {T({ path: `whyChooseUs.items.${i}.description`, value: item.description, as: "p", className: "leading-relaxed text-muted" })}
               </div>

@@ -83,6 +83,11 @@ export function ClassicTemplate({
         <div className="grid gap-5 md:grid-cols-3">
           {whyChooseUs.items.map((item, i) => (
             <div key={i} className="text-center">
+              {(item.image || editable) && (
+                <div className="relative mx-auto mb-4 aspect-square w-20 overflow-hidden rounded-full border border-border">
+                  {Img({ path: `whyChooseUs.items.${i}.image`, value: item.image })}
+                </div>
+              )}
               {T({ path: `whyChooseUs.items.${i}.title`, value: item.title, as: "h3", className: "mb-2 font-semibold" })}
               {T({ path: `whyChooseUs.items.${i}.description`, value: item.description, as: "p", className: "text-sm leading-relaxed text-muted" })}
             </div>

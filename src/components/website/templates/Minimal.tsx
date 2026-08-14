@@ -84,9 +84,16 @@ export function MinimalTemplate({
         {T({ path: "whyChooseUs.title", value: whyChooseUs.title, as: "h2", className: "eyebrow mb-8 block" })}
         <div className="space-y-6">
           {whyChooseUs.items.map((item, i) => (
-            <div key={i}>
-              {T({ path: `whyChooseUs.items.${i}.title`, value: item.title, as: "h3", className: "text-lg font-semibold" })}
-              {T({ path: `whyChooseUs.items.${i}.description`, value: item.description, as: "p", className: "mt-1 leading-relaxed text-muted" })}
+            <div key={i} className="flex items-start gap-4">
+              {(item.image || editable) && (
+                <div className="relative aspect-square w-16 shrink-0 overflow-hidden rounded-lg border border-border">
+                  {Img({ path: `whyChooseUs.items.${i}.image`, value: item.image })}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                {T({ path: `whyChooseUs.items.${i}.title`, value: item.title, as: "h3", className: "text-lg font-semibold" })}
+                {T({ path: `whyChooseUs.items.${i}.description`, value: item.description, as: "p", className: "mt-1 leading-relaxed text-muted" })}
+              </div>
             </div>
           ))}
         </div>
