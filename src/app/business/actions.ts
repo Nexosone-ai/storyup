@@ -1,8 +1,68 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import type { WebsiteContent } from "@/types/domain";
+
+const IMAGE_BUCKET = "site-images";
+
+export interface UploadResult {
+  url?: string;
+  error?: string;
+}
+
+/** Uploads a user image to Supabase Storage and returns its public URL. */
+export async function uploadSiteImage(
+  businessId: string,
+  formData: FormData,
+): Promise<UploadResult> {
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: "로그인이 필요합니다." };
+
+  // Ownership check via RLS.
+  const { data: biz } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("id", businessId)
+    .maybeSingle();
+  if (!biz) return { error: "권한이 없습니다." };
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0)
+    return { error: "이미지를 선택해주세요." };
+  if (file.size > 10 * 1024 * 1024)
+    return { error: "이미지는 10MB 이하여야 합니다." };
+
+  const admin = createAdminClient();
+
+  // Ensure the public bucket exists (idempotent).
+  try {
+    const { data: buckets } = await admin.storage.listBuckets();
+    if (!buckets?.some((b) => b.name === IMAGE_BUCKET)) {
+      await admin.storage.createBucket(IMAGE_BUCKET, {
+        public: true,
+        fileSizeLimit: "10MB",
+      });
+    }
+  } catch {
+    // If listing/creating fails but the bucket already exists, upload still works.
+  }
+
+  const ext = (file.type.split("/")[1] || "jpg").replace("jpeg", "jpg");
+  const path = `${businessId}/${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}.${ext}`;
+
+  const { error } = await admin.storage
+    .from(IMAGE_BUCKET)
+    .upload(path, file, { contentType: file.type, upsert: false });
+  if (error) return { error: "업로드에 실패했습니다." };
+
+  const {
+    data: { publicUrl },
+  } = admin.storage.from(IMAGE_BUCKET).getPublicUrl(path);
+  return { url: publicUrl };
+}
 
 export interface ActionState {
   error?: string;

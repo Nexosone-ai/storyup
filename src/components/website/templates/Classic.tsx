@@ -13,10 +13,12 @@ const CONTACT: Array<[keyof import("@/types/domain").WebsiteContent["contact"], 
 export function ClassicTemplate({
   content,
   T,
+  Img,
   blogHref,
   editable,
 }: TemplateProps) {
   const { hero, story, offers, whyChooseUs, contact } = content;
+  const heroPhoto = !!hero.image;
 
   return (
     <div>
@@ -33,10 +35,16 @@ export function ClassicTemplate({
         </div>
       </header>
 
-      <section className="border-b border-border bg-surface-muted/50">
-        <div className="mx-auto max-w-3xl px-5 py-24 text-center sm:py-28">
+      <section
+        className={`relative overflow-hidden border-b border-border ${heroPhoto ? "" : "bg-surface-muted/50"} ${editable && !heroPhoto ? "min-h-[220px]" : ""}`}
+      >
+        {(heroPhoto || editable) &&
+          Img({ path: "hero.image", value: hero.image, kind: "hero" })}
+        <div
+          className={`relative mx-auto max-w-3xl px-5 py-24 text-center sm:py-28 ${heroPhoto ? "text-white" : ""}`}
+        >
           {T({ path: "hero.headline", value: hero.headline, as: "h1", className: "text-4xl font-semibold leading-[1.08] tracking-tight text-balance sm:text-5xl" })}
-          {T({ path: "hero.shortDescription", value: hero.shortDescription, as: "p", className: "mx-auto mt-5 max-w-xl text-lg leading-relaxed text-muted text-pretty" })}
+          {T({ path: "hero.shortDescription", value: hero.shortDescription, as: "p", className: `mx-auto mt-5 max-w-xl text-lg leading-relaxed text-pretty ${heroPhoto ? "text-white/85" : "text-muted"}` })}
           <a href="#contact" className="mt-9 inline-flex rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground shadow-xs">
             {T({ path: "hero.ctaLabel", value: hero.ctaLabel || "문의하기", as: "span" })}
           </a>
@@ -53,10 +61,17 @@ export function ClassicTemplate({
           {T({ path: "offers.title", value: offers.title, as: "h2", className: "mb-8 text-center text-2xl font-semibold tracking-tight" })}
           <div className="grid gap-5 md:grid-cols-3">
             {offers.items.map((item, i) => (
-              <div key={i} className="rounded-2xl border border-border bg-white p-6">
-                <div className="mb-3 grid size-9 place-items-center rounded-lg bg-primary-soft font-bold text-primary">{i + 1}</div>
-                {T({ path: `offers.items.${i}.title`, value: item.title, as: "h3", className: "mb-2 font-semibold" })}
-                {T({ path: `offers.items.${i}.description`, value: item.description, as: "p", className: "text-sm leading-relaxed text-muted" })}
+              <div key={i} className="overflow-hidden rounded-2xl border border-border bg-white">
+                {(item.image || editable) && (
+                  <div className="relative aspect-[16/10] w-full border-b border-border">
+                    {Img({ path: `offers.items.${i}.image`, value: item.image })}
+                  </div>
+                )}
+                <div className="p-6">
+                  <div className="mb-3 grid size-9 place-items-center rounded-lg bg-primary-soft font-bold text-primary">{i + 1}</div>
+                  {T({ path: `offers.items.${i}.title`, value: item.title, as: "h3", className: "mb-2 font-semibold" })}
+                  {T({ path: `offers.items.${i}.description`, value: item.description, as: "p", className: "text-sm leading-relaxed text-muted" })}
+                </div>
               </div>
             ))}
           </div>

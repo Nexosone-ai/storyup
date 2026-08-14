@@ -8,6 +8,7 @@ import { Icon } from "@/components/ui/icons";
 import { cn } from "@/utils/cn";
 import { TemplateRenderer, TEMPLATE_META, setPath } from "./templates";
 import { makeEditableRenderer } from "./templates/EditableText";
+import { makeEditableImageRenderer } from "./templates/ImageSlot";
 import { saveWebsiteAction, publishWebsiteAction } from "@/app/business/actions";
 import type { WebsiteContent, WebsiteTemplateId } from "@/types/domain";
 import type { WebsiteRow } from "@/types/database";
@@ -35,6 +36,10 @@ export function WebsiteEditor({
   }, []);
 
   const editRenderer = useMemo(() => makeEditableRenderer(onEdit), [onEdit]);
+  const editImgRenderer = useMemo(
+    () => makeEditableImageRenderer(businessId, onEdit),
+    [businessId, onEdit],
+  );
 
   const setTemplate = (id: WebsiteTemplateId) =>
     setContent((c) => ({ ...c, template: id }));
@@ -143,7 +148,13 @@ export function WebsiteEditor({
           )}
         >
           <div className="max-h-[72vh] overflow-y-auto">
-            <TemplateRenderer content={content} T={editRenderer} editable scoped />
+            <TemplateRenderer
+              content={content}
+              T={editRenderer}
+              Img={editImgRenderer}
+              editable
+              scoped
+            />
           </div>
         </div>
       </div>

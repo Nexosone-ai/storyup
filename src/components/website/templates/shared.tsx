@@ -13,9 +13,20 @@ export interface TextArgs {
 /** Renders a content string — either static text or an inline-editable field. */
 export type TextRenderer = (args: TextArgs) => ReactNode;
 
+export interface ImageArgs {
+  path: string;
+  value?: string;
+  className?: string;
+  kind?: "cover" | "hero";
+}
+
+/** Renders an image slot — either a static <img> or an editable uploader. */
+export type ImageRenderer = (args: ImageArgs) => ReactNode;
+
 export interface TemplateProps {
   content: WebsiteContent;
   T: TextRenderer;
+  Img: ImageRenderer;
   blogHref?: string;
   scoped?: boolean;
   editable?: boolean;
@@ -33,6 +44,32 @@ export const staticText: TextRenderer = ({
     <Tag className={className} style={style}>
       {value}
     </Tag>
+  );
+};
+
+/** Server-safe image renderer for the public site. */
+export const staticImage: ImageRenderer = ({ value, className, kind }) => {
+  if (!value) return null;
+  if (kind === "hero") {
+    return (
+      <>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={value}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/40" />
+      </>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={value}
+      alt=""
+      className={`h-full w-full object-cover ${className ?? ""}`}
+    />
   );
 };
 

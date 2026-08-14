@@ -10,7 +10,13 @@ const CONTACT: Array<[keyof import("@/types/domain").WebsiteContent["contact"], 
     ["website", "웹사이트"],
   ];
 
-export function SplitTemplate({ content, T, blogHref, editable }: TemplateProps) {
+export function SplitTemplate({
+  content,
+  T,
+  Img,
+  blogHref,
+  editable,
+}: TemplateProps) {
   const { hero, story, offers, whyChooseUs, contact } = content;
 
   return (
@@ -37,7 +43,9 @@ export function SplitTemplate({ content, T, blogHref, editable }: TemplateProps)
               {T({ path: "hero.ctaLabel", value: hero.ctaLabel || "문의하기", as: "span" })}
             </a>
           </div>
-          <div className="hidden aspect-[4/5] rounded-2xl bg-primary-soft ring-1 ring-inset ring-primary/10 md:block" />
+          <div className="relative hidden aspect-[4/5] overflow-hidden rounded-2xl border border-border bg-primary-soft md:block">
+            {Img({ path: "hero.image", value: hero.image, kind: "cover" })}
+          </div>
         </div>
       </section>
 
@@ -59,8 +67,16 @@ export function SplitTemplate({ content, T, blogHref, editable }: TemplateProps)
           {T({ path: "offers.title", value: offers.title, as: "h2", className: "mb-8 text-2xl font-semibold tracking-tight" })}
           <div className="divide-y divide-border border-y border-border">
             {offers.items.map((item, i) => (
-              <div key={i} className="grid gap-3 py-6 md:grid-cols-[80px_1fr_2fr] md:items-baseline">
-                <span className="eyebrow text-primary">{String(i + 1).padStart(2, "0")}</span>
+              <div key={i} className="grid gap-4 py-6 md:grid-cols-[120px_1fr_1.6fr] md:items-start">
+                {item.image || editable ? (
+                  <div className="relative aspect-square w-full max-w-[120px] overflow-hidden rounded-lg border border-border">
+                    {Img({ path: `offers.items.${i}.image`, value: item.image })}
+                  </div>
+                ) : (
+                  <span className="eyebrow text-primary">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                )}
                 {T({ path: `offers.items.${i}.title`, value: item.title, as: "h3", className: "text-lg font-semibold" })}
                 {T({ path: `offers.items.${i}.description`, value: item.description, as: "p", className: "text-muted" })}
               </div>

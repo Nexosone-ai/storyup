@@ -49,6 +49,7 @@ export type MarketingPlatform = (typeof MARKETING_PLATFORMS)[number];
 export interface WebsiteCardItem {
   title: string;
   description: string;
+  image?: string;
 }
 
 export const WEBSITE_TEMPLATES = ["classic", "split", "minimal"] as const;
@@ -62,6 +63,7 @@ export interface WebsiteContent {
     headline: string;
     shortDescription: string;
     ctaLabel: string;
+    image?: string;
   };
   story: {
     title: string;

@@ -10,7 +10,13 @@ const CONTACT: Array<[keyof import("@/types/domain").WebsiteContent["contact"], 
     ["website", "웹사이트"],
   ];
 
-export function MinimalTemplate({ content, T, blogHref, editable }: TemplateProps) {
+export function MinimalTemplate({
+  content,
+  T,
+  Img,
+  blogHref,
+  editable,
+}: TemplateProps) {
   const { hero, story, offers, whyChooseUs, contact } = content;
 
   return (
@@ -30,6 +36,11 @@ export function MinimalTemplate({ content, T, blogHref, editable }: TemplateProp
         <a href="#contact" className="mt-8 inline-block border-b-2 border-primary pb-0.5 font-medium text-primary">
           {T({ path: "hero.ctaLabel", value: hero.ctaLabel || "문의하기", as: "span" })}
         </a>
+        {(hero.image || editable) && (
+          <div className="relative mt-12 aspect-[16/9] w-full overflow-hidden rounded-2xl border border-border bg-primary-soft">
+            {Img({ path: "hero.image", value: hero.image, kind: "cover" })}
+          </div>
+        )}
       </section>
 
       <div className="mx-auto max-w-2xl px-6">
@@ -51,7 +62,12 @@ export function MinimalTemplate({ content, T, blogHref, editable }: TemplateProp
           {offers.items.map((item, i) => (
             <div key={i} className="flex gap-6">
               <span className="font-mono text-sm text-muted">{String(i + 1).padStart(2, "0")}</span>
-              <div>
+              <div className="min-w-0 flex-1">
+                {(item.image || editable) && (
+                  <div className="relative mb-3 aspect-[16/9] w-full overflow-hidden rounded-xl border border-border">
+                    {Img({ path: `offers.items.${i}.image`, value: item.image })}
+                  </div>
+                )}
                 {T({ path: `offers.items.${i}.title`, value: item.title, as: "h3", className: "text-xl font-semibold tracking-tight" })}
                 {T({ path: `offers.items.${i}.description`, value: item.description, as: "p", className: "mt-1 leading-relaxed text-muted" })}
               </div>

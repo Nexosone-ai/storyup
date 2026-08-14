@@ -4,8 +4,8 @@ import { ClassicTemplate } from "./Classic";
 import { SplitTemplate } from "./Split";
 import { MinimalTemplate } from "./Minimal";
 
-export { staticText, setPath } from "./shared";
-export type { TemplateProps, TextRenderer } from "./shared";
+export { staticText, staticImage, setPath } from "./shared";
+export type { TemplateProps, TextRenderer, ImageRenderer } from "./shared";
 
 const TEMPLATES: Record<WebsiteTemplateId, (p: TemplateProps) => React.ReactNode> = {
   classic: ClassicTemplate,

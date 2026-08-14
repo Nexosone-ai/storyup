@@ -1,5 +1,5 @@
 import type { WebsiteContent } from "@/types/domain";
-import { TemplateRenderer, staticText } from "./templates";
+import { TemplateRenderer, staticText, staticImage } from "./templates";
 
 /**
  * Public homepage renderer. Server-safe (static text). Picks the layout from
@@ -19,6 +19,7 @@ export function SiteRenderer({
       <TemplateRenderer
         content={content}
         T={staticText}
+        Img={staticImage}
         blogHref={blogHref}
         scoped={scoped}
       />
