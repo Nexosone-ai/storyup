@@ -1,0 +1,161 @@
+@import "tailwindcss";
+
+/* ================================================================== */
+/*  STORYUP — design system                                           */
+/*  "Editorial product craft": warm paper, off-black ink, a single    */
+/*  desaturated evergreen accent. One accent, no decorative gradients. */
+/* ================================================================== */
+
+:root {
+  /* Surfaces — warm paper, not pure white/black */
+  --background: #fbfaf8;
+  --surface: #ffffff;
+  --surface-muted: #f4f2ee;
+  --foreground: #1b1a17;
+  --muted: #726d64;
+  --border: #e9e5dd;
+  --border-strong: #d9d4c9;
+
+  /* Accent — deep evergreen (single accent, sat < 80%) */
+  --primary: #1f6f5a;
+  --primary-hover: #195a49;
+  --primary-soft: #e7f0ec;
+  --primary-foreground: #ffffff;
+
+  /* Functional */
+  --accent: #c2683c; /* warm secondary, used sparingly */
+  --success: #2f855a;
+  --danger: #c0453b;
+  --warning: #b7791f;
+
+  /* Ring */
+  --ring: color-mix(in oklab, var(--primary) 45%, transparent);
+
+  /* Tinted, layered shadows (warm ink, low opacity) */
+  --shadow-xs: 0 1px 2px rgba(27, 26, 23, 0.05);
+  --shadow-sm: 0 1px 2px -1px rgba(27, 26, 23, 0.08),
+    0 2px 5px -2px rgba(27, 26, 23, 0.05);
+  --shadow-md: 0 4px 14px -4px rgba(27, 26, 23, 0.1),
+    0 2px 6px -3px rgba(27, 26, 23, 0.06);
+  --shadow-lg: 0 16px 40px -12px rgba(27, 26, 23, 0.14),
+    0 6px 16px -8px rgba(27, 26, 23, 0.08);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+
+  /* Radius scale — varied: tighter inner, softer container */
+  --radius-md: 0.5rem;
+  --radius-lg: 0.7rem;
+  --radius-xl: 0.9rem;
+  --radius-2xl: 1.15rem;
+  --radius-3xl: 1.6rem;
+
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+
+  --font-sans: var(--font-geist-sans), "Pretendard", "Malgun Gothic",
+    "Apple SD Gothic Neo", system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  /* Headings balance, body pretty — quiet, intentional type */
+  h1, h2, h3, h4 {
+    text-wrap: balance;
+    letter-spacing: -0.017em;
+  }
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Selection + focus reflect the single accent */
+  ::selection {
+    background: var(--primary-soft);
+    color: var(--primary-hover);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Monospace editorial eyebrow/label */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ---- Prose (AI-generated blog content) ---- */
+.prose { max-width: 68ch; }
+.prose h1 { font-size: 1.9rem; font-weight: 700; margin: 1.5em 0 0.5em; letter-spacing: -0.02em; }
+.prose h2 { font-size: 1.45rem; font-weight: 650; margin: 1.5em 0 0.4em; letter-spacing: -0.015em; }
+.prose h3 { font-size: 1.2rem; font-weight: 600; margin: 1.3em 0 0.35em; }
+.prose p { margin: 0.9em 0; line-height: 1.85; }
+.prose ul { list-style: disc; padding-left: 1.4em; margin: 0.9em 0; }
+.prose ol { list-style: decimal; padding-left: 1.4em; margin: 0.9em 0; }
+.prose li { margin: 0.4em 0; line-height: 1.8; }
+.prose li::marker { color: var(--muted); }
+.prose strong { font-weight: 650; color: var(--foreground); }
+.prose a { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
+.prose img { border-radius: var(--radius-xl); margin: 1.2em 0; }
+.prose blockquote {
+  border-left: 2px solid var(--primary);
+  padding-left: 1em;
+  color: var(--muted);
+  margin: 1.2em 0;
+  font-style: normal;
+}
+.prose hr { border: 0; border-top: 1px solid var(--border); margin: 2em 0; }
