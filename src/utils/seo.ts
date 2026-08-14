@@ -8,7 +8,7 @@ interface SeoInput {
   image?: string;
 }
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 /** Builds Next.js Metadata (title, description, OG, keywords) for public pages. */
 export function buildSeo({
