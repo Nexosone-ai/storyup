@@ -85,10 +85,12 @@ async function toggleLike(
   return { ok: true };
 }
 
-export const toggleStoryLike = (postId: string) =>
-  toggleLike("story_connect_likes", postId);
-export const toggleRealTalkLike = (postId: string) =>
-  toggleLike("real_talk_likes", postId);
+export async function toggleStoryLike(postId: string) {
+  return toggleLike("story_connect_likes", postId);
+}
+export async function toggleRealTalkLike(postId: string) {
+  return toggleLike("real_talk_likes", postId);
+}
 
 async function deletePost(
   table: "story_connect_posts" | "real_talk_posts",
@@ -106,7 +108,9 @@ async function deletePost(
   return { ok: true };
 }
 
-export const deleteStoryPost = (postId: string) =>
-  deletePost("story_connect_posts", postId);
-export const deleteRealTalkPost = (postId: string) =>
-  deletePost("real_talk_posts", postId);
+export async function deleteStoryPost(postId: string) {
+  return deletePost("story_connect_posts", postId);
+}
+export async function deleteRealTalkPost(postId: string) {
+  return deletePost("real_talk_posts", postId);
+}
