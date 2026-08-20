@@ -20,6 +20,7 @@ export default async function DashboardLayout({
     { label: "내 비즈니스", href: "/dashboard/businesses", icon: "briefcase" },
     { label: "커뮤니티", href: "/dashboard/community", icon: "chat" },
     { label: "서포터즈", href: "/dashboard/supporters", icon: "users" },
+    { label: "템플릿", href: "/dashboard/templates", icon: "tag" },
     { label: "포인트", href: "/dashboard/points", icon: "coin" },
     ...(admin
       ? [{ label: "관리자", href: "/dashboard/admin", icon: "shield" } as NavItem]

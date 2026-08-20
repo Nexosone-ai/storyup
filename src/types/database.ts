@@ -412,6 +412,64 @@ export interface Database {
         >;
         Relationships: [];
       };
+      premium_templates: {
+        Row: {
+          id: string;
+          creator_user_id: string;
+          creator_name: string;
+          title: string;
+          description: string | null;
+          template_key: string;
+          preview_image: string | null;
+          price_points: number;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          creator_user_id: string;
+          creator_name?: string;
+          title: string;
+          description?: string | null;
+          template_key?: string;
+          preview_image?: string | null;
+          price_points: number;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["premium_templates"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      template_purchases: {
+        Row: {
+          id: string;
+          template_id: string;
+          buyer_user_id: string;
+          creator_user_id: string;
+          price_points: number;
+          creator_earning: number;
+          platform_fee: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          template_id: string;
+          buyer_user_id: string;
+          creator_user_id: string;
+          price_points: number;
+          creator_earning: number;
+          platform_fee: number;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["template_purchases"]["Insert"]
+        >;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

@@ -69,6 +69,9 @@ export const PROJECT_STATUS_LABEL: Record<string, string> = {
   completed: "완료됨",
 };
 
+/** Platform fee (%) taken from premium-template sales. */
+export const PLATFORM_FEE_PERCENT = 20;
+
 // ---- Website template content (stored in websites.content JSONB) ----
 
 export interface WebsiteCardItem {

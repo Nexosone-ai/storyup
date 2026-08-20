@@ -135,6 +135,12 @@ export const Icon = {
       <path d="M16 5.2a3.2 3.2 0 0 1 0 6M17 20a5.5 5.5 0 0 0-3-4.9" />
     </Svg>
   ),
+  tag: (p: IconProps) => (
+    <Svg {...p}>
+      <path d="M20.6 13.4 12 22l-9-9V4h9l8.6 8.6a1.4 1.4 0 0 1 0 2Z" />
+      <circle cx="7.5" cy="7.5" r="1.3" />
+    </Svg>
+  ),
 };
 
 export type IconName = keyof typeof Icon;
