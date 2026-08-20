@@ -5,6 +5,7 @@ import { getUser, getProfileName } from "@/lib/queries";
 const NAV: NavItem[] = [
   { label: "대시보드", href: "/dashboard", icon: "home", exact: true },
   { label: "내 비즈니스", href: "/dashboard/businesses", icon: "briefcase" },
+  { label: "커뮤니티", href: "/dashboard/community", icon: "chat" },
   { label: "설정", href: "/dashboard/settings", icon: "settings" },
 ];
 

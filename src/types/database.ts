@@ -176,6 +176,80 @@ export interface Database {
         >;
         Relationships: [];
       };
+      story_connect_posts: {
+        Row: {
+          id: string;
+          user_id: string;
+          author_name: string;
+          content: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          author_name?: string;
+          content: string;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["story_connect_posts"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      story_connect_likes: {
+        Row: {
+          id: string;
+          post_id: string;
+          user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          post_id: string;
+          user_id: string;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["story_connect_likes"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      real_talk_posts: {
+        Row: {
+          id: string;
+          user_id: string;
+          content: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          content: string;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["real_talk_posts"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      real_talk_likes: {
+        Row: {
+          id: string;
+          post_id: string;
+          user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          post_id: string;
+          user_id: string;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["real_talk_likes"]["Insert"]
+        >;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
