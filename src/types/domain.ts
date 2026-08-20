@@ -53,6 +53,22 @@ export const PUBLISH_CHANNEL_LABEL: Record<PublishChannel, string> = {
   naver: "네이버 블로그",
 };
 
+export const SUPPORTER_ROLES = ["designer", "editor", "musician"] as const;
+export type SupporterRole = (typeof SUPPORTER_ROLES)[number];
+
+export const SUPPORTER_ROLE_LABEL: Record<SupporterRole, string> = {
+  designer: "디자이너",
+  editor: "영상 편집자",
+  musician: "음악 제작자",
+};
+
+export const PROJECT_STATUS_LABEL: Record<string, string> = {
+  requested: "요청됨",
+  accepted: "수락됨",
+  declined: "거절됨",
+  completed: "완료됨",
+};
+
 // ---- Website template content (stored in websites.content JSONB) ----
 
 export interface WebsiteCardItem {

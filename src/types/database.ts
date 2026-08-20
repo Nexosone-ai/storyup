@@ -352,6 +352,66 @@ export interface Database {
         >;
         Relationships: [];
       };
+      supporter_profiles: {
+        Row: {
+          id: string;
+          user_id: string;
+          role: string;
+          display_name: string;
+          bio: string | null;
+          skills: string[];
+          portfolio_url: string | null;
+          contact: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          role: string;
+          display_name: string;
+          bio?: string | null;
+          skills?: string[];
+          portfolio_url?: string | null;
+          contact?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["supporter_profiles"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      collaboration_projects: {
+        Row: {
+          id: string;
+          business_id: string;
+          supporter_user_id: string;
+          business_name: string;
+          supporter_name: string;
+          title: string;
+          description: string | null;
+          budget_points: number | null;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          supporter_user_id: string;
+          business_name?: string;
+          supporter_name?: string;
+          title: string;
+          description?: string | null;
+          budget_points?: number | null;
+          status?: string;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["collaboration_projects"]["Insert"]
+        >;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
