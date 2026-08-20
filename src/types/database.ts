@@ -20,6 +20,7 @@ export interface Database {
           user_id: string;
           name: string | null;
           email: string | null;
+          is_admin: boolean;
           created_at: string;
         };
         Insert: {
@@ -27,6 +28,7 @@ export interface Database {
           user_id: string;
           name?: string | null;
           email?: string | null;
+          is_admin?: boolean;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
@@ -297,6 +299,56 @@ export interface Database {
         };
         Update: Partial<
           Database["public"]["Tables"]["publish_schedules"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      point_transactions: {
+        Row: {
+          id: string;
+          user_id: string;
+          amount: number;
+          reason: string;
+          ref_type: string | null;
+          ref_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          amount: number;
+          reason: string;
+          ref_type?: string | null;
+          ref_id?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["point_transactions"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      withdrawal_requests: {
+        Row: {
+          id: string;
+          user_id: string;
+          amount: number;
+          account_info: string;
+          status: string;
+          decided_by: string | null;
+          decided_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          amount: number;
+          account_info: string;
+          status?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["withdrawal_requests"]["Insert"]
         >;
         Relationships: [];
       };

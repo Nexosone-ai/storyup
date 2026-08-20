@@ -116,6 +116,18 @@ export const Icon = {
       <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 0 1-.9-3.8A8.38 8.38 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5Z" />
     </Svg>
   ),
+  coin: (p: IconProps) => (
+    <Svg {...p}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v10M9.5 9.5h4a1.5 1.5 0 0 1 0 3H10a1.5 1.5 0 0 0 0 3h4.5" />
+    </Svg>
+  ),
+  shield: (p: IconProps) => (
+    <Svg {...p}>
+      <path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6Z" />
+      <path d="m9 12 2 2 4-4" />
+    </Svg>
+  ),
 };
 
 export type IconName = keyof typeof Icon;
