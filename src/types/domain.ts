@@ -44,6 +44,15 @@ export type BlogLength = (typeof BLOG_LENGTHS)[number];
 export const MARKETING_PLATFORMS = ["instagram", "facebook"] as const;
 export type MarketingPlatform = (typeof MARKETING_PLATFORMS)[number];
 
+export const PUBLISH_CHANNELS = ["blogger", "tistory", "naver"] as const;
+export type PublishChannel = (typeof PUBLISH_CHANNELS)[number];
+
+export const PUBLISH_CHANNEL_LABEL: Record<PublishChannel, string> = {
+  blogger: "Google Blogger",
+  tistory: "티스토리",
+  naver: "네이버 블로그",
+};
+
 // ---- Website template content (stored in websites.content JSONB) ----
 
 export interface WebsiteCardItem {

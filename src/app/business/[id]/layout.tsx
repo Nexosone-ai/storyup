@@ -27,6 +27,7 @@ export default async function BusinessLayout({
     { label: "홈페이지", href: `${base}/website`, icon: "globe" },
     { label: "블로그", href: `${base}/blog`, icon: "pen" },
     { label: "마케팅", href: `${base}/marketing`, icon: "megaphone" },
+    { label: "발행", href: `${base}/publishing`, icon: "external" },
     { label: "애널리틱스", href: `${base}/analytics`, icon: "chart" },
   ];
 

@@ -250,6 +250,56 @@ export interface Database {
         >;
         Relationships: [];
       };
+      blog_connections: {
+        Row: {
+          id: string;
+          business_id: string;
+          channel: string;
+          account_label: string | null;
+          connected: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          channel: string;
+          account_label?: string | null;
+          connected?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["blog_connections"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      publish_schedules: {
+        Row: {
+          id: string;
+          business_id: string;
+          blog_post_id: string | null;
+          channel: string;
+          scheduled_at: string;
+          status: string;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          blog_post_id?: string | null;
+          channel: string;
+          scheduled_at: string;
+          status?: string;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["publish_schedules"]["Insert"]
+        >;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
