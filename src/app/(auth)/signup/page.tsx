@@ -1,24 +1,28 @@
 import Link from "next/link";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { SignupForm } from "@/components/auth/AuthForms";
+import { getDict } from "@/lib/i18n";
 
 export const metadata = { title: "회원가입" };
 
-export default function SignupPage() {
+export default async function SignupPage() {
+  const { t } = await getDict();
+  const a = t.auth;
   return (
     <AuthShell
-      title="STORYUP 시작하기"
-      subtitle="이야기 하나면 충분합니다."
+      title={a.signupTitle}
+      subtitle={a.signupSub}
+      homeLabel={a.home}
       footer={
         <>
-          이미 계정이 있나요?{" "}
+          {a.haveAccount}{" "}
           <Link href="/login" className="font-medium text-primary">
-            로그인
+            {a.toLogin}
           </Link>
         </>
       }
     >
-      <SignupForm />
+      <SignupForm t={a} />
     </AuthShell>
   );
 }

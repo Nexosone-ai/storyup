@@ -16,7 +16,9 @@ import {
   type BusinessCategory,
   type BrandTone,
 } from "@/types/domain";
+import type { Dict } from "@/lib/i18n";
 
+type OnbDict = Dict["onboarding"];
 const TOTAL = 6;
 
 const empty: BusinessInterviewInput = {
@@ -28,7 +30,7 @@ const empty: BusinessInterviewInput = {
   tone: "" as BrandTone,
 };
 
-export function OnboardingWizard() {
+export function OnboardingWizard({ t }: { t: OnbDict }) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [data, setData] = useState<BusinessInterviewInput>(empty);
@@ -62,7 +64,7 @@ export function OnboardingWizard() {
   const next = () => {
     setError(null);
     if (!canAdvance()) {
-      setError("이 항목을 입력해주세요.");
+      setError(t.required);
       return;
     }
     if (step < TOTAL) setStep((s) => s + 1);
@@ -93,7 +95,7 @@ export function OnboardingWizard() {
           onClick={() => router.push("/dashboard")}
           className="rounded-lg px-3 py-1.5 text-sm text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
         >
-          나중에 하기
+          {t.later}
         </button>
       </header>
 
@@ -102,7 +104,7 @@ export function OnboardingWizard() {
         <div className="mb-10">
           <div className="mb-2 flex items-center justify-between">
             <p className="eyebrow">
-              Step <span className="tnum text-foreground">{step}</span> / {TOTAL}
+              {t.step} <span className="tnum text-foreground">{step}</span> / {TOTAL}
             </p>
             <p className="eyebrow tnum">
               {Math.round((step / TOTAL) * 100)}%
@@ -119,21 +121,21 @@ export function OnboardingWizard() {
         <div className="flex-1">
           {step === 1 && (
             <StepShell
-              title="사업 또는 프로젝트 이름은 무엇인가요?"
-              hint="나중에 언제든 바꿀 수 있어요."
+              title={t.q[0].t}
+              hint={t.q[0].h || undefined}
             >
               <Input
                 autoFocus
                 value={data.name}
                 onChange={(e) => set("name", e.target.value)}
-                placeholder="예: 카페 모멘트"
+                placeholder={t.q[0].p}
                 onKeyDown={(e) => e.key === "Enter" && next()}
               />
             </StepShell>
           )}
 
           {step === 2 && (
-            <StepShell title="어떤 사업을 하고 계신가요?">
+            <StepShell title={t.q[1].t}>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {BUSINESS_CATEGORIES.map((c) => (
                   <button
@@ -154,42 +156,42 @@ export function OnboardingWizard() {
           )}
 
           {step === 3 && (
-            <StepShell title="왜 이 사업을 시작하셨나요?">
+            <StepShell title={t.q[2].t}>
               <Textarea
                 autoFocus
                 value={data.founder_story}
                 onChange={(e) => set("founder_story", e.target.value)}
-                placeholder="사업을 시작하게 된 계기나 특별한 이야기를 자유롭게 들려주세요."
+                placeholder={t.q[2].p}
               />
             </StepShell>
           )}
 
           {step === 4 && (
-            <StepShell title="주요 고객은 누구인가요?">
+            <StepShell title={t.q[3].t}>
               <Textarea
                 autoFocus
                 value={data.target_customer}
                 onChange={(e) => set("target_customer", e.target.value)}
-                placeholder="예: 20~30대 직장인, 지역 주민, 외국인 관광객, 스타트업, 기업 고객"
+                placeholder={t.q[3].p}
                 className="min-h-24"
               />
             </StepShell>
           )}
 
           {step === 5 && (
-            <StepShell title="우리 사업의 가장 큰 장점은 무엇인가요?">
+            <StepShell title={t.q[4].t}>
               <Textarea
                 autoFocus
                 value={data.strengths}
                 onChange={(e) => set("strengths", e.target.value)}
-                placeholder="예: 직접 로스팅한 커피, 매일 만드는 디저트, 편안한 공간"
+                placeholder={t.q[4].p}
                 className="min-h-24"
               />
             </StepShell>
           )}
 
           {step === 6 && (
-            <StepShell title="고객에게 어떤 이미지로 기억되고 싶나요?">
+            <StepShell title={t.q[5].t}>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {BRAND_TONES.map((t) => (
                   <button
@@ -220,7 +222,7 @@ export function OnboardingWizard() {
             className={step === 1 ? "invisible" : ""}
           >
             <Icon.arrowLeft width={18} height={18} />
-            이전
+            {t.back}
           </Button>
           <Button onClick={next} disabled={pending}>
             {pending ? (
@@ -228,10 +230,10 @@ export function OnboardingWizard() {
             ) : step === TOTAL ? (
               <>
                 <Icon.sparkles width={18} height={18} />
-                브랜드 만들기
+                {t.create}
               </>
             ) : (
-              "다음"
+              t.next
             )}
           </Button>
         </div>

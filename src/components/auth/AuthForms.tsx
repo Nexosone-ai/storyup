@@ -11,7 +11,9 @@ import {
   resetRequestAction,
   type AuthState,
 } from "@/app/(auth)/actions";
+import type { Dict } from "@/lib/i18n";
 
+type AuthDict = Dict["auth"];
 const initial: AuthState = {};
 
 function Alert({ state }: { state: AuthState }) {
@@ -30,7 +32,7 @@ function Alert({ state }: { state: AuthState }) {
   return null;
 }
 
-export function LoginForm() {
+export function LoginForm({ t }: { t: AuthDict }) {
   const [state, action, pending] = useActionState(signInAction, initial);
   const params = useSearchParams();
   const redirect = params.get("redirect") ?? "/dashboard";
@@ -39,11 +41,11 @@ export function LoginForm() {
     <form action={action} className="space-y-4">
       <input type="hidden" name="redirect" value={redirect} />
       <div>
-        <Label htmlFor="email">이메일</Label>
+        <Label htmlFor="email">{t.email}</Label>
         <Input id="email" name="email" type="email" autoComplete="email" required />
       </div>
       <div>
-        <Label htmlFor="password">비밀번호</Label>
+        <Label htmlFor="password">{t.password}</Label>
         <Input
           id="password"
           name="password"
@@ -54,27 +56,27 @@ export function LoginForm() {
       </div>
       <Alert state={state} />
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? <Spinner /> : "로그인"}
+        {pending ? <Spinner /> : t.login}
       </Button>
     </form>
   );
 }
 
-export function SignupForm() {
+export function SignupForm({ t }: { t: AuthDict }) {
   const [state, action, pending] = useActionState(signUpAction, initial);
 
   return (
     <form action={action} className="space-y-4">
       <div>
-        <Label htmlFor="name">이름</Label>
+        <Label htmlFor="name">{t.name}</Label>
         <Input id="name" name="name" type="text" autoComplete="name" required />
       </div>
       <div>
-        <Label htmlFor="email">이메일</Label>
+        <Label htmlFor="email">{t.email}</Label>
         <Input id="email" name="email" type="email" autoComplete="email" required />
       </div>
       <div>
-        <Label htmlFor="password">비밀번호</Label>
+        <Label htmlFor="password">{t.password}</Label>
         <Input
           id="password"
           name="password"
@@ -83,28 +85,28 @@ export function SignupForm() {
           minLength={6}
           required
         />
-        <p className="mt-1 text-xs text-muted">6자 이상 입력해주세요.</p>
+        <p className="mt-1 text-xs text-muted">{t.pwHint}</p>
       </div>
       <Alert state={state} />
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? <Spinner /> : "무료로 시작하기"}
+        {pending ? <Spinner /> : t.signup}
       </Button>
     </form>
   );
 }
 
-export function ResetForm() {
+export function ResetForm({ t }: { t: AuthDict }) {
   const [state, action, pending] = useActionState(resetRequestAction, initial);
 
   return (
     <form action={action} className="space-y-4">
       <div>
-        <Label htmlFor="email">이메일</Label>
+        <Label htmlFor="email">{t.email}</Label>
         <Input id="email" name="email" type="email" autoComplete="email" required />
       </div>
       <Alert state={state} />
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? <Spinner /> : "재설정 링크 보내기"}
+        {pending ? <Spinner /> : t.sendReset}
       </Button>
     </form>
   );

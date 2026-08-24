@@ -7,11 +7,13 @@ export function AuthShell({
   subtitle,
   children,
   footer,
+  homeLabel = "← 홈으로",
 }: {
   title: string;
   subtitle?: string;
   children: ReactNode;
   footer?: ReactNode;
+  homeLabel?: string;
 }) {
   return (
     <div className="flex min-h-dvh flex-col bg-background">
@@ -37,7 +39,7 @@ export function AuthShell({
               href="/"
               className="eyebrow transition-colors hover:text-foreground"
             >
-              ← 홈으로
+              {homeLabel}
             </Link>
           </div>
         </div>

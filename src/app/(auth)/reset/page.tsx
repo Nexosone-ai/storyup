@@ -1,21 +1,25 @@
 import Link from "next/link";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { ResetForm } from "@/components/auth/AuthForms";
+import { getDict } from "@/lib/i18n";
 
 export const metadata = { title: "비밀번호 재설정" };
 
-export default function ResetPage() {
+export default async function ResetPage() {
+  const { t } = await getDict();
+  const a = t.auth;
   return (
     <AuthShell
-      title="비밀번호 재설정"
-      subtitle="가입한 이메일로 재설정 링크를 보내드립니다."
+      title={a.resetTitle}
+      subtitle={a.resetSub}
+      homeLabel={a.home}
       footer={
         <Link href="/login" className="font-medium text-primary">
-          ← 로그인으로 돌아가기
+          {a.backLogin}
         </Link>
       }
     >
-      <ResetForm />
+      <ResetForm t={a} />
     </AuthShell>
   );
 }
