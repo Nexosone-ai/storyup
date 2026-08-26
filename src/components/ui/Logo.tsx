@@ -16,10 +16,12 @@ export function Logo({
         className,
       )}
     >
-      <span className="grid size-8 place-items-center rounded-lg bg-primary text-[15px] font-bold text-primary-foreground shadow-xs">
+      <span className="neon-glow grid size-8 place-items-center rounded-lg bg-primary text-[15px] font-bold text-primary-foreground">
         S
       </span>
-      <span className="text-[17px]">STORYUP</span>
+      <span className="neon-text font-[family-name:var(--font-display)] text-[17px] font-bold uppercase tracking-tight text-primary">
+        STORYUP
+      </span>
     </Link>
   );
 }

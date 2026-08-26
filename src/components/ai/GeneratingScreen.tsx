@@ -35,7 +35,7 @@ export function GeneratingScreen({
     return (
       <div className="grid min-h-[60vh] place-items-center">
         <div className="w-full max-w-md rounded-2xl border border-border bg-surface p-8 text-center shadow-sm">
-          <div className="mx-auto mb-4 grid size-11 place-items-center rounded-xl bg-[#fbeceb] text-danger">
+          <div className="mx-auto mb-4 grid size-11 place-items-center rounded-xl bg-danger/10 text-danger">
             <Icon.x className="size-5" />
           </div>
           <h2 className="text-lg font-semibold tracking-tight">

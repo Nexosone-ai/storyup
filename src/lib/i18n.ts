@@ -15,9 +15,10 @@ export const translations = {
     nav: { login: "로그인", start: "무료로 시작하기" },
     landing: {
       eyebrow: "AI 비즈니스 브랜딩 플랫폼",
-      title1: "당신의 이야기를",
-      title2: "비즈니스",
-      title3: "로.",
+      badge: "크리에이터를 위한 에디토리얼 툴킷",
+      title1: "당신의 이야기가",
+      title2: "사업",
+      title3: "이 되는 곳",
       sub: "사업 이야기를 들려주세요. AI가 브랜드, 홈페이지, 블로그 콘텐츠로 만들어드립니다.",
       cta: "무료로 시작하기",
       how: "어떻게 작동하나요?",
@@ -46,8 +47,30 @@ export const translations = {
       ],
       ctaTitle: "지금 바로 시작해보세요",
       ctaSub: "사업 이야기 하나면 충분합니다. STORYUP이 브랜드와 콘텐츠로 만들어드립니다.",
+      storyT1: "모든 ",
+      storyT2: "이야기",
+      storyT3: "를 담다",
+      storyTypes: ["여행", "비즈니스", "라이프스타일", "푸드"],
+      elevateTitle: "콘텐츠의 격을 높이세요",
+      elevateSub:
+        "아이디어를 설득력 있는 이야기로 바꿔주는 정교한 도구 모음입니다.",
+      bentoBlogT: "AI 블로그 생성",
+      bentoBlogD:
+        "흩어진 생각을 구조화된 장문의 글로 바꿔드립니다. AI가 당신만의 목소리를 이해하고 공감을 얻는 글을 씁니다.",
+      bentoCardT: "카드뉴스",
+      bentoCardD:
+        "한입 크기의 비주얼 스토리. SNS 배포에 딱 맞는 스와이프형 콘텐츠를 만들어보세요.",
+      tryNow: "지금 사용해보기",
+      communityLabel: "커뮤니티",
+      connectTitle: "Story Connect",
+      connectSub:
+        "같은 길을 걷는 사업자들과 이야기를 나누고, 서로의 브랜드를 응원하세요. 이야기 하나가 새로운 인연이 됩니다.",
+      connectCta: "네트워크 참여하기",
     },
-    footer: { tagline: "당신의 이야기를 비즈니스로. · Turn Your Story Into Business." },
+    footer: {
+      tagline: "당신의 이야기를 비즈니스로. · Turn Your Story Into Business.",
+      links: ["이용약관", "개인정보처리방침", "고객 지원"],
+    },
     auth: {
       loginTitle: "다시 오신 걸 환영해요",
       loginSub: "STORYUP 계정으로 로그인하세요.",
@@ -92,9 +115,10 @@ export const translations = {
     nav: { login: "Log in", start: "Get started free" },
     landing: {
       eyebrow: "AI business branding platform",
-      title1: "Turn your story",
-      title2: "into business",
-      title3: ".",
+      badge: "The Editorial Toolkit for Creators",
+      title1: "Where your story",
+      title2: "becomes business",
+      title3: "",
       sub: "Tell us your business story. AI turns it into your brand, website, and blog content.",
       cta: "Get started free",
       how: "How it works",
@@ -123,8 +147,30 @@ export const translations = {
       ],
       ctaTitle: "Start right now",
       ctaSub: "One business story is all it takes. STORYUP turns it into your brand and content.",
+      storyT1: "Tell Every ",
+      storyT2: "Story",
+      storyT3: "",
+      storyTypes: ["Travel", "Business", "Lifestyle", "Food"],
+      elevateTitle: "Elevate Your Content",
+      elevateSub:
+        "A suite of crafted tools designed to transform your ideas into compelling narratives with editorial finesse.",
+      bentoBlogT: "AI Blog Generation",
+      bentoBlogD:
+        "Transform scattered thoughts into structured, engaging long-form articles. Our AI understands your unique voice and crafts posts that resonate.",
+      bentoCardT: "Card News",
+      bentoCardD:
+        "Bite-sized visual stories. Create stunning swipeable content perfect for social distribution.",
+      tryNow: "Try it now",
+      communityLabel: "Community",
+      connectTitle: "Story Connect",
+      connectSub:
+        "Share your journey with fellow entrepreneurs and cheer each other's brands on. One story starts a new connection.",
+      connectCta: "Join the Network",
     },
-    footer: { tagline: "Turn Your Story Into Business." },
+    footer: {
+      tagline: "Turn Your Story Into Business.",
+      links: ["Terms of Service", "Privacy Policy", "Contact Support"],
+    },
     auth: {
       loginTitle: "Welcome back",
       loginSub: "Log in to your STORYUP account.",

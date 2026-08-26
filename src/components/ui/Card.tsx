@@ -35,7 +35,7 @@ export function Badge({
     success: "bg-primary-soft text-primary ring-1 ring-inset ring-primary/15",
     muted: "bg-surface-muted text-muted ring-1 ring-inset ring-border-strong/40",
     primary: "bg-primary-soft text-primary ring-1 ring-inset ring-primary/15",
-    warning: "bg-[#faf3e4] text-warning ring-1 ring-inset ring-warning/15",
+    warning: "bg-warning/10 text-warning ring-1 ring-inset ring-warning/15",
   } as const;
   return (
     <span

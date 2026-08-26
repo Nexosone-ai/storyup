@@ -19,7 +19,7 @@ const initial: AuthState = {};
 function Alert({ state }: { state: AuthState }) {
   if (state.error)
     return (
-      <p className="rounded-lg bg-[#fbeceb] px-3.5 py-2.5 text-sm text-danger ring-1 ring-inset ring-danger/10">
+      <p className="rounded-lg bg-danger/10 px-3.5 py-2.5 text-sm text-danger ring-1 ring-inset ring-danger/10">
         {state.error}
       </p>
     );

@@ -151,7 +151,7 @@ export function WebsiteEditor({
       <div className="overflow-hidden rounded-2xl border border-border bg-surface-muted/40 p-3">
         <div
           className={cn(
-            "mx-auto overflow-hidden rounded-xl border border-border bg-white transition-all",
+            "theme-editorial-light mx-auto overflow-hidden rounded-xl border border-border bg-white transition-all",
             device === "mobile" ? "max-w-[390px]" : "w-full",
           )}
         >

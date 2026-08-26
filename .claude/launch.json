@@ -3,8 +3,9 @@
   "configurations": [
     {
       "name": "storyup",
-      "url": "http://localhost:3000",
-      "autoPort": false
+      "runtimeExecutable": "npm.cmd",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
     }
   ]
 }

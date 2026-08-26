@@ -2,12 +2,47 @@
 
 /* ================================================================== */
 /*  STORYUP — design system                                           */
-/*  "Editorial product craft": warm paper, off-black ink, a single    */
-/*  desaturated evergreen accent. One accent, no decorative gradients. */
+/*  "Neon Tokyo — Retro-Futurism": moody near-black surfaces with     */
+/*  neon accents that glow. Hot pink primary, cyan secondary, warm    */
+/*  yellow tertiary. Neon is an accent, never a surface.              */
 /* ================================================================== */
 
 :root {
-  /* Surfaces — warm paper, not pure white/black */
+  /* Surfaces — near-black with a blue undertone, layered by lightness */
+  --background: #0a0a12;
+  --surface: #141422;
+  --surface-muted: #1e1e30;
+  --foreground: #e8e0f0;
+  --muted: #a098b0;
+  --border: #302840;
+  --border-strong: #5a5068;
+
+  /* Accents — neon, used sparingly (max 2 per view) */
+  --primary: #ff2d78;
+  --primary-hover: #ff4d8f;
+  --primary-soft: rgba(255, 45, 120, 0.14);
+  --primary-foreground: #1a0010;
+
+  /* Functional */
+  --accent: #00ffcc; /* cyan neon — links, data highlights */
+  --tertiary: #ffe04a; /* warm neon yellow — badges, emphasis */
+  --success: #00e6b8;
+  --danger: #ff4444;
+  --warning: #ffe04a;
+
+  /* Ring */
+  --ring: color-mix(in oklab, var(--primary) 55%, transparent);
+
+  /* Elevation — no traditional shadows; diffused dark falloff + faint tint */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.6);
+}
+
+/* Scoped light theme for published business sites (/site/[slug]) and the
+   homepage editor preview — the original "editorial paper" palette. */
+.theme-editorial-light {
   --background: #fbfaf8;
   --surface: #ffffff;
   --surface-muted: #f4f2ee;
@@ -16,22 +51,19 @@
   --border: #e9e5dd;
   --border-strong: #d9d4c9;
 
-  /* Accent — deep evergreen (single accent, sat < 80%) */
   --primary: #1f6f5a;
   --primary-hover: #195a49;
   --primary-soft: #e7f0ec;
   --primary-foreground: #ffffff;
 
-  /* Functional */
-  --accent: #c2683c; /* warm secondary, used sparingly */
+  --accent: #c2683c;
+  --tertiary: #b7791f;
   --success: #2f855a;
   --danger: #c0453b;
   --warning: #b7791f;
 
-  /* Ring */
   --ring: color-mix(in oklab, var(--primary) 45%, transparent);
 
-  /* Tinted, layered shadows (warm ink, low opacity) */
   --shadow-xs: 0 1px 2px rgba(27, 26, 23, 0.05);
   --shadow-sm: 0 1px 2px -1px rgba(27, 26, 23, 0.08),
     0 2px 5px -2px rgba(27, 26, 23, 0.05);
@@ -39,6 +71,9 @@
     0 2px 6px -3px rgba(27, 26, 23, 0.06);
   --shadow-lg: 0 16px 40px -12px rgba(27, 26, 23, 0.14),
     0 6px 16px -8px rgba(27, 26, 23, 0.08);
+
+  background: var(--background);
+  color: var(--foreground);
 }
 
 @theme inline {
@@ -55,24 +90,30 @@
   --color-primary-soft: var(--primary-soft);
   --color-primary-foreground: var(--primary-foreground);
   --color-accent: var(--accent);
+  --color-tertiary: var(--tertiary);
   --color-success: var(--success);
   --color-danger: var(--danger);
   --color-warning: var(--warning);
 
-  /* Radius scale — varied: tighter inner, softer container */
-  --radius-md: 0.5rem;
-  --radius-lg: 0.7rem;
-  --radius-xl: 0.9rem;
-  --radius-2xl: 1.15rem;
-  --radius-3xl: 1.6rem;
+  /* Radius scale — tighter, more technical than before */
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.7rem;
+  --radius-2xl: 0.9rem;
+  --radius-3xl: 1.2rem;
 
   --shadow-xs: var(--shadow-xs);
   --shadow-sm: var(--shadow-sm);
   --shadow-md: var(--shadow-md);
   --shadow-lg: var(--shadow-lg);
 
-  --font-sans: var(--font-geist-sans), "Pretendard", "Malgun Gothic",
+  --font-sans: var(--font-inter), "Pretendard", "Malgun Gothic",
     "Apple SD Gothic Neo", system-ui, sans-serif;
+  --font-display: var(--font-sora), var(--font-inter), "Pretendard",
+    "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+  --font-label: var(--font-space-grotesk), var(--font-inter), "Pretendard",
+    system-ui, sans-serif;
+  --font-serif: var(--font-dm-serif), "Noto Serif KR", Georgia, serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
@@ -95,17 +136,26 @@
     font-feature-settings: "cv11", "ss01";
   }
 
-  /* Headings balance, body pretty — quiet, intentional type */
   h1, h2, h3, h4 {
     text-wrap: balance;
     letter-spacing: -0.017em;
+    font-family: var(--font-display);
+  }
+  .theme-editorial-light h1,
+  .theme-editorial-light h2,
+  .theme-editorial-light h3,
+  .theme-editorial-light h4 {
+    font-family: var(--font-sans);
   }
   p {
     text-wrap: pretty;
   }
 
-  /* Selection + focus reflect the single accent */
   ::selection {
+    background: rgba(255, 45, 120, 0.3);
+    color: var(--foreground);
+  }
+  .theme-editorial-light ::selection {
     background: var(--primary-soft);
     color: var(--primary-hover);
   }
@@ -125,20 +175,98 @@
 }
 
 @layer utilities {
-  /* Monospace editorial eyebrow/label */
+  /* Technical uppercase eyebrow/label — Space Grotesk */
   .eyebrow {
-    font-family: var(--font-mono);
+    font-family: var(--font-label);
     font-size: 0.72rem;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.15em;
     text-transform: uppercase;
+    font-weight: 700;
     color: var(--muted);
   }
   .tnum {
     font-variant-numeric: tabular-nums;
   }
+
+  /* ---- Neon Tokyo core patterns ---- */
+  .neon-glow {
+    box-shadow: 0 0 10px rgba(255, 45, 120, 0.5), 0 0 20px rgba(255, 45, 120, 0.3),
+      inset 0 0 10px rgba(255, 45, 120, 0.2);
+  }
+  .neon-text {
+    text-shadow: 0 0 5px rgba(255, 45, 120, 0.8), 0 0 10px rgba(255, 45, 120, 0.5);
+  }
+  .neon-text-cyan {
+    text-shadow: 0 0 5px rgba(0, 255, 204, 0.7), 0 0 10px rgba(0, 255, 204, 0.4);
+  }
+  .neon-border {
+    border: 1px solid rgba(255, 45, 120, 0.5);
+    box-shadow: 0 0 15px rgba(255, 45, 120, 0.2);
+  }
+  .cyber-grid {
+    background-size: 40px 40px;
+    background-image: linear-gradient(to right, rgba(90, 80, 104, 0.1) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(90, 80, 104, 0.1) 1px, transparent 1px);
+  }
+  .hero-gradient {
+    background: radial-gradient(circle at center, rgba(255, 45, 120, 0.15) 0%, rgba(10, 10, 18, 0) 70%);
+  }
+
+  /* ---- Editorial section patterns (light band on the landing page) ---- */
+  .editorial-glass-panel {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(110, 99, 141, 0.1);
+  }
+  .ambient-shadow {
+    box-shadow: 0 20px 40px rgba(110, 99, 141, 0.08);
+  }
+  .editorial-bracket-tl {
+    position: relative;
+  }
+  .editorial-bracket-tl::before {
+    content: "";
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    width: 16px;
+    height: 16px;
+    border-top: 1px solid #6e638d;
+    border-left: 1px solid #6e638d;
+    pointer-events: none;
+  }
+  .editorial-bracket-br {
+    position: relative;
+  }
+  .editorial-bracket-br::after {
+    content: "";
+    position: absolute;
+    bottom: -8px;
+    right: -8px;
+    width: 16px;
+    height: 16px;
+    border-bottom: 1px solid #6e638d;
+    border-right: 1px solid #6e638d;
+    pointer-events: none;
+  }
+  .story-line {
+    position: relative;
+  }
+  .story-line::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 40px;
+    background-color: rgba(217, 195, 225, 0.5);
+    pointer-events: none;
+  }
 }
 
-/* ---- Prose (AI-generated blog content) ---- */
+/* ---- Prose (AI-generated blog content) — colors follow the active theme ---- */
 .prose { max-width: 68ch; }
 .prose h1 { font-size: 1.9rem; font-weight: 700; margin: 1.5em 0 0.5em; letter-spacing: -0.02em; }
 .prose h2 { font-size: 1.45rem; font-weight: 650; margin: 1.5em 0 0.4em; letter-spacing: -0.015em; }
