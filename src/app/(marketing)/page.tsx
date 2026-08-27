@@ -69,7 +69,19 @@ export default async function LandingPage() {
       <MarketingNav />
 
       {/* Hero — Neon Tokyo */}
-      <section className="hero-gradient relative flex flex-col items-center overflow-hidden px-5 pt-24 pb-28 text-center sm:px-8 sm:pt-32 sm:pb-36">
+      <section className="hero-gradient relative flex flex-col items-center overflow-hidden px-5 pt-16 pb-28 text-center sm:px-8 sm:pt-20 sm:pb-36">
+        <div className="neon-glow mb-10 w-full max-w-3xl overflow-hidden rounded-2xl border border-primary/40 bg-black">
+          <div className="aspect-video">
+            <iframe
+              className="size-full"
+              src="https://www.youtube.com/embed/jInhdNCG2Iw"
+              title="STORYUP 소개 영상"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+            />
+          </div>
+        </div>
         <div className="neon-glow mb-8 inline-flex items-center justify-center rounded-full border border-primary/30 bg-surface-muted px-4 py-1.5">
           <span className="font-[family-name:var(--font-label)] text-xs font-bold uppercase tracking-[0.2em] text-primary">
             {L.badge}

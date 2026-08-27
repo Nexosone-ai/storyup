@@ -16,9 +16,9 @@ export const translations = {
     landing: {
       eyebrow: "AI 비즈니스 브랜딩 플랫폼",
       badge: "크리에이터를 위한 에디토리얼 툴킷",
-      title1: "당신의 이야기가",
-      title2: "사업",
-      title3: "이 되는 곳",
+      title1: "당신의 사업이",
+      title2: "이야기",
+      title3: "가 되는 곳",
       sub: "사업 이야기를 들려주세요. AI가 브랜드, 홈페이지, 블로그 콘텐츠로 만들어드립니다.",
       cta: "무료로 시작하기",
       how: "어떻게 작동하나요?",
@@ -116,8 +116,8 @@ export const translations = {
     landing: {
       eyebrow: "AI business branding platform",
       badge: "The Editorial Toolkit for Creators",
-      title1: "Where your story",
-      title2: "becomes business",
+      title1: "Where your business",
+      title2: "becomes a story",
       title3: "",
       sub: "Tell us your business story. AI turns it into your brand, website, and blog content.",
       cta: "Get started free",
