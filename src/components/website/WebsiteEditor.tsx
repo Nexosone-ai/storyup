@@ -11,7 +11,13 @@ import { makeEditableRenderer } from "./templates/EditableText";
 import { makeEditableImageRenderer } from "./templates/ImageSlot";
 import { makeEditableGallery } from "./templates/GallerySection";
 import { saveWebsiteAction, publishWebsiteAction } from "@/app/business/actions";
-import type { WebsiteContent, WebsiteTemplateId } from "@/types/domain";
+import { SITE_FONTS, SITE_PALETTES, siteStyleVars } from "./siteStyle";
+import type {
+  WebsiteContent,
+  WebsiteFontId,
+  WebsitePaletteId,
+  WebsiteTemplateId,
+} from "@/types/domain";
 import type { WebsiteRow } from "@/types/database";
 
 type Device = "desktop" | "mobile";
@@ -51,6 +57,15 @@ export function WebsiteEditor({
 
   const setTemplate = (id: WebsiteTemplateId) =>
     setContent((c) => ({ ...c, template: id }));
+
+  const setPalette = (id: WebsitePaletteId) =>
+    setContent((c) => ({ ...c, style: { ...c.style, palette: id } }));
+
+  const setFont = (id: WebsiteFontId) =>
+    setContent((c) => ({ ...c, style: { ...c.style, font: id } }));
+
+  const palette = content.style?.palette ?? "forest";
+  const font = content.style?.font ?? "default";
 
   const save = () =>
     startSave(async () => {
@@ -142,6 +157,46 @@ export function WebsiteEditor({
         </div>
       </div>
 
+      {/* Style picker: theme color + font */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border border-border bg-surface p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="eyebrow mr-1">테마 색상</span>
+          {SITE_PALETTES.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => setPalette(p.id)}
+              title={p.name}
+              aria-label={p.name}
+              className={cn(
+                "size-7 rounded-full border-2 transition-transform hover:scale-110",
+                palette === p.id
+                  ? "border-foreground ring-2 ring-primary/40"
+                  : "border-border-strong",
+              )}
+              style={{ backgroundColor: p.primary }}
+            />
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="eyebrow mr-1">폰트</span>
+          {SITE_FONTS.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setFont(f.id)}
+              className={cn(
+                "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
+                font === f.id
+                  ? "border-primary bg-primary-soft text-primary"
+                  : "border-border-strong text-muted hover:bg-surface-muted hover:text-foreground",
+              )}
+              style={f.stack ? { fontFamily: f.stack } : undefined}
+            >
+              {f.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {note && <p className="text-sm text-primary">{note}</p>}
       <p className="text-xs text-muted">
         아래 미리보기에서 텍스트를 클릭하면 바로 수정할 수 있어요. 수정 후 저장을 눌러주세요.
@@ -154,6 +209,7 @@ export function WebsiteEditor({
             "theme-editorial-light mx-auto overflow-hidden rounded-xl border border-border bg-white transition-all",
             device === "mobile" ? "max-w-[390px]" : "w-full",
           )}
+          style={siteStyleVars(content.style)}
         >
           <div className="max-h-[72vh] overflow-y-auto">
             <TemplateRenderer

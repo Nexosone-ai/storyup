@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type {
   BusinessRow,
@@ -170,8 +171,9 @@ export interface PublishedSite {
   website: WebsiteRow;
 }
 
-/** A published website + its business, by public slug. RLS allows anon read. */
-export async function getPublishedSite(
+/** A published website + its business, by public slug. RLS allows anon read.
+ *  cache(): layout + page both call this within one request — one query. */
+export const getPublishedSite = cache(async function getPublishedSite(
   slug: string,
 ): Promise<PublishedSite | null> {
   if (!supabaseConfigured()) return null;
@@ -192,7 +194,7 @@ export async function getPublishedSite(
   if (!business) return null;
 
   return { business, website };
-}
+});
 
 export async function getPublishedPosts(
   businessId: string,

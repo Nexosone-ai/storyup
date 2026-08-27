@@ -83,9 +83,27 @@ export interface WebsiteCardItem {
 export const WEBSITE_TEMPLATES = ["classic", "split", "minimal"] as const;
 export type WebsiteTemplateId = (typeof WEBSITE_TEMPLATES)[number];
 
+export const WEBSITE_PALETTES = [
+  "forest",
+  "ocean",
+  "plum",
+  "terracotta",
+  "rose",
+  "charcoal",
+] as const;
+export type WebsitePaletteId = (typeof WEBSITE_PALETTES)[number];
+
+export const WEBSITE_FONTS = ["default", "noto-sans", "serif", "gowun"] as const;
+export type WebsiteFontId = (typeof WEBSITE_FONTS)[number];
+
 export interface WebsiteContent {
   /** Chosen layout template (defaults to "classic"). */
   template?: WebsiteTemplateId;
+  /** Visual style picked in the editor (defaults to forest + default font). */
+  style?: {
+    palette?: WebsitePaletteId;
+    font?: WebsiteFontId;
+  };
   hero: {
     businessName: string;
     headline: string;

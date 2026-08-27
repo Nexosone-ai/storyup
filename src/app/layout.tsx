@@ -5,6 +5,9 @@ import {
   Space_Grotesk,
   DM_Serif_Display,
   Geist_Mono,
+  Noto_Sans_KR,
+  Noto_Serif_KR,
+  Gowun_Dodum,
 } from "next/font/google";
 import "./globals.css";
 
@@ -34,6 +37,26 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Site-editor font choices (loaded lazily; used on published business sites)
+const notoSansKr = Noto_Sans_KR({
+  variable: "--font-noto-sans-kr",
+  subsets: ["latin"],
+  preload: false,
+});
+
+const notoSerifKr = Noto_Serif_KR({
+  variable: "--font-noto-serif-kr",
+  subsets: ["latin"],
+  preload: false,
+});
+
+const gowunDodum = Gowun_Dodum({
+  variable: "--font-gowun-dodum",
+  weight: "400",
+  subsets: ["latin"],
+  preload: false,
+});
+
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 export const metadata: Metadata = {
@@ -59,7 +82,7 @@ export default function RootLayout({
   return (
     <html
       lang="ko"
-      className={`${inter.variable} ${sora.variable} ${spaceGrotesk.variable} ${dmSerif.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${sora.variable} ${spaceGrotesk.variable} ${dmSerif.variable} ${geistMono.variable} ${notoSansKr.variable} ${notoSerifKr.variable} ${gowunDodum.variable} h-full antialiased`}
     >
       <body className="min-h-full cyber-grid">{children}</body>
     </html>
