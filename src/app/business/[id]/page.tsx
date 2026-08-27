@@ -85,7 +85,7 @@ export default async function BusinessOverviewPage({
           <ButtonLink
             href={`/site/${website.slug}`}
             variant="outline"
-            size="sm"
+            size="sm" target="_blank" rel="noopener noreferrer"
           >
             <Icon.external width={16} height={16} />
             공개 홈페이지 열기

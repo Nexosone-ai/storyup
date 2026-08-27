@@ -12,7 +12,7 @@ export async function getLocale(): Promise<Locale> {
 
 export const translations = {
   ko: {
-    nav: { login: "로그인", start: "무료로 시작하기" },
+    nav: { login: "로그인", start: "무료로 시작하기", dashboard: "대시보드", logout: "로그아웃" },
     landing: {
       eyebrow: "AI 비즈니스 브랜딩 플랫폼",
       badge: "크리에이터를 위한 에디토리얼 툴킷",
@@ -112,7 +112,7 @@ export const translations = {
     },
   },
   en: {
-    nav: { login: "Log in", start: "Get started free" },
+    nav: { login: "Log in", start: "Get started free", dashboard: "Dashboard", logout: "Log out" },
     landing: {
       eyebrow: "AI business branding platform",
       badge: "The Editorial Toolkit for Creators",
