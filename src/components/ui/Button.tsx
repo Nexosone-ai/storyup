@@ -1,6 +1,10 @@
 import { cn } from "@/utils/cn";
 import Link from "next/link";
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type {
+  AnchorHTMLAttributes,
+  ButtonHTMLAttributes,
+  ReactNode,
+} from "react";
 
 type Variant = "primary" | "secondary" | "outline" | "ghost" | "danger";
 type Size = "sm" | "md" | "lg";
@@ -55,11 +59,13 @@ export function ButtonLink({
   size = "md",
   className,
   children,
-}: CommonProps & { href: string }) {
+  ...props
+}: CommonProps & { href: string } & AnchorHTMLAttributes<HTMLAnchorElement>) {
   return (
     <Link
       href={href}
       className={cn(base, variants[variant], sizes[size], className)}
+      {...props}
     >
       {children}
     </Link>

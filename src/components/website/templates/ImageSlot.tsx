@@ -99,15 +99,25 @@ function ImageSlot({
             </button>
           </div>
         </>
+      ) : hero ? (
+        <>
+          {/* 배경 텍스트가 위에 그려지므로 라벨은 우상단 pill로 분리 */}
+          <div className="absolute inset-0 border border-dashed border-primary/40 bg-primary-soft/40" />
+          <button
+            type="button"
+            onClick={pick}
+            disabled={busy}
+            className="absolute right-2 top-2 z-10 rounded-md bg-black/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur transition hover:bg-black/75"
+          >
+            {busy ? "업로드 중..." : "＋ 배경 이미지 추가"}
+          </button>
+        </>
       ) : (
         <button
           type="button"
           onClick={pick}
           disabled={busy}
-          className={cn(
-            "flex h-full w-full flex-col items-center justify-center gap-1 border border-dashed border-primary/40 bg-primary-soft/40 text-sm font-medium text-primary transition hover:bg-primary-soft",
-            hero ? "" : "rounded-xl",
-          )}
+          className="flex h-full w-full flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-primary/40 bg-primary-soft/40 text-sm font-medium text-primary transition hover:bg-primary-soft"
         >
           <span className="text-lg">＋</span>
           {busy ? "업로드 중..." : "이미지 추가"}

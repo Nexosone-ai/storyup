@@ -86,7 +86,7 @@ export function WebsiteEditor({
         </div>
         <div className="flex items-center gap-2">
           {status === "published" && (
-            <ButtonLink href={`/site/${website.slug}`} variant="outline" size="sm">
+            <ButtonLink href={`/site/${website.slug}`} variant="outline" size="sm" target="_blank" rel="noopener noreferrer">
               <Icon.external width={16} height={16} />
               사이트 열기
             </ButtonLink>
