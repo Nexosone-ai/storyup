@@ -68,20 +68,22 @@ export default async function LandingPage() {
     <div className="flex min-h-dvh flex-col">
       <MarketingNav />
 
+      {/* Full-bleed intro video */}
+      <section className="relative h-[70svh] w-full overflow-hidden bg-black sm:h-svh">
+        <video
+          className="absolute inset-0 size-full object-cover"
+          src="/videos/intro.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+        />
+        {/* 아래 히어로 배경으로 자연스럽게 이어지는 그라데이션 */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent to-[#0a0a12]" />
+      </section>
+
       {/* Hero — Neon Tokyo */}
       <section className="hero-gradient relative flex flex-col items-center overflow-hidden px-5 pt-16 pb-28 text-center sm:px-8 sm:pt-20 sm:pb-36">
-        <div className="neon-glow mb-10 w-full max-w-3xl overflow-hidden rounded-2xl border border-primary/40 bg-black">
-          <div className="aspect-video">
-            <iframe
-              className="size-full"
-              src="https://www.youtube.com/embed/jInhdNCG2Iw"
-              title="STORYUP 소개 영상"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerPolicy="strict-origin-when-cross-origin"
-              allowFullScreen
-            />
-          </div>
-        </div>
         <div className="neon-glow mb-8 inline-flex items-center justify-center rounded-full border border-primary/30 bg-surface-muted px-4 py-1.5">
           <span className="font-[family-name:var(--font-label)] text-xs font-bold uppercase tracking-[0.2em] text-primary">
             {L.badge}
