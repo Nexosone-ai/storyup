@@ -182,7 +182,7 @@ export default async function LandingPage() {
                 src="/images/landing-blog.jpg"
                 alt="노트와 펜이 놓인 라벤더 톤의 작업 테이블"
                 loading="lazy"
-                className="mt-8 h-48 w-full rounded-lg object-cover opacity-90 transition-opacity duration-500 group-hover:opacity-100"
+                className="mt-8 w-full rounded-lg opacity-90 transition-opacity duration-500 group-hover:opacity-100"
               />
             </div>
 
