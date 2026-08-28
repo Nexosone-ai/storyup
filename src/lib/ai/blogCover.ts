@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
+import { getAIProvider } from "@/lib/ai";
 import { getImageProvider } from "@/lib/ai/image";
 import { buildBlogCoverPrompt } from "@/lib/ai/image/prompt";
 
@@ -14,10 +15,20 @@ export async function generateAndStoreBlogCover(opts: {
   category: string;
   title: string;
   keywords: string[];
+  /** 블로그 생성 결과의 image_subject (영문). 없으면 제목·키워드로 즉석 생성. */
+  imageSubject?: string;
   timeoutMs?: number;
 }): Promise<string | null> {
   try {
-    const prompt = buildBlogCoverPrompt(opts.category, opts.title, opts.keywords);
+    const scene =
+      opts.imageSubject?.trim() ||
+      (await getAIProvider()
+        .generateImageSubject({
+          category: opts.category,
+          text: [opts.title, ...opts.keywords].join(", "),
+        })
+        .catch(() => opts.keywords.join(", ") || opts.title));
+    const prompt = buildBlogCoverPrompt(opts.category, scene);
 
     const generate = getImageProvider().generateImage(prompt, "16:9");
     const image = opts.timeoutMs

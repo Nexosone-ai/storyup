@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getAIProvider } from "@/lib/ai";
 import { getImageProvider, ImageGenerationError } from "@/lib/ai/image";
 import type { ImageAspect } from "@/lib/ai/image";
 import { buildCardImagePrompt } from "@/lib/ai/image/prompt";
@@ -41,7 +42,11 @@ export async function POST(request: Request) {
     );
 
   try {
-    const prompt = buildCardImagePrompt(business.category, subject);
+    // 한글 카드 문구를 영문 피사체 묘사로 변환 (이미지 모델은 한글을 이해하지 못함)
+    const scene = await getAIProvider()
+      .generateImageSubject({ category: business.category, text: subject })
+      .catch(() => subject);
+    const prompt = buildCardImagePrompt(business.category, scene);
     const { b64, mime } = await getImageProvider().generateImage(prompt, aspect);
     return NextResponse.json({ ok: true, image: `data:${mime};base64,${b64}` });
   } catch (err) {

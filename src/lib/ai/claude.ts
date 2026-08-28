@@ -84,6 +84,27 @@ export class ClaudeProvider implements AIProvider {
   generateCardNews(input: CardNewsPromptInput) {
     return this.complete<CardNewsResult>(cardNewsPrompt(input), 1500);
   }
+
+  async generateImageSubject(input: {
+    category: string;
+    text: string;
+  }): Promise<string> {
+    const spec: PromptSpec = {
+      system:
+        '당신은 사진 촬영 지시문을 쓰는 아트 디렉터입니다. 반드시 {"subject": "..."} 형태의 순수 JSON만 반환하세요.',
+      user: `업종: ${input.category}
+내용: ${input.text.slice(0, 300)}
+
+위 내용을 대표하는 정물 사진의 피사체를 영어 한 문장으로 묘사하세요.
+- 구체적인 사물·음식·공간 디테일만 포함
+- 사람, 손, 신체, 글자는 절대 포함 금지
+- 예: "freshly baked sourdough bread loaves and wheat stalks on a rustic wooden table"
+
+{"subject": "..."} JSON으로만 응답하세요.`,
+    };
+    const res = await this.complete<{ subject: string }>(spec, 300);
+    return res.subject;
+  }
 }
 
 /** Tolerant JSON extraction — strips code fences / prose around the object. */

@@ -96,6 +96,7 @@ export async function POST(request: Request) {
       category: business.category,
       title: article.title,
       keywords: article.keywords ?? [],
+      imageSubject: article.image_subject,
       timeoutMs: 25_000,
     });
     if (cover) {

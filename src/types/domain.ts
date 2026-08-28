@@ -172,6 +172,8 @@ export interface BlogArticleResult {
   seo_title: string;
   seo_description: string;
   social_caption: string;
+  /** 커버 사진용 영문 피사체 묘사 (사람 없는 정물 장면) */
+  image_subject?: string;
 }
 
 export interface MarketingContentResult {

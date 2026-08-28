@@ -41,7 +41,8 @@ content 는 Markdown 형식(##, **, - 목록 사용)으로 작성합니다.
   "keywords": ["SEO 키워드 5개"],
   "seo_title": "60자 이내 SEO 제목",
   "seo_description": "150자 이내 메타 설명",
-  "social_caption": "SNS 공유용 짧은 캡션"
+  "social_caption": "SNS 공유용 짧은 캡션",
+  "image_subject": "커버 사진 피사체 묘사 (영어 한 문장, 사람·손·글자 없이 구체적인 사물·음식·공간만. 예: freshly baked sourdough bread loaves and wheat stalks on a rustic wooden table)"
 }`;
 
   return { system, user };
