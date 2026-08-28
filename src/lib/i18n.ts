@@ -92,6 +92,8 @@ export const translations = {
       backLogin: "← 로그인으로 돌아가기",
       home: "← 홈으로",
       pwHint: "6자 이상 입력해주세요.",
+      or: "또는",
+      google: "구글로 계속하기",
     },
     onboarding: {
       later: "나중에 하기",
@@ -192,6 +194,8 @@ export const translations = {
       backLogin: "← Back to log in",
       home: "← Home",
       pwHint: "Use at least 6 characters.",
+      or: "or",
+      google: "Continue with Google",
     },
     onboarding: {
       later: "Do it later",

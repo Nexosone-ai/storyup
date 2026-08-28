@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 
 export interface AuthState {
   error?: string;
@@ -68,6 +69,26 @@ export async function signUpAction(
     message:
       "확인 이메일을 보냈습니다. 메일의 링크를 눌러 가입을 완료해주세요",
   };
+}
+
+export async function signInWithGoogleAction(formData: FormData): Promise<void> {
+  const next = String(formData.get("redirect") ?? "/dashboard");
+  const safeNext = next.startsWith("/") ? next : "/dashboard";
+
+  // 로컬(3001)과 프로덕션 어디서 열려도 현재 오리진으로 돌아오도록 헤더에서 추론
+  const h = await headers();
+  const origin = h.get("origin") ?? siteUrl;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(safeNext)}`,
+    },
+  });
+
+  if (error || !data.url) redirect("/login?error=auth");
+  redirect(data.url);
 }
 
 export async function resetRequestAction(
