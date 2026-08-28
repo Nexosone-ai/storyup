@@ -41,6 +41,21 @@ export type BlogTone = (typeof BLOG_TONES)[number];
 export const BLOG_LENGTHS = ["Short", "Medium", "Long"] as const;
 export type BlogLength = (typeof BLOG_LENGTHS)[number];
 
+// 값은 DB·AI 프롬프트에서 그대로 쓰이므로 표시용 한글 라벨만 분리
+export const BLOG_TONE_LABEL: Record<BlogTone, string> = {
+  Friendly: "친근한",
+  Professional: "전문적인",
+  Informative: "정보 전달형",
+  Storytelling: "스토리텔링",
+  Promotional: "홍보형",
+};
+
+export const BLOG_LENGTH_LABEL: Record<BlogLength, string> = {
+  Short: "짧게",
+  Medium: "보통",
+  Long: "길게",
+};
+
 export const MARKETING_PLATFORMS = ["instagram", "facebook"] as const;
 export type MarketingPlatform = (typeof MARKETING_PLATFORMS)[number];
 

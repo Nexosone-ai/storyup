@@ -10,6 +10,8 @@ import { GeneratingScreen } from "@/components/ai/GeneratingScreen";
 import {
   BLOG_TONES,
   BLOG_LENGTHS,
+  BLOG_TONE_LABEL,
+  BLOG_LENGTH_LABEL,
   type BlogTone,
   type BlogLength,
 } from "@/types/domain";
@@ -89,7 +91,7 @@ export function BlogComposer({ businessId }: { businessId: string }) {
             >
               {BLOG_TONES.map((t) => (
                 <option key={t} value={t}>
-                  {t}
+                  {BLOG_TONE_LABEL[t]}
                 </option>
               ))}
             </Select>
@@ -103,7 +105,7 @@ export function BlogComposer({ businessId }: { businessId: string }) {
             >
               {BLOG_LENGTHS.map((l) => (
                 <option key={l} value={l}>
-                  {l}
+                  {BLOG_LENGTH_LABEL[l]}
                 </option>
               ))}
             </Select>

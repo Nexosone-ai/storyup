@@ -148,7 +148,7 @@ export function OnboardingWizard({ t }: { t: OnbDict }) {
                         : "border-border-strong bg-surface text-foreground hover:border-muted/50 hover:bg-surface-muted",
                     )}
                   >
-                    {c}
+                    {t.categoryLabels[c]}
                   </button>
                 ))}
               </div>
@@ -193,18 +193,18 @@ export function OnboardingWizard({ t }: { t: OnbDict }) {
           {step === 6 && (
             <StepShell title={t.q[5].t}>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {BRAND_TONES.map((t) => (
+                {BRAND_TONES.map((tone) => (
                   <button
-                    key={t}
-                    onClick={() => set("tone", t)}
+                    key={tone}
+                    onClick={() => set("tone", tone)}
                     className={cn(
                       "rounded-lg border px-4 py-3 text-sm font-medium transition-all duration-150 active:translate-y-px",
-                      data.tone === t
+                      data.tone === tone
                         ? "border-primary bg-primary-soft text-primary shadow-xs"
                         : "border-border-strong bg-surface text-foreground hover:border-muted/50 hover:bg-surface-muted",
                     )}
                   >
-                    {t}
+                    {t.toneLabels[tone]}
                   </button>
                 ))}
               </div>
