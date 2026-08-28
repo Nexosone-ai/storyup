@@ -134,6 +134,7 @@ export interface Database {
           seo_title: string | null;
           seo_description: string | null;
           social_caption: string | null;
+          cover_image_url: string | null;
           status: PublishStatus;
           published_at: string | null;
         } & Timestamps;
@@ -148,6 +149,7 @@ export interface Database {
           seo_title?: string | null;
           seo_description?: string | null;
           social_caption?: string | null;
+          cover_image_url?: string | null;
           status?: PublishStatus;
           published_at?: string | null;
           created_at?: string;

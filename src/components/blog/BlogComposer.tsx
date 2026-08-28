@@ -21,6 +21,7 @@ const STEPS = [
   "구성을 잡는 중...",
   "글을 쓰는 중...",
   "SEO를 다듬는 중...",
+  "커버 이미지를 만드는 중...",
 ];
 
 export function BlogComposer({ businessId }: { businessId: string }) {

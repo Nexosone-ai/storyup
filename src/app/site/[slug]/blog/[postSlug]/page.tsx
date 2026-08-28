@@ -69,13 +69,22 @@ export default async function PublicArticlePage({
         {post.summary && (
           <p className="mt-4 text-lg text-muted">{post.summary}</p>
         )}
-        <BlogCover
-          title={post.title}
-          seed={post.slug}
-          label={post.keywords[0] ? `#${post.keywords[0]}` : undefined}
-          showTitle={false}
-          className="mt-8 aspect-[16/7] w-full rounded-2xl"
-        />
+        {post.cover_image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element -- 원격 스토리지 URL, 크기 고정 컨테이너
+          <img
+            src={post.cover_image_url}
+            alt={post.title}
+            className="mt-8 aspect-[16/7] w-full rounded-2xl object-cover"
+          />
+        ) : (
+          <BlogCover
+            title={post.title}
+            seed={post.slug}
+            label={post.keywords[0] ? `#${post.keywords[0]}` : undefined}
+            showTitle={false}
+            className="mt-8 aspect-[16/7] w-full rounded-2xl"
+          />
+        )}
         <div
           className="prose mt-8 max-w-none"
           dangerouslySetInnerHTML={{ __html: html }}

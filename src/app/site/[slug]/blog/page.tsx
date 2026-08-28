@@ -63,13 +63,22 @@ export default async function PublicBlogListPage({
                   href={`/site/${slug}/blog/${post.slug}`}
                   className="group block rounded-2xl border border-border p-6 transition hover:border-primary/40"
                 >
-                  <BlogCover
-                    title={post.title}
-                    seed={post.slug}
-                    label={post.keywords[0] ? `#${post.keywords[0]}` : undefined}
-                    showTitle={false}
-                    className="mb-4 aspect-[16/6] w-full rounded-xl"
-                  />
+                  {post.cover_image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- 원격 스토리지 URL, 크기 고정 컨테이너
+                    <img
+                      src={post.cover_image_url}
+                      alt={post.title}
+                      className="mb-4 aspect-[16/6] w-full rounded-xl object-cover"
+                    />
+                  ) : (
+                    <BlogCover
+                      title={post.title}
+                      seed={post.slug}
+                      label={post.keywords[0] ? `#${post.keywords[0]}` : undefined}
+                      showTitle={false}
+                      className="mb-4 aspect-[16/6] w-full rounded-xl"
+                    />
+                  )}
                   <p className="text-xs text-muted">
                     {fmtDate(post.published_at)}
                   </p>

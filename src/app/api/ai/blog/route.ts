@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAIProvider, AIGenerationError } from "@/lib/ai";
+import { generateAndStoreBlogCover } from "@/lib/ai/blogCover";
 import { slugWithFallback, randomSuffix } from "@/utils/slug";
 import { BLOG_TONES, BLOG_LENGTHS } from "@/types/domain";
 import type { BlogTone, BlogLength } from "@/types/domain";
@@ -88,6 +89,21 @@ export async function POST(request: Request) {
       .select("id")
       .single();
     if (error || !inserted) throw error ?? new Error("insert failed");
+
+    // 커버 이미지는 실패하거나 늦어도 글 생성을 막지 않는다 (플레이스홀더로 대체).
+    const cover = await generateAndStoreBlogCover({
+      businessId,
+      category: business.category,
+      title: article.title,
+      keywords: article.keywords ?? [],
+      timeoutMs: 25_000,
+    });
+    if (cover) {
+      await supabase
+        .from("blog_posts")
+        .update({ cover_image_url: cover })
+        .eq("id", inserted.id);
+    }
 
     return NextResponse.json({ ok: true, postId: inserted.id });
   } catch (err) {

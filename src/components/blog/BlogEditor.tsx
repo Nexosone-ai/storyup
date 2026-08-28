@@ -9,6 +9,8 @@ import { Spinner } from "@/components/ui/Spinner";
 import { Icon } from "@/components/ui/icons";
 import { cn } from "@/utils/cn";
 import { saveBlogAction, publishBlogAction } from "@/app/business/actions";
+import { fixCjkBold } from "@/utils/markdown";
+import { BlogCover } from "@/components/blog/BlogCover";
 import type { BlogPostRow } from "@/types/database";
 
 marked.setOptions({ gfm: true, breaks: true });
@@ -30,16 +32,39 @@ export function BlogEditor({
   const [summary, setSummary] = useState(post.summary ?? "");
   const [content, setContent] = useState(post.content ?? "");
   const [status, setStatus] = useState(post.status);
+  const [cover, setCover] = useState(post.cover_image_url ?? null);
   const [tab, setTab] = useState<Tab>("write");
   const [note, setNote] = useState<string | null>(null);
   const [saving, startSave] = useTransition();
   const [publishing, startPublish] = useTransition();
+  const [coverPending, startCover] = useTransition();
   const ref = useRef<HTMLTextAreaElement>(null);
 
   const previewHtml = useMemo(
-    () => marked.parse(content || "_내용을 입력하세요._") as string,
+    () => marked.parse(fixCjkBold(content || "_내용을 입력하세요._")) as string,
     [content],
   );
+
+  const generateCover = () =>
+    startCover(async () => {
+      setNote(null);
+      try {
+        const res = await fetch("/api/ai/blog-cover", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ businessId, postId: post.id }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json.url) {
+          setNote(json.error ?? "이미지 생성에 실패했습니다.");
+          return;
+        }
+        setCover(json.url);
+        setNote("커버 이미지가 생성되었습니다.");
+      } catch {
+        setNote("이미지 생성에 실패했습니다. 다시 시도해주세요.");
+      }
+    });
 
   const wrap = (before: string, after = "") => {
     const el = ref.current;
@@ -149,6 +174,45 @@ export function BlogEditor({
           value={summary}
           onChange={(e) => setSummary(e.target.value)}
         />
+      </div>
+
+      {/* Cover image */}
+      <div>
+        <div className="mb-1.5 flex items-center justify-between">
+          <Label>커버 이미지</Label>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={generateCover}
+            disabled={coverPending}
+          >
+            {coverPending ? (
+              <>
+                <Spinner className="h-4 w-4" />
+                생성 중...
+              </>
+            ) : cover ? (
+              "AI로 다시 생성"
+            ) : (
+              "AI 커버 이미지 생성"
+            )}
+          </Button>
+        </div>
+        {cover ? (
+          // eslint-disable-next-line @next/next/no-img-element -- 원격 스토리지 URL, 크기 고정 컨테이너
+          <img
+            src={cover}
+            alt="커버 이미지"
+            className="aspect-[16/7] w-full rounded-xl object-cover"
+          />
+        ) : (
+          <BlogCover
+            title={title}
+            seed={post.slug}
+            showTitle={false}
+            className="aspect-[16/7] w-full rounded-xl"
+          />
+        )}
       </div>
 
       {/* Content editor */}
