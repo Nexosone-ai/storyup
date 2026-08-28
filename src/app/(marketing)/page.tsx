@@ -177,7 +177,13 @@ export default async function LandingPage() {
                 </h3>
                 <p className="max-w-md text-base text-[#48454e]">{L.bentoBlogD}</p>
               </div>
-              <div className="mt-8 h-48 rounded-lg bg-gradient-to-br from-[#e9e2f2] via-[#f5f0ea] to-[#f9d7dd] opacity-80 transition-opacity duration-500 group-hover:opacity-100" />
+              {/* eslint-disable-next-line @next/next/no-img-element -- 정적 에셋, 크기 고정 컨테이너 */}
+              <img
+                src="/images/landing-blog.jpg"
+                alt="노트와 펜이 놓인 라벤더 톤의 작업 테이블"
+                loading="lazy"
+                className="mt-8 h-48 w-full rounded-lg object-cover opacity-90 transition-opacity duration-500 group-hover:opacity-100"
+              />
             </div>
 
             {/* Card News */}
@@ -228,7 +234,15 @@ export default async function LandingPage() {
                   {L.connectCta}
                 </Link>
               </div>
-              <div className="editorial-bracket-tl editorial-bracket-br h-[260px] w-full flex-1 rounded-lg bg-gradient-to-br from-[#d9c3e1]/50 via-[#f5f0ea] to-[#c9d8d2]/60 sm:h-[320px]" />
+              <div className="editorial-bracket-tl editorial-bracket-br h-[260px] w-full flex-1 sm:h-[320px]">
+                {/* eslint-disable-next-line @next/next/no-img-element -- 정적 에셋, 크기 고정 컨테이너 */}
+                <img
+                  src="/images/landing-connect.jpg"
+                  alt="창가에 나란히 놓인 두 개의 꽃병"
+                  loading="lazy"
+                  className="size-full rounded-lg object-cover"
+                />
+              </div>
             </div>
           </div>
         </div>
