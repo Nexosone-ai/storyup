@@ -15,7 +15,7 @@ export const COMPANY = {
 
 export const companyInfoRows = () =>
   [
-    ["상호", COMPANY.name],
+    ["", COMPANY.name],
     ["대표", COMPANY.representative],
     ["사업자등록번호", COMPANY.businessNumber],
     ["통신판매업신고", COMPANY.mailOrderNumber],

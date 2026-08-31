@@ -222,7 +222,7 @@ export default async function LandingPage() {
           <br />
           {L.ctaTitle2}
         </h2>
-        <p className="mx-auto mt-6 max-w-xl text-[17px] leading-relaxed text-muted">
+        <p className="mx-auto mt-6 max-w-xl whitespace-pre-line text-[17px] leading-relaxed text-muted">
           {L.ctaSub}
         </p>
         <Link
