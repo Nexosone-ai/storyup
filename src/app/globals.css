@@ -2,42 +2,57 @@
 
 /* ================================================================== */
 /*  STORYUP — design system                                           */
-/*  "Neon Tokyo — Retro-Futurism": moody near-black surfaces with     */
-/*  neon accents that glow. Hot pink primary, cyan secondary, warm    */
-/*  yellow tertiary. Neon is an accent, never a surface.              */
+/*  로고 기반 라이트 테마: 흰 배경 + 네이비 텍스트(#242936),           */
+/*  브랜드 그라데이션 보라(#7B31CF)→핑크(#E43C73)→오렌지(#FB6227).     */
+/*  메인 액션 컬러는 로고의 오렌지. 디스플레이 서체는 Fraunces 세리프. */
 /* ================================================================== */
 
 :root {
-  /* Surfaces — near-black with a blue undertone, layered by lightness */
-  --background: #0a0a12;
-  --surface: #141422;
-  --surface-muted: #1e1e30;
-  --foreground: #e8e0f0;
-  --muted: #a098b0;
-  --border: #302840;
-  --border-strong: #5a5068;
+  /* Surfaces — white, layered by warm gray */
+  --background: #ffffff;
+  --surface: #ffffff;
+  --surface-muted: #f6f5f3;
+  --foreground: #242936;
+  --muted: #6a7080;
+  --border: #e8e6e2;
+  --border-strong: #d2cfc9;
 
-  /* Accents — neon, used sparingly (max 2 per view) */
-  --primary: #ff2d78;
-  --primary-hover: #ff4d8f;
-  --primary-soft: rgba(255, 45, 120, 0.14);
-  --primary-foreground: #1a0010;
+  /* Brand */
+  --brand-navy: #242936;
+  --brand-purple: #7b31cf;
+  --brand-pink: #e43c73;
+  --brand-orange: #fb6227;
+  --brand-gradient: linear-gradient(
+    100deg,
+    #7b31cf 0%,
+    #e43c73 52%,
+    #fb6227 100%
+  );
+
+  /* Accents */
+  --primary: #fb6227;
+  --primary-hover: #e14e15;
+  --primary-soft: #fff0e8;
+  --primary-foreground: #ffffff;
 
   /* Functional */
-  --accent: #00ffcc; /* cyan neon — links, data highlights */
-  --tertiary: #ffe04a; /* warm neon yellow — badges, emphasis */
-  --success: #00e6b8;
-  --danger: #ff4444;
-  --warning: #ffe04a;
+  --accent: #7b31cf; /* 보라 — 링크, 데이터 하이라이트 */
+  --tertiary: #e43c73; /* 핑크 — 배지, 강조 */
+  --success: #1f9d6b;
+  --danger: #d43f3f;
+  --warning: #c9861b;
 
   /* Ring */
-  --ring: color-mix(in oklab, var(--primary) 55%, transparent);
+  --ring: color-mix(in oklab, var(--primary) 45%, transparent);
 
-  /* Elevation — no traditional shadows; diffused dark falloff + faint tint */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.45);
-  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.6);
+  /* Elevation */
+  --shadow-xs: 0 1px 2px rgba(36, 41, 54, 0.05);
+  --shadow-sm: 0 1px 2px -1px rgba(36, 41, 54, 0.08),
+    0 2px 5px -2px rgba(36, 41, 54, 0.05);
+  --shadow-md: 0 4px 14px -4px rgba(36, 41, 54, 0.1),
+    0 2px 6px -3px rgba(36, 41, 54, 0.06);
+  --shadow-lg: 0 16px 40px -12px rgba(36, 41, 54, 0.14),
+    0 6px 16px -8px rgba(36, 41, 54, 0.08);
 }
 
 /* Scoped light theme for published business sites (/site/[slug]) and the
@@ -107,13 +122,13 @@
   --shadow-md: var(--shadow-md);
   --shadow-lg: var(--shadow-lg);
 
-  --font-sans: var(--font-inter), "Pretendard", "Malgun Gothic",
-    "Apple SD Gothic Neo", system-ui, sans-serif;
-  --font-display: var(--font-sora), var(--font-inter), "Pretendard",
+  --font-sans: var(--font-outfit), var(--font-noto-sans-kr), "Pretendard",
     "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
-  --font-label: var(--font-space-grotesk), var(--font-inter), "Pretendard",
-    system-ui, sans-serif;
-  --font-serif: var(--font-dm-serif), "Noto Serif KR", Georgia, serif;
+  --font-display: var(--font-fraunces), var(--font-noto-serif-kr),
+    "Nanum Myeongjo", Georgia, serif;
+  --font-label: var(--font-outfit), "Pretendard", system-ui, sans-serif;
+  --font-serif: var(--font-fraunces), var(--font-noto-serif-kr),
+    "Noto Serif KR", Georgia, serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
@@ -152,7 +167,7 @@
   }
 
   ::selection {
-    background: rgba(255, 45, 120, 0.3);
+    background: rgba(251, 98, 39, 0.22);
     color: var(--foreground);
   }
   .theme-editorial-light ::selection {
@@ -188,28 +203,53 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* ---- Neon Tokyo core patterns ---- */
+  /* ---- 브랜드 패턴 (라이트 테마) ----
+     .neon-* 클래스명은 앱 전반에서 쓰이므로 이름은 유지하고
+     라이트 테마에 맞는 은은한 표현으로 재정의한다. */
   .neon-glow {
-    box-shadow: 0 0 10px rgba(255, 45, 120, 0.5), 0 0 20px rgba(255, 45, 120, 0.3),
-      inset 0 0 10px rgba(255, 45, 120, 0.2);
+    box-shadow: 0 8px 22px -8px rgba(251, 98, 39, 0.45);
   }
   .neon-text {
-    text-shadow: 0 0 5px rgba(255, 45, 120, 0.8), 0 0 10px rgba(255, 45, 120, 0.5);
+    text-shadow: none;
   }
   .neon-text-cyan {
-    text-shadow: 0 0 5px rgba(0, 255, 204, 0.7), 0 0 10px rgba(0, 255, 204, 0.4);
+    text-shadow: none;
   }
   .neon-border {
-    border: 1px solid rgba(255, 45, 120, 0.5);
-    box-shadow: 0 0 15px rgba(255, 45, 120, 0.2);
+    border: 1px solid rgba(251, 98, 39, 0.45);
+    box-shadow: 0 4px 14px -6px rgba(251, 98, 39, 0.25);
   }
   .cyber-grid {
-    background-size: 40px 40px;
-    background-image: linear-gradient(to right, rgba(90, 80, 104, 0.1) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(90, 80, 104, 0.1) 1px, transparent 1px);
+    background: none;
   }
   .hero-gradient {
-    background: radial-gradient(circle at center, rgba(255, 45, 120, 0.15) 0%, rgba(10, 10, 18, 0) 70%);
+    background: radial-gradient(
+      circle at center,
+      rgba(251, 98, 39, 0.08) 0%,
+      rgba(255, 255, 255, 0) 70%
+    );
+  }
+
+  /* 로고 그라데이션 텍스트/배경 */
+  .brand-gradient-text {
+    background: var(--brand-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .brand-gradient-bg {
+    background: var(--brand-gradient);
+  }
+  /* 다크(네이비) 섹션 — 랜딩의 교차 밴드용 */
+  .band-dark {
+    background: #1b202e;
+    color: #f5f4f1;
+    --surface: #232938;
+    --surface-muted: #2a3040;
+    --border: #363d4f;
+    --border-strong: #4a5266;
+    --muted: #a6abba;
+    --foreground: #f5f4f1;
   }
 
   /* ---- Editorial section patterns (light band on the landing page) ---- */

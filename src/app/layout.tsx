@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import {
-  Inter,
-  Sora,
-  Space_Grotesk,
-  DM_Serif_Display,
+  Outfit,
+  Fraunces,
   Geist_Mono,
   Noto_Sans_KR,
   Noto_Serif_KR,
@@ -11,24 +9,14 @@ import {
 } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+// 브랜드 서체 — 본문 Outfit(지오메트릭 산스), 디스플레이 Fraunces(세리프)
+const outfit = Outfit({
+  variable: "--font-outfit",
   subsets: ["latin"],
 });
 
-const sora = Sora({
-  variable: "--font-sora",
-  subsets: ["latin"],
-});
-
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
-  subsets: ["latin"],
-});
-
-const dmSerif = DM_Serif_Display({
-  variable: "--font-dm-serif",
-  weight: "400",
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
   subsets: ["latin"],
 });
 
@@ -82,9 +70,9 @@ export default function RootLayout({
   return (
     <html
       lang="ko"
-      className={`${inter.variable} ${sora.variable} ${spaceGrotesk.variable} ${dmSerif.variable} ${geistMono.variable} ${notoSansKr.variable} ${notoSerifKr.variable} ${gowunDodum.variable} h-full antialiased`}
+      className={`${outfit.variable} ${fraunces.variable} ${geistMono.variable} ${notoSansKr.variable} ${notoSerifKr.variable} ${gowunDodum.variable} h-full antialiased`}
     >
-      <body className="min-h-full cyber-grid">{children}</body>
+      <body className="min-h-full">{children}</body>
     </html>
   );
 }
