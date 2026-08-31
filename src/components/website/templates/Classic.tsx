@@ -21,6 +21,8 @@ export function ClassicTemplate({
   const { hero, story, offers, whyChooseUs, contact } = content;
   const heroPhoto = !!hero.image;
   const gallery = content.gallery ?? [];
+  // 연락처가 하나도 없으면 공개 화면에서 Contact 섹션·링크를 숨긴다 (에디터에선 입력 가능하게 유지)
+  const showContact = !!editable || CONTACT.some(([key]) => !!contact[key]);
 
   return (
     <div>
@@ -29,7 +31,9 @@ export function ClassicTemplate({
           {T({ path: "hero.businessName", value: hero.businessName, as: "span", className: "font-bold tracking-tight" })}
           <nav className="flex items-center gap-5 text-sm">
             <a href="#story" className="text-muted hover:text-foreground">소개</a>
-            <a href="#contact" className="text-muted hover:text-foreground">연락처</a>
+            {showContact && (
+              <a href="#contact" className="text-muted hover:text-foreground">연락처</a>
+            )}
             {blogHref && (
               <Link href={blogHref} className="font-medium text-primary">블로그</Link>
             )}
@@ -47,9 +51,11 @@ export function ClassicTemplate({
         >
           {T({ path: "hero.headline", value: hero.headline, as: "h1", className: "text-4xl font-semibold leading-[1.08] tracking-tight text-balance sm:text-5xl" })}
           {T({ path: "hero.shortDescription", value: hero.shortDescription, as: "p", className: `mx-auto mt-5 max-w-xl text-lg leading-relaxed text-pretty ${heroPhoto ? "text-white/85" : "text-muted"}` })}
-          <a href="#contact" className="mt-9 inline-flex rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground shadow-xs">
-            {T({ path: "hero.ctaLabel", value: hero.ctaLabel || "문의하기", as: "span" })}
-          </a>
+          {showContact && (
+            <a href="#contact" className="mt-9 inline-flex rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground shadow-xs">
+              {T({ path: "hero.ctaLabel", value: hero.ctaLabel || "문의하기", as: "span" })}
+            </a>
+          )}
         </div>
       </section>
 
@@ -108,21 +114,23 @@ export function ClassicTemplate({
         </section>
       )}
 
-      <section id="contact" className="bg-surface-muted/50">
-        <div className="mx-auto max-w-3xl px-5 py-16 text-center">
-          <h2 className="mb-6 text-2xl font-semibold tracking-tight">Contact</h2>
-          <div className="mx-auto grid max-w-md gap-2 text-sm text-foreground/85">
-            {CONTACT.map(([key, label]) =>
-              editable || contact[key] ? (
-                <p key={key}>
-                  <span className="mr-2 font-medium text-muted">{label}</span>
-                  {T({ path: `contact.${key}`, value: contact[key], as: "span", placeholder: label })}
-                </p>
-              ) : null,
-            )}
+      {showContact && (
+        <section id="contact" className="bg-surface-muted/50">
+          <div className="mx-auto max-w-3xl px-5 py-16 text-center">
+            <h2 className="mb-6 text-2xl font-semibold tracking-tight">Contact</h2>
+            <div className="mx-auto grid max-w-md gap-2 text-sm text-foreground/85">
+              {CONTACT.map(([key, label]) =>
+                editable || contact[key] ? (
+                  <p key={key}>
+                    <span className="mr-2 font-medium text-muted">{label}</span>
+                    {T({ path: `contact.${key}`, value: contact[key], as: "span", placeholder: label })}
+                  </p>
+                ) : null,
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <footer className="border-t border-border bg-white">
         <div className="mx-auto max-w-5xl px-5 py-8 text-center text-sm text-muted">

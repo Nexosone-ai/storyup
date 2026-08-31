@@ -4,13 +4,13 @@
  * (허위 정보 기재 금지 — 사업자등록 정보와 정확히 일치해야 합니다.)
  */
 export const COMPANY = {
-  name: "", // 예: 넥소스원 주식회사
-  representative: "", // 대표자명
-  businessNumber: "", // 사업자등록번호 (예: 000-00-00000)
-  mailOrderNumber: "", // 통신판매업 신고번호 (예: 제0000-서울강남-00000호)
-  address: "", // 사업장 주소
-  supportEmail: "", // 고객 지원 이메일
-  supportPhone: "", // 고객 지원 전화
+  name: "주식회사 넥서스원",
+  representative: "김동혁",
+  businessNumber: "645-81-03885",
+  mailOrderNumber: "", // 통신판매업 신고번호 (발급 후 기재)
+  address: "부산광역시 중구 해관로 64, 403-제이2호(중앙동4가)",
+  supportEmail: "", // 고객 지원 이메일 (확정 후 기재)
+  supportPhone: "", // 고객센터 전화번호 (확정 후 기재)
 } as const;
 
 export const companyInfoRows = () =>

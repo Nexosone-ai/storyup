@@ -20,6 +20,8 @@ export function MinimalTemplate({
 }: TemplateProps) {
   const { hero, story, offers, whyChooseUs, contact } = content;
   const gallery = content.gallery ?? [];
+  // 연락처가 하나도 없으면 공개 화면에서 Contact 섹션·링크를 숨긴다
+  const showContact = !!editable || CONTACT.some(([key]) => !!contact[key]);
 
   return (
     <div className="bg-white">
@@ -35,9 +37,11 @@ export function MinimalTemplate({
       <section className="mx-auto max-w-2xl px-6 pb-16 pt-10 sm:pt-20">
         {T({ path: "hero.headline", value: hero.headline, as: "h1", className: "text-[2.75rem] font-semibold leading-[1.06] tracking-tight text-balance sm:text-[3.75rem]" })}
         {T({ path: "hero.shortDescription", value: hero.shortDescription, as: "p", className: "mt-8 text-xl leading-relaxed text-muted text-pretty" })}
-        <a href="#contact" className="mt-8 inline-block border-b-2 border-primary pb-0.5 font-medium text-primary">
-          {T({ path: "hero.ctaLabel", value: hero.ctaLabel || "문의하기", as: "span" })}
-        </a>
+        {showContact && (
+          <a href="#contact" className="mt-8 inline-block border-b-2 border-primary pb-0.5 font-medium text-primary">
+            {T({ path: "hero.ctaLabel", value: hero.ctaLabel || "문의하기", as: "span" })}
+          </a>
+        )}
         {(hero.image || editable) && (
           <div className="relative mt-12 aspect-[16/9] w-full overflow-hidden rounded-2xl border border-border bg-primary-soft">
             {Img({ path: "hero.image", value: hero.image, kind: "cover" })}
@@ -117,19 +121,21 @@ export function MinimalTemplate({
         </>
       )}
 
-      <section id="contact" className="mx-auto max-w-2xl px-6 py-16">
-        <h2 className="eyebrow mb-8 block">Contact</h2>
-        <div className="space-y-2 text-foreground/85">
-          {CONTACT.map(([key, label]) =>
-            editable || contact[key] ? (
-              <p key={key}>
-                <span className="mr-2 font-medium text-muted">{label}</span>
-                {T({ path: `contact.${key}`, value: contact[key], as: "span", placeholder: label })}
-              </p>
-            ) : null,
-          )}
-        </div>
-      </section>
+      {showContact && (
+        <section id="contact" className="mx-auto max-w-2xl px-6 py-16">
+          <h2 className="eyebrow mb-8 block">Contact</h2>
+          <div className="space-y-2 text-foreground/85">
+            {CONTACT.map(([key, label]) =>
+              editable || contact[key] ? (
+                <p key={key}>
+                  <span className="mr-2 font-medium text-muted">{label}</span>
+                  {T({ path: `contact.${key}`, value: contact[key], as: "span", placeholder: label })}
+                </p>
+              ) : null,
+            )}
+          </div>
+        </section>
+      )}
 
       <footer className="mx-auto max-w-2xl px-6 py-10 text-sm text-muted">
         {hero.businessName} · © {new Date().getFullYear()} · Powered by STORYUP
