@@ -26,7 +26,7 @@ export function Badge({
   className,
 }: {
   children: ReactNode;
-  tone?: "default" | "success" | "muted" | "primary" | "warning";
+  tone?: "default" | "success" | "muted" | "primary" | "warning" | "danger";
   className?: string;
 }) {
   const tones = {
@@ -36,6 +36,7 @@ export function Badge({
     muted: "bg-surface-muted text-muted ring-1 ring-inset ring-border-strong/40",
     primary: "bg-primary-soft text-primary ring-1 ring-inset ring-primary/15",
     warning: "bg-warning/10 text-warning ring-1 ring-inset ring-warning/15",
+    danger: "bg-danger/10 text-danger ring-1 ring-inset ring-danger/15",
   } as const;
   return (
     <span

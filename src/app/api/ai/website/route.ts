@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAIProvider, AIGenerationError } from "@/lib/ai";
+import { chargeAiUsage, InsufficientPointsError } from "@/lib/ai/billing";
 import type {
   BusinessInterviewInput,
   BrandStoryResult,
@@ -68,6 +69,15 @@ export async function POST(request: Request) {
     tone: brand.tone ?? "Friendly",
   };
 
+  let billing;
+  try {
+    billing = await chargeAiUsage(user.id, "AI_WEBSITE", "AI 홈페이지 생성");
+  } catch (err) {
+    if (err instanceof InsufficientPointsError)
+      return NextResponse.json({ error: err.message }, { status: 402 });
+    throw err;
+  }
+
   try {
     const content = await getAIProvider().generateWebsite(input, brandResult);
 
@@ -84,6 +94,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
+    await billing.refund();
     const message =
       err instanceof AIGenerationError
         ? err.message

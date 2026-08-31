@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAIProvider, AIGenerationError } from "@/lib/ai";
+import { chargeAiUsage, InsufficientPointsError } from "@/lib/ai/billing";
 import { generateAndStoreBlogCover } from "@/lib/ai/blogCover";
 import { slugWithFallback, randomSuffix } from "@/utils/slug";
 import { BLOG_TONES, BLOG_LENGTHS } from "@/types/domain";
@@ -51,6 +52,15 @@ export async function POST(request: Request) {
     .select("tone")
     .eq("business_id", businessId)
     .maybeSingle();
+
+  let billing;
+  try {
+    billing = await chargeAiUsage(user.id, "AI_BLOG", "AI 블로그 생성");
+  } catch (err) {
+    if (err instanceof InsufficientPointsError)
+      return NextResponse.json({ error: err.message }, { status: 402 });
+    throw err;
+  }
 
   try {
     const article = await getAIProvider().generateBlog({
@@ -108,6 +118,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, postId: inserted.id });
   } catch (err) {
+    await billing.refund();
     const message =
       err instanceof AIGenerationError
         ? err.message

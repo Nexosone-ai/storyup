@@ -11,6 +11,14 @@ type Timestamps = {
   updated_at: string;
 };
 
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json }
+  | Json[];
+
 export interface Database {
   public: {
     Tables: {
@@ -310,8 +318,10 @@ export interface Database {
           user_id: string;
           amount: number;
           reason: string;
+          type: string | null;
           ref_type: string | null;
           ref_id: string | null;
+          metadata: Json | null;
           created_at: string;
         };
         Insert: {
@@ -319,12 +329,108 @@ export interface Database {
           user_id: string;
           amount: number;
           reason: string;
+          type?: string | null;
           ref_type?: string | null;
           ref_id?: string | null;
+          metadata?: Json | null;
           created_at?: string;
         };
         Update: Partial<
           Database["public"]["Tables"]["point_transactions"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      point_packages: {
+        Row: {
+          id: string;
+          name: string;
+          price_krw: number;
+          credits: number;
+          bonus_credits: number;
+          active: boolean;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          price_krw: number;
+          credits: number;
+          bonus_credits?: number;
+          active?: boolean;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["point_packages"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      payments: {
+        Row: {
+          id: string;
+          user_id: string;
+          order_id: string;
+          package_id: string | null;
+          provider: string;
+          payment_method: string | null;
+          payment_key: string | null;
+          transaction_id: string | null;
+          currency: string;
+          amount: number;
+          credits: number;
+          bonus_credits: number;
+          status: string;
+          requested_at: string;
+          approved_at: string | null;
+          cancelled_at: string | null;
+          metadata: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          order_id: string;
+          package_id?: string | null;
+          provider?: string;
+          payment_method?: string | null;
+          payment_key?: string | null;
+          transaction_id?: string | null;
+          currency?: string;
+          amount: number;
+          credits: number;
+          bonus_credits?: number;
+          status?: string;
+          requested_at?: string;
+          approved_at?: string | null;
+          cancelled_at?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["payments"]["Insert"]>;
+        Relationships: [];
+      };
+      service_prices: {
+        Row: {
+          service: string;
+          label: string;
+          price: number;
+          active: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          service: string;
+          label: string;
+          price?: number;
+          active?: boolean;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["service_prices"]["Insert"]
         >;
         Relationships: [];
       };
@@ -474,13 +580,30 @@ export interface Database {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      spend_points: {
+        Args: {
+          p_user: string;
+          p_amount: number;
+          p_reason: string;
+          p_type?: string;
+          p_ref_type?: string | null;
+          p_ref_id?: string | null;
+        };
+        Returns: number;
+      };
+    };
     Enums: Record<string, never>;
   };
 }
 
 // Convenience row aliases used across the app.
 export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+export type PaymentRow = Database["public"]["Tables"]["payments"]["Row"];
+export type PointPackageRow =
+  Database["public"]["Tables"]["point_packages"]["Row"];
+export type ServicePriceRow =
+  Database["public"]["Tables"]["service_prices"]["Row"];
 export type BusinessRow = Database["public"]["Tables"]["businesses"]["Row"];
 export type BrandProfileRow =
   Database["public"]["Tables"]["brand_profiles"]["Row"];

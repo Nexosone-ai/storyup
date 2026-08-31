@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAIProvider, AIGenerationError } from "@/lib/ai";
+import { chargeAiUsage, InsufficientPointsError } from "@/lib/ai/billing";
 
 export const maxDuration = 60;
 
@@ -51,6 +52,15 @@ export async function POST(request: Request) {
     .eq("business_id", businessId)
     .maybeSingle();
 
+  let billing;
+  try {
+    billing = await chargeAiUsage(user.id, "SNS_CONTENT", "SNS 게시물 생성");
+  } catch (err) {
+    if (err instanceof InsufficientPointsError)
+      return NextResponse.json({ error: err.message }, { status: 402 });
+    throw err;
+  }
+
   try {
     const result = await getAIProvider().generateMarketing({
       businessName: business.name,
@@ -84,6 +94,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {
+    await billing.refund();
     const message =
       err instanceof AIGenerationError
         ? err.message

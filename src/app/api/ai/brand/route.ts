@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAIProvider, AIGenerationError } from "@/lib/ai";
+import { chargeAiUsage, InsufficientPointsError } from "@/lib/ai/billing";
 import type { BusinessInterviewInput, BrandTone } from "@/types/domain";
 
 export const maxDuration = 60;
@@ -42,6 +43,15 @@ export async function POST(request: Request) {
     tone: (business.tone as BrandTone) ?? "Friendly",
   };
 
+  let billing;
+  try {
+    billing = await chargeAiUsage(user.id, "AI_BRAND", "AI 브랜드 스토리 생성");
+  } catch (err) {
+    if (err instanceof InsufficientPointsError)
+      return NextResponse.json({ error: err.message }, { status: 402 });
+    throw err;
+  }
+
   try {
     const brand = await getAIProvider().generateBrandStory(input);
 
@@ -65,6 +75,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
+    await billing.refund();
     const message =
       err instanceof AIGenerationError
         ? err.message

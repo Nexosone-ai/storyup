@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAIProvider, AIGenerationError } from "@/lib/ai";
+import { chargeAiUsage, InsufficientPointsError } from "@/lib/ai/billing";
 import { slugify } from "@/utils/slug";
 
 export const maxDuration = 60;
@@ -52,6 +53,15 @@ export async function POST(request: Request) {
     .eq("business_id", businessId)
     .maybeSingle();
 
+  let billing;
+  try {
+    billing = await chargeAiUsage(user.id, "CARD_NEWS", "카드뉴스 생성");
+  } catch (err) {
+    if (err instanceof InsufficientPointsError)
+      return NextResponse.json({ error: err.message }, { status: 402 });
+    throw err;
+  }
+
   try {
     const result = await getAIProvider().generateCardNews({
       businessName: business.name,
@@ -79,6 +89,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, cardNews: result });
   } catch (err) {
+    await billing.refund();
     const message =
       err instanceof AIGenerationError
         ? err.message
