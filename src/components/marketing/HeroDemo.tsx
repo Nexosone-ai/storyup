@@ -71,7 +71,7 @@ export function HeroDemo({ d }: { d: HeroDemoData }) {
     );
 
   return (
-    <div className="w-full max-w-md">
+    <div className="w-full max-w-xl">
       {/* 단계 표시 */}
       <div className="mb-5 flex items-center justify-center gap-2">
         {d.steps.map((s, i) => (
@@ -86,7 +86,7 @@ export function HeroDemo({ d }: { d: HeroDemoData }) {
         <span className="eyebrow ml-2 !text-primary">{d.steps[scene]}</span>
       </div>
 
-      <div className="relative h-[360px]">
+      <div className="relative h-[460px]">
         {/* Scene 1 — 이야기 타이핑 */}
         <div className={sceneCls(0)}>
           <div className="rounded-2xl border border-border bg-surface p-5 shadow-lg">
@@ -136,23 +136,37 @@ export function HeroDemo({ d }: { d: HeroDemoData }) {
                 {d.site.url}
               </span>
             </div>
-            <div className="bg-[#e7f0ec] px-5 py-6 text-center">
-              <p className="font-[family-name:var(--font-display)] text-[17px] font-semibold text-[#163a2f]">
-                {d.site.headline}
-              </p>
-              <p className="mt-1.5 text-xs text-[#47615a]">{d.site.desc}</p>
-              <span className="mt-3 inline-block rounded-lg bg-[#1f6f5a] px-4 py-1.5 text-[11px] font-bold text-white">
-                {d.site.cta}
-              </span>
+            <div className="relative px-6 py-9 text-center">
+              {/* eslint-disable-next-line @next/next/no-img-element -- 데모 정적 에셋 */}
+              <img
+                src="/images/demo/demo-hero.jpg"
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black/45" />
+              <div className="relative">
+                <p className="font-[family-name:var(--font-display)] text-xl font-semibold text-white">
+                  {d.site.headline}
+                </p>
+                <p className="mt-2 text-[13px] text-white/85">{d.site.desc}</p>
+                <span className="mt-4 inline-block rounded-lg bg-[#1f6f5a] px-4 py-2 text-xs font-bold text-white">
+                  {d.site.cta}
+                </span>
+              </div>
             </div>
-            <div className="grid grid-cols-3 gap-2.5 p-4">
-              {d.site.cards.map((c) => (
+            <div className="grid grid-cols-3 gap-3 p-4">
+              {d.site.cards.map((c, i) => (
                 <div
                   key={c}
-                  className="rounded-lg border border-[#e3e3dc] bg-white p-2.5"
+                  className="overflow-hidden rounded-lg border border-[#e3e3dc] bg-white"
                 >
-                  <div className="mb-2 h-8 rounded bg-gradient-to-br from-[#d8e8e1] to-[#f2ede2]" />
-                  <p className="text-[10px] font-semibold leading-snug text-[#24352f]">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- 데모 정적 에셋 */}
+                  <img
+                    src={`/images/demo/demo-menu-${i + 1}.jpg`}
+                    alt=""
+                    className="h-16 w-full object-cover"
+                  />
+                  <p className="p-2.5 text-[11px] font-semibold leading-snug text-[#24352f]">
                     {c}
                   </p>
                 </div>
@@ -169,17 +183,15 @@ export function HeroDemo({ d }: { d: HeroDemoData }) {
                 key={b.title}
                 className="overflow-hidden rounded-2xl border border-border bg-surface shadow-lg"
               >
-                <div
-                  className={cn(
-                    "h-20",
-                    i === 0
-                      ? "bg-gradient-to-br from-[#e8c9a8] to-[#b98354]"
-                      : "bg-gradient-to-br from-[#cfe0d8] to-[#7ba393]",
-                  )}
+                {/* eslint-disable-next-line @next/next/no-img-element -- 데모 정적 에셋 */}
+                <img
+                  src={`/images/demo/demo-blog-${i + 1}.jpg`}
+                  alt=""
+                  className="h-32 w-full object-cover"
                 />
-                <div className="p-3.5">
-                  <p className="text-[10px] font-bold text-primary">{b.tag}</p>
-                  <p className="mt-1 text-[13px] font-semibold leading-snug">
+                <div className="p-4">
+                  <p className="text-[11px] font-bold text-primary">{b.tag}</p>
+                  <p className="mt-1 text-[14px] font-semibold leading-snug">
                     {b.title}
                   </p>
                 </div>
