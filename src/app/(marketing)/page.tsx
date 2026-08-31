@@ -157,7 +157,7 @@ export default async function LandingPage() {
         <div className="mx-auto max-w-6xl">
           <p className="eyebrow mb-3 !text-primary">{L.storiesEyebrow}</p>
           <h2 className="font-[family-name:var(--font-display)] text-3xl font-semibold leading-snug sm:text-4xl">
-            {L.storiesT1} <span className="brand-gradient-text">{L.storiesT2}</span>
+            {L.storiesT1} <span className="brand-gradient-text-soft">{L.storiesT2}</span>
           </h2>
           <div className="mt-12 grid gap-5 md:grid-cols-3">
             {L.testimonials.map((tm) => (
