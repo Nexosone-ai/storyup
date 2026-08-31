@@ -1,7 +1,10 @@
 import { MarketingNav } from "@/components/marketing/MarketingNav";
 import { Footer } from "@/components/marketing/Footer";
+import { ShowcaseTabs } from "@/components/marketing/ShowcaseTabs";
+import { toSiteItem, toPostItem } from "@/components/marketing/showcaseData";
 import Link from "next/link";
 import { getDict } from "@/lib/i18n";
+import { getShowcaseSites, getShowcasePosts } from "@/lib/queries";
 import type { SVGProps } from "react";
 
 /* Story-type glyphs local to the landing page (plane / storefront / coffee / cutlery) */
@@ -63,6 +66,12 @@ const TONE = {
 export default async function LandingPage() {
   const { t } = await getDict();
   const L = t.landing;
+  const [sites, posts] = await Promise.all([
+    getShowcaseSites(6),
+    getShowcasePosts(6),
+  ]);
+  const siteItems = sites.map(toSiteItem);
+  const postItems = posts.map(toPostItem);
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -245,6 +254,20 @@ export default async function LandingPage() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Showcase — 사용자가 만든 공개 포트폴리오 */}
+      <section className="px-5 py-24 sm:px-8">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-12 text-center">
+            <h2 className="text-2xl font-semibold uppercase tracking-wide sm:text-[1.75rem]">
+              {L.showcaseT1}
+              <span className="neon-text text-primary">{L.showcaseT2}</span>
+            </h2>
+            <p className="mt-3 text-muted">{L.showcaseSub}</p>
+          </div>
+          <ShowcaseTabs sites={siteItems} posts={postItems} t={L.showcase} />
         </div>
       </section>
 

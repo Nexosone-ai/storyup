@@ -225,3 +225,61 @@ export async function getPublishedPost(
     .maybeSingle();
   return data ?? null;
 }
+
+// ---------------- Showcase (landing portfolio) ----------------
+
+/** All published websites, newest first. RLS allows anon read. */
+export async function getShowcaseSites(limit = 12): Promise<WebsiteRow[]> {
+  if (!supabaseConfigured()) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("websites")
+    .select("*")
+    .eq("status", "published")
+    .order("published_at", { ascending: false })
+    .limit(limit);
+  return data ?? [];
+}
+
+export interface ShowcasePost {
+  post: BlogPostRow;
+  /** 글이 속한 공개 사이트의 슬러그 (링크용) */
+  siteSlug: string;
+  businessName: string;
+}
+
+/** Published posts whose site is also published, newest first. */
+export async function getShowcasePosts(limit = 12): Promise<ShowcasePost[]> {
+  if (!supabaseConfigured()) return [];
+  const supabase = await createClient();
+  const { data: sites } = await supabase
+    .from("websites")
+    .select("business_id, slug, content")
+    .eq("status", "published");
+  if (!sites?.length) return [];
+
+  const byBusiness = new Map(
+    sites.map((s) => [
+      s.business_id,
+      {
+        slug: s.slug,
+        name:
+          (s.content as { hero?: { businessName?: string } }).hero
+            ?.businessName ?? "",
+      },
+    ]),
+  );
+
+  const { data: posts } = await supabase
+    .from("blog_posts")
+    .select("*")
+    .in("business_id", [...byBusiness.keys()])
+    .eq("status", "published")
+    .order("published_at", { ascending: false })
+    .limit(limit);
+
+  return (posts ?? []).map((post) => {
+    const site = byBusiness.get(post.business_id)!;
+    return { post, siteSlug: site.slug, businessName: site.name };
+  });
+}

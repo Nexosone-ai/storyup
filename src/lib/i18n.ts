@@ -61,6 +61,15 @@ export const translations = {
       bentoCardD:
         "한입 크기의 비주얼 스토리. SNS 배포에 딱 맞는 스와이프형 콘텐츠를 만들어보세요.",
       tryNow: "지금 사용해보기",
+      showcaseT1: "이야기로 만든 ",
+      showcaseT2: "포트폴리오",
+      showcaseSub: "소상공인들이 STORYUP으로 직접 만든 홈페이지와 블로그입니다.",
+      showcase: {
+        tabSites: "홈페이지",
+        tabBlogs: "블로그",
+        more: "더 보기",
+        empty: "아직 공개된 포트폴리오가 없습니다.",
+      },
       communityLabel: "커뮤니티",
       connectTitle: "Story Connect",
       connectSub:
@@ -184,6 +193,15 @@ export const translations = {
       bentoCardD:
         "Bite-sized visual stories. Create stunning swipeable content perfect for social distribution.",
       tryNow: "Try it now",
+      showcaseT1: "A portfolio built from ",
+      showcaseT2: "stories",
+      showcaseSub: "Websites and blogs real business owners made with STORYUP.",
+      showcase: {
+        tabSites: "Websites",
+        tabBlogs: "Blogs",
+        more: "See more",
+        empty: "No published portfolio yet.",
+      },
       communityLabel: "Community",
       connectTitle: "Story Connect",
       connectSub:

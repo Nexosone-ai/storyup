@@ -43,7 +43,7 @@ export async function MarketingNav() {
             <>
               <Link
                 href="/login"
-                className="hidden rounded-lg px-4 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-muted hover:text-primary sm:block"
+                className="rounded-lg px-2.5 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-muted hover:text-primary sm:px-4"
               >
                 {t.nav.login}
               </Link>
