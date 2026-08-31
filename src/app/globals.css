@@ -22,17 +22,18 @@
   --brand-purple: #7b31cf;
   --brand-pink: #e43c73;
   --brand-orange: #fb6227;
+  /* B안: 어두운 배경에서 오렌지가 먼저 오도록 방향 반전 (오렌지→핑크→보라) */
   --brand-gradient: linear-gradient(
     100deg,
-    #7b31cf 0%,
-    #e43c73 52%,
-    #fb6227 100%
+    #fb6227 0%,
+    #e43c73 48%,
+    #7b31cf 100%
   );
 
   /* Accents */
-  --primary: #fb6227;
-  --primary-hover: #e14e15;
-  --primary-soft: #fff0e8;
+  --primary: #e8703a;
+  --primary-hover: #d05a26;
+  --primary-soft: #fdefe7;
   --primary-foreground: #ffffff;
 
   /* Functional */
@@ -167,7 +168,7 @@
   }
 
   ::selection {
-    background: rgba(251, 98, 39, 0.22);
+    background: rgba(232, 112, 58, 0.22);
     color: var(--foreground);
   }
   .theme-editorial-light ::selection {
@@ -207,7 +208,7 @@
      .neon-* 클래스명은 앱 전반에서 쓰이므로 이름은 유지하고
      라이트 테마에 맞는 은은한 표현으로 재정의한다. */
   .neon-glow {
-    box-shadow: 0 8px 22px -8px rgba(251, 98, 39, 0.45);
+    box-shadow: 0 8px 22px -8px rgba(232, 112, 58, 0.45);
   }
   .neon-text {
     text-shadow: none;
@@ -216,8 +217,8 @@
     text-shadow: none;
   }
   .neon-border {
-    border: 1px solid rgba(251, 98, 39, 0.45);
-    box-shadow: 0 4px 14px -6px rgba(251, 98, 39, 0.25);
+    border: 1px solid rgba(232, 112, 58, 0.45);
+    box-shadow: 0 4px 14px -6px rgba(232, 112, 58, 0.25);
   }
   .cyber-grid {
     background: none;
@@ -225,7 +226,7 @@
   .hero-gradient {
     background: radial-gradient(
       circle at center,
-      rgba(251, 98, 39, 0.08) 0%,
+      rgba(232, 112, 58, 0.08) 0%,
       rgba(255, 255, 255, 0) 70%
     );
   }
@@ -239,6 +240,16 @@
   }
   .brand-gradient-bg {
     background: var(--brand-gradient);
+  }
+  .brand-primary-bg {
+    background: var(--primary);
+  }
+  /* 밝은 배경용 부드러운 텍스트 그라데이션 — 블로그 카드 폴백(오렌지→보라)과 같은 색 방향 */
+  .brand-gradient-text-soft {
+    background: linear-gradient(100deg, var(--primary) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
   /* 다크(네이비) 섹션 — 랜딩의 교차 밴드용 */
   .band-dark {

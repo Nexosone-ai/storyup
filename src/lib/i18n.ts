@@ -27,7 +27,7 @@ export const translations = {
       title2: "이야기를",
       title3: "비즈니스",
       title4: "로.",
-      sub: "소상공인·1인 사업자의 진짜 이야기를 AI가 브랜드 스토리, 홈페이지, 블로그, SNS 콘텐츠로 변환합니다.",
+      sub: "소상공인·1인 사업자의 진짜 이야기를 AI가 브랜드 스토리,\n 홈페이지, 블로그, SNS 콘텐츠로 변환합니다.",
       cta: "무료로 시작하기",
       how: "작동 방식 보기",
       stats: [
@@ -113,7 +113,7 @@ export const translations = {
           d: "같은 방향을 향하는 소상공인들과 이야기를 나누고, 서포터즈와 협업하세요.",
         },
       ],
-      featCtaT: "지금 바로 내 이야기를 써보세요.",
+      featCtaT: "지금 바로,\n내 이야기를 써보세요",
       featCtaBtn: "무료로 시작",
       storiesEyebrow: "STORIES",
       storiesT1: "이야기가 만드는",

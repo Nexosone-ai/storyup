@@ -36,7 +36,7 @@ export default async function LandingPage() {
             <span className="brand-gradient-text">{L.title3}</span>
             {L.title4}
           </h1>
-          <p className="mt-7 max-w-md text-[17px] leading-relaxed text-white/70">
+          <p className="mt-7 max-w-md whitespace-pre-line text-[17px] leading-relaxed text-white/70">
             {L.sub}
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
@@ -119,9 +119,9 @@ export default async function LandingPage() {
             ))}
             <Link
               href="/signup"
-              className="brand-gradient-bg group flex flex-col justify-between rounded-2xl p-7 text-white transition hover:-translate-y-1 hover:shadow-lg"
+              className="bg-primary flex flex-col justify-between rounded-2xl p-7 text-white transition hover:-translate-y-1 hover:shadow-lg"
             >
-              <p className="font-[family-name:var(--font-display)] text-2xl font-semibold leading-snug">
+              <p className="whitespace-pre-line font-[family-name:var(--font-display)] text-2xl font-semibold leading-snug">
                 {L.featCtaT}
               </p>
               <p className="mt-6 inline-flex items-center gap-2 text-sm font-bold">
@@ -144,7 +144,7 @@ export default async function LandingPage() {
           <div className="mb-12 text-center">
             <h2 className="font-[family-name:var(--font-display)] text-3xl font-semibold sm:text-4xl">
               {L.showcaseT1}
-              <span className="brand-gradient-text">{L.showcaseT2}</span>
+              <span className="brand-gradient-text-soft">{L.showcaseT2}</span>
             </h2>
             <p className="mt-3 text-muted">{L.showcaseSub}</p>
           </div>
@@ -215,23 +215,23 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* Final CTA — 브랜드 그라데이션 */}
-      <section className="brand-gradient-bg px-6 py-28 text-center text-white sm:px-8">
+      {/* Final CTA — 블로그 카드와 동일한 파스텔 그라데이션 */}
+      <section className="bg-gradient-to-br from-primary/30 via-surface-muted to-accent/20 px-6 py-28 text-center sm:px-8">
         <h2 className="mx-auto max-w-3xl font-[family-name:var(--font-display)] text-4xl font-semibold leading-tight sm:text-5xl">
           {L.ctaTitle1}
           <br />
           {L.ctaTitle2}
         </h2>
-        <p className="mx-auto mt-6 max-w-xl text-[17px] leading-relaxed text-white/85">
+        <p className="mx-auto mt-6 max-w-xl text-[17px] leading-relaxed text-muted">
           {L.ctaSub}
         </p>
         <Link
           href="/signup"
-          className="mt-10 inline-flex rounded-xl bg-white px-8 py-4 text-sm font-bold text-foreground shadow-lg transition hover:-translate-y-0.5"
+          className="neon-glow mt-10 inline-flex rounded-xl bg-primary px-8 py-4 text-sm font-bold text-primary-foreground shadow-lg transition hover:-translate-y-0.5 hover:bg-primary-hover"
         >
           {L.ctaBtn}
         </Link>
-        <p className="mt-6 text-sm text-white/75">{L.ctaNote}</p>
+        {/*<p className="mt-6 text-sm text-muted">{L.ctaNote}</p>*/}
       </section>
 
       <Footer />

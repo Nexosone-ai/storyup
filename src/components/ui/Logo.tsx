@@ -17,12 +17,20 @@ export function Logo({
       href={href}
       className={cn("inline-flex items-center gap-2", className)}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element -- 정적 로고 에셋 */}
-      <img
-        src="/images/logo-icon.png"
-        alt=""
-        className="size-8 object-contain"
-      />
+      {/* 푸터 칩과 동일한 배지 스타일 아이콘 */}
+      <span
+        className={cn(
+          "grid size-8 shrink-0 place-items-center rounded-lg bg-white",
+          !dark && "border border-border shadow-xs",
+        )}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- 정적 로고 에셋 */}
+        <img
+          src="/images/logo-icon.png"
+          alt=""
+          className="size-6 object-contain"
+        />
+      </span>
       <span
         className={cn(
           "text-[19px] font-extrabold tracking-tight",

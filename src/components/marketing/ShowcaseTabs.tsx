@@ -30,15 +30,8 @@ export function SiteCard({ item }: { item: ShowcaseSiteItem }) {
           className="aspect-[16/9] w-full object-cover"
         />
       ) : (
-        <div
-          className="flex aspect-[16/9] w-full flex-col justify-center gap-2 px-6"
-          style={{ backgroundColor: item.color }}
-        >
-          <span className="text-xl font-bold text-white">{item.name}</span>
-          <span className="line-clamp-2 text-sm text-white/85">
-            {item.headline}
-          </span>
-        </div>
+        /* 이미지가 없으면 블로그 카드와 동일한 그라데이션 폴백 */
+        <div className="aspect-[16/9] w-full bg-gradient-to-br from-primary/30 via-surface-muted to-accent/20" />
       )}
       <div className="px-5 py-4">
         <p className="truncate font-semibold group-hover:text-primary">
