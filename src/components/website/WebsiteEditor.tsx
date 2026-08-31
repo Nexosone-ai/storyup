@@ -43,9 +43,24 @@ export function WebsiteEditor({
   }, []);
 
   const editRenderer = useMemo(() => makeEditableRenderer(onEdit), [onEdit]);
+  // AI 이미지 생성 시 슬롯 위치(path)에 맞는 피사체 설명을 프롬프트로 전달
+  const subjectFor = useCallback(
+    (path: string): string => {
+      if (path === "hero.image")
+        return `${content.hero.businessName}, ${content.hero.headline}`;
+      const m = path.match(/^(offers|whyChooseUs)\.items\.(\d+)\.image$/);
+      if (m) {
+        const section = m[1] as "offers" | "whyChooseUs";
+        const item = content[section]?.items?.[Number(m[2])];
+        return item?.title || content.hero.businessName;
+      }
+      return content.hero.businessName;
+    },
+    [content],
+  );
   const editImgRenderer = useMemo(
-    () => makeEditableImageRenderer(businessId, onEdit),
-    [businessId, onEdit],
+    () => makeEditableImageRenderer(businessId, onEdit, subjectFor),
+    [businessId, onEdit, subjectFor],
   );
   const editGallery = useMemo(
     () =>

@@ -29,15 +29,18 @@ function ImageSlot({
   businessId,
   className,
   kind = "cover",
+  subject,
 }: {
   value?: string;
   onChange: (url: string) => void;
   businessId: string;
   className?: string;
   kind?: "cover" | "hero";
+  /** AI 생성 프롬프트에 쓰일 피사체 설명 (예: 메뉴명, 상호+헤드라인) */
+  subject?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<"upload" | "ai" | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   const pick = () => inputRef.current?.click();
@@ -47,7 +50,7 @@ function ImageSlot({
     e.target.value = "";
     if (!file) return;
     setErr(null);
-    setBusy(true);
+    setBusy("upload");
     try {
       const resized = await resizeImage(file, kind === "hero" ? 1920 : 1000);
       const fd = new FormData();
@@ -58,11 +61,36 @@ function ImageSlot({
     } catch {
       setErr("업로드 중 문제가 발생했습니다.");
     } finally {
-      setBusy(false);
+      setBusy(null);
+    }
+  };
+
+  const genAi = async () => {
+    setErr(null);
+    setBusy("ai");
+    try {
+      const res = await fetch("/api/ai/site-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          businessId,
+          subject: subject ?? "",
+          aspect: kind === "hero" ? "16:9" : "4:3",
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.url) setErr(json.error ?? "이미지 생성 실패");
+      else onChange(json.url);
+    } catch {
+      setErr("이미지 생성 중 문제가 발생했습니다.");
+    } finally {
+      setBusy(null);
     }
   };
 
   const hero = kind === "hero";
+  const pill =
+    "rounded-md bg-black/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur transition hover:bg-black/75 disabled:opacity-60";
 
   return (
     <div className={cn("group/img", hero ? "absolute inset-0" : className)}>
@@ -81,19 +109,17 @@ function ImageSlot({
           {hero && <div className="absolute inset-0 bg-black/40" />}
           {/* controls */}
           <div className="absolute right-2 top-2 z-10 flex gap-1.5 opacity-0 transition group-hover/img:opacity-100">
-            <button
-              type="button"
-              onClick={pick}
-              disabled={busy}
-              className="rounded-md bg-black/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur hover:bg-black/75"
-            >
-              {busy ? "..." : "변경"}
+            <button type="button" onClick={pick} disabled={!!busy} className={pill}>
+              {busy === "upload" ? "..." : "변경"}
+            </button>
+            <button type="button" onClick={genAi} disabled={!!busy} className={pill}>
+              {busy === "ai" ? "생성 중..." : "✨ AI"}
             </button>
             <button
               type="button"
               onClick={() => onChange("")}
-              disabled={busy}
-              className="rounded-md bg-black/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur hover:bg-black/75"
+              disabled={!!busy}
+              className={pill}
             >
               삭제
             </button>
@@ -103,25 +129,34 @@ function ImageSlot({
         <>
           {/* 배경 텍스트가 위에 그려지므로 라벨은 우상단 pill로 분리 */}
           <div className="absolute inset-0 border border-dashed border-primary/40 bg-primary-soft/40" />
+          <div className="absolute right-2 top-2 z-10 flex gap-1.5">
+            <button type="button" onClick={pick} disabled={!!busy} className={pill}>
+              {busy === "upload" ? "업로드 중..." : "＋ 이미지 업로드"}
+            </button>
+            <button type="button" onClick={genAi} disabled={!!busy} className={pill}>
+              {busy === "ai" ? "생성 중..." : "✨ AI로 생성"}
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-primary/40 bg-primary-soft/40 p-2">
           <button
             type="button"
             onClick={pick}
-            disabled={busy}
-            className="absolute right-2 top-2 z-10 rounded-md bg-black/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur transition hover:bg-black/75"
+            disabled={!!busy}
+            className="text-sm font-medium text-primary transition hover:opacity-70"
           >
-            {busy ? "업로드 중..." : "＋ 배경 이미지 추가"}
+            {busy === "upload" ? "업로드 중..." : "＋ 이미지 추가"}
           </button>
-        </>
-      ) : (
-        <button
-          type="button"
-          onClick={pick}
-          disabled={busy}
-          className="flex h-full w-full flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-primary/40 bg-primary-soft/40 text-sm font-medium text-primary transition hover:bg-primary-soft"
-        >
-          <span className="text-lg">＋</span>
-          {busy ? "업로드 중..." : "이미지 추가"}
-        </button>
+          <button
+            type="button"
+            onClick={genAi}
+            disabled={!!busy}
+            className="text-xs font-medium text-primary/80 transition hover:opacity-70"
+          >
+            {busy === "ai" ? "생성 중..." : "✨ AI로 생성"}
+          </button>
+        </div>
       )}
 
       {err && (
@@ -133,10 +168,11 @@ function ImageSlot({
   );
 }
 
-/** Builds an ImageRenderer that uploads + edits in place. */
+/** Builds an ImageRenderer that uploads/AI-generates + edits in place. */
 export function makeEditableImageRenderer(
   businessId: string,
   onEdit: (path: string, value: string) => void,
+  subjectFor?: (path: string) => string,
 ): ImageRenderer {
   return function EditableImage({ path, value, className, kind }) {
     return (
@@ -146,6 +182,7 @@ export function makeEditableImageRenderer(
         businessId={businessId}
         className={className}
         kind={kind}
+        subject={subjectFor?.(path)}
       />
     );
   };
