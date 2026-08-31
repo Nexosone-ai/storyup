@@ -191,6 +191,44 @@ export async function saveBlogAction(
   return { ok: true, message: "저장되었습니다." };
 }
 
+/** Sets (or clears) a blog post's cover image URL. */
+export async function updateBlogCoverAction(
+  businessId: string,
+  postId: string,
+  url: string | null,
+): Promise<ActionState> {
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: "로그인이 필요합니다." };
+
+  const { data: post } = await supabase
+    .from("blog_posts")
+    .select("slug")
+    .eq("id", postId)
+    .eq("business_id", businessId)
+    .maybeSingle();
+  if (!post) return { error: "글을 찾을 수 없습니다." };
+
+  const { error } = await supabase
+    .from("blog_posts")
+    .update({ cover_image_url: url })
+    .eq("id", postId)
+    .eq("business_id", businessId);
+  if (error) return { error: "저장에 실패했습니다." };
+
+  const { data: web } = await supabase
+    .from("websites")
+    .select("slug")
+    .eq("business_id", businessId)
+    .maybeSingle();
+
+  revalidatePath(`/business/${businessId}/blog/${postId}`);
+  if (web?.slug) {
+    revalidatePath(`/site/${web.slug}/blog`);
+    revalidatePath(`/site/${web.slug}/blog/${post.slug}`);
+  }
+  return { ok: true, message: url ? "커버 이미지가 저장되었습니다." : "기본 커버로 변경되었습니다." };
+}
+
 export async function publishBlogAction(
   businessId: string,
   postId: string,

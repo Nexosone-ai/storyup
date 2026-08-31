@@ -9,6 +9,7 @@ import { Icon } from "@/components/ui/icons";
 import { InstagramCard, toIGCards, cardImageSubject } from "./InstagramCard";
 import { ShareCard } from "./ShareCard";
 import { IG, X, FB } from "./cardTheme";
+import { resizeImage } from "@/components/website/templates/ImageSlot";
 import type { CardNewsResult } from "@/types/domain";
 
 interface PostOption {
@@ -17,6 +18,15 @@ interface PostOption {
 }
 
 const PREVIEW_W = 264;
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result as string);
+    r.onerror = () => rej(r.error);
+    r.readAsDataURL(file);
+  });
+}
 
 async function downloadNode(node: HTMLElement | null, filename: string) {
   if (!node) return;
@@ -57,6 +67,8 @@ export function CardNewsStudio({
   const igRefs = useRef<Array<HTMLDivElement | null>>([]);
   const xRef = useRef<HTMLDivElement | null>(null);
   const fbRef = useRef<HTMLDivElement | null>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const uploadTarget = useRef(0);
 
   const cards = useMemo(() => (data ? toIGCards(data) : []), [data]);
   const igScale = PREVIEW_W / IG.w;
@@ -124,6 +136,30 @@ export function CardNewsStudio({
     }
   };
 
+  const pickImage = (i: number) => {
+    uploadTarget.current = i;
+    fileRef.current?.click();
+  };
+
+  const onUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setError(null);
+    try {
+      // 카드 원본(1080px)에 맞춰 축소 후 data URL로 보관 — 내보내기(html-to-image)와 호환.
+      const dataUrl = await fileToDataUrl(await resizeImage(file, 1080));
+      const i = uploadTarget.current;
+      setImages((prev) => {
+        const next = [...prev];
+        next[i] = dataUrl;
+        return next;
+      });
+    } catch {
+      setError("이미지를 불러오지 못했습니다. 다른 파일로 시도해주세요.");
+    }
+  };
+
   const withBusy = async (fn: () => Promise<void>) => {
     setBusy(true);
     try {
@@ -160,6 +196,13 @@ export function CardNewsStudio({
 
   return (
     <div className="space-y-6">
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={onUploadFile}
+      />
       <Card className="space-y-4">
         <div>
           <Label htmlFor="cn-post">블로그 글 선택</Label>
@@ -276,26 +319,35 @@ export function CardNewsStudio({
                       />
                     </div>
                   </div>
-                  <button
-                    onClick={() =>
-                      withBusy(() =>
-                        downloadNode(
-                          igRefs.current[i],
-                          `${slugName()}-card-${String(i + 1).padStart(2, "0")}.png`,
-                        ),
-                      )
-                    }
-                    disabled={busy}
-                    className="mt-2 w-full rounded-lg py-1.5 text-xs font-medium text-muted transition-colors hover:bg-surface-muted hover:text-foreground disabled:opacity-50"
-                  >
-                    {i + 1}번 저장
-                  </button>
+                  <div className="mt-2 flex gap-1">
+                    <button
+                      onClick={() => pickImage(i)}
+                      disabled={busy || imgBusy}
+                      className="flex-1 rounded-lg py-1.5 text-xs font-medium text-muted transition-colors hover:bg-surface-muted hover:text-foreground disabled:opacity-50"
+                    >
+                      사진 올리기
+                    </button>
+                    <button
+                      onClick={() =>
+                        withBusy(() =>
+                          downloadNode(
+                            igRefs.current[i],
+                            `${slugName()}-card-${String(i + 1).padStart(2, "0")}.png`,
+                          ),
+                        )
+                      }
+                      disabled={busy}
+                      className="flex-1 rounded-lg py-1.5 text-xs font-medium text-muted transition-colors hover:bg-surface-muted hover:text-foreground disabled:opacity-50"
+                    >
+                      {i + 1}번 저장
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
             <p className="text-xs text-muted">
-              PNG는 실제 크기(1080×1350)로 저장됩니다. AI 이미지는 각 카드의
-              배경으로 들어갑니다.
+              PNG는 실제 크기(1080×1350)로 저장됩니다. AI 이미지 또는 직접
+              올린 사진이 각 카드의 배경으로 들어갑니다.
             </p>
           </div>
 

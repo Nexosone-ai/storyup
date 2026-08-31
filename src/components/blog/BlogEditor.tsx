@@ -8,9 +8,15 @@ import { Badge } from "@/components/ui/Card";
 import { Spinner } from "@/components/ui/Spinner";
 import { Icon } from "@/components/ui/icons";
 import { cn } from "@/utils/cn";
-import { saveBlogAction, publishBlogAction } from "@/app/business/actions";
+import {
+  saveBlogAction,
+  publishBlogAction,
+  updateBlogCoverAction,
+  uploadSiteImage,
+} from "@/app/business/actions";
 import { fixCjkBold } from "@/utils/markdown";
 import { BlogCover } from "@/components/blog/BlogCover";
+import { resizeImage } from "@/components/website/templates/ImageSlot";
 import type { BlogPostRow } from "@/types/database";
 
 marked.setOptions({ gfm: true, breaks: true });
@@ -39,6 +45,7 @@ export function BlogEditor({
   const [publishing, startPublish] = useTransition();
   const [coverPending, startCover] = useTransition();
   const ref = useRef<HTMLTextAreaElement>(null);
+  const coverFileRef = useRef<HTMLInputElement>(null);
 
   const previewHtml = useMemo(
     () => marked.parse(fixCjkBold(content || "_내용을 입력하세요._")) as string,
@@ -63,6 +70,44 @@ export function BlogEditor({
         setNote("커버 이미지가 생성되었습니다.");
       } catch {
         setNote("이미지 생성에 실패했습니다. 다시 시도해주세요.");
+      }
+    });
+
+  const uploadCover = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    startCover(async () => {
+      setNote(null);
+      try {
+        const resized = await resizeImage(file, 1920);
+        const fd = new FormData();
+        fd.append("file", resized);
+        const up = await uploadSiteImage(businessId, fd);
+        if (up.error || !up.url) {
+          setNote(up.error ?? "업로드에 실패했습니다.");
+          return;
+        }
+        const res = await updateBlogCoverAction(businessId, post.id, up.url);
+        if (res.error) setNote(res.error);
+        else {
+          setCover(up.url);
+          setNote(res.message ?? "커버 이미지가 저장되었습니다.");
+        }
+      } catch {
+        setNote("업로드 중 문제가 발생했습니다.");
+      }
+    });
+  };
+
+  const clearCover = () =>
+    startCover(async () => {
+      setNote(null);
+      const res = await updateBlogCoverAction(businessId, post.id, null);
+      if (res.error) setNote(res.error);
+      else {
+        setCover(null);
+        setNote(res.message ?? null);
       }
     });
 
@@ -178,25 +223,52 @@ export function BlogEditor({
 
       {/* Cover image */}
       <div>
-        <div className="mb-1.5 flex items-center justify-between">
+        <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
           <Label>커버 이미지</Label>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={generateCover}
-            disabled={coverPending}
-          >
-            {coverPending ? (
-              <>
-                <Spinner className="h-4 w-4" />
-                생성 중...
-              </>
-            ) : cover ? (
-              "AI로 다시 생성"
-            ) : (
-              "AI 커버 이미지 생성"
+          <div className="flex flex-wrap gap-2">
+            <input
+              ref={coverFileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={uploadCover}
+            />
+            {cover && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearCover}
+                disabled={coverPending}
+              >
+                기본 커버로
+              </Button>
             )}
-          </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => coverFileRef.current?.click()}
+              disabled={coverPending}
+            >
+              {coverPending ? <Spinner className="h-4 w-4" /> : "이미지 업로드"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={generateCover}
+              disabled={coverPending}
+            >
+              {coverPending ? (
+                <>
+                  <Spinner className="h-4 w-4" />
+                  처리 중...
+                </>
+              ) : cover ? (
+                "AI로 다시 생성"
+              ) : (
+                "AI 커버 이미지 생성"
+              )}
+            </Button>
+          </div>
         </div>
         {cover ? (
           // eslint-disable-next-line @next/next/no-img-element -- 원격 스토리지 URL, 크기 고정 컨테이너
