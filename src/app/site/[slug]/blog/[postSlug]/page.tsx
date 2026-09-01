@@ -4,7 +4,9 @@ import type { Metadata } from "next";
 import { getPublishedSite, getPublishedPost } from "@/lib/queries";
 import { renderMarkdown } from "@/utils/markdown";
 import { BlogCover } from "@/components/blog/BlogCover";
-import { buildSeo } from "@/utils/seo";
+import { ShareBar } from "@/components/site/ShareBar";
+import { TrackPageView } from "@/components/site/TrackPageView";
+import { buildSeo, siteUrl } from "@/utils/seo";
 
 export async function generateMetadata({
   params,
@@ -22,6 +24,10 @@ export async function generateMetadata({
     description: post.seo_description || post.summary,
     keywords: post.keywords,
     path: `/site/${slug}/blog/${postSlug}`,
+    image: post.cover_image_url ?? undefined,
+    type: "article",
+    publishedTime: post.published_at ?? undefined,
+    modifiedTime: post.updated_at,
   });
 }
 
@@ -47,9 +53,31 @@ export default async function PublicArticlePage({
 
   const html = await renderMarkdown(post.content ?? "");
   const name = site.website.content.hero?.businessName ?? site.business.name;
+  const path = `/site/${slug}/blog/${postSlug}`;
+
+  // 검색·AI 답변엔진(AEO)용 구조화 데이터
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.seo_description || post.summary || undefined,
+    keywords: post.keywords.join(", ") || undefined,
+    image: post.cover_image_url || undefined,
+    datePublished: post.published_at || undefined,
+    dateModified: post.updated_at,
+    inLanguage: "ko",
+    mainEntityOfPage: `${siteUrl}${path}`,
+    author: { "@type": "Organization", name },
+    publisher: { "@type": "Organization", name },
+  };
 
   return (
     <div className="min-h-dvh bg-white">
+      <TrackPageView slug={slug} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <header className="border-b border-border">
         <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-5">
           <Link href={`/site/${slug}`} className="font-bold tracking-tight">
@@ -69,6 +97,7 @@ export default async function PublicArticlePage({
         {post.summary && (
           <p className="mt-4 text-lg text-muted">{post.summary}</p>
         )}
+        <ShareBar path={path} title={post.title} slug={slug} className="mt-5" />
         {post.cover_image_url ? (
           // eslint-disable-next-line @next/next/no-img-element -- 원격 스토리지 URL, 크기 고정 컨테이너
           <img
@@ -102,6 +131,13 @@ export default async function PublicArticlePage({
             ))}
           </div>
         )}
+
+        <div className="mt-8 border-t border-border pt-6">
+          <p className="mb-3 text-sm font-medium text-muted">
+            이 글이 도움이 되었다면 공유해주세요
+          </p>
+          <ShareBar path={path} title={post.title} slug={slug} />
+        </div>
       </article>
     </div>
   );

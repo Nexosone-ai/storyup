@@ -2,7 +2,9 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getPublishedSite, getPublishedPosts } from "@/lib/queries";
 import { SiteRenderer } from "@/components/website/SiteRenderer";
-import { buildSeo } from "@/utils/seo";
+import { TrackPageView } from "@/components/site/TrackPageView";
+import { contactHref } from "@/components/website/templates/shared";
+import { buildSeo, siteUrl } from "@/utils/seo";
 
 export async function generateMetadata({
   params,
@@ -18,6 +20,7 @@ export async function generateMetadata({
     title: c.hero?.businessName ?? site.business.name,
     description: c.hero?.shortDescription ?? site.business.description,
     path: `/site/${slug}`,
+    image: c.hero?.image,
   });
 }
 
@@ -33,7 +36,31 @@ export default async function PublicSitePage({
   const posts = await getPublishedPosts(site.business.id);
   const blogHref = posts.length > 0 ? `/site/${slug}/blog` : undefined;
 
+  const c = site.website.content;
+  // 검색·AI 답변엔진(AEO)용 구조화 데이터
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: c.hero?.businessName ?? site.business.name,
+    description: c.hero?.shortDescription || site.business.description || undefined,
+    url: `${siteUrl}/site/${slug}`,
+    image: c.hero?.image || undefined,
+    telephone: c.contact?.phone || undefined,
+    email: c.contact?.email || undefined,
+    address: c.contact?.address || undefined,
+    sameAs: (["instagram", "facebook", "x"] as const)
+      .map((k) => (c.contact?.[k] ? contactHref(k, c.contact[k]!) : null))
+      .filter(Boolean),
+  };
+
   return (
-    <SiteRenderer content={site.website.content} blogHref={blogHref} />
+    <>
+      <TrackPageView slug={slug} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <SiteRenderer content={site.website.content} blogHref={blogHref} />
+    </>
   );
 }

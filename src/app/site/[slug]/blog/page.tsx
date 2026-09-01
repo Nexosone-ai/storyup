@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getPublishedSite, getPublishedPosts } from "@/lib/queries";
 import { BlogCover } from "@/components/blog/BlogCover";
+import { TrackPageView } from "@/components/site/TrackPageView";
 import { buildSeo } from "@/utils/seo";
 
 export async function generateMetadata({
@@ -39,6 +40,7 @@ export default async function PublicBlogListPage({
 
   return (
     <div className="min-h-dvh bg-white">
+      <TrackPageView slug={slug} />
       <header className="border-b border-border">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-5">
           <Link href={`/site/${slug}`} className="font-bold tracking-tight">

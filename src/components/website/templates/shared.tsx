@@ -1,5 +1,6 @@
 import type { CSSProperties, ElementType, ReactNode } from "react";
 import type { WebsiteContent } from "@/types/domain";
+import { GalleryLightbox } from "./GalleryLightbox";
 
 export interface TextArgs {
   path: string;
@@ -51,22 +52,10 @@ export const staticText: TextRenderer = ({
   );
 };
 
-/** Server-safe gallery renderer for the public site. */
+/** Gallery renderer for the public site — 클릭하면 크게 보는 라이트박스. */
 export const staticGallery: GalleryRenderer = (images) => {
   if (!images?.length) return null;
-  return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-      {images.map((src, i) => (
-        <div
-          key={i}
-          className="relative aspect-square overflow-hidden rounded-xl border border-border"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={src} alt="" className="h-full w-full object-cover" />
-        </div>
-      ))}
-    </div>
-  );
+  return <GalleryLightbox images={images} />;
 };
 
 /** Server-safe image renderer for the public site. */
@@ -120,6 +109,83 @@ export function ContactRow({
     <p>
       <span className="mr-2 font-medium text-muted">{label}</span>
       {children}
+    </p>
+  );
+}
+
+// ---- Contact 필드 정의 (세 템플릿 공용) ----
+
+export type ContactKey = keyof WebsiteContent["contact"];
+
+export const CONTACT_FIELDS: Array<[ContactKey, string]> = [
+  ["phone", "전화"],
+  ["email", "이메일"],
+  ["address", "주소"],
+  ["instagram", "인스타그램"],
+  ["facebook", "페이스북"],
+  ["x", "X (트위터)"],
+  ["website", "웹사이트"],
+];
+
+/** 공개 화면에서 연락처 값을 클릭 가능한 링크로 만들 때의 href (없으면 null). */
+export function contactHref(key: ContactKey, value: string): string | null {
+  const v = value.trim();
+  if (!v) return null;
+  switch (key) {
+    case "phone":
+      return `tel:${v.replace(/[^+\d]/g, "")}`;
+    case "email":
+      return `mailto:${v}`;
+    case "instagram":
+      if (/^https?:\/\//i.test(v)) return v;
+      return `https://instagram.com/${v.replace(/^@/, "")}`;
+    case "facebook":
+      if (/^https?:\/\//i.test(v)) return v;
+      return `https://facebook.com/${v.replace(/^@/, "")}`;
+    case "x":
+      if (/^https?:\/\//i.test(v)) return v;
+      return `https://x.com/${v.replace(/^@/, "")}`;
+    case "website":
+      return /^https?:\/\//i.test(v) ? v : `https://${v}`;
+    default:
+      return null;
+  }
+}
+
+/**
+ * Contact 한 줄 — 에디터에선 인라인 편집(T), 공개 화면에선 링크로 렌더링.
+ * 세 템플릿이 공유한다.
+ */
+export function ContactEntry({
+  k,
+  label,
+  value,
+  T,
+  editable,
+}: {
+  k: ContactKey;
+  label: string;
+  value: string;
+  T: TextRenderer;
+  editable?: boolean;
+}) {
+  if (!editable && !value) return null;
+  const href = !editable ? contactHref(k, value) : null;
+  return (
+    <p>
+      <span className="mr-2 font-medium text-muted">{label}</span>
+      {href ? (
+        <a
+          href={href}
+          target={href.startsWith("http") ? "_blank" : undefined}
+          rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
+          className="underline-offset-2 hover:underline"
+        >
+          {value}
+        </a>
+      ) : (
+        T({ path: `contact.${k}`, value, as: "span", placeholder: label })
+      )}
     </p>
   );
 }

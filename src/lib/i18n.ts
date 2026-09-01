@@ -19,7 +19,7 @@ export const translations = {
       logout: "로그아웃",
       features: "기능",
       how: "작동 방식",
-      portfolio: "포트폴리오",
+      portfolio: "스토리들",
     },
     landing: {
       badge: "AI 브랜드 빌더 · 무료 베타",
@@ -150,13 +150,15 @@ export const translations = {
       ctaBtn: "지금 내 이야기 쓰기",
       ctaNote: "신용카드 불필요 · 5분 완성 · 언제든 해지",
       showcaseT1: "이야기로 만든 ",
-      showcaseT2: "포트폴리오",
-      showcaseSub: "소상공인들이 STORYUP으로 직접 만든 홈페이지와 블로그입니다.",
+      showcaseT2: "스토리들",
+      showcaseSub:
+        "소상공인들이 STORYUP으로 직접 만든 홈페이지·블로그·카드뉴스입니다.",
       showcase: {
         tabSites: "홈페이지",
         tabBlogs: "블로그",
+        tabCards: "카드뉴스",
         more: "더 보기",
-        empty: "아직 공개된 포트폴리오가 없습니다.",
+        empty: "아직 공개된 스토리가 없습니다.",
       },
     },
     footer: {
@@ -167,7 +169,7 @@ export const translations = {
       product: [
         { label: "기능", href: "/#features" },
         { label: "작동 방식", href: "/#how" },
-        { label: "포트폴리오", href: "/showcase" },
+        { label: "스토리들", href: "/showcase" },
       ],
       links: [
         { label: "이용약관", href: "/terms" },
@@ -247,7 +249,7 @@ export const translations = {
       logout: "Log out",
       features: "Features",
       how: "How it works",
-      portfolio: "Portfolio",
+      portfolio: "Stories",
     },
     landing: {
       badge: "AI Brand Builder · Free Beta",
@@ -377,14 +379,16 @@ export const translations = {
       ctaSub: "The reason you started, the customers you met, one small philosophy. That's enough — STORYUP does the rest.",
       ctaBtn: "Write my story now",
       ctaNote: "No credit card · Ready in 5 minutes · Cancel anytime",
-      showcaseT1: "A portfolio built from ",
-      showcaseT2: "stories",
-      showcaseSub: "Websites and blogs real business owners made with STORYUP.",
+      showcaseT1: "Stories made into ",
+      showcaseT2: "business",
+      showcaseSub:
+        "Websites, blogs, and card news real business owners made with STORYUP.",
       showcase: {
         tabSites: "Websites",
         tabBlogs: "Blogs",
+        tabCards: "Card news",
         more: "See more",
-        empty: "No published portfolio yet.",
+        empty: "No published stories yet.",
       },
     },
     footer: {
@@ -395,7 +399,7 @@ export const translations = {
       product: [
         { label: "Features", href: "/#features" },
         { label: "How it works", href: "/#how" },
-        { label: "Portfolio", href: "/showcase" },
+        { label: "Stories", href: "/showcase" },
       ],
       links: [
         { label: "Terms of Service", href: "/terms" },

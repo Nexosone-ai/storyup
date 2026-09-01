@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getBusiness, getBrandProfile, getWebsite } from "@/lib/queries";
 import { WebsiteGenerator } from "@/components/website/WebsiteGenerator";
 import { WebsiteEditor } from "@/components/website/WebsiteEditor";
+import { WorkflowSteps } from "@/components/dashboard/WorkflowSteps";
 
 export const metadata = { title: "홈페이지" };
 
@@ -20,9 +21,10 @@ export default async function WebsitePage({
     getWebsite(id),
   ]);
 
+  let body: React.ReactNode;
   if (!brand) {
-    return (
-      <div className="grid min-h-[50vh] place-items-center">
+    body = (
+      <div className="grid min-h-[40vh] place-items-center">
         <div className="max-w-sm rounded-2xl border border-border bg-surface p-8 text-center">
           <h2 className="text-lg font-semibold">먼저 브랜드가 필요해요</h2>
           <p className="mt-2 text-sm text-muted">
@@ -37,11 +39,16 @@ export default async function WebsitePage({
         </div>
       </div>
     );
+  } else if (!website) {
+    body = <WebsiteGenerator businessId={id} />;
+  } else {
+    body = <WebsiteEditor businessId={id} website={website} />;
   }
 
-  if (!website) {
-    return <WebsiteGenerator businessId={id} />;
-  }
-
-  return <WebsiteEditor businessId={id} website={website} />;
+  return (
+    <div className="space-y-6">
+      <WorkflowSteps businessId={id} current={2} />
+      {body}
+    </div>
+  );
 }

@@ -15,5 +15,3 @@ export const CARD = {
 } as const;
 
 export const IG = { w: 1080, h: 1350 } as const;
-export const X = { w: 1600, h: 900 } as const;
-export const FB = { w: 1200, h: 630 } as const;

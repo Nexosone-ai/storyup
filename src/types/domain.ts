@@ -143,6 +143,9 @@ export interface WebsiteContent {
     email: string;
     address: string;
     instagram: string;
+    /** SNS 링크 — 기존 데이터에는 없을 수 있어 optional. */
+    facebook?: string;
+    x?: string;
     website: string;
   };
   /** Optional photo gallery band (user-uploaded image URLs). */

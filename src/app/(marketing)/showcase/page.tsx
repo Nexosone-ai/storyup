@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { MarketingNav } from "@/components/marketing/MarketingNav";
 import { Footer } from "@/components/marketing/Footer";
-import { SiteCard, PostCard } from "@/components/marketing/ShowcaseTabs";
-import { toSiteItem, toPostItem } from "@/components/marketing/showcaseData";
+import { SiteCard, PostCard, CardNewsCard } from "@/components/marketing/ShowcaseTabs";
+import { toSiteItem, toPostItem, toCardItem } from "@/components/marketing/showcaseData";
 import { getDict } from "@/lib/i18n";
-import { getShowcaseSites, getShowcasePosts } from "@/lib/queries";
+import { getShowcaseSites, getShowcasePosts, getShowcaseCards } from "@/lib/queries";
 import { cn } from "@/utils/cn";
 
-export const metadata = { title: "포트폴리오" };
+export const metadata = { title: "스토리들" };
 
 export default async function ShowcasePage({
   searchParams,
@@ -15,16 +15,23 @@ export default async function ShowcasePage({
   searchParams: Promise<{ tab?: string }>;
 }) {
   const { tab: tabParam } = await searchParams;
-  const tab = tabParam === "blog" ? "blog" : "site";
+  const tab =
+    tabParam === "blog" ? "blog" : tabParam === "cards" ? "cards" : "site";
 
   const { t } = await getDict();
   const L = t.landing;
-  const [sites, posts] = await Promise.all([
+  const [sites, posts, cards] = await Promise.all([
     getShowcaseSites(60),
     getShowcasePosts(60),
+    getShowcaseCards(60),
   ]);
-  const items =
-    tab === "site" ? sites.map(toSiteItem) : posts.map(toPostItem);
+
+  const isEmpty =
+    tab === "site"
+      ? sites.length === 0
+      : tab === "blog"
+        ? posts.length === 0
+        : cards.length === 0;
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -45,6 +52,7 @@ export default async function ShowcasePage({
               [
                 ["site", L.showcase.tabSites],
                 ["blog", L.showcase.tabBlogs],
+                ["cards", L.showcase.tabCards],
               ] as const
             ).map(([key, label]) => (
               <Link
@@ -62,7 +70,7 @@ export default async function ShowcasePage({
             ))}
           </div>
 
-          {items.length === 0 ? (
+          {isEmpty ? (
             <p className="py-16 text-center text-muted">{L.showcase.empty}</p>
           ) : (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -71,10 +79,15 @@ export default async function ShowcasePage({
                     const item = toSiteItem(s);
                     return <SiteCard key={item.href} item={item} />;
                   })
-                : posts.map((p) => {
-                    const item = toPostItem(p);
-                    return <PostCard key={item.href} item={item} />;
-                  })}
+                : tab === "blog"
+                  ? posts.map((p) => {
+                      const item = toPostItem(p);
+                      return <PostCard key={item.href} item={item} />;
+                    })
+                  : cards.map((c) => {
+                      const item = toCardItem(c);
+                      return <CardNewsCard key={item.id} item={item} />;
+                    })}
             </div>
           )}
         </div>

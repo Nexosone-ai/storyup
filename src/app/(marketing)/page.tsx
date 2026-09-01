@@ -2,20 +2,30 @@ import { MarketingNav } from "@/components/marketing/MarketingNav";
 import { Footer } from "@/components/marketing/Footer";
 import { HeroDemo } from "@/components/marketing/HeroDemo";
 import { ShowcaseTabs } from "@/components/marketing/ShowcaseTabs";
-import { toSiteItem, toPostItem } from "@/components/marketing/showcaseData";
+import {
+  toSiteItem,
+  toPostItem,
+  toCardItem,
+} from "@/components/marketing/showcaseData";
 import Link from "next/link";
 import { getDict } from "@/lib/i18n";
-import { getShowcaseSites, getShowcasePosts } from "@/lib/queries";
+import {
+  getShowcaseSites,
+  getShowcasePosts,
+  getShowcaseCards,
+} from "@/lib/queries";
 
 export default async function LandingPage() {
   const { t } = await getDict();
   const L = t.landing;
-  const [sites, posts] = await Promise.all([
+  const [sites, posts, cards] = await Promise.all([
     getShowcaseSites(6),
     getShowcasePosts(6),
+    getShowcaseCards(6),
   ]);
   const siteItems = sites.map(toSiteItem);
   const postItems = posts.map(toPostItem);
+  const cardItems = cards.map(toCardItem);
 
   return (
     <div className="flex min-h-dvh flex-col bg-background">
@@ -148,7 +158,12 @@ export default async function LandingPage() {
             </h2>
             <p className="mt-3 text-muted">{L.showcaseSub}</p>
           </div>
-          <ShowcaseTabs sites={siteItems} posts={postItems} t={L.showcase} />
+          <ShowcaseTabs
+            sites={siteItems}
+            posts={postItems}
+            cards={cardItems}
+            t={L.showcase}
+          />
         </div>
       </section>
 

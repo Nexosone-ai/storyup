@@ -3,6 +3,7 @@ import { getBusiness, getBlogPosts } from "@/lib/queries";
 import { BlogList } from "@/components/blog/BlogList";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/icons";
+import { WorkflowSteps } from "@/components/dashboard/WorkflowSteps";
 
 export const metadata = { title: "블로그" };
 
@@ -24,6 +25,7 @@ export default async function BlogPage({
           <Icon.plus width={18} height={18} />새 글 쓰기
         </ButtonLink>
       </div>
+      <WorkflowSteps businessId={id} current={3} />
       <BlogList businessId={id} posts={posts} />
     </div>
   );

@@ -194,6 +194,7 @@ export interface Database {
           user_id: string;
           author_name: string;
           content: string;
+          image_urls: string[];
           created_at: string;
         };
         Insert: {
@@ -201,6 +202,7 @@ export interface Database {
           user_id: string;
           author_name?: string;
           content: string;
+          image_urls?: string[];
           created_at?: string;
         };
         Update: Partial<
@@ -242,6 +244,52 @@ export interface Database {
         Update: Partial<
           Database["public"]["Tables"]["real_talk_posts"]["Insert"]
         >;
+        Relationships: [];
+      };
+      community_comments: {
+        Row: {
+          id: string;
+          post_type: "story" | "realtalk";
+          post_id: string;
+          user_id: string;
+          author_name: string;
+          content: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          post_type: "story" | "realtalk";
+          post_id: string;
+          user_id: string;
+          author_name?: string;
+          content: string;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["community_comments"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      site_events: {
+        Row: {
+          id: string;
+          business_id: string;
+          event: "page_view" | "share";
+          path: string;
+          channel: string | null;
+          referrer: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          event: "page_view" | "share";
+          path?: string;
+          channel?: string | null;
+          referrer?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["site_events"]["Insert"]>;
         Relationships: [];
       };
       real_talk_likes: {

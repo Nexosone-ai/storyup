@@ -13,18 +13,22 @@ export interface NavItem {
   href: string;
   icon: IconName;
   exact?: boolean;
+  /** 우측에 작게 표시되는 상태 배지 (예: "준비 중"). */
+  badge?: string;
+  /** 워크플로 단계 번호 — 아이콘 대신 번호 원으로 표시된다. */
+  step?: number;
 }
 
 export function DashboardShell({
   nav,
-  back,
+  workspace,
   userName,
   heading,
   children,
 }: {
   nav: NavItem[];
-  /** 상위 화면으로 돌아가는 링크 — 메뉴와 분리된 박스로 표시된다. */
-  back?: { label: string; href: string };
+  /** 현재 작업 중인 비즈니스 워크스페이스 — 메뉴 아래 별도 섹션으로 표시된다. */
+  workspace?: { name: string; items: NavItem[] };
   userName: string;
   heading?: string;
   children: React.ReactNode;
@@ -35,20 +39,9 @@ export function DashboardShell({
   const isActive = (item: NavItem) =>
     item.exact ? pathname === item.href : pathname.startsWith(item.href);
 
-  const backLink = back && (
-    <Link
-      href={back.href}
-      onClick={() => setOpen(false)}
-      className="group mb-5 flex items-center gap-2.5 rounded-xl border border-border bg-surface-muted/60 px-3 py-2.5 text-sm font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary-soft hover:text-primary"
-    >
-      <Icon.arrowLeft className="size-[18px] text-muted transition-colors group-hover:text-primary" />
-      {back.label}
-    </Link>
-  );
-
-  const navLinks = (
+  const renderItems = (items: NavItem[]) => (
     <nav className="flex flex-col gap-0.5">
-      {nav.map((item) => {
+      {items.map((item) => {
         const ActiveIcon = Icon[item.icon];
         const active = isActive(item);
         return (
@@ -64,17 +57,52 @@ export function DashboardShell({
                 : "text-muted hover:bg-surface-muted hover:text-foreground",
             )}
           >
-            <ActiveIcon
-              className={cn(
-                "size-[18px] transition-colors",
-                active ? "text-primary" : "text-muted group-hover:text-foreground",
-              )}
-            />
-            {item.label}
+            {item.step ? (
+              <span
+                className={cn(
+                  "grid size-[18px] place-items-center rounded-full border text-[10px] font-bold",
+                  active
+                    ? "border-primary text-primary"
+                    : "border-border-strong text-muted group-hover:text-foreground",
+                )}
+              >
+                {item.step}
+              </span>
+            ) : (
+              <ActiveIcon
+                className={cn(
+                  "size-[18px] transition-colors",
+                  active
+                    ? "text-primary"
+                    : "text-muted group-hover:text-foreground",
+                )}
+              />
+            )}
+            <span className="min-w-0 flex-1 truncate">{item.label}</span>
+            {item.badge && (
+              <span className="rounded-full bg-surface-muted px-2 py-0.5 text-[10px] font-semibold text-muted">
+                {item.badge}
+              </span>
+            )}
           </Link>
         );
       })}
     </nav>
+  );
+
+  const navLinks = (
+    <>
+      <p className="eyebrow mb-2 px-3">메뉴</p>
+      {renderItems(nav)}
+      {workspace && (
+        <div className="mt-6 rounded-xl border border-border bg-surface-muted/50 p-2">
+          <p className="eyebrow mb-1.5 truncate px-2 pt-1">
+            워크스페이스 · {workspace.name}
+          </p>
+          {renderItems(workspace.items)}
+        </div>
+      )}
+    </>
   );
 
   return (
@@ -97,11 +125,7 @@ export function DashboardShell({
           <div className="px-2.5">
             <Logo href="/dashboard" />
           </div>
-          <div className="mt-8 flex-1">
-            {backLink}
-            <p className="eyebrow mb-2 px-3">메뉴</p>
-            {navLinks}
-          </div>
+          <div className="mt-8 flex-1 overflow-y-auto">{navLinks}</div>
           <SidebarFooter userName={userName} />
         </aside>
 
@@ -123,11 +147,7 @@ export function DashboardShell({
                   <Icon.x />
                 </button>
               </div>
-              <div className="mt-8 flex-1">
-                {backLink}
-                <p className="eyebrow mb-2 px-3">메뉴</p>
-                {navLinks}
-              </div>
+              <div className="mt-8 flex-1 overflow-y-auto">{navLinks}</div>
               <SidebarFooter userName={userName} />
             </aside>
           </div>

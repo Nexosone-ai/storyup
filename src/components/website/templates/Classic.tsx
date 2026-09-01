@@ -1,14 +1,5 @@
 import Link from "next/link";
-import type { TemplateProps } from "./shared";
-
-const CONTACT: Array<[keyof import("@/types/domain").WebsiteContent["contact"], string]> =
-  [
-    ["phone", "전화"],
-    ["email", "이메일"],
-    ["address", "주소"],
-    ["instagram", "인스타그램"],
-    ["website", "웹사이트"],
-  ];
+import { CONTACT_FIELDS, ContactEntry, type TemplateProps } from "./shared";
 
 export function ClassicTemplate({
   content,
@@ -22,7 +13,8 @@ export function ClassicTemplate({
   const heroPhoto = !!hero.image;
   const gallery = content.gallery ?? [];
   // 연락처가 하나도 없으면 공개 화면에서 Contact 섹션·링크를 숨긴다 (에디터에선 입력 가능하게 유지)
-  const showContact = !!editable || CONTACT.some(([key]) => !!contact[key]);
+  const showContact =
+    !!editable || CONTACT_FIELDS.some(([key]) => !!contact[key]);
 
   return (
     <div>
@@ -119,14 +111,16 @@ export function ClassicTemplate({
           <div className="mx-auto max-w-3xl px-5 py-16 text-center">
             <h2 className="mb-6 text-2xl font-semibold tracking-tight">Contact</h2>
             <div className="mx-auto grid max-w-md gap-2 text-sm text-foreground/85">
-              {CONTACT.map(([key, label]) =>
-                editable || contact[key] ? (
-                  <p key={key}>
-                    <span className="mr-2 font-medium text-muted">{label}</span>
-                    {T({ path: `contact.${key}`, value: contact[key], as: "span", placeholder: label })}
-                  </p>
-                ) : null,
-              )}
+              {CONTACT_FIELDS.map(([key, label]) => (
+                <ContactEntry
+                  key={key}
+                  k={key}
+                  label={label}
+                  value={contact[key] ?? ""}
+                  T={T}
+                  editable={editable}
+                />
+              ))}
             </div>
           </div>
         </section>

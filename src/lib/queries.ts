@@ -160,6 +160,54 @@ export async function getBlogPost(id: string): Promise<BlogPostRow | null> {
   return data ?? null;
 }
 
+// ---------------- Workflow (STEP 진행 상태) ----------------
+
+export interface WorkflowState {
+  /** STEP 1 — 브랜드 스토리 생성 여부 */
+  brand: boolean;
+  /** STEP 2 — 홈페이지 상태 */
+  website: "none" | "draft" | "published";
+  /** STEP 3 — 블로그 글 수 */
+  blogTotal: number;
+  blogPublished: number;
+  /** STEP 4 — SNS 콘텐츠(게시물·카드뉴스) 생성 여부 */
+  sns: boolean;
+}
+
+/** 한 비즈니스의 STEP 1~4 진행 상태. cache(): 한 요청 안에서 한 번만 조회. */
+export const getWorkflowState = cache(async function getWorkflowState(
+  businessId: string,
+): Promise<WorkflowState> {
+  const supabase = await createClient();
+  const [brandRes, webRes, postRes, snsRes] = await Promise.all([
+    supabase
+      .from("brand_profiles")
+      .select("id")
+      .eq("business_id", businessId)
+      .maybeSingle(),
+    supabase
+      .from("websites")
+      .select("status")
+      .eq("business_id", businessId)
+      .maybeSingle(),
+    supabase.from("blog_posts").select("status").eq("business_id", businessId),
+    supabase
+      .from("marketing_contents")
+      .select("id")
+      .eq("business_id", businessId)
+      .limit(1),
+  ]);
+
+  const posts = postRes.data ?? [];
+  return {
+    brand: !!brandRes.data,
+    website: (webRes.data?.status as "draft" | "published") ?? "none",
+    blogTotal: posts.length,
+    blogPublished: posts.filter((p) => p.status === "published").length,
+    sns: (snsRes.data ?? []).length > 0,
+  };
+});
+
 // ---------------- Public (unauthenticated) reads ----------------
 
 const supabaseConfigured = () =>
@@ -282,4 +330,64 @@ export async function getShowcasePosts(limit = 12): Promise<ShowcasePost[]> {
     const site = byBusiness.get(post.business_id)!;
     return { post, siteSlug: site.slug, businessName: site.name };
   });
+}
+
+export interface ShowcaseCard {
+  id: string;
+  title: string;
+  subtitle: string;
+  siteSlug: string;
+  businessName: string;
+}
+
+/** Card-news sets from businesses with a published site, newest first. */
+export async function getShowcaseCards(limit = 12): Promise<ShowcaseCard[]> {
+  if (!supabaseConfigured()) return [];
+  const supabase = await createClient();
+  const { data: sites } = await supabase
+    .from("websites")
+    .select("business_id, slug, content")
+    .eq("status", "published");
+  if (!sites?.length) return [];
+
+  const byBusiness = new Map(
+    sites.map((s) => [
+      s.business_id,
+      {
+        slug: s.slug,
+        name:
+          (s.content as { hero?: { businessName?: string } }).hero
+            ?.businessName ?? "",
+      },
+    ]),
+  );
+
+  const { data: rows } = await supabase
+    .from("marketing_contents")
+    .select("id, business_id, content, created_at")
+    .in("business_id", [...byBusiness.keys()])
+    .eq("platform", "instagram_cards")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  const cards: ShowcaseCard[] = [];
+  for (const row of rows ?? []) {
+    try {
+      const parsed = JSON.parse(row.content) as {
+        cover?: { title?: string; subtitle?: string };
+      };
+      if (!parsed.cover?.title) continue;
+      const site = byBusiness.get(row.business_id)!;
+      cards.push({
+        id: row.id,
+        title: parsed.cover.title,
+        subtitle: parsed.cover.subtitle ?? "",
+        siteSlug: site.slug,
+        businessName: site.name,
+      });
+    } catch {
+      // 파싱 불가한 카드뉴스는 건너뛴다.
+    }
+  }
+  return cards;
 }

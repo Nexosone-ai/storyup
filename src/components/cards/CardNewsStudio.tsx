@@ -7,14 +7,16 @@ import { Label, Select } from "@/components/ui/Field";
 import { Spinner } from "@/components/ui/Spinner";
 import { Icon } from "@/components/ui/icons";
 import { InstagramCard, toIGCards, cardImageSubject } from "./InstagramCard";
-import { ShareCard } from "./ShareCard";
-import { IG, X, FB } from "./cardTheme";
+import { IG } from "./cardTheme";
 import { resizeImage } from "@/components/website/templates/ImageSlot";
+import { trackEvent } from "@/lib/track";
 import type { CardNewsResult } from "@/types/domain";
 
 interface PostOption {
   id: string;
   title: string;
+  slug?: string;
+  published?: boolean;
 }
 
 const PREVIEW_W = 264;
@@ -43,12 +45,15 @@ export function CardNewsStudio({
   posts,
   brandName,
   handle,
+  siteSlug,
   initial,
 }: {
   businessId: string;
   posts: PostOption[];
   brandName: string;
   handle: string;
+  /** 공개된 홈페이지 슬러그 — 없으면 공유 링크 대신 안내를 보여준다. */
+  siteSlug?: string | null;
   initial?: { cardNews?: CardNewsResult; blogPostId?: string };
 }) {
   const [postId, setPostId] = useState(
@@ -65,8 +70,6 @@ export function CardNewsStudio({
   const [error, setError] = useState<string | null>(null);
 
   const igRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const xRef = useRef<HTMLDivElement | null>(null);
-  const fbRef = useRef<HTMLDivElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const uploadTarget = useRef(0);
 
@@ -182,6 +185,34 @@ export function CardNewsStudio({
       }
     });
 
+  // 공유 대상: 선택한 글이 공개됐으면 그 글, 아니면 공개된 홈페이지.
+  const selectedPost = posts.find((p) => p.id === postId);
+  const sharePath = !siteSlug
+    ? null
+    : selectedPost?.published && selectedPost.slug
+      ? `/site/${siteSlug}/blog/${selectedPost.slug}`
+      : `/site/${siteSlug}`;
+
+  const openShare = (channel: "x" | "facebook") => {
+    if (!sharePath || !data) return;
+    trackEvent({ slug: siteSlug!, event: "share", path: sharePath, channel });
+    const url = `${window.location.origin}${sharePath}`;
+    const target =
+      channel === "x"
+        ? (() => {
+            const u = new URL("https://twitter.com/intent/tweet");
+            u.searchParams.set("url", url);
+            u.searchParams.set("text", data.cover.title);
+            return u.toString();
+          })()
+        : (() => {
+            const u = new URL("https://www.facebook.com/sharer/sharer.php");
+            u.searchParams.set("u", url);
+            return u.toString();
+          })();
+    window.open(target, "_blank", "noopener,width=600,height=500");
+  };
+
   if (posts.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border-strong bg-surface px-6 py-14 text-center">
@@ -191,8 +222,6 @@ export function CardNewsStudio({
       </div>
     );
   }
-
-  const coverImage = images[0];
 
   return (
     <div className="space-y-6">
@@ -258,7 +287,7 @@ export function CardNewsStudio({
               <p className="text-sm font-medium text-muted">
                 인스타그램 카드 {cards.length}장
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Button size="sm" onClick={downloadAll} disabled={busy}>
                   {busy ? (
                     <Spinner className="size-4" />
@@ -267,30 +296,32 @@ export function CardNewsStudio({
                   )}
                   전체 PNG 저장
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={busy}
-                  onClick={() =>
-                    withBusy(() =>
-                      downloadNode(xRef.current, `${slugName()}-x.png`),
-                    )
-                  }
-                >
-                  X 카드
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={busy}
-                  onClick={() =>
-                    withBusy(() =>
-                      downloadNode(fbRef.current, `${slugName()}-facebook.png`),
-                    )
-                  }
-                >
-                  Facebook 카드
-                </Button>
+                {sharePath ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => openShare("x")}
+                      aria-label="X에 공유"
+                      title="X에 공유"
+                      className="grid size-8 place-items-center rounded-full border border-border text-foreground transition-colors hover:border-primary/50 hover:text-primary"
+                    >
+                      <Icon.xBrand width={15} height={15} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openShare("facebook")}
+                      aria-label="Facebook에 공유"
+                      title="Facebook에 공유"
+                      className="grid size-8 place-items-center rounded-full border border-border text-foreground transition-colors hover:border-primary/50 hover:text-primary"
+                    >
+                      <Icon.facebookBrand width={16} height={16} />
+                    </button>
+                  </>
+                ) : (
+                  <span className="text-xs text-muted">
+                    홈페이지를 공개하면 X·Facebook으로 바로 공유할 수 있어요.
+                  </span>
+                )}
               </div>
             </div>
 
@@ -375,26 +406,6 @@ export function CardNewsStudio({
                 image={images[i]}
               />
             ))}
-            <ShareCard
-              ref={xRef}
-              width={X.w}
-              height={X.h}
-              title={data.cover.title}
-              subtitle={data.cover.subtitle}
-              brandName={brandName}
-              handle={handle}
-              image={coverImage}
-            />
-            <ShareCard
-              ref={fbRef}
-              width={FB.w}
-              height={FB.h}
-              title={data.cover.title}
-              subtitle={data.cover.subtitle}
-              brandName={brandName}
-              handle={handle}
-              image={coverImage}
-            />
           </div>
         </>
       )}

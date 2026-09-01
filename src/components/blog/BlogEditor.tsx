@@ -14,7 +14,7 @@ import {
   updateBlogCoverAction,
   uploadSiteImage,
 } from "@/app/business/actions";
-import { fixCjkBold } from "@/utils/markdown";
+import { preprocessMarkdown } from "@/utils/markdown";
 import { BlogCover } from "@/components/blog/BlogCover";
 import { resizeImage } from "@/components/website/templates/ImageSlot";
 import type { BlogPostRow } from "@/types/database";
@@ -44,11 +44,14 @@ export function BlogEditor({
   const [saving, startSave] = useTransition();
   const [publishing, startPublish] = useTransition();
   const [coverPending, startCover] = useTransition();
+  const [mediaBusy, setMediaBusy] = useState(false);
   const ref = useRef<HTMLTextAreaElement>(null);
   const coverFileRef = useRef<HTMLInputElement>(null);
+  const bodyImageRef = useRef<HTMLInputElement>(null);
 
   const previewHtml = useMemo(
-    () => marked.parse(fixCjkBold(content || "_내용을 입력하세요._")) as string,
+    () =>
+      marked.parse(preprocessMarkdown(content || "_내용을 입력하세요._")) as string,
     [content],
   );
 
@@ -123,6 +126,42 @@ export function BlogEditor({
       el.selectionStart = s + before.length;
       el.selectionEnd = e + before.length;
     });
+  };
+
+  /** 본문 커서 위치에 텍스트 블록을 삽입한다 (앞뒤 개행 보장). */
+  const insertBlock = (block: string) => {
+    setTab("write");
+    wrap(`\n${block}\n`);
+  };
+
+  const insertBodyImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    void (async () => {
+      setMediaBusy(true);
+      setNote(null);
+      try {
+        const resized = await resizeImage(file, 1600);
+        const fd = new FormData();
+        fd.append("file", resized);
+        const up = await uploadSiteImage(businessId, fd);
+        if (up.error || !up.url) setNote(up.error ?? "업로드에 실패했습니다.");
+        else insertBlock(`![사진](${up.url})`);
+      } catch {
+        setNote("업로드 중 문제가 발생했습니다.");
+      } finally {
+        setMediaBusy(false);
+      }
+    })();
+  };
+
+  const insertVideo = () => {
+    const url = window.prompt(
+      "삽입할 영상 링크를 붙여넣으세요 (YouTube 링크는 본문에서 바로 재생됩니다):",
+    );
+    if (!url?.trim()) return;
+    insertBlock(url.trim());
   };
 
   const save = () =>
@@ -290,12 +329,30 @@ export function BlogEditor({
       {/* Content editor */}
       <div className="rounded-2xl border border-border bg-surface">
         <div className="flex items-center justify-between border-b border-border px-3 py-2">
+          <input
+            ref={bodyImageRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={insertBodyImage}
+          />
           <div className="flex gap-1">
             <ToolbarBtn onClick={() => wrap("## ")}>H</ToolbarBtn>
             <ToolbarBtn onClick={() => wrap("**", "**")}>B</ToolbarBtn>
             <ToolbarBtn onClick={() => wrap("- ")}>•</ToolbarBtn>
-            <ToolbarBtn onClick={() => wrap("\n![이미지 설명](image-url)\n")}>
-              🖼
+            <ToolbarBtn
+              title="본문에 사진 넣기"
+              disabled={mediaBusy}
+              onClick={() => bodyImageRef.current?.click()}
+            >
+              {mediaBusy ? (
+                <Spinner className="size-4" />
+              ) : (
+                <Icon.image width={16} height={16} />
+              )}
+            </ToolbarBtn>
+            <ToolbarBtn title="영상 링크 넣기" onClick={insertVideo}>
+              <Icon.video width={16} height={16} />
             </ToolbarBtn>
           </div>
           <div className="flex gap-1 rounded-lg bg-surface-muted p-1">
@@ -338,15 +395,21 @@ export function BlogEditor({
 function ToolbarBtn({
   children,
   onClick,
+  title,
+  disabled,
 }: {
   children: React.ReactNode;
   onClick: () => void;
+  title?: string;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="grid h-8 w-8 place-items-center rounded-md text-sm font-semibold text-muted hover:bg-surface-muted hover:text-foreground"
+      title={title}
+      disabled={disabled}
+      className="grid h-8 w-8 place-items-center rounded-md text-sm font-semibold text-muted hover:bg-surface-muted hover:text-foreground disabled:opacity-50"
     >
       {children}
     </button>

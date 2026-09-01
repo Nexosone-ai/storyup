@@ -6,11 +6,13 @@ import { cn } from "@/utils/cn";
 import type {
   ShowcaseSiteItem,
   ShowcasePostItem,
+  ShowcaseCardItem,
 } from "@/components/marketing/showcaseData";
 
 export interface ShowcaseDict {
   tabSites: string;
   tabBlogs: string;
+  tabCards: string;
   more: string;
   empty: string;
 }
@@ -71,17 +73,49 @@ export function PostCard({ item }: { item: ShowcasePostItem }) {
   );
 }
 
+/** 카드뉴스 커버 미리보기 — 이미지 대신 브랜드 그라데이션 위에 제목을 얹는다. */
+export function CardNewsCard({ item }: { item: ShowcaseCardItem }) {
+  return (
+    <Link
+      href={item.href}
+      className="group block overflow-hidden rounded-2xl border border-border bg-surface-muted/60 transition hover:-translate-y-1 hover:border-primary/50"
+    >
+      <div className="relative aspect-[16/9] w-full bg-gradient-to-br from-primary via-primary/80 to-accent/70 p-5">
+        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/70">
+          Card News
+        </p>
+        <p className="mt-2 line-clamp-2 text-lg font-bold leading-snug text-white">
+          {item.title}
+        </p>
+        {item.subtitle && (
+          <p className="mt-1 line-clamp-1 text-sm text-white/80">
+            {item.subtitle}
+          </p>
+        )}
+      </div>
+      <div className="px-5 py-4">
+        <p className="text-xs font-medium text-primary">{item.businessName}</p>
+        <p className="mt-1 line-clamp-1 font-semibold group-hover:text-primary">
+          {item.title}
+        </p>
+      </div>
+    </Link>
+  );
+}
+
 export function ShowcaseTabs({
   sites,
   posts,
+  cards = [],
   t,
 }: {
   sites: ShowcaseSiteItem[];
   posts: ShowcasePostItem[];
+  cards?: ShowcaseCardItem[];
   t: ShowcaseDict;
 }) {
-  const [tab, setTab] = useState<"site" | "blog">("site");
-  const items = tab === "site" ? sites : posts;
+  const [tab, setTab] = useState<"site" | "blog" | "cards">("site");
+  const items = tab === "site" ? sites : tab === "blog" ? posts : cards;
 
   return (
     <div>
@@ -90,6 +124,7 @@ export function ShowcaseTabs({
           [
             ["site", t.tabSites],
             ["blog", t.tabBlogs],
+            ["cards", t.tabCards],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -113,7 +148,9 @@ export function ShowcaseTabs({
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {tab === "site"
             ? sites.map((s) => <SiteCard key={s.href} item={s} />)
-            : posts.map((p) => <PostCard key={p.href} item={p} />)}
+            : tab === "blog"
+              ? posts.map((p) => <PostCard key={p.href} item={p} />)
+              : cards.map((c) => <CardNewsCard key={c.id} item={c} />)}
         </div>
       )}
 

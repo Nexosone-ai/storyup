@@ -148,6 +148,77 @@ export const Icon = {
       <circle cx="7.5" cy="7.5" r="1.3" />
     </Svg>
   ),
+  share: (p: IconProps) => (
+    <Svg {...p}>
+      <circle cx="6" cy="12" r="2.5" />
+      <circle cx="17.5" cy="5.5" r="2.5" />
+      <circle cx="17.5" cy="18.5" r="2.5" />
+      <path d="m8.3 10.8 6.9-4M8.3 13.2l6.9 4" />
+    </Svg>
+  ),
+  link: (p: IconProps) => (
+    <Svg {...p}>
+      <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7" />
+      <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" />
+    </Svg>
+  ),
+  image: (p: IconProps) => (
+    <Svg {...p}>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="9" cy="10" r="1.6" />
+      <path d="m3 17 5-5 4 4 3-3 6 6" />
+    </Svg>
+  ),
+  video: (p: IconProps) => (
+    <Svg {...p}>
+      <rect x="2.5" y="5" width="14" height="14" rx="2.5" />
+      <path d="m16.5 10 5-3v10l-5-3" />
+    </Svg>
+  ),
+  mapPin: (p: IconProps) => (
+    <Svg {...p}>
+      <path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11Z" />
+      <circle cx="12" cy="10" r="2.6" />
+    </Svg>
+  ),
+  camera: (p: IconProps) => (
+    <Svg {...p}>
+      <path d="M4 8h3l2-2.5h6L17 8h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z" />
+      <circle cx="12" cy="13.5" r="3.5" />
+    </Svg>
+  ),
+  // ---- 브랜드 로고 (fill 기반) ----
+  xBrand: (p: IconProps) => (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden
+      {...p}
+    >
+      <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />
+    </svg>
+  ),
+  facebookBrand: (p: IconProps) => (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden
+      {...p}
+    >
+      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+    </svg>
+  ),
+  instagramBrand: (p: IconProps) => (
+    <Svg {...p}>
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.2" cy="6.8" r="0.9" fill="currentColor" stroke="none" />
+    </Svg>
+  ),
 };
 
 export type IconName = keyof typeof Icon;
