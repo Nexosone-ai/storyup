@@ -17,11 +17,14 @@ export interface NavItem {
 
 export function DashboardShell({
   nav,
+  back,
   userName,
   heading,
   children,
 }: {
   nav: NavItem[];
+  /** 상위 화면으로 돌아가는 링크 — 메뉴와 분리된 박스로 표시된다. */
+  back?: { label: string; href: string };
   userName: string;
   heading?: string;
   children: React.ReactNode;
@@ -31,6 +34,17 @@ export function DashboardShell({
 
   const isActive = (item: NavItem) =>
     item.exact ? pathname === item.href : pathname.startsWith(item.href);
+
+  const backLink = back && (
+    <Link
+      href={back.href}
+      onClick={() => setOpen(false)}
+      className="group mb-5 flex items-center gap-2.5 rounded-xl border border-border bg-surface-muted/60 px-3 py-2.5 text-sm font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary-soft hover:text-primary"
+    >
+      <Icon.arrowLeft className="size-[18px] text-muted transition-colors group-hover:text-primary" />
+      {back.label}
+    </Link>
+  );
 
   const navLinks = (
     <nav className="flex flex-col gap-0.5">
@@ -84,6 +98,7 @@ export function DashboardShell({
             <Logo href="/dashboard" />
           </div>
           <div className="mt-8 flex-1">
+            {backLink}
             <p className="eyebrow mb-2 px-3">메뉴</p>
             {navLinks}
           </div>
@@ -109,6 +124,7 @@ export function DashboardShell({
                 </button>
               </div>
               <div className="mt-8 flex-1">
+                {backLink}
                 <p className="eyebrow mb-2 px-3">메뉴</p>
                 {navLinks}
               </div>

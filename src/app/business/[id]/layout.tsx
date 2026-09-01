@@ -21,7 +21,6 @@ export default async function BusinessLayout({
 
   const base = `/business/${id}`;
   const nav: NavItem[] = [
-    { label: "대시보드", href: "/dashboard", icon: "arrowLeft", exact: true },
     { label: "개요", href: base, icon: "home", exact: true },
     { label: "브랜드", href: `${base}/brand`, icon: "sparkles" },
     { label: "홈페이지", href: `${base}/website`, icon: "globe" },
@@ -32,7 +31,11 @@ export default async function BusinessLayout({
   ];
 
   return (
-    <DashboardShell nav={nav} userName={name}>
+    <DashboardShell
+      nav={nav}
+      back={{ label: "대시보드", href: "/dashboard" }}
+      userName={name}
+    >
       {children}
     </DashboardShell>
   );
