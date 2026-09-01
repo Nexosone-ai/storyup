@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { slugify } from "@/utils/slug";
+import { BUSINESS_CATEGORIES } from "@/types/domain";
 import type { WebsiteContent } from "@/types/domain";
 
 const IMAGE_BUCKET = "site-images";
@@ -77,6 +78,80 @@ async function requireUser() {
     data: { user },
   } = await supabase.auth.getUser();
   return { supabase, user };
+}
+
+// ---------------- Business ----------------
+
+export interface BusinessEditFields {
+  name: string;
+  category: string;
+}
+
+/** 비즈니스 기본 정보(이름·업종)를 수정한다. */
+export async function updateBusinessAction(
+  businessId: string,
+  fields: BusinessEditFields,
+): Promise<ActionState> {
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: "로그인이 필요합니다." };
+
+  const name = fields.name.trim();
+  if (!name) return { error: "비즈니스 이름을 입력해주세요." };
+  if (!(BUSINESS_CATEGORIES as readonly string[]).includes(fields.category))
+    return { error: "업종을 선택해주세요." };
+
+  const { error } = await supabase
+    .from("businesses")
+    .update({ name, category: fields.category })
+    .eq("id", businessId);
+  if (error) return { error: "저장에 실패했습니다." };
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/businesses");
+  revalidatePath(`/business/${businessId}`);
+  return { ok: true, message: "저장되었습니다." };
+}
+
+/** 비즈니스를 영구 삭제한다. 브랜드·홈페이지·블로그 등이 함께 삭제된다(DB cascade). */
+export async function deleteBusinessAction(
+  businessId: string,
+): Promise<ActionState> {
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: "로그인이 필요합니다." };
+
+  // 공개 사이트 경로 재검증용 슬러그 확보 (RLS로 소유권도 함께 확인됨).
+  const { data: web } = await supabase
+    .from("websites")
+    .select("slug")
+    .eq("business_id", businessId)
+    .maybeSingle();
+
+  const { error, count } = await supabase
+    .from("businesses")
+    .delete({ count: "exact" })
+    .eq("id", businessId);
+  if (error || !count) return { error: "삭제에 실패했습니다." };
+
+  // 스토리지 이미지 정리 — 실패해도 삭제 자체는 성공으로 둔다.
+  try {
+    const admin = createAdminClient();
+    const bucket = admin.storage.from("site-images");
+    const folders = [businessId, `${businessId}/blog-covers`];
+    for (const folder of folders) {
+      const { data: files } = await bucket.list(folder, { limit: 1000 });
+      const paths = (files ?? [])
+        .filter((f) => f.id) // 하위 폴더 항목 제외
+        .map((f) => `${folder}/${f.name}`);
+      if (paths.length) await bucket.remove(paths);
+    }
+  } catch {
+    // orphan 이미지는 치명적이지 않다.
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/businesses");
+  if (web?.slug) revalidatePath(`/site/${web.slug}`);
+  return { ok: true, message: "비즈니스가 삭제되었습니다." };
 }
 
 // ---------------- Brand ----------------

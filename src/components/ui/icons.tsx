@@ -39,6 +39,13 @@ export const Icon = {
       <path d="M3 12h18M12 3c2.5 3 2.5 15 0 18M12 3c-2.5 3-2.5 15 0 18" />
     </Svg>
   ),
+  more: (p: IconProps) => (
+    <Svg {...p}>
+      <circle cx="5" cy="12" r="1" fill="currentColor" />
+      <circle cx="12" cy="12" r="1" fill="currentColor" />
+      <circle cx="19" cy="12" r="1" fill="currentColor" />
+    </Svg>
+  ),
   pen: (p: IconProps) => (
     <Svg {...p}>
       <path d="M12 20h9" />

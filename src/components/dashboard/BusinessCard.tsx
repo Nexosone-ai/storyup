@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/icons";
+import { BusinessCardMenu } from "./BusinessCardMenu";
 import type { DashboardBusiness } from "@/lib/queries";
 
 function timeAgo(iso: string): string {
@@ -27,16 +28,23 @@ export function BusinessCard({ business }: { business: DashboardBusiness }) {
           </h3>
           <p className="mt-0.5 text-sm text-muted">{business.category}</p>
         </div>
-        {business.websiteStatus === "published" ? (
-          <Badge tone="success">
-            <span className="size-1.5 rounded-full bg-primary" />
-            공개됨
-          </Badge>
-        ) : business.websiteStatus === "draft" ? (
-          <Badge tone="muted">초안</Badge>
-        ) : (
-          <Badge tone="muted">준비 중</Badge>
-        )}
+        <div className="flex items-center gap-1.5">
+          {business.websiteStatus === "published" ? (
+            <Badge tone="success">
+              <span className="size-1.5 rounded-full bg-primary" />
+              공개됨
+            </Badge>
+          ) : business.websiteStatus === "draft" ? (
+            <Badge tone="muted">초안</Badge>
+          ) : (
+            <Badge tone="muted">준비 중</Badge>
+          )}
+          <BusinessCardMenu
+            businessId={business.id}
+            name={business.name}
+            category={business.category}
+          />
+        </div>
       </div>
 
       <dl className="mt-6 grid grid-cols-3 gap-2 border-t border-border pt-4 text-sm">
