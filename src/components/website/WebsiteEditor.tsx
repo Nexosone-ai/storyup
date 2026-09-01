@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState, useTransition } from "react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Field";
 import { Spinner } from "@/components/ui/Spinner";
 import { Icon } from "@/components/ui/icons";
 import { cn } from "@/utils/cn";
@@ -10,7 +11,11 @@ import { TemplateRenderer, TEMPLATE_META, setPath } from "./templates";
 import { makeEditableRenderer } from "./templates/EditableText";
 import { makeEditableImageRenderer } from "./templates/ImageSlot";
 import { makeEditableGallery } from "./templates/GallerySection";
-import { saveWebsiteAction, publishWebsiteAction } from "@/app/business/actions";
+import {
+  saveWebsiteAction,
+  publishWebsiteAction,
+  updateSiteSlugAction,
+} from "@/app/business/actions";
 import { SITE_FONTS, SITE_PALETTES, siteStyleVars } from "./siteStyle";
 import type {
   WebsiteContent,
@@ -33,8 +38,11 @@ export function WebsiteEditor({
   const [status, setStatus] = useState(website.status);
   const [device, setDevice] = useState<Device>("desktop");
   const [note, setNote] = useState<string | null>(null);
+  const [slug, setSlug] = useState(website.slug);
+  const [slugInput, setSlugInput] = useState(website.slug);
   const [saving, startSave] = useTransition();
   const [publishing, startPublish] = useTransition();
+  const [slugSaving, startSlug] = useTransition();
 
   const template = content.template ?? "classic";
 
@@ -89,6 +97,28 @@ export function WebsiteEditor({
       setNote(res.error ?? "저장되었습니다.");
     });
 
+  const saveSlug = () => {
+    const next = slugInput.trim();
+    if (!next || next === slug) return;
+    if (
+      status === "published" &&
+      !window.confirm(
+        "주소를 바꾸면 기존에 공유한 링크(홈페이지·블로그 글)가 더 이상 열리지 않습니다.\n새 주소로 변경할까요?",
+      )
+    )
+      return;
+    startSlug(async () => {
+      setNote(null);
+      const res = await updateSiteSlugAction(businessId, next);
+      if (res.error || !res.slug) setNote(res.error ?? "주소 변경에 실패했습니다.");
+      else {
+        setSlug(res.slug);
+        setSlugInput(res.slug);
+        setNote(res.message ?? "사이트 주소가 변경되었습니다.");
+      }
+    });
+  };
+
   const togglePublish = () =>
     startPublish(async () => {
       setNote(null);
@@ -116,7 +146,7 @@ export function WebsiteEditor({
         </div>
         <div className="flex items-center gap-2">
           {status === "published" && (
-            <ButtonLink href={`/site/${website.slug}`} variant="outline" size="sm" target="_blank" rel="noopener noreferrer">
+            <ButtonLink href={`/site/${slug}`} variant="outline" size="sm" target="_blank" rel="noopener noreferrer">
               <Icon.external width={16} height={16} />
               사이트 열기
             </ButtonLink>
@@ -134,6 +164,33 @@ export function WebsiteEditor({
             )}
           </Button>
         </div>
+      </div>
+
+      {/* Site address */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-border bg-surface p-3">
+        <span className="eyebrow mr-1">사이트 주소</span>
+        <div className="flex items-center gap-1.5">
+          <span className="font-mono text-sm text-muted">/site/</span>
+          <Input
+            value={slugInput}
+            onChange={(e) => setSlugInput(e.target.value)}
+            placeholder="my-shop"
+            className="h-9 w-52 font-mono text-sm"
+            spellCheck={false}
+          />
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={saveSlug}
+          disabled={slugSaving || !slugInput.trim() || slugInput.trim() === slug}
+        >
+          {slugSaving ? <Spinner className="size-4" /> : "주소 변경"}
+        </Button>
+        <p className="w-full text-xs text-muted">
+          영문 소문자·숫자·하이픈(-)만, 3자 이상. 게시된 사이트의 주소를 바꾸면
+          기존에 공유한 링크는 열리지 않아요.
+        </p>
       </div>
 
       {/* Template picker + device toggle */}

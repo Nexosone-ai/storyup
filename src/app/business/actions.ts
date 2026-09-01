@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { slugify } from "@/utils/slug";
 import type { WebsiteContent } from "@/types/domain";
 
 const IMAGE_BUCKET = "site-images";
@@ -134,6 +135,89 @@ export async function saveWebsiteAction(
 
   revalidatePath(`/business/${businessId}/website`);
   return { ok: true, message: "저장되었습니다." };
+}
+
+export interface SlugActionState extends ActionState {
+  slug?: string;
+}
+
+/**
+ * 사이트 주소(슬러그)를 사용자 지정 값으로 변경한다.
+ * businesses.slug와 websites.slug를 함께 바꿔 재생성 시에도 주소가 유지되게 한다.
+ */
+export async function updateSiteSlugAction(
+  businessId: string,
+  rawSlug: string,
+): Promise<SlugActionState> {
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: "로그인이 필요합니다." };
+
+  const slug = slugify(rawSlug);
+  if (slug.length < 3)
+    return {
+      error: "주소는 영문 소문자·숫자·하이픈으로 3자 이상이어야 합니다.",
+    };
+
+  // Ownership check via RLS (+ old slug for revalidation).
+  const { data: biz } = await supabase
+    .from("businesses")
+    .select("slug")
+    .eq("id", businessId)
+    .maybeSingle();
+  if (!biz) return { error: "권한이 없습니다." };
+
+  // Availability across both slug-unique tables.
+  const [{ data: takenBiz }, { data: takenSite }] = await Promise.all([
+    supabase
+      .from("businesses")
+      .select("id")
+      .eq("slug", slug)
+      .neq("id", businessId)
+      .maybeSingle(),
+    supabase
+      .from("websites")
+      .select("id")
+      .eq("slug", slug)
+      .neq("business_id", businessId)
+      .maybeSingle(),
+  ]);
+  if (takenBiz || takenSite)
+    return { error: "이미 다른 사이트가 사용 중인 주소입니다." };
+
+  const { error: bizErr } = await supabase
+    .from("businesses")
+    .update({ slug })
+    .eq("id", businessId);
+  if (bizErr)
+    return {
+      error:
+        bizErr.code === "23505"
+          ? "이미 다른 사이트가 사용 중인 주소입니다."
+          : "주소 변경에 실패했습니다.",
+    };
+
+  // 웹사이트가 아직 없으면 0행 업데이트로 무해하게 지나간다.
+  const { error: siteErr } = await supabase
+    .from("websites")
+    .update({ slug })
+    .eq("business_id", businessId);
+  if (siteErr) {
+    // 원자성이 없으므로 실패 시 비즈니스 슬러그를 되돌린다.
+    await supabase.from("businesses").update({ slug: biz.slug }).eq("id", businessId);
+    return {
+      error:
+        siteErr.code === "23505"
+          ? "이미 다른 사이트가 사용 중인 주소입니다."
+          : "주소 변경에 실패했습니다.",
+    };
+  }
+
+  revalidatePath(`/business/${businessId}/website`);
+  revalidatePath(`/site/${biz.slug}`);
+  revalidatePath(`/site/${biz.slug}/blog`);
+  revalidatePath(`/site/${slug}`);
+  revalidatePath(`/site/${slug}/blog`);
+  return { ok: true, slug, message: "사이트 주소가 변경되었습니다." };
 }
 
 export async function publishWebsiteAction(
