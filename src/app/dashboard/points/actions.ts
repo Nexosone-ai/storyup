@@ -3,59 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n";
-import {
-  createChargeOrder,
-  syncPayment,
-  getPointBreakdown,
-} from "@/lib/payments/service";
+import { createChargeOrder, syncPayment } from "@/lib/payments/service";
 
 export interface PointState {
   error?: string;
   ok?: boolean;
-}
-
-export async function requestWithdrawal(
-  amount: number,
-  accountInfo: string,
-): Promise<PointState> {
-  const ko = (await getLocale()) === "ko";
-  if (!Number.isInteger(amount) || amount <= 0)
-    return {
-      error: ko
-        ? "출금할 포인트를 올바르게 입력해주세요."
-        : "Please enter a valid amount of points to withdraw.",
-    };
-  if (!accountInfo.trim())
-    return {
-      error: ko
-        ? "정산 계좌 정보를 입력해주세요."
-        : "Please enter your payout account details.",
-    };
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
-
-  // closed-loop 규칙: 충전 크레딧은 출금 불가 — 수익 포인트 한도까지만.
-  const { withdrawable } = await getPointBreakdown(user.id);
-  if (amount > withdrawable)
-    return {
-      error: ko
-        ? `출금 가능 포인트(수익)는 ${withdrawable.toLocaleString()}P입니다. 충전 크레딧은 출금할 수 없습니다.`
-        : `Your withdrawable (earned) points are ${withdrawable.toLocaleString()}P. Purchased credits cannot be withdrawn.`,
-    };
-
-  const { error } = await supabase.from("withdrawal_requests").insert({
-    user_id: user.id,
-    amount,
-    account_info: accountInfo.trim(),
-  });
-  if (error)
-    return { error: ko ? "요청에 실패했습니다." : "Request failed." };
-  revalidatePath("/dashboard/points");
-  return { ok: true };
 }
 
 // ---------------- 크레딧 충전 ----------------

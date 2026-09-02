@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getUser, getProfileName } from "@/lib/queries";
-import { isCurrentUserAdmin, getPendingWithdrawals } from "@/lib/points";
+import { isCurrentUserAdmin } from "@/lib/points";
 import {
   getRecentPaymentsAdmin,
   getAllPackagesAdmin,
@@ -23,8 +23,7 @@ export default async function AdminPage() {
   if (!admin) redirect("/dashboard");
 
   await getProfileName(); // ensures profile exists
-  const [pending, payments, packages, prices] = await Promise.all([
-    getPendingWithdrawals(),
+  const [payments, packages, prices] = await Promise.all([
     getRecentPaymentsAdmin(),
     getAllPackagesAdmin(),
     getServicePricesAdmin(),
@@ -32,7 +31,7 @@ export default async function AdminPage() {
 
   return (
     <div className="space-y-10">
-      <AdminView pending={pending} />
+      <AdminView />
       <div className="mx-auto max-w-2xl space-y-10">
         <AdminPointLookup />
         <AdminPackages

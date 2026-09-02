@@ -4,7 +4,7 @@ export const metadata = { title: "크레딧(포인트) 정책" };
 
 export default function CreditPolicyPage() {
   return (
-    <LegalPage title="STORYUP 크레딧(포인트) 정책" updated="2026년 8월 31일">
+    <LegalPage title="STORYUP 크레딧(포인트) 정책" updated="2026년 9월 2일">
       <h2>1. 크레딧의 성격</h2>
       <p>
         STORYUP 크레딧(포인트, 이하 &ldquo;크레딧&rdquo;)은 STORYUP 서비스
@@ -51,8 +51,8 @@ export default function CreditPolicyPage() {
       <h2>5. 수익 포인트와의 구분</h2>
       <p>
         커뮤니티·템플릿 판매 등으로 적립되는 수익 포인트는 충전 크레딧과
-        구분되어 관리되며, 출금(정산)은 수익 포인트에 한해 가능합니다. 충전
-        크레딧은 어떠한 경우에도 출금할 수 없습니다.
+        구분되어 관리됩니다. 적립 포인트는 서비스 내 이용에만 사용할 수
+        있으며, 현금 출금(정산) 기능은 제공하지 않습니다.
       </p>
     </LegalPage>
   );

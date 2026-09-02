@@ -5,7 +5,7 @@ import {
   cancelPortonePayment,
   PaymentProviderError,
 } from "@/lib/payments/portone";
-import type { PaymentRow, PointPackageRow } from "@/types/database";
+import type { PaymentRow } from "@/types/database";
 
 /**
  * 결제 서비스 핵심 규칙:
@@ -269,7 +269,6 @@ export interface PointBreakdown {
   used: number; // AI_USAGE 누적
   refunded: number; // REFUND 회수 누적
   purchasedRemaining: number; // 환불 가능 = 미사용 구매 크레딧
-  withdrawable: number; // 출금 가능 = 잔액 - 구매 잔여 (수익 포인트)
 }
 
 /** 구매/수익 크레딧 분해 — closed-loop 규칙과 환불 가능액 판단의 근거. */
@@ -290,6 +289,5 @@ export async function getPointBreakdown(
   const used = -sum((t) => t.type === "AI_USAGE");
   const refunded = -sum((t) => t.type === "REFUND");
   const purchasedRemaining = Math.max(0, purchased - used - refunded);
-  const withdrawable = Math.max(0, balance - purchasedRemaining);
-  return { balance, purchased, used, refunded, purchasedRemaining, withdrawable };
+  return { balance, purchased, used, refunded, purchasedRemaining };
 }

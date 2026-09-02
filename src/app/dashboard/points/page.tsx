@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { getUser } from "@/lib/queries";
 import {
   getMyTransactions,
-  getMyWithdrawals,
   getActivePackages,
   getMyPayments,
 } from "@/lib/points";
@@ -15,21 +14,17 @@ export default async function PointsPage() {
   const user = await getUser();
   if (!user) redirect("/login");
 
-  const [breakdown, transactions, withdrawals, packages, payments] =
-    await Promise.all([
-      getPointBreakdown(user.id),
-      getMyTransactions(user.id),
-      getMyWithdrawals(user.id),
-      getActivePackages(),
-      getMyPayments(user.id),
-    ]);
+  const [breakdown, transactions, packages, payments] = await Promise.all([
+    getPointBreakdown(user.id),
+    getMyTransactions(user.id),
+    getActivePackages(),
+    getMyPayments(user.id),
+  ]);
 
   return (
     <PointsView
       balance={breakdown.balance}
-      withdrawable={breakdown.withdrawable}
       transactions={transactions}
-      withdrawals={withdrawals}
       packages={packages.map((p) => ({
         id: p.id,
         name: p.name,

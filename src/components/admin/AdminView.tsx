@@ -6,10 +6,9 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Field";
 import { Spinner } from "@/components/ui/Spinner";
-import { grantPoints, decideWithdrawal } from "@/app/dashboard/admin/actions";
-import type { AdminWithdrawal } from "@/lib/points";
+import { grantPoints } from "@/app/dashboard/admin/actions";
 
-export function AdminView({ pending }: { pending: AdminWithdrawal[] }) {
+export function AdminView() {
   const router = useRouter();
   const [busy, start] = useTransition();
 
@@ -33,12 +32,6 @@ export function AdminView({ pending }: { pending: AdminWithdrawal[] }) {
         setReason("");
         router.refresh();
       }
-    });
-
-  const decide = (id: string, approve: boolean) =>
-    start(async () => {
-      await decideWithdrawal(id, approve);
-      router.refresh();
     });
 
   return (
@@ -89,56 +82,6 @@ export function AdminView({ pending }: { pending: AdminWithdrawal[] }) {
             {busy ? <Spinner className="size-4" /> : "반영"}
           </Button>
         </Card>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold tracking-tight">
-          출금 요청 ({pending.length})
-        </h2>
-        {pending.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-border bg-surface p-8 text-center text-muted">
-            대기 중인 출금 요청이 없습니다.
-          </p>
-        ) : (
-          <ul className="space-y-3">
-            {pending.map((w) => (
-              <li
-                key={w.id}
-                className="rounded-2xl border border-border bg-surface p-5"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-medium">
-                      {w.userName}{" "}
-                      <span className="text-sm text-muted">{w.userEmail}</span>
-                    </p>
-                    <p className="tnum mt-1 text-lg font-semibold">
-                      {w.amount.toLocaleString()} P
-                    </p>
-                    <p className="mt-1 text-sm text-muted">{w.account_info}</p>
-                  </div>
-                  <div className="flex shrink-0 gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => decide(w.id, true)}
-                      disabled={busy}
-                    >
-                      승인
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => decide(w.id, false)}
-                      disabled={busy}
-                    >
-                      반려
-                    </Button>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
       </section>
     </div>
   );

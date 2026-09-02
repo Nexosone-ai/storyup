@@ -228,7 +228,7 @@ export function AdminPointLookup() {
               <b>{result.name}</b>{" "}
               <span className="text-muted">{result.email}</span>
             </p>
-            <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="grid grid-cols-2 gap-2 text-center">
               <div className="rounded-xl bg-surface-muted p-3">
                 <p className="text-xs text-muted">잔액</p>
                 <p className="tnum font-bold">{result.balance?.toLocaleString()} P</p>
@@ -237,12 +237,6 @@ export function AdminPointLookup() {
                 <p className="text-xs text-muted">충전 크레딧 잔여</p>
                 <p className="tnum font-bold">
                   {result.purchasedRemaining?.toLocaleString()} P
-                </p>
-              </div>
-              <div className="rounded-xl bg-surface-muted p-3">
-                <p className="text-xs text-muted">출금 가능(수익)</p>
-                <p className="tnum font-bold">
-                  {result.withdrawable?.toLocaleString()} P
                 </p>
               </div>
             </div>

@@ -1,19 +1,16 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Badge } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Input, Label } from "@/components/ui/Field";
 import { Spinner } from "@/components/ui/Spinner";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import {
-  requestWithdrawal,
   createChargeOrderAction,
   confirmChargeAction,
   markChargeFailedAction,
 } from "@/app/dashboard/points/actions";
-import type { PointTx, Withdrawal } from "@/lib/points";
+import type { PointTx } from "@/lib/points";
 
 function fmtDate(iso: string, ko: boolean) {
   return new Date(iso).toLocaleDateString(ko ? "ko-KR" : "en-US", {
@@ -21,15 +18,6 @@ function fmtDate(iso: string, ko: boolean) {
     day: "numeric",
   });
 }
-
-const WD_STATUS: Record<
-  string,
-  { ko: string; en: string; tone: "success" | "muted" | "warning" }
-> = {
-  pending: { ko: "대기 중", en: "Pending", tone: "warning" },
-  approved: { ko: "승인됨", en: "Approved", tone: "success" },
-  rejected: { ko: "반려됨", en: "Rejected", tone: "muted" },
-};
 
 const PAY_STATUS: Record<
   string,
@@ -62,16 +50,12 @@ export interface PaymentItem {
 
 export function PointsView({
   balance,
-  withdrawable,
   transactions,
-  withdrawals,
   packages,
   payments,
 }: {
   balance: number;
-  withdrawable: number;
   transactions: PointTx[];
-  withdrawals: Withdrawal[];
   packages: ChargePackage[];
   payments: PaymentItem[];
 }) {
@@ -172,24 +156,6 @@ export function PointsView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ---- 출금 ----
-  const [amount, setAmount] = useState("");
-  const [account, setAccount] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [pending, start] = useTransition();
-
-  const submit = () =>
-    start(async () => {
-      setError(null);
-      const res = await requestWithdrawal(Number(amount), account);
-      if (res.error) setError(res.error);
-      else {
-        setAmount("");
-        setAccount("");
-        router.refresh();
-      }
-    });
-
   return (
     <div className="mx-auto max-w-2xl space-y-8">
       <div>
@@ -206,8 +172,8 @@ export function PointsView({
         </p>
         <p className="mt-2 text-xs opacity-75">
           {ko
-            ? `출금 가능(수익) ${withdrawable.toLocaleString()} P · 충전 크레딧은 STORYUP 서비스 이용 전용입니다`
-            : `Withdrawable (earnings) ${withdrawable.toLocaleString()} P · Purchased credits are for STORYUP services only`}
+            ? "충전 크레딧은 STORYUP 서비스 이용 전용입니다"
+            : "Purchased credits are for STORYUP services only"}
         </p>
       </Card>
 
@@ -299,80 +265,6 @@ export function PointsView({
           </ul>
         </section>
       )}
-
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold tracking-tight">
-          {ko ? "출금 요청" : "Withdrawal"}
-        </h2>
-        <p className="text-xs text-muted">
-          {ko
-            ? "커뮤니티·템플릿 수익 포인트만 출금할 수 있습니다. (충전 크레딧 제외)"
-            : "Only earnings from community and template sales can be withdrawn. (Purchased credits excluded)"}
-        </p>
-        <Card className="space-y-3">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="wd-amount">
-                {ko ? "출금 포인트" : "Points to withdraw"}
-              </Label>
-              <Input
-                id="wd-amount"
-                type="number"
-                min={1}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder={ko ? "예: 10000" : "e.g. 10000"}
-              />
-            </div>
-            <div>
-              <Label htmlFor="wd-acc">
-                {ko ? "정산 계좌" : "Payout account"}
-              </Label>
-              <Input
-                id="wd-acc"
-                value={account}
-                onChange={(e) => setAccount(e.target.value)}
-                placeholder={
-                  ko
-                    ? "은행 / 계좌번호 / 예금주"
-                    : "Bank / account number / holder"
-                }
-              />
-            </div>
-          </div>
-          {error && <p className="text-sm text-danger">{error}</p>}
-          <Button size="sm" onClick={submit} disabled={pending}>
-            {pending ? (
-              <Spinner className="size-4" />
-            ) : ko ? (
-              "출금 요청"
-            ) : (
-              "Request withdrawal"
-            )}
-          </Button>
-        </Card>
-
-        {withdrawals.length > 0 && (
-          <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">
-            {withdrawals.map((w) => (
-              <li key={w.id} className="flex items-center justify-between p-4">
-                <div>
-                  <p className="tnum font-medium">
-                    {w.amount.toLocaleString()} P
-                  </p>
-                  <p className="text-xs text-muted">
-                    {fmtDate(w.created_at, ko)}
-                  </p>
-                </div>
-                <Badge tone={WD_STATUS[w.status]?.tone ?? "muted"}>
-                  {(ko ? WD_STATUS[w.status]?.ko : WD_STATUS[w.status]?.en) ??
-                    w.status}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold tracking-tight">

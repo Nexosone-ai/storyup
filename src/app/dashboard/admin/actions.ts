@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { getBalance } from "@/lib/points";
 import {
   adminRefundPayment,
   getPointBreakdown,
@@ -84,11 +83,10 @@ export interface UserPointLookup {
   email?: string;
   balance?: number;
   purchasedRemaining?: number;
-  withdrawable?: number;
   recent?: { reason: string; amount: number; created_at: string }[];
 }
 
-/** 사용자 검색 → 잔액·구매잔여·출금가능·최근 거래. */
+/** 사용자 검색 → 잔액·구매잔여·최근 거래. */
 export async function lookupUserPointsAction(
   email: string,
 ): Promise<UserPointLookup> {
@@ -116,7 +114,6 @@ export async function lookupUserPointsAction(
     email: profile.email ?? email,
     balance: breakdown.balance,
     purchasedRemaining: breakdown.purchasedRemaining,
-    withdrawable: breakdown.withdrawable,
     recent: recent ?? [],
   };
 }
@@ -181,44 +178,3 @@ export async function saveServicePriceAction(
   return { ok: true, message: "가격이 저장되었습니다." };
 }
 
-export async function decideWithdrawal(
-  id: string,
-  approve: boolean,
-): Promise<AdminState> {
-  const { user, admin } = await requireAdmin();
-  if (!admin || !user) return { error: "권한이 없습니다." };
-
-  const adminc = createAdminClient();
-  const { data: req } = await adminc
-    .from("withdrawal_requests")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-  if (!req || req.status !== "pending")
-    return { error: "이미 처리되었거나 존재하지 않는 요청입니다." };
-
-  if (approve) {
-    const balance = await getBalance(req.user_id);
-    if (req.amount > balance)
-      return { error: "사용자의 보유 포인트가 부족합니다." };
-    await adminc.from("point_transactions").insert({
-      user_id: req.user_id,
-      amount: -req.amount,
-      reason: "포인트 출금",
-      ref_type: "withdrawal",
-      ref_id: id,
-    });
-  }
-
-  await adminc
-    .from("withdrawal_requests")
-    .update({
-      status: approve ? "approved" : "rejected",
-      decided_by: user.id,
-      decided_at: new Date().toISOString(),
-    })
-    .eq("id", id);
-
-  revalidatePath("/dashboard/admin");
-  return { ok: true };
-}
