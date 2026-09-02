@@ -9,11 +9,44 @@ import {
 
 /**
  * 네이버 지도 링크에서 사업자 정보를 가져오는 서버 액션.
- * 네이버 검색 API(지역)를 사용한다 — NAVER_CLIENT_ID / NAVER_CLIENT_SECRET 필요.
+ * 네이버 지역 검색 API를 사용한다 — 2026-06부터 NAVER API HUB(네이버 클라우드)로
+ * 이관되어 신규 발급은 NAVER_API_KEY_ID / NAVER_API_KEY만 가능하다.
+ * (구 개발자센터 키 NAVER_CLIENT_ID / NAVER_CLIENT_SECRET는 2027-06까지 폴백 지원)
  * 네이버는 장소 사진을 공식 API로 제공하지 않으므로 사진은 가져오지 않는다.
  */
 
-const LOCAL_SEARCH = "https://openapi.naver.com/v1/search/local.json";
+const HUB_LOCAL_SEARCH = "https://naverapihub.apigw.ntruss.com/search/v1/local";
+const LEGACY_LOCAL_SEARCH = "https://openapi.naver.com/v1/search/local.json";
+
+interface NaverCreds {
+  url: string;
+  headers: Record<string, string>;
+}
+
+/** 설정된 환경변수에 맞는 엔드포인트·인증 헤더를 고른다 (HUB 우선). */
+function naverCreds(): NaverCreds | null {
+  const hubId = process.env.NAVER_API_KEY_ID;
+  const hubKey = process.env.NAVER_API_KEY;
+  if (hubId && hubKey)
+    return {
+      url: HUB_LOCAL_SEARCH,
+      headers: {
+        "X-NCP-APIGW-API-KEY-ID": hubId,
+        "X-NCP-APIGW-API-KEY": hubKey,
+      },
+    };
+  const legacyId = process.env.NAVER_CLIENT_ID;
+  const legacySecret = process.env.NAVER_CLIENT_SECRET;
+  if (legacyId && legacySecret)
+    return {
+      url: LEGACY_LOCAL_SEARCH,
+      headers: {
+        "X-Naver-Client-Id": legacyId,
+        "X-Naver-Client-Secret": legacySecret,
+      },
+    };
+  return null;
+}
 
 interface LocalItem {
   title: string;
@@ -60,24 +93,21 @@ function cleanTitle(title: string): string {
 }
 
 async function searchLocal(
-  id: string,
-  secret: string,
+  creds: NaverCreds,
   query: string,
 ): Promise<{ item?: LocalItem; error?: string }> {
   const res = await fetchWithTimeout(
-    `${LOCAL_SEARCH}?query=${encodeURIComponent(query)}&display=5`,
-    {
-      headers: {
-        "X-Naver-Client-Id": id,
-        "X-Naver-Client-Secret": secret,
-      },
-    },
+    `${creds.url}?query=${encodeURIComponent(query)}&display=5`,
+    { headers: creds.headers },
   );
   if (!res.ok) {
     let detail = "";
     try {
-      const json = (await res.json()) as { errorMessage?: string };
-      detail = json.errorMessage ?? "";
+      const json = (await res.json()) as {
+        errorMessage?: string;
+        error?: { message?: string };
+      };
+      detail = json.errorMessage ?? json.error?.message ?? "";
     } catch {
       // 본문이 JSON이 아니면 상태 코드만 기록
     }
@@ -85,7 +115,7 @@ async function searchLocal(
     if (res.status === 401 || res.status === 403)
       return {
         error:
-          "네이버 API 키가 거부되었습니다. 네이버 개발자센터에서 Client ID/Secret과 '검색' API 사용 설정을 확인해주세요.",
+          "네이버 API 키가 거부되었습니다. 네이버 클라우드 콘솔의 NAVER API HUB에서 Client ID/Secret과 검색 API 구독 상태를 확인해주세요.",
       };
     if (res.status === 429)
       return { error: "네이버 API 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요." };
@@ -117,12 +147,11 @@ export async function importNaverPlaceAction(
     .maybeSingle();
   if (!biz) return { error: "권한이 없습니다." };
 
-  const clientId = process.env.NAVER_CLIENT_ID;
-  const clientSecret = process.env.NAVER_CLIENT_SECRET;
-  if (!clientId || !clientSecret)
+  const creds = naverCreds();
+  if (!creds)
     return {
       error:
-        "네이버 지도 연동이 설정되지 않았습니다. 관리자가 NAVER_CLIENT_ID / NAVER_CLIENT_SECRET을 설정해야 합니다.",
+        "네이버 지도 연동이 설정되지 않았습니다. 관리자가 NAVER_API_KEY_ID / NAVER_API_KEY(네이버 클라우드 API HUB)를 설정해야 합니다.",
     };
 
   try {
@@ -134,7 +163,7 @@ export async function importNaverPlaceAction(
       };
 
     const query = parseNaverQuery(fullUrl) ?? biz.name;
-    const { item, error } = await searchLocal(clientId, clientSecret, query);
+    const { item, error } = await searchLocal(creds, query);
     if (error) return { error };
     if (!item)
       return {
