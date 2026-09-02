@@ -84,9 +84,11 @@ function parseMapsUrl(fullUrl: string): {
     decoded.match(/[?&](?:query_)?place_id[=:]([\w-]+)/)?.[1];
   if (pid) return { placeId: pid };
 
-  // 2) /maps/place/<이름>/@lat,lng
+  // 2) /maps/place/<이름> — 좌표는 @lat,lng 또는 데이터 블록의 !3d..!4d..
   const m = decoded.match(/\/maps\/place\/([^/@]+)/);
-  const at = decoded.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  const at =
+    decoded.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) ??
+    decoded.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
   if (m) {
     return {
       query: m[1].replace(/\+/g, " ").trim(),
@@ -102,13 +104,30 @@ function parseMapsUrl(fullUrl: string): {
   return {};
 }
 
-/** 텍스트 검색으로 place id를 찾는다 (좌표가 있으면 주변으로 한정). */
+/** Places API 오류 응답을 사용자에게 보여줄 메시지로 바꾼다. */
+async function placesApiError(res: Response): Promise<string> {
+  let detail = "";
+  try {
+    const json = (await res.json()) as { error?: { message?: string } };
+    detail = json.error?.message ?? "";
+  } catch {
+    // 본문이 JSON이 아니면 상태 코드만 표기
+  }
+  console.error(`[googlePlace] Places API ${res.status}: ${detail}`);
+  if (res.status === 403 || res.status === 401)
+    return "구글 API 키가 거부되었습니다. Google Cloud에서 'Places API (New)' 활성화, 결제 계정 연결, 키 제한 설정을 확인해주세요.";
+  if (res.status === 429)
+    return "구글 API 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요.";
+  return `구글 Places API 오류가 발생했습니다 (${res.status}${detail ? `: ${detail.slice(0, 120)}` : ""}).`;
+}
+
+/** 텍스트 검색으로 place id를 찾는다 (좌표가 있으면 주변을 우선). */
 async function searchPlaceId(
   key: string,
   query: string,
   lat?: number,
   lng?: number,
-): Promise<string | null> {
+): Promise<{ id?: string; error?: string }> {
   const body: Record<string, unknown> = { textQuery: query, languageCode: "ko" };
   if (lat !== undefined && lng !== undefined) {
     body.locationBias = {
@@ -124,15 +143,15 @@ async function searchPlaceId(
     },
     body: JSON.stringify(body),
   });
-  if (!res.ok) return null;
+  if (!res.ok) return { error: await placesApiError(res) };
   const json = (await res.json()) as { places?: { id: string }[] };
-  return json.places?.[0]?.id ?? null;
+  return { id: json.places?.[0]?.id };
 }
 
 async function fetchPlaceDetails(
   key: string,
   placeId: string,
-): Promise<PlaceDetails | null> {
+): Promise<{ details?: PlaceDetails; error?: string }> {
   const res = await fetchWithTimeout(
     `${PLACES_BASE}/places/${encodeURIComponent(placeId)}?languageCode=ko`,
     {
@@ -143,8 +162,8 @@ async function fetchPlaceDetails(
       },
     },
   );
-  if (!res.ok) return null;
-  return (await res.json()) as PlaceDetails;
+  if (!res.ok) return { error: await placesApiError(res) };
+  return { details: (await res.json()) as PlaceDetails };
 }
 
 /** 장소 사진을 내려받아 Supabase 스토리지에 저장하고 공개 URL을 돌려준다. */
@@ -277,7 +296,9 @@ export async function importGooglePlaceAction(
     const parsed = parseMapsUrl(fullUrl);
     let placeId = parsed.placeId ?? null;
     if (!placeId && parsed.query) {
-      placeId = await searchPlaceId(key, parsed.query, parsed.lat, parsed.lng);
+      const found = await searchPlaceId(key, parsed.query, parsed.lat, parsed.lng);
+      if (found.error) return { error: found.error };
+      placeId = found.id ?? null;
     }
     if (!placeId)
       return {
@@ -285,7 +306,8 @@ export async function importGooglePlaceAction(
           "링크에서 장소를 찾지 못했습니다. 구글 지도에서 업체 페이지를 연 뒤 '공유' 버튼의 링크를 사용해주세요.",
       };
 
-    const details = await fetchPlaceDetails(key, placeId);
+    const { details, error: detailsError } = await fetchPlaceDetails(key, placeId);
+    if (detailsError) return { error: detailsError };
     if (!details)
       return { error: "구글에서 장소 정보를 가져오지 못했습니다. 잠시 후 다시 시도해주세요." };
 
@@ -308,7 +330,8 @@ export async function importGooglePlaceAction(
         photos,
       },
     };
-  } catch {
+  } catch (e) {
+    console.error("[googlePlace] import failed:", e);
     return { error: "불러오는 중 문제가 발생했습니다. 링크를 확인하고 다시 시도해주세요." };
   }
 }
