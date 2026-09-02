@@ -16,7 +16,7 @@ async function requireUser() {
   return { supabase, user };
 }
 
-const PATH = "/dashboard/community";
+const PATH = "/community";
 const IMAGE_BUCKET = "community-images";
 
 /** 커뮤니티 글에 첨부할 사진을 업로드하고 공개 URL을 돌려준다. */

@@ -17,22 +17,16 @@ export async function MarketingNav() {
           <Logo />
           <nav className="hidden items-center gap-6 md:flex">
             <Link
-              href="/#features"
-              className="text-sm font-medium text-muted transition-colors hover:text-foreground"
-            >
-              {t.nav.features}
-            </Link>
-            <Link
-              href="/#how"
-              className="text-sm font-medium text-muted transition-colors hover:text-foreground"
-            >
-              {t.nav.how}
-            </Link>
-            <Link
               href="/showcase"
               className="text-sm font-medium text-muted transition-colors hover:text-foreground"
             >
               {t.nav.portfolio}
+            </Link>
+            <Link
+              href="/community"
+              className="text-sm font-medium text-muted transition-colors hover:text-foreground"
+            >
+              {t.nav.community}
             </Link>
           </nav>
         </div>

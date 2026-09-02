@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 
 export interface FeedComment {
   id: string;
@@ -25,10 +25,12 @@ async function buildFeed(
   likesTable: "story_connect_likes" | "real_talk_likes",
   postType: "story" | "realtalk",
 ): Promise<FeedPost[]> {
-  const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await (await createClient()).auth.getUser();
+
+  // 커뮤니티는 공개 페이지에서도 보여야 하므로 읽기는 service role로 수행한다.
+  const supabase = createAdminClient();
 
   const { data: posts } = await supabase
     .from(table)

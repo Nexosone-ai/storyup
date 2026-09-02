@@ -17,9 +17,8 @@ export const translations = {
       start: "무료 시작",
       dashboard: "대시보드",
       logout: "로그아웃",
-      features: "기능",
-      how: "작동 방식",
       portfolio: "스토리들",
+      community: "커뮤니티",
     },
     landing: {
       badge: "AI 브랜드 빌더 · 무료 베타",
@@ -167,9 +166,8 @@ export const translations = {
       productLabel: "제품",
       companyLabel: "회사",
       product: [
-        { label: "기능", href: "/#features" },
-        { label: "작동 방식", href: "/#how" },
         { label: "스토리들", href: "/showcase" },
+        { label: "커뮤니티", href: "/community" },
       ],
       links: [
         { label: "이용약관", href: "/terms" },
@@ -247,9 +245,8 @@ export const translations = {
       start: "Start free",
       dashboard: "Dashboard",
       logout: "Log out",
-      features: "Features",
-      how: "How it works",
       portfolio: "Stories",
+      community: "Community",
     },
     landing: {
       badge: "AI Brand Builder · Free Beta",
@@ -397,9 +394,8 @@ export const translations = {
       productLabel: "Product",
       companyLabel: "Company",
       product: [
-        { label: "Features", href: "/#features" },
-        { label: "How it works", href: "/#how" },
         { label: "Stories", href: "/showcase" },
+        { label: "Community", href: "/community" },
       ],
       links: [
         { label: "Terms of Service", href: "/terms" },
