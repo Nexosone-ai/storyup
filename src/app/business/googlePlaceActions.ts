@@ -1,0 +1,314 @@
+"use server";
+
+import { createClient, createAdminClient } from "@/lib/supabase/server";
+
+/**
+ * 구글 지도 링크에서 사업자 정보를 가져오는 서버 액션.
+ * Google Places API (New)를 사용한다 — GOOGLE_MAPS_API_KEY 필요.
+ */
+
+export interface GooglePlaceData {
+  name: string;
+  address: string;
+  phone: string;
+  website: string;
+  instagram: string;
+  facebook: string;
+  x: string;
+  /** Supabase 스토리지에 저장된 사진 URL들 (최대 6장) */
+  photos: string[];
+}
+
+export interface GooglePlaceResult {
+  data?: GooglePlaceData;
+  error?: string;
+}
+
+const PLACES_BASE = "https://places.googleapis.com/v1";
+const IMAGE_BUCKET = "site-images";
+const MAX_PHOTOS = 6;
+
+interface PlaceDetails {
+  displayName?: { text?: string };
+  formattedAddress?: string;
+  nationalPhoneNumber?: string;
+  internationalPhoneNumber?: string;
+  websiteUri?: string;
+  photos?: { name: string }[];
+}
+
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit = {},
+  ms = 8000,
+): Promise<Response> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...init, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** 단축 링크(maps.app.goo.gl 등)를 따라가 전체 구글 지도 URL을 얻는다. */
+async function resolveMapsUrl(raw: string): Promise<string> {
+  const url = raw.trim();
+  if (!/^https?:\/\//i.test(url)) throw new Error("링크 형식이 아닙니다.");
+  const host = new URL(url).hostname;
+  const isShort =
+    /(^|\.)goo\.gl$/.test(host) ||
+    host === "maps.app.goo.gl" ||
+    host === "share.google";
+  if (!isShort) return url;
+  // 리다이렉트를 따라간 최종 URL이 전체 지도 주소다.
+  const res = await fetchWithTimeout(url, {
+    redirect: "follow",
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; StoryupBot/1.0)" },
+  });
+  return res.url || url;
+}
+
+/** 지도 URL에서 place id 또는 (이름, 좌표) 검색 조건을 추출한다. */
+function parseMapsUrl(fullUrl: string): {
+  placeId?: string;
+  query?: string;
+  lat?: number;
+  lng?: number;
+} {
+  const decoded = decodeURIComponent(fullUrl);
+
+  // 1) 데이터 블록의 place id (!19sChIJ...) 또는 쿼리 파라미터
+  const pid =
+    decoded.match(/!19s(ChIJ[\w-]+)/)?.[1] ??
+    decoded.match(/[?&](?:query_)?place_id[=:]([\w-]+)/)?.[1];
+  if (pid) return { placeId: pid };
+
+  // 2) /maps/place/<이름>/@lat,lng
+  const m = decoded.match(/\/maps\/place\/([^/@]+)/);
+  const at = decoded.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (m) {
+    return {
+      query: m[1].replace(/\+/g, " ").trim(),
+      lat: at ? Number(at[1]) : undefined,
+      lng: at ? Number(at[2]) : undefined,
+    };
+  }
+
+  // 3) ?q=<검색어>
+  const q = new URL(fullUrl).searchParams.get("q");
+  if (q && !/^\d+(\.\d+)?,/.test(q)) return { query: q };
+
+  return {};
+}
+
+/** 텍스트 검색으로 place id를 찾는다 (좌표가 있으면 주변으로 한정). */
+async function searchPlaceId(
+  key: string,
+  query: string,
+  lat?: number,
+  lng?: number,
+): Promise<string | null> {
+  const body: Record<string, unknown> = { textQuery: query, languageCode: "ko" };
+  if (lat !== undefined && lng !== undefined) {
+    body.locationBias = {
+      circle: { center: { latitude: lat, longitude: lng }, radius: 1000.0 },
+    };
+  }
+  const res = await fetchWithTimeout(`${PLACES_BASE}/places:searchText`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": key,
+      "X-Goog-FieldMask": "places.id",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) return null;
+  const json = (await res.json()) as { places?: { id: string }[] };
+  return json.places?.[0]?.id ?? null;
+}
+
+async function fetchPlaceDetails(
+  key: string,
+  placeId: string,
+): Promise<PlaceDetails | null> {
+  const res = await fetchWithTimeout(
+    `${PLACES_BASE}/places/${encodeURIComponent(placeId)}?languageCode=ko`,
+    {
+      headers: {
+        "X-Goog-Api-Key": key,
+        "X-Goog-FieldMask":
+          "displayName,formattedAddress,nationalPhoneNumber,internationalPhoneNumber,websiteUri,photos",
+      },
+    },
+  );
+  if (!res.ok) return null;
+  return (await res.json()) as PlaceDetails;
+}
+
+/** 장소 사진을 내려받아 Supabase 스토리지에 저장하고 공개 URL을 돌려준다. */
+async function savePhotos(
+  key: string,
+  businessId: string,
+  photos: { name: string }[],
+): Promise<string[]> {
+  const admin = createAdminClient();
+  try {
+    const { data: buckets } = await admin.storage.listBuckets();
+    if (!buckets?.some((b) => b.name === IMAGE_BUCKET)) {
+      await admin.storage.createBucket(IMAGE_BUCKET, {
+        public: true,
+        fileSizeLimit: "10MB",
+      });
+    }
+  } catch {
+    // 버킷이 이미 있으면 업로드는 그대로 동작한다.
+  }
+
+  const stamp = Date.now();
+  const results = await Promise.all(
+    photos.slice(0, MAX_PHOTOS).map(async (photo, i) => {
+      try {
+        // skipHttpRedirect=true → 실제 이미지 URI(JSON)를 받아 직접 내려받는다.
+        const metaRes = await fetchWithTimeout(
+          `${PLACES_BASE}/${photo.name}/media?maxWidthPx=1400&skipHttpRedirect=true&key=${key}`,
+        );
+        if (!metaRes.ok) return null;
+        const { photoUri } = (await metaRes.json()) as { photoUri?: string };
+        if (!photoUri) return null;
+
+        const imgRes = await fetchWithTimeout(photoUri, {}, 12000);
+        if (!imgRes.ok) return null;
+        const bytes = await imgRes.arrayBuffer();
+        if (bytes.byteLength === 0 || bytes.byteLength > 8 * 1024 * 1024)
+          return null;
+
+        const path = `${businessId}/google-${stamp}-${i}.jpg`;
+        const { error } = await admin.storage
+          .from(IMAGE_BUCKET)
+          .upload(path, bytes, { contentType: "image/jpeg", upsert: false });
+        if (error) return null;
+        return admin.storage.from(IMAGE_BUCKET).getPublicUrl(path).data
+          .publicUrl;
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return results.filter((u): u is string => !!u);
+}
+
+/** 사업자 웹사이트 HTML에서 SNS 프로필 링크를 추출한다. */
+async function extractSocials(
+  websiteUri: string,
+): Promise<{ instagram: string; facebook: string; x: string }> {
+  const none = { instagram: "", facebook: "", x: "" };
+  try {
+    const res = await fetchWithTimeout(
+      websiteUri,
+      { headers: { "User-Agent": "Mozilla/5.0 (compatible; StoryupBot/1.0)" } },
+      6000,
+    );
+    if (!res.ok) return none;
+    const html = (await res.text()).slice(0, 600_000);
+
+    const first = (re: RegExp, exclude: RegExp) => {
+      for (const m of html.matchAll(re)) {
+        const url = m[0].replace(/["'\\).,]+$/, "");
+        if (!exclude.test(url)) return url;
+      }
+      return "";
+    };
+
+    return {
+      instagram: first(
+        /https?:\/\/(?:www\.)?instagram\.com\/[A-Za-z0-9_.]+/g,
+        /instagram\.com\/(?:p|reel|reels|explore|accounts|share)\b/i,
+      ),
+      facebook: first(
+        /https?:\/\/(?:www\.)?facebook\.com\/[A-Za-z0-9_.\-]+/g,
+        /facebook\.com\/(?:sharer|share|dialog|plugins|login|tr)\b/i,
+      ),
+      x: first(
+        /https?:\/\/(?:www\.)?(?:x|twitter)\.com\/[A-Za-z0-9_]+/g,
+        /(?:x|twitter)\.com\/(?:intent|share|home|search|hashtag|i)\b/i,
+      ),
+    };
+  } catch {
+    return none;
+  }
+}
+
+/**
+ * 구글 지도 링크로 사업자 정보(이름·주소·전화·웹사이트·사진·SNS)를 가져온다.
+ * 사진은 스토리지에 복사해 저장하므로 반환된 URL을 그대로 사이트에 써도 된다.
+ */
+export async function importGooglePlaceAction(
+  businessId: string,
+  mapsUrl: string,
+): Promise<GooglePlaceResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "로그인이 필요합니다." };
+
+  // Ownership check via RLS.
+  const { data: biz } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("id", businessId)
+    .maybeSingle();
+  if (!biz) return { error: "권한이 없습니다." };
+
+  const key = process.env.GOOGLE_MAPS_API_KEY;
+  if (!key)
+    return {
+      error:
+        "구글 지도 연동이 설정되지 않았습니다. 관리자가 GOOGLE_MAPS_API_KEY를 설정해야 합니다.",
+    };
+
+  try {
+    const fullUrl = await resolveMapsUrl(mapsUrl);
+    if (!/google\.[a-z.]+\/maps|maps\.google/i.test(fullUrl))
+      return { error: "구글 지도 링크가 아닌 것 같습니다. 지도에서 '공유' 링크를 복사해 붙여넣어주세요." };
+
+    const parsed = parseMapsUrl(fullUrl);
+    let placeId = parsed.placeId ?? null;
+    if (!placeId && parsed.query) {
+      placeId = await searchPlaceId(key, parsed.query, parsed.lat, parsed.lng);
+    }
+    if (!placeId)
+      return {
+        error:
+          "링크에서 장소를 찾지 못했습니다. 구글 지도에서 업체 페이지를 연 뒤 '공유' 버튼의 링크를 사용해주세요.",
+      };
+
+    const details = await fetchPlaceDetails(key, placeId);
+    if (!details)
+      return { error: "구글에서 장소 정보를 가져오지 못했습니다. 잠시 후 다시 시도해주세요." };
+
+    const website = details.websiteUri ?? "";
+    const [photos, socials] = await Promise.all([
+      savePhotos(key, businessId, details.photos ?? []),
+      website ? extractSocials(website) : Promise.resolve({ instagram: "", facebook: "", x: "" }),
+    ]);
+
+    return {
+      data: {
+        name: details.displayName?.text ?? "",
+        address: details.formattedAddress ?? "",
+        phone:
+          details.nationalPhoneNumber ??
+          details.internationalPhoneNumber ??
+          "",
+        website,
+        ...socials,
+        photos,
+      },
+    };
+  } catch {
+    return { error: "불러오는 중 문제가 발생했습니다. 링크를 확인하고 다시 시도해주세요." };
+  }
+}

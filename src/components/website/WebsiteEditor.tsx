@@ -16,6 +16,8 @@ import {
   publishWebsiteAction,
   updateSiteSlugAction,
 } from "@/app/business/actions";
+import { GoogleImportBar } from "./GoogleImportBar";
+import type { GooglePlaceData } from "@/app/business/googlePlaceActions";
 import { SITE_FONTS, SITE_PALETTES, siteStyleVars } from "./siteStyle";
 import type {
   WebsiteContent,
@@ -77,6 +79,35 @@ export function WebsiteEditor({
       ),
     [businessId],
   );
+
+  /** 구글 지도에서 가져온 정보를 콘텐츠에 병합한다 — 가져온 값이 있으면 우선. */
+  const applyGoogleImport = useCallback((d: GooglePlaceData) => {
+    setContent((c) => {
+      const pick = (imported: string, current?: string) =>
+        imported || current || "";
+      const gallery = [...(c.gallery ?? [])];
+      for (const p of d.photos) if (!gallery.includes(p)) gallery.push(p);
+      return {
+        ...c,
+        hero: {
+          ...c.hero,
+          businessName: c.hero.businessName || d.name,
+          // 대표 사진이 없으면 첫 장을 히어로 배경으로 쓴다.
+          image: c.hero.image || d.photos[0] || c.hero.image,
+        },
+        contact: {
+          ...c.contact,
+          phone: pick(d.phone, c.contact.phone),
+          address: pick(d.address, c.contact.address),
+          website: pick(d.website, c.contact.website),
+          instagram: pick(d.instagram, c.contact.instagram),
+          facebook: pick(d.facebook, c.contact.facebook),
+          x: pick(d.x, c.contact.x),
+        },
+        gallery,
+      };
+    });
+  }, []);
 
   const setTemplate = (id: WebsiteTemplateId) =>
     setContent((c) => ({ ...c, template: id }));
@@ -192,6 +223,9 @@ export function WebsiteEditor({
           기존에 공유한 링크는 열리지 않아요.
         </p>
       </div>
+
+      {/* Google Maps import */}
+      <GoogleImportBar businessId={businessId} onImport={applyGoogleImport} />
 
       {/* Template picker + device toggle */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-3">
