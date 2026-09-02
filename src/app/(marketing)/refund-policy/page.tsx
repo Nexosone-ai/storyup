@@ -1,4 +1,4 @@
-import { LegalPage, LegalTodo } from "@/components/marketing/LegalPage";
+import { LegalPage } from "@/components/marketing/LegalPage";
 
 export const metadata = { title: "취소·환불 정책" };
 
@@ -25,12 +25,11 @@ export default function RefundPolicyPage() {
       </ul>
 
       <h2>3. 일부 사용한 크레딧</h2>
-      <LegalTodo>
-        일부 사용 후 잔여 크레딧의 부분 환불 기준(공제 방식, 보너스 크레딧
-        처리, 수수료 등)은 전자상거래법 및 콘텐츠 이용자 보호 지침 검토 후
-        확정해 기재해야 합니다. 확정 전까지는 고객 지원을 통해 개별
-        협의합니다.
-      </LegalTodo>
+      <p>
+        결제 후 크레딧을 일부 사용한 경우, 잔여 크레딧의 환불은 고객 지원을
+        통해 접수하며 사용 내역을 확인한 뒤 개별 협의로 처리됩니다. 보너스
+        크레딧은 환불 금액 산정에서 제외됩니다.
+      </p>
 
       <h2>4. 환불이 제한되는 경우</h2>
       <ul>

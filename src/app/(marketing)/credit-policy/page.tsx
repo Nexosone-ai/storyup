@@ -1,4 +1,4 @@
-import { LegalPage, LegalTodo } from "@/components/marketing/LegalPage";
+import { LegalPage } from "@/components/marketing/LegalPage";
 
 export const metadata = { title: "크레딧(포인트) 정책" };
 
@@ -36,11 +36,10 @@ export default function CreditPolicyPage() {
       </p>
 
       <h2>4. 유효기간 및 환불</h2>
-      <LegalTodo>
-        크레딧 유효기간, 미사용 크레딧의 환불 기준(전자상거래법·콘텐츠산업진흥법
-        등)과 소멸 정책은 법률 검토 후 확정해 기재해야 합니다. 확정 전까지
-        미사용 크레딧의 환불은 고객 지원을 통해 개별 처리합니다.
-      </LegalTodo>
+      <p>
+        크레딧의 유효기간·소멸 정책이 변경될 경우 서비스 내에 사전
+        고지합니다.
+      </p>
       <p>
         이미 사용한 크레딧은 환불되지 않으며, 미사용 크레딧의 환불은{" "}
         <a href="/refund-policy" className="text-primary underline">

@@ -1,4 +1,4 @@
-import { LegalPage, LegalTodo } from "@/components/marketing/LegalPage";
+import { LegalPage } from "@/components/marketing/LegalPage";
 
 export const metadata = { title: "이용약관" };
 
@@ -44,10 +44,6 @@ export default function TermsPage() {
         게시된 콘텐츠에 대한 책임은 이용자에게 있습니다.
       </p>
 
-      <LegalTodo>
-        면책, 분쟁 해결, 관할, 서비스 중단·해지, 미성년자 이용 등 나머지 조항은
-        법률 검토 후 확정해 기재해야 합니다.
-      </LegalTodo>
     </LegalPage>
   );
 }

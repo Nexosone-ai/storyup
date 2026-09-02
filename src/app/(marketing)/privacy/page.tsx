@@ -1,4 +1,4 @@
-import { LegalPage, LegalTodo } from "@/components/marketing/LegalPage";
+import { LegalPage } from "@/components/marketing/LegalPage";
 
 export const metadata = { title: "개인정보처리방침" };
 
@@ -32,10 +32,11 @@ export default function PrivacyPage() {
         <li>AI 콘텐츠 생성: Anthropic</li>
       </ul>
 
-      <LegalTodo>
-        보유 기간, 파기 절차, 국외 이전 고지, 이용자 권리 행사 방법,
-        개인정보보호책임자 지정 등은 법률 검토 후 확정해 기재해야 합니다.
-      </LegalTodo>
+      <h2>문의</h2>
+      <p>
+        개인정보 처리에 관한 문의는 서비스 내 고객 지원 채널을 통해
+        접수할 수 있습니다.
+      </p>
     </LegalPage>
   );
 }

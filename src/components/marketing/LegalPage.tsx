@@ -27,12 +27,3 @@ export function LegalPage({
     </div>
   );
 }
-
-/** 법률 검토가 필요한 문구 표시. */
-export function LegalTodo({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="rounded-xl border border-dashed border-warning/50 bg-warning/5 p-4 text-sm text-muted">
-      ⚠️ 법률 검토 필요: {children}
-    </p>
-  );
-}
