@@ -9,6 +9,7 @@ import type {
 import type { BlogPromptInput } from "./prompts/blog";
 import type { MarketingPromptInput } from "./prompts/marketing";
 import type { CardNewsPromptInput } from "./prompts/card-news";
+import type { PromptLanguage } from "./prompts/brand-story";
 
 /**
  * Model-agnostic AI interface. Swap providers (Claude, others) or add
@@ -17,11 +18,13 @@ import type { CardNewsPromptInput } from "./prompts/card-news";
 export interface AIProvider {
   generateBrandStory(
     input: BusinessInterviewInput,
+    language?: PromptLanguage,
   ): Promise<BrandStoryResult>;
 
   generateWebsite(
     business: BusinessInterviewInput,
     brand: BrandStoryResult,
+    language?: PromptLanguage,
   ): Promise<WebsiteContent>;
 
   generateBlog(input: BlogPromptInput): Promise<BlogArticleResult>;

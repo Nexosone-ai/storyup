@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAIProvider, AIGenerationError } from "@/lib/ai";
 import { chargeAiUsage, InsufficientPointsError } from "@/lib/ai/billing";
+import { getLocale } from "@/lib/i18n";
 
 export const maxDuration = 60;
 
@@ -68,6 +69,7 @@ export async function POST(request: Request) {
       articleTitle: post.title,
       articleSummary: post.summary ?? "",
       articleContent: post.content ?? "",
+      language: await getLocale(),
     });
 
     // Replace any previous marketing content for this post.

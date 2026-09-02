@@ -12,7 +12,11 @@ import type {
   WebsiteContent,
   BusinessInterviewInput,
 } from "@/types/domain";
-import { brandStoryPrompt, type PromptSpec } from "./prompts/brand-story";
+import {
+  brandStoryPrompt,
+  type PromptLanguage,
+  type PromptSpec,
+} from "./prompts/brand-story";
 import { websitePrompt } from "./prompts/website";
 import { blogPrompt, type BlogPromptInput } from "./prompts/blog";
 import {
@@ -56,16 +60,23 @@ export class ClaudeProvider implements AIProvider {
     return parseJson<T>(raw);
   }
 
-  generateBrandStory(input: BusinessInterviewInput) {
-    return this.complete<BrandStoryResult>(brandStoryPrompt(input), 2500);
+  generateBrandStory(
+    input: BusinessInterviewInput,
+    language: PromptLanguage = "ko",
+  ) {
+    return this.complete<BrandStoryResult>(
+      brandStoryPrompt(input, language),
+      2500,
+    );
   }
 
   async generateWebsite(
     business: BusinessInterviewInput,
     brand: BrandStoryResult,
+    language: PromptLanguage = "ko",
   ): Promise<WebsiteContent> {
     return this.complete<WebsiteContent>(
-      websitePrompt(business, brand),
+      websitePrompt(business, brand, language),
       2500,
     );
   }

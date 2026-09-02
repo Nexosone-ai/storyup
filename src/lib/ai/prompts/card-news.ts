@@ -1,4 +1,4 @@
-import type { PromptSpec } from "./brand-story";
+import { languageRule, type PromptLanguage, type PromptSpec } from "./brand-story";
 
 export interface CardNewsPromptInput {
   businessName: string;
@@ -7,18 +7,24 @@ export interface CardNewsPromptInput {
   articleTitle: string;
   articleSummary: string;
   articleContent: string;
+  language?: PromptLanguage;
 }
 
 export function cardNewsPrompt(input: CardNewsPromptInput): PromptSpec {
+  const language = input.language ?? "ko";
+  const lengthRule =
+    language === "en"
+      ? "heading under 5 words, body under 90 characters."
+      : "heading은 12자 이내, body는 60자 이내.";
   const system = `당신은 인스타그램 카드뉴스 기획자입니다.
 블로그 글을 스와이프하며 읽는 카드뉴스로 재구성합니다.
 
 규칙:
 - 카드뉴스는 표지 1장 + 내용 3~4장 + 마무리(CTA) 1장 구성입니다.
-- 각 카드의 텍스트는 짧고 강렬하게. heading은 12자 이내, body는 60자 이내.
+- 각 카드의 텍스트는 짧고 강렬하게. ${lengthRule}
 - 표지 title은 스크롤을 멈추게 하는 후킹 문구.
 - 과장/허위 없이, 브랜드 톤을 지킵니다.
-- 한국어로 작성합니다.
+- ${languageRule(language)}
 - 반드시 아래 JSON 스키마만 순수 JSON으로 반환하세요.`;
 
   const user = `사업 이름: ${input.businessName}

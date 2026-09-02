@@ -1,13 +1,15 @@
 import type { BrandStoryResult, BusinessInterviewInput } from "@/types/domain";
-import type { PromptSpec } from "./brand-story";
+import { languageRule, type PromptLanguage, type PromptSpec } from "./brand-story";
 
 export function websitePrompt(
   business: BusinessInterviewInput,
   brand: BrandStoryResult,
+  language: PromptLanguage = "ko",
 ): PromptSpec {
   const system = `당신은 소상공인용 홈페이지 카피라이터입니다.
 브랜드 정보를 바탕으로 미리 정의된 템플릿 섹션에 들어갈 문구를 작성합니다.
-과장 없이, 방문객이 신뢰할 수 있는 자연스러운 한국어 카피를 씁니다.
+과장 없이, 방문객이 신뢰할 수 있는 자연스러운 카피를 씁니다.
+${languageRule(language)}
 반드시 아래 JSON 스키마만 순수 JSON으로 반환하세요.`;
 
   const user = `사업/브랜드 정보:

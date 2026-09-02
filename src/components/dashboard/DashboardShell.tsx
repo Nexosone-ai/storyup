@@ -111,7 +111,9 @@ export function DashboardShell({
   );
 
   return (
-    <div className="min-h-dvh bg-background">
+    // translate="no": 크롬 자동 번역이 React DOM을 변형해 insertBefore 오류로
+    // 앱이 죽는 것을 막는다 — 대시보드는 KO/EN을 자체 지원하므로 기계 번역 불필요.
+    <div className="min-h-dvh bg-background" translate="no">
       {/* Mobile top bar */}
       <div className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-surface/90 px-4 backdrop-blur lg:hidden">
         <Logo />
