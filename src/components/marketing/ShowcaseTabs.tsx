@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/utils/cn";
+import { CardNewsSlider } from "@/components/marketing/CardNewsSlider";
 import type {
   ShowcaseSiteItem,
   ShowcasePostItem,
@@ -73,27 +74,15 @@ export function PostCard({ item }: { item: ShowcasePostItem }) {
   );
 }
 
-/** 카드뉴스 커버 미리보기 — 이미지 대신 브랜드 그라데이션 위에 제목을 얹는다. */
+/** 카드뉴스 미리보기 — 실제 SNS 카드(4:5)를 자동 슬라이드로 보여준다. */
 export function CardNewsCard({ item }: { item: ShowcaseCardItem }) {
   return (
     <Link
       href={item.href}
       className="group block overflow-hidden rounded-2xl border border-border bg-surface-muted/60 transition hover:-translate-y-1 hover:border-primary/50"
     >
-      <div className="relative aspect-[16/9] w-full bg-gradient-to-br from-primary via-primary/80 to-accent/70 p-5">
-        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/70">
-          Card News
-        </p>
-        <p className="mt-2 line-clamp-2 text-lg font-bold leading-snug text-white">
-          {item.title}
-        </p>
-        {item.subtitle && (
-          <p className="mt-1 line-clamp-1 text-sm text-white/80">
-            {item.subtitle}
-          </p>
-        )}
-      </div>
-      <div className="px-5 py-4">
+      <CardNewsSlider item={item} />
+      <div className="border-t border-border px-5 py-4">
         <p className="text-xs font-medium text-primary">{item.businessName}</p>
         <p className="mt-1 line-clamp-1 font-semibold group-hover:text-primary">
           {item.title}

@@ -6,6 +6,7 @@ import type {
   WebsiteRow,
   BlogPostRow,
 } from "@/types/database";
+import type { CardNewsResult } from "@/types/domain";
 
 /** Current authenticated user, or null. */
 export async function getUser() {
@@ -338,6 +339,10 @@ export interface ShowcaseCard {
   subtitle: string;
   siteSlug: string;
   businessName: string;
+  /** 블로그 커버 → 사이트 히어로 → 갤러리 순으로 자동 채운 대표 이미지 */
+  image: string | null;
+  /** 카드뉴스 전체 내용 — 쇼케이스에서 슬라이드로 보여준다. */
+  cardNews: CardNewsResult;
 }
 
 /** Card-news sets from businesses with a published site, newest first. */
@@ -351,31 +356,46 @@ export async function getShowcaseCards(limit = 12): Promise<ShowcaseCard[]> {
   if (!sites?.length) return [];
 
   const byBusiness = new Map(
-    sites.map((s) => [
-      s.business_id,
-      {
-        slug: s.slug,
-        name:
-          (s.content as { hero?: { businessName?: string } }).hero
-            ?.businessName ?? "",
-      },
-    ]),
+    sites.map((s) => {
+      const content = s.content as {
+        hero?: { businessName?: string; image?: string };
+        gallery?: string[];
+      };
+      return [
+        s.business_id,
+        {
+          slug: s.slug,
+          name: content.hero?.businessName ?? "",
+          image: content.hero?.image ?? content.gallery?.[0] ?? null,
+        },
+      ] as const;
+    }),
   );
 
   const { data: rows } = await supabase
     .from("marketing_contents")
-    .select("id, business_id, content, created_at")
+    .select("id, business_id, blog_post_id, content, created_at")
     .in("business_id", [...byBusiness.keys()])
     .eq("platform", "instagram_cards")
     .order("created_at", { ascending: false })
     .limit(limit);
 
+  // 카드뉴스가 만들어진 블로그 글의 커버 이미지를 대표 이미지로 우선 사용한다.
+  const postIds = [...new Set((rows ?? []).map((r) => r.blog_post_id).filter(Boolean))] as string[];
+  const coverByPost = new Map<string, string>();
+  if (postIds.length > 0) {
+    const { data: posts } = await supabase
+      .from("blog_posts")
+      .select("id, cover_image_url")
+      .in("id", postIds);
+    for (const p of posts ?? [])
+      if (p.cover_image_url) coverByPost.set(p.id, p.cover_image_url);
+  }
+
   const cards: ShowcaseCard[] = [];
   for (const row of rows ?? []) {
     try {
-      const parsed = JSON.parse(row.content) as {
-        cover?: { title?: string; subtitle?: string };
-      };
+      const parsed = JSON.parse(row.content) as CardNewsResult;
       if (!parsed.cover?.title) continue;
       const site = byBusiness.get(row.business_id)!;
       cards.push({
@@ -384,6 +404,17 @@ export async function getShowcaseCards(limit = 12): Promise<ShowcaseCard[]> {
         subtitle: parsed.cover.subtitle ?? "",
         siteSlug: site.slug,
         businessName: site.name,
+        image:
+          (row.blog_post_id && coverByPost.get(row.blog_post_id)) ||
+          site.image,
+        cardNews: {
+          cover: {
+            title: parsed.cover.title,
+            subtitle: parsed.cover.subtitle ?? "",
+          },
+          slides: Array.isArray(parsed.slides) ? parsed.slides : [],
+          cta: parsed.cta ?? { text: "", handle: `@${site.slug}` },
+        },
       });
     } catch {
       // 파싱 불가한 카드뉴스는 건너뛴다.

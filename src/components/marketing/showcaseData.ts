@@ -1,5 +1,5 @@
 import type { WebsiteRow } from "@/types/database";
-import type { WebsiteContent } from "@/types/domain";
+import type { WebsiteContent, CardNewsResult } from "@/types/domain";
 import type { ShowcasePost, ShowcaseCard } from "@/lib/queries";
 
 /** 직렬화 가능한 쇼케이스 카드 데이터 (서버에서 만들어 클라이언트 탭으로 전달) */
@@ -44,6 +44,9 @@ export interface ShowcaseCardItem {
   title: string;
   subtitle: string;
   businessName: string;
+  image: string | null;
+  handle: string;
+  cardNews: CardNewsResult;
 }
 
 export function toCardItem(card: ShowcaseCard): ShowcaseCardItem {
@@ -53,5 +56,8 @@ export function toCardItem(card: ShowcaseCard): ShowcaseCardItem {
     title: card.title,
     subtitle: card.subtitle,
     businessName: card.businessName,
+    image: card.image,
+    handle: `@${card.siteSlug}`,
+    cardNews: card.cardNews,
   };
 }
