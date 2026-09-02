@@ -42,6 +42,8 @@ export function SiteCard({ item }: { item: ShowcaseSiteItem }) {
   return (
     <Link
       href={item.href}
+      target="_blank"
+  rel="noopener noreferrer"
       className="group block overflow-hidden rounded-2xl border border-border bg-surface-muted/60 transition hover:-translate-y-1 hover:border-primary/50"
     >
       {item.image ? (
@@ -69,6 +71,8 @@ export function PostCard({ item }: { item: ShowcasePostItem }) {
   return (
     <Link
       href={item.href}
+      target="_blank"
+  rel="noopener noreferrer"
       className="group block overflow-hidden rounded-2xl border border-border bg-surface-muted/60 transition hover:-translate-y-1 hover:border-primary/50"
     >
       {item.cover ? (
@@ -98,6 +102,8 @@ export function CardNewsCard({ item }: { item: ShowcaseCardItem }) {
   return (
     <Link
       href={item.href}
+      target="_blank"
+  rel="noopener noreferrer"
       className="group block overflow-hidden rounded-2xl border border-border bg-surface-muted/60 transition hover:-translate-y-1 hover:border-primary/50"
     >
       <CardNewsSlider item={item} />
