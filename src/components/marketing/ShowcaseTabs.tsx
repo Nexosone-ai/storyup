@@ -97,23 +97,23 @@ export function PostCard({ item }: { item: ShowcasePostItem }) {
   );
 }
 
-/** 카드뉴스 미리보기 — 실제 SNS 카드(4:5)를 자동 슬라이드로 보여준다. */
+/** 카드뉴스 미리보기 — 카드 영역은 클릭·스와이프로 넘겨 보고, 아래 정보 영역만 홈페이지로 이동한다. */
 export function CardNewsCard({ item }: { item: ShowcaseCardItem }) {
   return (
-    <Link
-      href={item.href}
-      target="_blank"
-  rel="noopener noreferrer"
-      className="group block overflow-hidden rounded-2xl border border-border bg-surface-muted/60 transition hover:-translate-y-1 hover:border-primary/50"
-    >
+    <div className="group overflow-hidden rounded-2xl border border-border bg-surface-muted/60 transition hover:-translate-y-1 hover:border-primary/50">
       <CardNewsSlider item={item} />
-      <div className="border-t border-border px-5 py-4">
+      <Link
+        href={item.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block border-t border-border px-5 py-4"
+      >
         <p className="text-xs font-medium text-primary">{item.businessName}</p>
         <p className="mt-1 line-clamp-1 font-semibold group-hover:text-primary">
           {item.title}
         </p>
-      </div>
-    </Link>
+      </Link>
+    </div>
   );
 }
 
