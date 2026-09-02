@@ -72,7 +72,15 @@ export default function RootLayout({
       lang="ko"
       className={`${outfit.variable} ${fraunces.variable} ${geistMono.variable} ${notoSansKr.variable} ${notoSerifKr.variable} ${gowunDodum.variable} h-full antialiased`}
     >
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full">
+        {/* 프리텐다드 — 사이트 에디터 폰트 옵션용 (구글 폰트 미제공, 동적 서브셋 CDN 사용) */}
+        <link
+          rel="stylesheet"
+          precedence="default"
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+        />
+        {children}
+      </body>
     </html>
   );
 }

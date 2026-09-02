@@ -161,7 +161,7 @@ export const translations = {
       },
     },
     footer: {
-      tagline: "당신의 이야기를 비즈니스로. · Turn Your Story Into Business.",
+      tagline: "당신의 이야기를 비즈니스로 · Turn Your Story Into Business",
       desc: "소상공인의 이야기를 비즈니스 자산으로.",
       productLabel: "제품",
       companyLabel: "회사",

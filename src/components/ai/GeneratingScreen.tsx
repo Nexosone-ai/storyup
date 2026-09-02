@@ -58,8 +58,13 @@ export function GeneratingScreen({
     <div className="grid min-h-[60vh] place-items-center">
       <div className="w-full max-w-md rounded-2xl border border-border bg-surface p-8 shadow-sm">
         <div className="flex items-center gap-3">
-          <span className="relative grid size-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
-            <Icon.sparkles className="size-5" />
+          <span className="relative grid size-10 shrink-0 place-items-center rounded-xl border border-border bg-white">
+            {/* eslint-disable-next-line @next/next/no-img-element -- 정적 로고 에셋 */}
+            <img
+              src="/images/logo-icon.png"
+              alt=""
+              className="size-6 animate-pulse object-contain"
+            />
             <span className="absolute inset-0 animate-ping rounded-xl bg-primary/10" />
           </span>
           <h2 className="text-base font-semibold tracking-tight text-balance">

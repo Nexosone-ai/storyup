@@ -1,6 +1,6 @@
 # STORYUP
 
-**당신의 이야기를 비즈니스로. — Turn Your Story Into Business.**
+**당신의 이야기를 비즈니스로 — Turn Your Story Into Business**
 
 AI 기반 비즈니스 브랜딩 · 홈페이지 · 콘텐츠 마케팅 SaaS (MVP).
 

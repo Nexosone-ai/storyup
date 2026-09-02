@@ -105,6 +105,11 @@ export const WEBSITE_PALETTES = [
   "terracotta",
   "rose",
   "charcoal",
+  "sky",
+  "mint",
+  "lavender",
+  "pink",
+  "peach",
 ] as const;
 export type WebsitePaletteId = (typeof WEBSITE_PALETTES)[number];
 

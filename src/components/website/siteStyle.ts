@@ -20,6 +20,12 @@ export const SITE_PALETTES: Array<{
   { id: "terracotta", name: "테라코타", nameEn: "Terracotta", primary: "#b85c38", hover: "#9c4c2e", soft: "#f7eae4" },
   { id: "rose", name: "로즈", nameEn: "Rose", primary: "#b0446a", hover: "#953a5a", soft: "#f8e9ef" },
   { id: "charcoal", name: "차콜", nameEn: "Charcoal", primary: "#3a3f47", hover: "#2d3138", soft: "#ebedef" },
+  // ---- 파스텔톤 ----
+  { id: "sky", name: "파스텔 스카이", nameEn: "Pastel Sky", primary: "#6faedd", hover: "#5b9bcd", soft: "#eef6fc" },
+  { id: "mint", name: "파스텔 민트", nameEn: "Pastel Mint", primary: "#67b9a2", hover: "#55a790", soft: "#ebf7f3" },
+  { id: "lavender", name: "라벤더", nameEn: "Lavender", primary: "#9b8ccf", hover: "#8879c0", soft: "#f2effa" },
+  { id: "pink", name: "파스텔 핑크", nameEn: "Pastel Pink", primary: "#e290b0", hover: "#d47da0", soft: "#fceff5" },
+  { id: "peach", name: "피치", nameEn: "Peach", primary: "#eda07b", hover: "#de8c66", soft: "#fdf1ea" },
 ];
 
 /** Preset font choices. Stacks reference variables loaded in the root layout. */
@@ -40,9 +46,11 @@ export const SITE_FONTS: Array<{
   },
   {
     id: "serif",
-    name: "클래식 명조",
-    nameEn: "Classic Serif",
-    stack: 'var(--font-noto-serif-kr), "Nanum Myeongjo", Georgia, serif',
+    name: "프리텐다드",
+    nameEn: "Pretendard",
+    // 기존 '클래식 명조'를 대체 — 가독성 문제로 프리텐다드로 교체 (id는 호환 유지)
+    stack:
+      '"Pretendard Variable", Pretendard, "Malgun Gothic", "Apple SD Gothic Neo", sans-serif',
   },
   {
     id: "gowun",
