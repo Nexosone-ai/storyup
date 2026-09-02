@@ -3,15 +3,24 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GeneratingScreen } from "@/components/ai/GeneratingScreen";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 
-const STEPS = [
+const STEPS_KO = [
   "홈페이지 구조를 잡는 중...",
   "섹션 콘텐츠를 작성하는 중...",
   "브랜드 톤을 입히는 중...",
   "홈페이지를 완성하는 중...",
 ];
 
+const STEPS_EN = [
+  "Structuring your website...",
+  "Writing section content...",
+  "Applying your brand tone...",
+  "Finishing your website...",
+];
+
 export function WebsiteGenerator({ businessId }: { businessId: string }) {
+  const ko = useLocale() === "ko";
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const started = useRef(false);
@@ -25,12 +34,21 @@ export function WebsiteGenerator({ businessId }: { businessId: string }) {
         body: JSON.stringify({ businessId }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "생성에 실패했습니다.");
+      if (!res.ok)
+        throw new Error(
+          json.error ?? (ko ? "생성에 실패했습니다." : "Generation failed."),
+        );
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "생성에 실패했습니다.");
+      setError(
+        e instanceof Error
+          ? e.message
+          : ko
+            ? "생성에 실패했습니다."
+            : "Generation failed.",
+      );
     }
-  }, [businessId, router]);
+  }, [businessId, router, ko]);
 
   useEffect(() => {
     if (started.current) return;
@@ -40,8 +58,12 @@ export function WebsiteGenerator({ businessId }: { businessId: string }) {
 
   return (
     <GeneratingScreen
-      title="비즈니스 홈페이지를 만들고 있어요..."
-      steps={STEPS}
+      title={
+        ko
+          ? "비즈니스 홈페이지를 만들고 있어요..."
+          : "Building your business website..."
+      }
+      steps={ko ? STEPS_KO : STEPS_EN}
       error={error}
       onRetry={run}
     />

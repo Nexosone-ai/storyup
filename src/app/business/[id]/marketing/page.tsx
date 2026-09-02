@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getBusiness, getBlogPosts, getWebsite } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
+import { getLocale } from "@/lib/i18n";
 import { MarketingHub } from "@/components/marketing/MarketingHub";
 import { CardNewsStudio } from "@/components/cards/CardNewsStudio";
 import { WorkflowSteps } from "@/components/dashboard/WorkflowSteps";
@@ -16,6 +17,7 @@ export default async function MarketingPage({
   const { id } = await params;
   const business = await getBusiness(id);
   if (!business) notFound();
+  const ko = (await getLocale()) === "ko";
 
   const [posts, website] = await Promise.all([getBlogPosts(id), getWebsite(id)]);
   const supabase = await createClient();
@@ -77,17 +79,21 @@ export default async function MarketingPage({
       <div>
         <p className="eyebrow mb-2">SNS</p>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          SNS 콘텐츠 스튜디오
+          {ko ? "SNS 콘텐츠 스튜디오" : "Social content studio"}
         </h1>
         <p className="mt-1.5 text-muted">
-          블로그 글을 SNS 게시물과 카드뉴스 이미지로 바꿔보세요.
+          {ko
+            ? "블로그 글을 SNS 게시물과 카드뉴스 이미지로 바꿔보세요."
+            : "Turn blog posts into social posts and card news images."}
         </p>
       </div>
 
       <WorkflowSteps businessId={id} current={4} />
 
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold tracking-tight">SNS 게시물</h2>
+        <h2 className="text-lg font-semibold tracking-tight">
+          {ko ? "SNS 게시물" : "Social posts"}
+        </h2>
         <MarketingHub
           businessId={id}
           posts={postOptions}
@@ -98,11 +104,12 @@ export default async function MarketingPage({
       <section className="space-y-4">
         <div>
           <h2 className="text-lg font-semibold tracking-tight">
-            카드뉴스 이미지
+            {ko ? "카드뉴스 이미지" : "Card news images"}
           </h2>
           <p className="mt-1 text-sm text-muted">
-            인스타그램 캐러셀로 저장하고, X·Facebook에는 링크로 바로
-            공유하세요.
+            {ko
+              ? "인스타그램 캐러셀로 저장하고, X·Facebook에는 링크로 바로 공유하세요."
+              : "Save as an Instagram carousel, or share the link straight to X and Facebook."}
           </p>
         </div>
         <CardNewsStudio

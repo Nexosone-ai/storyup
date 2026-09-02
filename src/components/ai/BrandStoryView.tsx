@@ -7,6 +7,7 @@ import { Input, Textarea, Label } from "@/components/ui/Field";
 import { Spinner } from "@/components/ui/Spinner";
 import { Icon } from "@/components/ui/icons";
 import { updateBrandAction, type BrandEditFields } from "@/app/business/actions";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import type { BrandProfileRow } from "@/types/database";
 
 export function BrandStoryView({
@@ -18,6 +19,7 @@ export function BrandStoryView({
   brand: BrandProfileRow;
   websiteExists: boolean;
 }) {
+  const ko = useLocale() === "ko";
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
   const [note, setNote] = useState<string | null>(null);
@@ -45,7 +47,7 @@ export function BrandStoryView({
       if (res.error) setNote(res.error);
       else {
         setEditing(false);
-        setNote("저장되었습니다.");
+        setNote(ko ? "저장되었습니다." : "Saved.");
       }
     });
   };
@@ -53,48 +55,52 @@ export function BrandStoryView({
   if (editing) {
     return (
       <div className="mx-auto max-w-3xl space-y-5">
-        <h1 className="text-2xl font-bold">브랜드 스토리 편집</h1>
+        <h1 className="text-2xl font-bold">
+          {ko ? "브랜드 스토리 편집" : "Edit brand story"}
+        </h1>
         <Card className="space-y-4">
-          <Editable label="브랜드 이름">
+          <Editable label={ko ? "브랜드 이름" : "Brand name"}>
             <Input
               value={form.brand_name}
               onChange={(e) => set("brand_name", e.target.value)}
             />
           </Editable>
-          <Editable label="헤드라인">
+          <Editable label={ko ? "헤드라인" : "Headline"}>
             <Input
               value={form.headline}
               onChange={(e) => set("headline", e.target.value)}
             />
           </Editable>
-          <Editable label="슬로건">
+          <Editable label={ko ? "슬로건" : "Slogan"}>
             <Input
               value={form.slogan}
               onChange={(e) => set("slogan", e.target.value)}
             />
           </Editable>
-          <Editable label="한 줄 소개">
+          <Editable label={ko ? "한 줄 소개" : "One-line intro"}>
             <Textarea
               className="min-h-20"
               value={form.short_description}
               onChange={(e) => set("short_description", e.target.value)}
             />
           </Editable>
-          <Editable label="브랜드 스토리">
+          <Editable label={ko ? "브랜드 스토리" : "Brand story"}>
             <Textarea
               className="min-h-48"
               value={form.brand_story}
               onChange={(e) => set("brand_story", e.target.value)}
             />
           </Editable>
-          <Editable label="미션">
+          <Editable label={ko ? "미션" : "Mission"}>
             <Textarea
               className="min-h-20"
               value={form.mission}
               onChange={(e) => set("mission", e.target.value)}
             />
           </Editable>
-          <Editable label="핵심 강점 (쉼표로 구분)">
+          <Editable
+            label={ko ? "핵심 강점 (쉼표로 구분)" : "Key strengths (comma-separated)"}
+          >
             <Input
               value={form.key_strengths.join(", ")}
               onChange={(e) =>
@@ -105,7 +111,9 @@ export function BrandStoryView({
               }
             />
           </Editable>
-          <Editable label="브랜드 키워드 (쉼표로 구분)">
+          <Editable
+            label={ko ? "브랜드 키워드 (쉼표로 구분)" : "Brand keywords (comma-separated)"}
+          >
             <Input
               value={form.brand_keywords.join(", ")}
               onChange={(e) =>
@@ -120,14 +128,14 @@ export function BrandStoryView({
         {note && <p className="text-sm text-muted">{note}</p>}
         <div className="flex gap-3">
           <Button onClick={save} disabled={pending}>
-            {pending ? <Spinner /> : "저장"}
+            {pending ? <Spinner /> : ko ? "저장" : "Save"}
           </Button>
           <Button
             variant="outline"
             onClick={() => setEditing(false)}
             disabled={pending}
           >
-            취소
+            {ko ? "취소" : "Cancel"}
           </Button>
         </div>
       </div>
@@ -137,19 +145,21 @@ export function BrandStoryView({
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="text-center">
-        <Badge tone="primary">브랜드 완성</Badge>
+        <Badge tone="primary">{ko ? "브랜드 완성" : "Brand complete"}</Badge>
         <h1 className="mt-3 text-3xl font-bold tracking-tight">
           Your Brand Story is Ready
         </h1>
         <p className="mt-2 text-muted">
-          AI가 당신의 이야기를 바탕으로 브랜드를 만들었어요. 자유롭게 다듬어보세요.
+          {ko
+            ? "AI가 당신의 이야기를 바탕으로 브랜드를 만들었어요. 자유롭게 다듬어보세요."
+            : "AI built a brand from your story. Refine it as you like."}
         </p>
       </div>
 
       <div className="flex justify-end">
         <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
           <Icon.pen width={16} height={16} />
-          편집
+          {ko ? "편집" : "Edit"}
         </Button>
       </div>
 
@@ -185,7 +195,13 @@ export function BrandStoryView({
       <div className="flex justify-center pt-2">
         <ButtonLink href={`/business/${businessId}/website`} size="lg">
           <Icon.globe width={18} height={18} />
-          {websiteExists ? "홈페이지 보기" : "홈페이지 만들기"}
+          {websiteExists
+            ? ko
+              ? "홈페이지 보기"
+              : "View website"
+            : ko
+              ? "홈페이지 만들기"
+              : "Create website"}
         </ButtonLink>
       </div>
     </div>

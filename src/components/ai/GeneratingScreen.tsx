@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import { Icon } from "@/components/ui/icons";
 import { cn } from "@/utils/cn";
 
@@ -21,6 +22,7 @@ export function GeneratingScreen({
   error?: string | null;
   onRetry?: () => void;
 }) {
+  const ko = useLocale() === "ko";
   const [i, setI] = useState(0);
 
   useEffect(() => {
@@ -39,12 +41,12 @@ export function GeneratingScreen({
             <Icon.x className="size-5" />
           </div>
           <h2 className="text-lg font-semibold tracking-tight">
-            잠시 문제가 있었어요
+            {ko ? "잠시 문제가 있었어요" : "Something went wrong"}
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-muted">{error}</p>
           {onRetry && (
             <Button className="mt-6" onClick={onRetry}>
-              다시 시도하기
+              {ko ? "다시 시도하기" : "Try again"}
             </Button>
           )}
         </div>

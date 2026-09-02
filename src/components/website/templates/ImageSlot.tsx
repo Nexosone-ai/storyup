@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { uploadSiteImage } from "@/app/business/actions";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import { cn } from "@/utils/cn";
 import type { ImageRenderer } from "./shared";
 
@@ -39,6 +40,7 @@ function ImageSlot({
   /** AI 생성 프롬프트에 쓰일 피사체 설명 (예: 메뉴명, 상호+헤드라인) */
   subject?: string;
 }) {
+  const ko = useLocale() === "ko";
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState<"upload" | "ai" | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -56,10 +58,13 @@ function ImageSlot({
       const fd = new FormData();
       fd.append("file", resized);
       const res = await uploadSiteImage(businessId, fd);
-      if (res.error || !res.url) setErr(res.error ?? "업로드 실패");
+      if (res.error || !res.url)
+        setErr(res.error ?? (ko ? "업로드 실패" : "Upload failed"));
       else onChange(res.url);
     } catch {
-      setErr("업로드 중 문제가 발생했습니다.");
+      setErr(
+        ko ? "업로드 중 문제가 발생했습니다." : "Something went wrong during upload.",
+      );
     } finally {
       setBusy(null);
     }
@@ -79,10 +84,15 @@ function ImageSlot({
         }),
       });
       const json = await res.json();
-      if (!res.ok || !json.url) setErr(json.error ?? "이미지 생성 실패");
+      if (!res.ok || !json.url)
+        setErr(json.error ?? (ko ? "이미지 생성 실패" : "Image generation failed"));
       else onChange(json.url);
     } catch {
-      setErr("이미지 생성 중 문제가 발생했습니다.");
+      setErr(
+        ko
+          ? "이미지 생성 중 문제가 발생했습니다."
+          : "Something went wrong while generating the image.",
+      );
     } finally {
       setBusy(null);
     }
@@ -110,10 +120,10 @@ function ImageSlot({
           {/* controls */}
           <div className="absolute right-2 top-2 z-10 flex gap-1.5 opacity-0 transition group-hover/img:opacity-100">
             <button type="button" onClick={pick} disabled={!!busy} className={pill}>
-              {busy === "upload" ? "..." : "변경"}
+              {busy === "upload" ? "..." : ko ? "변경" : "Change"}
             </button>
             <button type="button" onClick={genAi} disabled={!!busy} className={pill}>
-              {busy === "ai" ? "생성 중..." : "✨ AI"}
+              {busy === "ai" ? (ko ? "생성 중..." : "Generating...") : "✨ AI"}
             </button>
             <button
               type="button"
@@ -121,7 +131,7 @@ function ImageSlot({
               disabled={!!busy}
               className={pill}
             >
-              삭제
+              {ko ? "삭제" : "Remove"}
             </button>
           </div>
         </>
@@ -131,10 +141,22 @@ function ImageSlot({
           <div className="absolute inset-0 border border-dashed border-primary/40 bg-primary-soft/40" />
           <div className="absolute right-2 top-2 z-10 flex gap-1.5">
             <button type="button" onClick={pick} disabled={!!busy} className={pill}>
-              {busy === "upload" ? "업로드 중..." : "＋ 이미지 업로드"}
+              {busy === "upload"
+                ? ko
+                  ? "업로드 중..."
+                  : "Uploading..."
+                : ko
+                  ? "＋ 이미지 업로드"
+                  : "＋ Upload image"}
             </button>
             <button type="button" onClick={genAi} disabled={!!busy} className={pill}>
-              {busy === "ai" ? "생성 중..." : "✨ AI로 생성"}
+              {busy === "ai"
+                ? ko
+                  ? "생성 중..."
+                  : "Generating..."
+                : ko
+                  ? "✨ AI로 생성"
+                  : "✨ Generate with AI"}
             </button>
           </div>
         </>
@@ -146,7 +168,13 @@ function ImageSlot({
             disabled={!!busy}
             className="text-sm font-medium text-primary transition hover:opacity-70"
           >
-            {busy === "upload" ? "업로드 중..." : "＋ 이미지 추가"}
+            {busy === "upload"
+              ? ko
+                ? "업로드 중..."
+                : "Uploading..."
+              : ko
+                ? "＋ 이미지 추가"
+                : "＋ Add image"}
           </button>
           <button
             type="button"
@@ -154,7 +182,13 @@ function ImageSlot({
             disabled={!!busy}
             className="text-xs font-medium text-primary/80 transition hover:opacity-70"
           >
-            {busy === "ai" ? "생성 중..." : "✨ AI로 생성"}
+            {busy === "ai"
+              ? ko
+                ? "생성 중..."
+                : "Generating..."
+              : ko
+                ? "✨ AI로 생성"
+                : "✨ Generate with AI"}
           </button>
         </div>
       )}

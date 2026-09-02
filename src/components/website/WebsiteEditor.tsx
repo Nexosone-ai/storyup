@@ -16,8 +16,9 @@ import {
   publishWebsiteAction,
   updateSiteSlugAction,
 } from "@/app/business/actions";
-import { GoogleImportBar } from "./GoogleImportBar";
-import type { GooglePlaceData } from "@/app/business/googlePlaceActions";
+import { MapImportBar } from "./MapImportBar";
+import { useLocale } from "@/components/i18n/LocaleProvider";
+import type { PlaceImportData } from "@/lib/placeImport";
 import { SITE_FONTS, SITE_PALETTES, siteStyleVars } from "./siteStyle";
 import type {
   WebsiteContent,
@@ -36,6 +37,7 @@ export function WebsiteEditor({
   businessId: string;
   website: WebsiteRow;
 }) {
+  const ko = useLocale() === "ko";
   const [content, setContent] = useState<WebsiteContent>(website.content);
   const [status, setStatus] = useState(website.status);
   const [device, setDevice] = useState<Device>("desktop");
@@ -81,7 +83,7 @@ export function WebsiteEditor({
   );
 
   /** 구글 지도에서 가져온 정보를 콘텐츠에 병합한다 — 가져온 값이 있으면 우선. */
-  const applyGoogleImport = useCallback((d: GooglePlaceData) => {
+  const applyGoogleImport = useCallback((d: PlaceImportData) => {
     setContent((c) => {
       const pick = (imported: string, current?: string) =>
         imported || current || "";
@@ -125,7 +127,7 @@ export function WebsiteEditor({
     startSave(async () => {
       setNote(null);
       const res = await saveWebsiteAction(businessId, content);
-      setNote(res.error ?? "저장되었습니다.");
+      setNote(res.error ?? (ko ? "저장되었습니다." : "Saved."));
     });
 
   const saveSlug = () => {
@@ -134,18 +136,27 @@ export function WebsiteEditor({
     if (
       status === "published" &&
       !window.confirm(
-        "주소를 바꾸면 기존에 공유한 링크(홈페이지·블로그 글)가 더 이상 열리지 않습니다.\n새 주소로 변경할까요?",
+        ko
+          ? "주소를 바꾸면 기존에 공유한 링크(홈페이지·블로그 글)가 더 이상 열리지 않습니다.\n새 주소로 변경할까요?"
+          : "Changing the address will break links you already shared (website and blog posts).\nChange to the new address?",
       )
     )
       return;
     startSlug(async () => {
       setNote(null);
       const res = await updateSiteSlugAction(businessId, next);
-      if (res.error || !res.slug) setNote(res.error ?? "주소 변경에 실패했습니다.");
+      if (res.error || !res.slug)
+        setNote(
+          res.error ??
+            (ko ? "주소 변경에 실패했습니다." : "Failed to change the address."),
+        );
       else {
         setSlug(res.slug);
         setSlugInput(res.slug);
-        setNote(res.message ?? "사이트 주소가 변경되었습니다.");
+        setNote(
+          res.message ??
+            (ko ? "사이트 주소가 변경되었습니다." : "Site address updated."),
+        );
       }
     });
   };
@@ -168,30 +179,34 @@ export function WebsiteEditor({
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">홈페이지 편집</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {ko ? "홈페이지 편집" : "Edit website"}
+          </h1>
           {status === "published" ? (
-            <Badge tone="success">공개됨</Badge>
+            <Badge tone="success">{ko ? "공개됨" : "Published"}</Badge>
           ) : (
-            <Badge tone="muted">초안</Badge>
+            <Badge tone="muted">{ko ? "초안" : "Draft"}</Badge>
           )}
         </div>
         <div className="flex items-center gap-2">
           {status === "published" && (
             <ButtonLink href={`/site/${slug}`} variant="outline" size="sm" target="_blank" rel="noopener noreferrer">
               <Icon.external width={16} height={16} />
-              사이트 열기
+              {ko ? "사이트 열기" : "Open site"}
             </ButtonLink>
           )}
           <Button variant="outline" size="sm" onClick={save} disabled={saving}>
-            {saving ? <Spinner className="size-4" /> : "저장"}
+            {saving ? <Spinner className="size-4" /> : ko ? "저장" : "Save"}
           </Button>
           <Button size="sm" onClick={togglePublish} disabled={publishing}>
             {publishing ? (
               <Spinner className="size-4" />
             ) : status === "published" ? (
-              "비공개로 전환"
-            ) : (
+              ko ? "비공개로 전환" : "Unpublish"
+            ) : ko ? (
               "게시하기"
+            ) : (
+              "Publish"
             )}
           </Button>
         </div>
@@ -199,7 +214,7 @@ export function WebsiteEditor({
 
       {/* Site address */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-border bg-surface p-3">
-        <span className="eyebrow mr-1">사이트 주소</span>
+        <span className="eyebrow mr-1">{ko ? "사이트 주소" : "Site address"}</span>
         <div className="flex items-center gap-1.5">
           <span className="font-mono text-sm text-muted">/site/</span>
           <Input
@@ -216,26 +231,27 @@ export function WebsiteEditor({
           onClick={saveSlug}
           disabled={slugSaving || !slugInput.trim() || slugInput.trim() === slug}
         >
-          {slugSaving ? <Spinner className="size-4" /> : "주소 변경"}
+          {slugSaving ? <Spinner className="size-4" /> : ko ? "주소 변경" : "Change address"}
         </Button>
         <p className="w-full text-xs text-muted">
-          영문 소문자·숫자·하이픈(-)만, 3자 이상. 게시된 사이트의 주소를 바꾸면
-          기존에 공유한 링크는 열리지 않아요.
+          {ko
+            ? "영문 소문자·숫자·하이픈(-)만, 3자 이상. 게시된 사이트의 주소를 바꾸면 기존에 공유한 링크는 열리지 않아요."
+            : "Lowercase letters, numbers, and hyphens (-) only, 3+ characters. Changing a published site’s address breaks links you already shared."}
         </p>
       </div>
 
       {/* Google Maps import */}
-      <GoogleImportBar businessId={businessId} onImport={applyGoogleImport} />
+      <MapImportBar businessId={businessId} onImport={applyGoogleImport} />
 
       {/* Template picker + device toggle */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-3">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="eyebrow mr-1">템플릿</span>
+          <span className="eyebrow mr-1">{ko ? "템플릿" : "Template"}</span>
           {TEMPLATE_META.map((t) => (
             <button
               key={t.id}
               onClick={() => setTemplate(t.id)}
-              title={t.description}
+              title={ko ? t.description : t.descriptionEn}
               className={cn(
                 "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
                 template === t.id
@@ -243,7 +259,7 @@ export function WebsiteEditor({
                   : "border-border-strong text-muted hover:bg-surface-muted hover:text-foreground",
               )}
             >
-              {t.name}
+              {ko ? t.name : t.nameEn}
             </button>
           ))}
         </div>
@@ -257,7 +273,13 @@ export function WebsiteEditor({
                 device === d ? "bg-surface text-foreground shadow-sm" : "text-muted",
               )}
             >
-              {d === "desktop" ? "데스크톱" : "모바일"}
+              {d === "desktop"
+                ? ko
+                  ? "데스크톱"
+                  : "Desktop"
+                : ko
+                  ? "모바일"
+                  : "Mobile"}
             </button>
           ))}
         </div>
@@ -266,13 +288,13 @@ export function WebsiteEditor({
       {/* Style picker: theme color + font */}
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border border-border bg-surface p-3">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="eyebrow mr-1">테마 색상</span>
+          <span className="eyebrow mr-1">{ko ? "테마 색상" : "Theme color"}</span>
           {SITE_PALETTES.map((p) => (
             <button
               key={p.id}
               onClick={() => setPalette(p.id)}
-              title={p.name}
-              aria-label={p.name}
+              title={ko ? p.name : p.nameEn}
+              aria-label={ko ? p.name : p.nameEn}
               className={cn(
                 "size-7 rounded-full border-2 transition-transform hover:scale-110",
                 palette === p.id
@@ -284,7 +306,7 @@ export function WebsiteEditor({
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="eyebrow mr-1">폰트</span>
+          <span className="eyebrow mr-1">{ko ? "폰트" : "Font"}</span>
           {SITE_FONTS.map((f) => (
             <button
               key={f.id}
@@ -297,7 +319,7 @@ export function WebsiteEditor({
               )}
               style={f.stack ? { fontFamily: f.stack } : undefined}
             >
-              {f.name}
+              {ko ? f.name : f.nameEn}
             </button>
           ))}
         </div>
@@ -305,7 +327,9 @@ export function WebsiteEditor({
 
       {note && <p className="text-sm text-primary">{note}</p>}
       <p className="text-xs text-muted">
-        아래 미리보기에서 텍스트를 클릭하면 바로 수정할 수 있어요. 수정 후 저장을 눌러주세요.
+        {ko
+          ? "아래 미리보기에서 텍스트를 클릭하면 바로 수정할 수 있어요. 수정 후 저장을 눌러주세요."
+          : "Click any text in the preview below to edit it in place. Press Save when you are done."}
       </p>
 
       {/* WYSIWYG canvas */}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getWorkflowState } from "@/lib/queries";
+import { getLocale } from "@/lib/i18n";
 import { Icon } from "@/components/ui/icons";
 import { cn } from "@/utils/cn";
 
@@ -23,37 +24,51 @@ export async function WorkflowSteps({
   current: 1 | 2 | 3 | 4;
 }) {
   const state = await getWorkflowState(businessId);
+  const ko = (await getLocale()) === "ko";
   const base = `/business/${businessId}`;
 
   const steps: StepDef[] = [
     {
       n: 1,
-      label: "브랜드 스토리",
+      label: ko ? "브랜드 스토리" : "Brand story",
       href: `${base}/brand`,
       done: state.brand,
-      hint: "이야기로 브랜드 만들기",
+      hint: ko ? "이야기로 브랜드 만들기" : "Build a brand from your story",
     },
     {
       n: 2,
-      label: "홈페이지",
+      label: ko ? "홈페이지" : "Website",
       href: `${base}/website`,
       done: state.website === "published",
       hint:
-        state.website === "draft" ? "편집 중 · 공개 전" : "홈페이지 만들고 공개",
+        state.website === "draft"
+          ? ko
+            ? "편집 중 · 공개 전"
+            : "Editing · not published"
+          : ko
+            ? "홈페이지 만들고 공개"
+            : "Build and publish a website",
     },
     {
       n: 3,
-      label: "블로그",
+      label: ko ? "블로그" : "Blog",
       href: `${base}/blog`,
       done: state.blogPublished > 0,
-      hint: state.blogTotal > 0 ? "글 공개하기" : "첫 글 쓰기",
+      hint:
+        state.blogTotal > 0
+          ? ko
+            ? "글 공개하기"
+            : "Publish a post"
+          : ko
+            ? "첫 글 쓰기"
+            : "Write your first post",
     },
     {
       n: 4,
       label: "SNS",
       href: `${base}/marketing`,
       done: state.sns,
-      hint: "SNS 콘텐츠 만들기",
+      hint: ko ? "SNS 콘텐츠 만들기" : "Create SNS content",
     },
   ];
 
@@ -112,7 +127,7 @@ export async function WorkflowSteps({
       </ol>
       {next && next.n !== current && (
         <p className="mt-2.5 border-t border-border pt-2.5 text-xs text-muted">
-          다음 단계:{" "}
+          {ko ? "다음 단계" : "Next step"}:{" "}
           <Link href={next.href} className="font-medium text-primary">
             STEP {next.n} · {next.label} — {next.hint} →
           </Link>

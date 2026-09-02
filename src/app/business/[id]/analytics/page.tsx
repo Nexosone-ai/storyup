@@ -1,27 +1,36 @@
 import { notFound } from "next/navigation";
 import { getBusiness, getWebsite, getBlogPosts } from "@/lib/queries";
 import { getAnalytics } from "@/lib/analytics";
+import { getLocale } from "@/lib/i18n";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/icons";
 import { cn } from "@/utils/cn";
 
 export const metadata = { title: "애널리틱스" };
 
-const CHANNEL_LABEL: Record<string, string> = {
-  x: "X",
-  facebook: "Facebook",
-  link: "링크 복사",
-};
+function channelLabel(channel: string, ko: boolean): string {
+  const labels: Record<string, string> = {
+    x: "X",
+    facebook: "Facebook",
+    link: ko ? "링크 복사" : "Link copied",
+  };
+  return labels[channel] ?? channel;
+}
 
 /** /site/slug/... 경로를 사람이 읽는 페이지 이름으로 바꾼다. */
-function pathLabel(path: string, slugToTitle: Map<string, string>): string {
+function pathLabel(
+  path: string,
+  slugToTitle: Map<string, string>,
+  ko: boolean,
+): string {
   const m = path.match(/^\/site\/[^/]+(?:\/(.*))?$/);
   if (!m) return path;
   const rest = m[1] ?? "";
-  if (!rest) return "홈";
-  if (rest === "blog") return "블로그 목록";
+  if (!rest) return ko ? "홈" : "Home";
+  if (rest === "blog") return ko ? "블로그 목록" : "Blog index";
   const post = rest.match(/^blog\/(.+)$/);
-  if (post) return `글 · ${slugToTitle.get(post[1]) ?? post[1]}`;
+  if (post)
+    return `${ko ? "글" : "Post"} · ${slugToTitle.get(post[1]) ?? post[1]}`;
   return path;
 }
 
@@ -31,6 +40,7 @@ export default async function AnalyticsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const ko = (await getLocale()) === "ko";
   const business = await getBusiness(id);
   if (!business) notFound();
 
@@ -45,20 +55,31 @@ export default async function AnalyticsPage({
   const maxDaily = Math.max(1, ...data.daily.map((d) => d.views));
 
   const stats = [
-    { label: "전체 조회수", value: data.totalViews.toLocaleString() },
-    { label: "최근 30일 조회수", value: data.views30d.toLocaleString() },
-    { label: "최근 30일 공유", value: data.shares30d.toLocaleString() },
+    {
+      label: ko ? "전체 조회수" : "Total views",
+      value: data.totalViews.toLocaleString(),
+    },
+    {
+      label: ko ? "최근 30일 조회수" : "Views (last 30 days)",
+      value: data.views30d.toLocaleString(),
+    },
+    {
+      label: ko ? "최근 30일 공유" : "Shares (last 30 days)",
+      value: data.shares30d.toLocaleString(),
+    },
   ];
 
   return (
     <div className="space-y-8">
       <div>
-        <p className="eyebrow mb-2">애널리틱스</p>
+        <p className="eyebrow mb-2">{ko ? "애널리틱스" : "Analytics"}</p>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          방문·공유 지표
+          {ko ? "방문·공유 지표" : "Traffic & sharing"}
         </h1>
         <p className="mt-1.5 text-muted">
-          공개 홈페이지와 블로그의 실제 조회수·유입 경로·공유 현황입니다.
+          {ko
+            ? "공개 홈페이지와 블로그의 실제 조회수·유입 경로·공유 현황입니다."
+            : "Real views, referrers, and shares for your live website and blog."}
         </p>
       </div>
 
@@ -68,8 +89,9 @@ export default async function AnalyticsPage({
             <Icon.chart className="size-5" />
           </div>
           <p className="text-sm text-muted">
-            홈페이지가 아직 공개되지 않았습니다. 공개하면 방문자 지표가
-            수집되기 시작합니다.
+            {ko
+              ? "홈페이지가 아직 공개되지 않았습니다. 공개하면 방문자 지표가 수집되기 시작합니다."
+              : "Your website is not published yet. Visitor metrics start collecting once you publish."}
           </p>
         </Card>
       )}
@@ -95,14 +117,14 @@ export default async function AnalyticsPage({
       {/* 최근 14일 일별 조회수 */}
       <Card>
         <h2 className="mb-5 font-semibold tracking-tight">
-          최근 14일 조회수
+          {ko ? "최근 14일 조회수" : "Views (last 14 days)"}
         </h2>
         <div className="flex h-36 items-end gap-1.5">
           {data.daily.map((d) => (
             <div
               key={d.date}
               className="group relative flex h-full flex-1 flex-col justify-end"
-              title={`${d.date} · ${d.views}회`}
+              title={`${d.date} · ${d.views}${ko ? "회" : " views"}`}
             >
               <div
                 className={cn(
@@ -128,18 +150,18 @@ export default async function AnalyticsPage({
         {/* 페이지별 조회수 */}
         <Card>
           <h2 className="mb-4 font-semibold tracking-tight">
-            페이지별 조회수 (30일)
+            {ko ? "페이지별 조회수 (30일)" : "Views by page (30 days)"}
           </h2>
           {data.topPaths.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted">
-              아직 수집된 조회가 없습니다.
+              {ko ? "아직 수집된 조회가 없습니다." : "No views collected yet."}
             </p>
           ) : (
             <ul className="space-y-2.5">
               {data.topPaths.map((p) => (
                 <li key={p.path} className="flex items-center gap-3">
                   <span className="min-w-0 flex-1 truncate text-sm">
-                    {pathLabel(p.path, slugToTitle)}
+                    {pathLabel(p.path, slugToTitle, ko)}
                   </span>
                   <span className="h-1.5 w-24 overflow-hidden rounded-full bg-surface-muted">
                     <span
@@ -160,10 +182,12 @@ export default async function AnalyticsPage({
 
         {/* 유입 경로 */}
         <Card>
-          <h2 className="mb-4 font-semibold tracking-tight">유입 경로 (30일)</h2>
+          <h2 className="mb-4 font-semibold tracking-tight">
+            {ko ? "유입 경로 (30일)" : "Referrers (30 days)"}
+          </h2>
           {data.referrers.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted">
-              아직 수집된 유입이 없습니다.
+              {ko ? "아직 수집된 유입이 없습니다." : "No referrers collected yet."}
             </p>
           ) : (
             <ul className="space-y-2.5">
@@ -193,12 +217,13 @@ export default async function AnalyticsPage({
       {/* 공유 현황 */}
       <Card>
         <h2 className="mb-4 font-semibold tracking-tight">
-          콘텐츠 공유 (30일)
+          {ko ? "콘텐츠 공유 (30일)" : "Content shares (30 days)"}
         </h2>
         {data.shareByChannel.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted">
-            아직 공유 기록이 없습니다. 블로그 글과 카드뉴스의 공유 버튼이
-            여기에 집계됩니다.
+            {ko
+              ? "아직 공유 기록이 없습니다. 블로그 글과 카드뉴스의 공유 버튼이 여기에 집계됩니다."
+              : "No shares yet. Share buttons on blog posts and card news are counted here."}
           </p>
         ) : (
           <div className="flex flex-wrap gap-3">
@@ -215,7 +240,7 @@ export default async function AnalyticsPage({
                   <Icon.link width={16} height={16} />
                 )}
                 <span className="text-sm">
-                  {CHANNEL_LABEL[s.channel] ?? s.channel}
+                  {channelLabel(s.channel, ko)}
                 </span>
                 <span className="tnum text-sm font-semibold">{s.count}</span>
               </div>

@@ -6,6 +6,7 @@ import { Card, Badge } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Field";
 import { Spinner } from "@/components/ui/Spinner";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import {
   requestWithdrawal,
   createChargeOrderAction,
@@ -14,8 +15,8 @@ import {
 } from "@/app/dashboard/points/actions";
 import type { PointTx, Withdrawal } from "@/lib/points";
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("ko-KR", {
+function fmtDate(iso: string, ko: boolean) {
+  return new Date(iso).toLocaleDateString(ko ? "ko-KR" : "en-US", {
     month: "short",
     day: "numeric",
   });
@@ -23,23 +24,23 @@ function fmtDate(iso: string) {
 
 const WD_STATUS: Record<
   string,
-  { label: string; tone: "success" | "muted" | "warning" }
+  { ko: string; en: string; tone: "success" | "muted" | "warning" }
 > = {
-  pending: { label: "대기 중", tone: "warning" },
-  approved: { label: "승인됨", tone: "success" },
-  rejected: { label: "반려됨", tone: "muted" },
+  pending: { ko: "대기 중", en: "Pending", tone: "warning" },
+  approved: { ko: "승인됨", en: "Approved", tone: "success" },
+  rejected: { ko: "반려됨", en: "Rejected", tone: "muted" },
 };
 
 const PAY_STATUS: Record<
   string,
-  { label: string; tone: "success" | "muted" | "warning" | "danger" }
+  { ko: string; en: string; tone: "success" | "muted" | "warning" | "danger" }
 > = {
-  PENDING: { label: "진행 중", tone: "warning" },
-  PAID: { label: "결제 완료", tone: "success" },
-  FAILED: { label: "실패", tone: "muted" },
-  CANCELLED: { label: "취소됨", tone: "danger" },
-  PARTIALLY_CANCELLED: { label: "부분 취소", tone: "danger" },
-  REFUNDED: { label: "환불됨", tone: "danger" },
+  PENDING: { ko: "진행 중", en: "In progress", tone: "warning" },
+  PAID: { ko: "결제 완료", en: "Paid", tone: "success" },
+  FAILED: { ko: "실패", en: "Failed", tone: "muted" },
+  CANCELLED: { ko: "취소됨", en: "Cancelled", tone: "danger" },
+  PARTIALLY_CANCELLED: { ko: "부분 취소", en: "Partially cancelled", tone: "danger" },
+  REFUNDED: { ko: "환불됨", en: "Refunded", tone: "danger" },
 };
 
 export interface ChargePackage {
@@ -74,6 +75,7 @@ export function PointsView({
   packages: ChargePackage[];
   payments: PaymentItem[];
 }) {
+  const ko = useLocale() === "ko";
   const router = useRouter();
 
   // ---- 충전 ----
@@ -91,7 +93,10 @@ export function PointsView({
     try {
       const order = await createChargeOrderAction(pkg.id);
       if (order.error || !order.orderId) {
-        setChargeError(order.error ?? "주문 생성에 실패했습니다.");
+        setChargeError(
+          order.error ??
+            (ko ? "주문 생성에 실패했습니다." : "Failed to create the order."),
+        );
         return;
       }
 
@@ -111,7 +116,9 @@ export function PointsView({
       });
 
       if (!response || response.code !== undefined) {
-        const msg = response?.message ?? "결제가 취소되었습니다.";
+        const msg =
+          response?.message ??
+          (ko ? "결제가 취소되었습니다." : "The payment was cancelled.");
         await markChargeFailedAction(order.orderId, msg);
         setChargeError(msg);
         return;
@@ -126,10 +133,19 @@ export function PointsView({
         });
         router.refresh();
       } else {
-        setChargeError(confirmed.error ?? "결제 확인에 실패했습니다.");
+        setChargeError(
+          confirmed.error ??
+            (ko
+              ? "결제 확인에 실패했습니다."
+              : "Failed to confirm the payment."),
+        );
       }
     } catch {
-      setChargeError("결제 처리 중 문제가 발생했습니다. 다시 시도해주세요.");
+      setChargeError(
+        ko
+          ? "결제 처리 중 문제가 발생했습니다. 다시 시도해주세요."
+          : "Something went wrong while processing the payment. Please try again.",
+      );
     } finally {
       setCharging(null);
     }
@@ -177,29 +193,33 @@ export function PointsView({
   return (
     <div className="mx-auto max-w-2xl space-y-8">
       <div>
-        <p className="eyebrow mb-2">포인트</p>
+        <p className="eyebrow mb-2">{ko ? "포인트" : "Points"}</p>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          포인트 지갑
+          {ko ? "포인트 지갑" : "Points wallet"}
         </h1>
       </div>
 
       <Card className="bg-primary text-primary-foreground">
-        <p className="text-sm opacity-85">보유 포인트</p>
+        <p className="text-sm opacity-85">{ko ? "보유 포인트" : "Balance"}</p>
         <p className="tnum mt-1 text-4xl font-bold">
           {balance.toLocaleString()} P
         </p>
         <p className="mt-2 text-xs opacity-75">
-          출금 가능(수익) {withdrawable.toLocaleString()} P · 충전 크레딧은
-          STORYUP 서비스 이용 전용입니다
+          {ko
+            ? `출금 가능(수익) ${withdrawable.toLocaleString()} P · 충전 크레딧은 STORYUP 서비스 이용 전용입니다`
+            : `Withdrawable (earnings) ${withdrawable.toLocaleString()} P · Purchased credits are for STORYUP services only`}
         </p>
       </Card>
 
       {/* 충전 성공 */}
       {success && (
         <Card className="border-primary/40 bg-primary-soft">
-          <p className="font-semibold text-primary">충전이 완료되었습니다 🎉</p>
+          <p className="font-semibold text-primary">
+            {ko ? "충전이 완료되었습니다 🎉" : "Top-up complete 🎉"}
+          </p>
           <p className="tnum mt-1 text-sm">
-            +{success.credited.toLocaleString()} P 적립 · 현재 잔액{" "}
+            +{success.credited.toLocaleString()} P{" "}
+            {ko ? "적립 · 현재 잔액" : "added · Current balance"}{" "}
             <b>{success.balance.toLocaleString()} P</b>
           </p>
         </Card>
@@ -207,10 +227,14 @@ export function PointsView({
 
       {/* 크레딧 충전 */}
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold tracking-tight">크레딧 충전</h2>
+        <h2 className="text-lg font-semibold tracking-tight">
+          {ko ? "크레딧 충전" : "Top up credits"}
+        </h2>
         {packages.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-border bg-surface p-8 text-center text-muted">
-            판매 중인 충전 패키지가 없습니다.
+            {ko
+              ? "판매 중인 충전 패키지가 없습니다."
+              : "No credit packages available."}
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -227,7 +251,9 @@ export function PointsView({
                 </p>
                 {pkg.bonus > 0 && (
                   <p className="text-xs text-primary">
-                    +{pkg.bonus.toLocaleString()}P 보너스 포함
+                    {ko
+                      ? `+${pkg.bonus.toLocaleString()}P 보너스 포함`
+                      : `Includes +${pkg.bonus.toLocaleString()}P bonus`}
                   </p>
                 )}
                 <p className="tnum mt-2 text-sm text-muted">
@@ -240,15 +266,18 @@ export function PointsView({
         )}
         {chargeError && <p className="text-sm text-danger">{chargeError}</p>}
         <p className="text-xs text-muted">
-          충전한 크레딧은 STORYUP 내 AI 서비스 이용에만 사용할 수 있으며, 타인
-          양도·현금 출금·외부 거래가 불가능합니다.{" "}
+          {ko
+            ? "충전한 크레딧은 STORYUP 내 AI 서비스 이용에만 사용할 수 있으며, 타인 양도·현금 출금·외부 거래가 불가능합니다."
+            : "Purchased credits can only be used for AI services within STORYUP and cannot be transferred, withdrawn as cash, or traded externally."}{" "}
         </p>
       </section>
 
       {/* 결제 내역 */}
       {payments.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold tracking-tight">결제 내역</h2>
+          <h2 className="text-lg font-semibold tracking-tight">
+            {ko ? "결제 내역" : "Payment history"}
+          </h2>
           <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">
             {payments.map((p) => (
               <li key={p.id} className="flex items-center justify-between p-4">
@@ -257,10 +286,13 @@ export function PointsView({
                     ₩{p.amount.toLocaleString()} →{" "}
                     {p.credits.toLocaleString()} P
                   </p>
-                  <p className="text-xs text-muted">{fmtDate(p.created_at)}</p>
+                  <p className="text-xs text-muted">
+                    {fmtDate(p.created_at, ko)}
+                  </p>
                 </div>
                 <Badge tone={PAY_STATUS[p.status]?.tone ?? "muted"}>
-                  {PAY_STATUS[p.status]?.label ?? p.status}
+                  {(ko ? PAY_STATUS[p.status]?.ko : PAY_STATUS[p.status]?.en) ??
+                    p.status}
                 </Badge>
               </li>
             ))}
@@ -269,36 +301,54 @@ export function PointsView({
       )}
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold tracking-tight">출금 요청</h2>
+        <h2 className="text-lg font-semibold tracking-tight">
+          {ko ? "출금 요청" : "Withdrawal"}
+        </h2>
         <p className="text-xs text-muted">
-          커뮤니티·템플릿 수익 포인트만 출금할 수 있습니다. (충전 크레딧 제외)
+          {ko
+            ? "커뮤니티·템플릿 수익 포인트만 출금할 수 있습니다. (충전 크레딧 제외)"
+            : "Only earnings from community and template sales can be withdrawn. (Purchased credits excluded)"}
         </p>
         <Card className="space-y-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <Label htmlFor="wd-amount">출금 포인트</Label>
+              <Label htmlFor="wd-amount">
+                {ko ? "출금 포인트" : "Points to withdraw"}
+              </Label>
               <Input
                 id="wd-amount"
                 type="number"
                 min={1}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="예: 10000"
+                placeholder={ko ? "예: 10000" : "e.g. 10000"}
               />
             </div>
             <div>
-              <Label htmlFor="wd-acc">정산 계좌</Label>
+              <Label htmlFor="wd-acc">
+                {ko ? "정산 계좌" : "Payout account"}
+              </Label>
               <Input
                 id="wd-acc"
                 value={account}
                 onChange={(e) => setAccount(e.target.value)}
-                placeholder="은행 / 계좌번호 / 예금주"
+                placeholder={
+                  ko
+                    ? "은행 / 계좌번호 / 예금주"
+                    : "Bank / account number / holder"
+                }
               />
             </div>
           </div>
           {error && <p className="text-sm text-danger">{error}</p>}
           <Button size="sm" onClick={submit} disabled={pending}>
-            {pending ? <Spinner className="size-4" /> : "출금 요청"}
+            {pending ? (
+              <Spinner className="size-4" />
+            ) : ko ? (
+              "출금 요청"
+            ) : (
+              "Request withdrawal"
+            )}
           </Button>
         </Card>
 
@@ -310,10 +360,13 @@ export function PointsView({
                   <p className="tnum font-medium">
                     {w.amount.toLocaleString()} P
                   </p>
-                  <p className="text-xs text-muted">{fmtDate(w.created_at)}</p>
+                  <p className="text-xs text-muted">
+                    {fmtDate(w.created_at, ko)}
+                  </p>
                 </div>
                 <Badge tone={WD_STATUS[w.status]?.tone ?? "muted"}>
-                  {WD_STATUS[w.status]?.label ?? w.status}
+                  {(ko ? WD_STATUS[w.status]?.ko : WD_STATUS[w.status]?.en) ??
+                    w.status}
                 </Badge>
               </li>
             ))}
@@ -322,10 +375,12 @@ export function PointsView({
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold tracking-tight">거래 내역</h2>
+        <h2 className="text-lg font-semibold tracking-tight">
+          {ko ? "거래 내역" : "Transactions"}
+        </h2>
         {transactions.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-border bg-surface p-8 text-center text-muted">
-            아직 거래 내역이 없습니다.
+            {ko ? "아직 거래 내역이 없습니다." : "No transactions yet."}
           </p>
         ) : (
           <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">
@@ -333,7 +388,9 @@ export function PointsView({
               <li key={t.id} className="flex items-center justify-between p-4">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{t.reason}</p>
-                  <p className="text-xs text-muted">{fmtDate(t.created_at)}</p>
+                  <p className="text-xs text-muted">
+                    {fmtDate(t.created_at, ko)}
+                  </p>
                 </div>
                 <span
                   className={`tnum font-semibold ${t.amount >= 0 ? "text-primary" : "text-danger"}`}

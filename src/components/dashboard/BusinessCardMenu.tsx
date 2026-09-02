@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input, Label, Select } from "@/components/ui/Field";
 import { Spinner } from "@/components/ui/Spinner";
 import { Icon } from "@/components/ui/icons";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import {
   updateBusinessAction,
   deleteBusinessAction,
@@ -28,6 +29,7 @@ export function BusinessCardMenu({
   name: string;
   category: string;
 }) {
+  const ko = useLocale() === "ko";
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -41,7 +43,9 @@ export function BusinessCardMenu({
     setMenuOpen(false);
     if (
       !window.confirm(
-        `'${name}' 비즈니스를 삭제할까요?\n\n브랜드·홈페이지·블로그 글 등 모든 콘텐츠가 함께 영구 삭제되며 되돌릴 수 없습니다.`,
+        ko
+          ? `'${name}' 비즈니스를 삭제할까요?\n\n브랜드·홈페이지·블로그 글 등 모든 콘텐츠가 함께 영구 삭제되며 되돌릴 수 없습니다.`
+          : `Delete the business '${name}'?\n\nAll content — brand, website, blog posts — will be permanently deleted. This cannot be undone.`,
       )
     )
       return;
@@ -72,7 +76,7 @@ export function BusinessCardMenu({
     <div onClick={stop} className="relative shrink-0">
       <button
         type="button"
-        aria-label="비즈니스 관리"
+        aria-label={ko ? "비즈니스 관리" : "Manage business"}
         onClick={(e) => {
           stop(e);
           setMenuOpen((v) => !v);
@@ -99,7 +103,7 @@ export function BusinessCardMenu({
               className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm font-medium text-foreground hover:bg-surface-muted"
             >
               <Icon.pen className="size-4 text-muted" />
-              수정
+              {ko ? "수정" : "Edit"}
             </button>
             <button
               type="button"
@@ -107,7 +111,7 @@ export function BusinessCardMenu({
               className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm font-medium text-danger hover:bg-red-50"
             >
               <Icon.x className="size-4" />
-              삭제
+              {ko ? "삭제" : "Delete"}
             </button>
           </div>
         </>
@@ -124,11 +128,11 @@ export function BusinessCardMenu({
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-lg font-semibold tracking-tight">
-                비즈니스 수정
+                {ko ? "비즈니스 수정" : "Edit business"}
               </h3>
               <div className="mt-5 space-y-4">
                 <div>
-                  <Label htmlFor="biz-name">이름</Label>
+                  <Label htmlFor="biz-name">{ko ? "이름" : "Name"}</Label>
                   <Input
                     id="biz-name"
                     value={draftName}
@@ -136,7 +140,9 @@ export function BusinessCardMenu({
                   />
                 </div>
                 <div>
-                  <Label htmlFor="biz-category">업종</Label>
+                  <Label htmlFor="biz-category">
+                    {ko ? "업종" : "Category"}
+                  </Label>
                   <Select
                     id="biz-category"
                     value={draftCategory}
@@ -158,10 +164,10 @@ export function BusinessCardMenu({
                   onClick={() => setEditOpen(false)}
                   disabled={pending}
                 >
-                  취소
+                  {ko ? "취소" : "Cancel"}
                 </Button>
                 <Button size="sm" onClick={save} disabled={pending}>
-                  {pending ? <Spinner className="size-4" /> : "저장"}
+                  {pending ? <Spinner className="size-4" /> : ko ? "저장" : "Save"}
                 </Button>
               </div>
             </div>

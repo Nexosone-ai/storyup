@@ -1,11 +1,17 @@
+import { getLocale } from "@/lib/i18n";
 import type { DashboardData } from "@/lib/queries";
 
-export function SummaryCards({ totals }: { totals: DashboardData["totals"] }) {
+export async function SummaryCards({
+  totals,
+}: {
+  totals: DashboardData["totals"];
+}) {
+  const ko = (await getLocale()) === "ko";
   const items = [
-    { label: "내 비즈니스", value: totals.businesses },
-    { label: "홈페이지", value: totals.websites },
-    { label: "블로그 글", value: totals.blogPosts },
-    { label: "공개된 콘텐츠", value: totals.published },
+    { label: ko ? "내 비즈니스" : "My businesses", value: totals.businesses },
+    { label: ko ? "홈페이지" : "Websites", value: totals.websites },
+    { label: ko ? "블로그 글" : "Blog posts", value: totals.blogPosts },
+    { label: ko ? "공개된 콘텐츠" : "Published content", value: totals.published },
   ];
   return (
     <div className="grid grid-cols-2 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm lg:grid-cols-4">

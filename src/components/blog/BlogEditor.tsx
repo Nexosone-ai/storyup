@@ -16,6 +16,7 @@ import {
 } from "@/app/business/actions";
 import { preprocessMarkdown } from "@/utils/markdown";
 import { BlogCover } from "@/components/blog/BlogCover";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import { resizeImage } from "@/components/website/templates/ImageSlot";
 import type { BlogPostRow } from "@/types/database";
 
@@ -34,6 +35,7 @@ export function BlogEditor({
   siteSlug: string | null;
   sitePublished: boolean;
 }) {
+  const ko = useLocale() === "ko";
   const [title, setTitle] = useState(post.title);
   const [summary, setSummary] = useState(post.summary ?? "");
   const [content, setContent] = useState(post.content ?? "");
@@ -51,8 +53,12 @@ export function BlogEditor({
 
   const previewHtml = useMemo(
     () =>
-      marked.parse(preprocessMarkdown(content || "_내용을 입력하세요._")) as string,
-    [content],
+      marked.parse(
+        preprocessMarkdown(
+          content || (ko ? "_내용을 입력하세요._" : "_Write something..._"),
+        ),
+      ) as string,
+    [content, ko],
   );
 
   const generateCover = () =>
@@ -66,13 +72,20 @@ export function BlogEditor({
         });
         const json = await res.json();
         if (!res.ok || !json.url) {
-          setNote(json.error ?? "이미지 생성에 실패했습니다.");
+          setNote(
+            json.error ??
+              (ko ? "이미지 생성에 실패했습니다." : "Image generation failed."),
+          );
           return;
         }
         setCover(json.url);
-        setNote("커버 이미지가 생성되었습니다.");
+        setNote(ko ? "커버 이미지가 생성되었습니다." : "Cover image created.");
       } catch {
-        setNote("이미지 생성에 실패했습니다. 다시 시도해주세요.");
+        setNote(
+          ko
+            ? "이미지 생성에 실패했습니다. 다시 시도해주세요."
+            : "Image generation failed. Please try again.",
+        );
       }
     });
 
@@ -88,17 +101,24 @@ export function BlogEditor({
         fd.append("file", resized);
         const up = await uploadSiteImage(businessId, fd);
         if (up.error || !up.url) {
-          setNote(up.error ?? "업로드에 실패했습니다.");
+          setNote(up.error ?? (ko ? "업로드에 실패했습니다." : "Upload failed."));
           return;
         }
         const res = await updateBlogCoverAction(businessId, post.id, up.url);
         if (res.error) setNote(res.error);
         else {
           setCover(up.url);
-          setNote(res.message ?? "커버 이미지가 저장되었습니다.");
+          setNote(
+            res.message ??
+              (ko ? "커버 이미지가 저장되었습니다." : "Cover image saved."),
+          );
         }
       } catch {
-        setNote("업로드 중 문제가 발생했습니다.");
+        setNote(
+          ko
+            ? "업로드 중 문제가 발생했습니다."
+            : "Something went wrong during upload.",
+        );
       }
     });
   };
@@ -146,10 +166,15 @@ export function BlogEditor({
         const fd = new FormData();
         fd.append("file", resized);
         const up = await uploadSiteImage(businessId, fd);
-        if (up.error || !up.url) setNote(up.error ?? "업로드에 실패했습니다.");
+        if (up.error || !up.url)
+          setNote(up.error ?? (ko ? "업로드에 실패했습니다." : "Upload failed."));
         else insertBlock(`![사진](${up.url})`);
       } catch {
-        setNote("업로드 중 문제가 발생했습니다.");
+        setNote(
+          ko
+            ? "업로드 중 문제가 발생했습니다."
+            : "Something went wrong during upload.",
+        );
       } finally {
         setMediaBusy(false);
       }
@@ -158,7 +183,9 @@ export function BlogEditor({
 
   const insertVideo = () => {
     const url = window.prompt(
-      "삽입할 영상 링크를 붙여넣으세요 (YouTube 링크는 본문에서 바로 재생됩니다):",
+      ko
+        ? "삽입할 영상 링크를 붙여넣으세요 (YouTube 링크는 본문에서 바로 재생됩니다):"
+        : "Paste a video link to insert (YouTube links play inline in the post):",
     );
     if (!url?.trim()) return;
     insertBlock(url.trim());
@@ -172,7 +199,7 @@ export function BlogEditor({
         content,
         summary,
       });
-      setNote(res.error ?? "저장되었습니다.");
+      setNote(res.error ?? (ko ? "저장되었습니다." : "Saved."));
     });
 
   const togglePublish = () =>
@@ -204,31 +231,33 @@ export function BlogEditor({
             size="sm"
           >
             <Icon.arrowLeft width={16} height={16} />
-            목록
+            {ko ? "목록" : "Back to list"}
           </ButtonLink>
           {status === "published" ? (
-            <Badge tone="success">공개됨</Badge>
+            <Badge tone="success">{ko ? "공개됨" : "Published"}</Badge>
           ) : (
-            <Badge tone="muted">초안</Badge>
+            <Badge tone="muted">{ko ? "초안" : "Draft"}</Badge>
           )}
         </div>
         <div className="flex items-center gap-2">
           {publicHref && (
             <ButtonLink href={publicHref} variant="outline" size="sm">
               <Icon.external width={16} height={16} />
-              보기
+              {ko ? "보기" : "View"}
             </ButtonLink>
           )}
           <Button variant="outline" size="sm" onClick={save} disabled={saving}>
-            {saving ? <Spinner className="h-4 w-4" /> : "저장"}
+            {saving ? <Spinner className="h-4 w-4" /> : ko ? "저장" : "Save"}
           </Button>
           <Button size="sm" onClick={togglePublish} disabled={publishing}>
             {publishing ? (
               <Spinner className="h-4 w-4" />
             ) : status === "published" ? (
-              "비공개로 전환"
-            ) : (
+              ko ? "비공개로 전환" : "Unpublish"
+            ) : ko ? (
               "게시하기"
+            ) : (
+              "Publish"
             )}
           </Button>
         </div>
@@ -237,13 +266,14 @@ export function BlogEditor({
       {note && <p className="text-sm text-primary">{note}</p>}
       {status === "published" && !sitePublished && (
         <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-warning">
-          홈페이지가 아직 공개되지 않아 블로그가 외부에 보이지 않습니다.
-          홈페이지를 먼저 공개해주세요.
+          {ko
+            ? "홈페이지가 아직 공개되지 않아 블로그가 외부에 보이지 않습니다. 홈페이지를 먼저 공개해주세요."
+            : "Your website is not published yet, so this blog is not visible to the public. Publish your website first."}
         </p>
       )}
 
       <div>
-        <Label htmlFor="title">제목</Label>
+        <Label htmlFor="title">{ko ? "제목" : "Title"}</Label>
         <Input
           id="title"
           value={title}
@@ -252,7 +282,7 @@ export function BlogEditor({
         />
       </div>
       <div>
-        <Label htmlFor="summary">요약</Label>
+        <Label htmlFor="summary">{ko ? "요약" : "Summary"}</Label>
         <Input
           id="summary"
           value={summary}
@@ -263,7 +293,7 @@ export function BlogEditor({
       {/* Cover image */}
       <div>
         <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-          <Label>커버 이미지</Label>
+          <Label>{ko ? "커버 이미지" : "Cover image"}</Label>
           <div className="flex flex-wrap gap-2">
             <input
               ref={coverFileRef}
@@ -279,7 +309,7 @@ export function BlogEditor({
                 onClick={clearCover}
                 disabled={coverPending}
               >
-                기본 커버로
+                {ko ? "기본 커버로" : "Use default cover"}
               </Button>
             )}
             <Button
@@ -288,7 +318,13 @@ export function BlogEditor({
               onClick={() => coverFileRef.current?.click()}
               disabled={coverPending}
             >
-              {coverPending ? <Spinner className="h-4 w-4" /> : "이미지 업로드"}
+              {coverPending ? (
+                <Spinner className="h-4 w-4" />
+              ) : ko ? (
+                "이미지 업로드"
+              ) : (
+                "Upload image"
+              )}
             </Button>
             <Button
               variant="outline"
@@ -299,12 +335,14 @@ export function BlogEditor({
               {coverPending ? (
                 <>
                   <Spinner className="h-4 w-4" />
-                  처리 중...
+                  {ko ? "처리 중..." : "Working..."}
                 </>
               ) : cover ? (
-                "AI로 다시 생성"
-              ) : (
+                ko ? "AI로 다시 생성" : "Regenerate with AI"
+              ) : ko ? (
                 "AI 커버 이미지 생성"
+              ) : (
+                "Generate AI cover image"
               )}
             </Button>
           </div>
@@ -313,7 +351,7 @@ export function BlogEditor({
           // eslint-disable-next-line @next/next/no-img-element -- 원격 스토리지 URL, 크기 고정 컨테이너
           <img
             src={cover}
-            alt="커버 이미지"
+            alt={ko ? "커버 이미지" : "Cover image"}
             className="aspect-[16/7] w-full rounded-xl object-cover"
           />
         ) : (
@@ -341,7 +379,7 @@ export function BlogEditor({
             <ToolbarBtn onClick={() => wrap("**", "**")}>B</ToolbarBtn>
             <ToolbarBtn onClick={() => wrap("- ")}>•</ToolbarBtn>
             <ToolbarBtn
-              title="본문에 사진 넣기"
+              title={ko ? "본문에 사진 넣기" : "Insert photo into body"}
               disabled={mediaBusy}
               onClick={() => bodyImageRef.current?.click()}
             >
@@ -351,7 +389,10 @@ export function BlogEditor({
                 <Icon.image width={16} height={16} />
               )}
             </ToolbarBtn>
-            <ToolbarBtn title="영상 링크 넣기" onClick={insertVideo}>
+            <ToolbarBtn
+              title={ko ? "영상 링크 넣기" : "Insert video link"}
+              onClick={insertVideo}
+            >
               <Icon.video width={16} height={16} />
             </ToolbarBtn>
           </div>
@@ -367,7 +408,13 @@ export function BlogEditor({
                     : "text-muted",
                 )}
               >
-                {t === "write" ? "작성" : "미리보기"}
+                {t === "write"
+                  ? ko
+                    ? "작성"
+                    : "Write"
+                  : ko
+                    ? "미리보기"
+                    : "Preview"}
               </button>
             ))}
           </div>
@@ -379,7 +426,9 @@ export function BlogEditor({
             value={content}
             onChange={(e) => setContent(e.target.value)}
             className="min-h-[420px] w-full resize-y rounded-b-2xl bg-surface p-4 font-mono text-sm leading-relaxed focus:outline-none"
-            placeholder="마크다운으로 작성하세요..."
+            placeholder={
+              ko ? "마크다운으로 작성하세요..." : "Write in Markdown..."
+            }
           />
         ) : (
           <div

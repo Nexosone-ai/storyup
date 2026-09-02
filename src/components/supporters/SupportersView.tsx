@@ -6,6 +6,7 @@ import { Card, Badge } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Label, Select } from "@/components/ui/Field";
 import { Spinner } from "@/components/ui/Spinner";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import { cn } from "@/utils/cn";
 import {
   SUPPORTER_ROLES,
@@ -22,6 +23,20 @@ import {
 
 type Tab = "browse" | "profile" | "projects";
 
+/** 도메인 상수의 한국어 라벨에 대응하는 영어 라벨 (표시 전용). */
+const ROLE_LABEL_EN: Record<SupporterRole, string> = {
+  designer: "Designer",
+  editor: "Video editor",
+  musician: "Music producer",
+};
+
+const PROJECT_STATUS_EN: Record<string, string> = {
+  requested: "Requested",
+  accepted: "Accepted",
+  declined: "Declined",
+  completed: "Completed",
+};
+
 export function SupportersView({
   directory,
   myProfile,
@@ -33,22 +48,26 @@ export function SupportersView({
   businesses: { id: string; name: string }[];
   projects: ProjectRow[];
 }) {
+  const ko = useLocale() === "ko";
   const [tab, setTab] = useState<Tab>("browse");
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <p className="eyebrow mb-2">서포터즈</p>
+        <p className="eyebrow mb-2">{ko ? "서포터즈" : "Supporters"}</p>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          전문가와 협업하기
+          {ko ? "전문가와 협업하기" : "Collaborate with experts"}
         </h1>
       </div>
 
       <div className="flex gap-1 rounded-xl border border-border bg-surface p-1">
         {(
           [
-            ["browse", "둘러보기"],
-            ["profile", "내 프로필"],
-            ["projects", `내 프로젝트${projects.length ? ` (${projects.length})` : ""}`],
+            ["browse", ko ? "둘러보기" : "Browse"],
+            ["profile", ko ? "내 프로필" : "My profile"],
+            [
+              "projects",
+              `${ko ? "내 프로젝트" : "My projects"}${projects.length ? ` (${projects.length})` : ""}`,
+            ],
           ] as [Tab, string][]
         ).map(([id, label]) => (
           <button
@@ -83,10 +102,13 @@ function Directory({
   directory: SupporterCard[];
   businesses: { id: string; name: string }[];
 }) {
+  const ko = useLocale() === "ko";
   if (directory.length === 0)
     return (
       <p className="rounded-2xl border border-dashed border-border bg-surface p-10 text-center text-muted">
-        아직 등록된 서포터가 없습니다. ‘내 프로필’에서 첫 서포터로 등록해보세요.
+        {ko
+          ? "아직 등록된 서포터가 없습니다. ‘내 프로필’에서 첫 서포터로 등록해보세요."
+          : "No supporters registered yet. Be the first — sign up under My profile."}
       </p>
     );
   return (
@@ -105,6 +127,7 @@ function SupporterCardItem({
   supporter: SupporterCard;
   businesses: { id: string; name: string }[];
 }) {
+  const ko = useLocale() === "ko";
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [businessId, setBusinessId] = useState(businesses[0]?.id ?? "");
@@ -141,7 +164,9 @@ function SupporterCardItem({
     <Card className="flex flex-col">
       <div className="flex items-center justify-between">
         <Badge tone="primary">
-          {SUPPORTER_ROLE_LABEL[supporter.role as SupporterRole] ?? supporter.role}
+          {(ko
+            ? SUPPORTER_ROLE_LABEL[supporter.role as SupporterRole]
+            : ROLE_LABEL_EN[supporter.role as SupporterRole]) ?? supporter.role}
         </Badge>
       </div>
       <h3 className="mt-3 text-lg font-semibold">{supporter.display_name}</h3>
@@ -167,20 +192,24 @@ function SupporterCardItem({
           rel="noopener noreferrer"
           className="mt-3 text-sm font-medium text-primary hover:underline"
         >
-          포트폴리오 보기 →
+          {ko ? "포트폴리오 보기 →" : "View portfolio →"}
         </a>
       )}
 
       <div className="mt-4 border-t border-border pt-4">
         {done ? (
-          <p className="text-sm text-primary">의뢰가 전달되었습니다.</p>
+          <p className="text-sm text-primary">
+            {ko ? "의뢰가 전달되었습니다." : "Your request has been sent."}
+          </p>
         ) : businesses.length === 0 ? (
           <p className="text-xs text-muted">
-            의뢰하려면 먼저 비즈니스를 만들어주세요.
+            {ko
+              ? "의뢰하려면 먼저 비즈니스를 만들어주세요."
+              : "Create a business first to send a request."}
           </p>
         ) : !open ? (
           <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
-            프로젝트 의뢰
+            {ko ? "프로젝트 의뢰" : "Request a project"}
           </Button>
         ) : (
           <div className="space-y-2">
@@ -197,27 +226,33 @@ function SupporterCardItem({
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="프로젝트 제목"
+              placeholder={ko ? "프로젝트 제목" : "Project title"}
             />
             <Textarea
               className="min-h-16"
               value={desc}
               onChange={(e) => setDesc(e.target.value)}
-              placeholder="요청 내용"
+              placeholder={ko ? "요청 내용" : "What you need"}
             />
             <Input
               type="number"
               value={budget}
               onChange={(e) => setBudget(e.target.value)}
-              placeholder="예산 포인트 (선택)"
+              placeholder={ko ? "예산 포인트 (선택)" : "Budget in points (optional)"}
             />
             {error && <p className="text-sm text-danger">{error}</p>}
             <div className="flex gap-2">
               <Button size="sm" onClick={submit} disabled={pending}>
-                {pending ? <Spinner className="size-4" /> : "의뢰 보내기"}
+                {pending ? (
+                  <Spinner className="size-4" />
+                ) : ko ? (
+                  "의뢰 보내기"
+                ) : (
+                  "Send request"
+                )}
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
-                취소
+                {ko ? "취소" : "Cancel"}
               </Button>
             </div>
           </div>
@@ -229,6 +264,7 @@ function SupporterCardItem({
 
 /* ---------------- My profile ---------------- */
 function ProfileForm({ profile }: { profile: MySupporter | null }) {
+  const ko = useLocale() === "ko";
   const router = useRouter();
   const [role, setRole] = useState<SupporterRole>(
     (profile?.role as SupporterRole) ?? "designer",
@@ -255,14 +291,14 @@ function ProfileForm({ profile }: { profile: MySupporter | null }) {
         portfolioUrl: portfolio,
         contact,
       });
-      setNote(res.error ?? "저장되었습니다.");
+      setNote(res.error ?? (ko ? "저장되었습니다." : "Saved."));
       if (!res.error) router.refresh();
     });
 
   return (
     <Card className="space-y-4">
       <div>
-        <Label htmlFor="sp-role">역할</Label>
+        <Label htmlFor="sp-role">{ko ? "역할" : "Role"}</Label>
         <Select
           id="sp-role"
           value={role}
@@ -270,37 +306,45 @@ function ProfileForm({ profile }: { profile: MySupporter | null }) {
         >
           {SUPPORTER_ROLES.map((r) => (
             <option key={r} value={r}>
-              {SUPPORTER_ROLE_LABEL[r]}
+              {ko ? SUPPORTER_ROLE_LABEL[r] : ROLE_LABEL_EN[r]}
             </option>
           ))}
         </Select>
       </div>
       <div>
-        <Label htmlFor="sp-name">활동 이름</Label>
+        <Label htmlFor="sp-name">{ko ? "활동 이름" : "Display name"}</Label>
         <Input id="sp-name" value={name} onChange={(e) => setName(e.target.value)} />
       </div>
       <div>
-        <Label htmlFor="sp-bio">소개</Label>
+        <Label htmlFor="sp-bio">{ko ? "소개" : "Bio"}</Label>
         <Textarea
           id="sp-bio"
           className="min-h-20"
           value={bio}
           onChange={(e) => setBio(e.target.value)}
-          placeholder="어떤 작업을 하는지 소개해주세요."
+          placeholder={
+            ko
+              ? "어떤 작업을 하는지 소개해주세요."
+              : "Describe the kind of work you do."
+          }
         />
       </div>
       <div>
-        <Label htmlFor="sp-skills">전문 분야 (쉼표로 구분)</Label>
+        <Label htmlFor="sp-skills">
+          {ko ? "전문 분야 (쉼표로 구분)" : "Specialties (comma-separated)"}
+        </Label>
         <Input
           id="sp-skills"
           value={skills}
           onChange={(e) => setSkills(e.target.value)}
-          placeholder="브랜딩, 로고, 패키지"
+          placeholder={ko ? "브랜딩, 로고, 패키지" : "Branding, logo, packaging"}
         />
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <Label htmlFor="sp-portfolio">포트폴리오 URL</Label>
+          <Label htmlFor="sp-portfolio">
+            {ko ? "포트폴리오 URL" : "Portfolio URL"}
+          </Label>
           <Input
             id="sp-portfolio"
             value={portfolio}
@@ -309,18 +353,26 @@ function ProfileForm({ profile }: { profile: MySupporter | null }) {
           />
         </div>
         <div>
-          <Label htmlFor="sp-contact">연락처</Label>
+          <Label htmlFor="sp-contact">{ko ? "연락처" : "Contact"}</Label>
           <Input
             id="sp-contact"
             value={contact}
             onChange={(e) => setContact(e.target.value)}
-            placeholder="이메일 / SNS"
+            placeholder={ko ? "이메일 / SNS" : "Email / social handle"}
           />
         </div>
       </div>
       {note && <p className="text-sm text-primary">{note}</p>}
       <Button onClick={save} disabled={pending}>
-        {pending ? <Spinner className="size-4" /> : profile ? "프로필 수정" : "서포터로 등록"}
+        {pending ? (
+          <Spinner className="size-4" />
+        ) : profile ? (
+          ko ? "프로필 수정" : "Update profile"
+        ) : ko ? (
+          "서포터로 등록"
+        ) : (
+          "Register as supporter"
+        )}
       </Button>
     </Card>
   );
@@ -328,6 +380,7 @@ function ProfileForm({ profile }: { profile: MySupporter | null }) {
 
 /* ---------------- My projects ---------------- */
 function Projects({ projects }: { projects: ProjectRow[] }) {
+  const ko = useLocale() === "ko";
   const router = useRouter();
   const [pending, start] = useTransition();
 
@@ -340,7 +393,7 @@ function Projects({ projects }: { projects: ProjectRow[] }) {
   if (projects.length === 0)
     return (
       <p className="rounded-2xl border border-dashed border-border bg-surface p-10 text-center text-muted">
-        아직 프로젝트가 없습니다.
+        {ko ? "아직 프로젝트가 없습니다." : "No projects yet."}
       </p>
     );
 
@@ -353,13 +406,15 @@ function Projects({ projects }: { projects: ProjectRow[] }) {
               <div className="flex items-center gap-2">
                 <p className="truncate font-semibold">{p.title}</p>
                 <Badge tone={p.status === "completed" ? "success" : "muted"}>
-                  {PROJECT_STATUS_LABEL[p.status] ?? p.status}
+                  {(ko
+                    ? PROJECT_STATUS_LABEL[p.status]
+                    : PROJECT_STATUS_EN[p.status]) ?? p.status}
                 </Badge>
               </div>
               <p className="mt-1 text-sm text-muted">
                 {p.asSupporter
-                  ? `의뢰: ${p.business_name}`
-                  : `담당: ${p.supporter_name}`}
+                  ? `${ko ? "의뢰" : "Client"}: ${p.business_name}`
+                  : `${ko ? "담당" : "Supporter"}: ${p.supporter_name}`}
                 {p.budget_points ? ` · ${p.budget_points.toLocaleString()}P` : ""}
               </p>
               {p.description && (
@@ -374,16 +429,16 @@ function Projects({ projects }: { projects: ProjectRow[] }) {
             {p.asSupporter && p.status === "requested" && (
               <>
                 <Button size="sm" onClick={() => act(p.id, "accepted")} disabled={pending}>
-                  수락
+                  {ko ? "수락" : "Accept"}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => act(p.id, "declined")} disabled={pending}>
-                  거절
+                  {ko ? "거절" : "Decline"}
                 </Button>
               </>
             )}
             {!p.asSupporter && p.status === "accepted" && (
               <Button size="sm" onClick={() => act(p.id, "completed")} disabled={pending}>
-                완료 처리
+                {ko ? "완료 처리" : "Mark complete"}
               </Button>
             )}
           </div>

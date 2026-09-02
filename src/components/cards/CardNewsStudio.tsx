@@ -10,6 +10,7 @@ import { InstagramCard, toIGCards, cardImageSubject } from "./InstagramCard";
 import { IG } from "./cardTheme";
 import { resizeImage } from "@/components/website/templates/ImageSlot";
 import { trackEvent } from "@/lib/track";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import type { CardNewsResult } from "@/types/domain";
 
 interface PostOption {
@@ -56,6 +57,7 @@ export function CardNewsStudio({
   siteSlug?: string | null;
   initial?: { cardNews?: CardNewsResult; blogPostId?: string };
 }) {
+  const ko = useLocale() === "ko";
   const [postId, setPostId] = useState(
     initial?.blogPostId ?? posts[0]?.id ?? "",
   );
@@ -88,11 +90,20 @@ export function CardNewsStudio({
         body: JSON.stringify({ businessId, blogPostId: postId }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "생성에 실패했습니다.");
+      if (!res.ok)
+        throw new Error(
+          json.error ?? (ko ? "생성에 실패했습니다." : "Generation failed."),
+        );
       setData(json.cardNews as CardNewsResult);
       setImages([]); // reset backdrops for the new set
     } catch (e) {
-      setError(e instanceof Error ? e.message : "생성에 실패했습니다.");
+      setError(
+        e instanceof Error
+          ? e.message
+          : ko
+            ? "생성에 실패했습니다."
+            : "Generation failed.",
+      );
     } finally {
       setLoading(false);
     }
@@ -118,7 +129,11 @@ export function CardNewsStudio({
             });
             const json = await res.json();
             setImgProgress((p) => p + 1);
-            if (!res.ok) throw new Error(json.error ?? "이미지 생성 실패");
+            if (!res.ok)
+              throw new Error(
+                json.error ??
+                  (ko ? "이미지 생성 실패" : "Image generation failed"),
+              );
             return json.image as string;
           } catch (e) {
             if (e instanceof Error && /키|API|401|502/.test(e.message)) {
@@ -131,9 +146,19 @@ export function CardNewsStudio({
       );
       setImages(results);
       if (results.every((r) => !r))
-        setError("이미지를 생성하지 못했습니다. API 키 설정을 확인해주세요.");
+        setError(
+          ko
+            ? "이미지를 생성하지 못했습니다. API 키 설정을 확인해주세요."
+            : "Could not generate images. Please check the API key settings.",
+        );
     } catch (e) {
-      setError(e instanceof Error ? e.message : "이미지 생성에 실패했습니다.");
+      setError(
+        e instanceof Error
+          ? e.message
+          : ko
+            ? "이미지 생성에 실패했습니다."
+            : "Image generation failed.",
+      );
     } finally {
       setImgBusy(false);
     }
@@ -159,7 +184,11 @@ export function CardNewsStudio({
         return next;
       });
     } catch {
-      setError("이미지를 불러오지 못했습니다. 다른 파일로 시도해주세요.");
+      setError(
+        ko
+          ? "이미지를 불러오지 못했습니다. 다른 파일로 시도해주세요."
+          : "Could not load the image. Please try another file.",
+      );
     }
   };
 
@@ -168,7 +197,11 @@ export function CardNewsStudio({
     try {
       await fn();
     } catch {
-      setError("이미지 저장에 실패했습니다. 다시 시도해주세요.");
+      setError(
+        ko
+          ? "이미지 저장에 실패했습니다. 다시 시도해주세요."
+          : "Could not save the image. Please try again.",
+      );
     } finally {
       setBusy(false);
     }
@@ -217,7 +250,9 @@ export function CardNewsStudio({
     return (
       <div className="rounded-2xl border border-dashed border-border-strong bg-surface px-6 py-14 text-center">
         <p className="text-muted">
-          먼저 블로그 글을 작성하면 카드뉴스로 만들어드립니다.
+          {ko
+            ? "먼저 블로그 글을 작성하면 카드뉴스로 만들어드립니다."
+            : "Write a blog post first and we will turn it into card news."}
         </p>
       </div>
     );
@@ -234,7 +269,9 @@ export function CardNewsStudio({
       />
       <Card className="space-y-4">
         <div>
-          <Label htmlFor="cn-post">블로그 글 선택</Label>
+          <Label htmlFor="cn-post">
+            {ko ? "블로그 글 선택" : "Choose a blog post"}
+          </Label>
           <Select
             id="cn-post"
             value={postId}
@@ -251,7 +288,13 @@ export function CardNewsStudio({
         <div className="flex flex-wrap gap-2">
           <Button onClick={generate} disabled={loading || imgBusy}>
             {loading ? <Spinner /> : <Icon.sparkles className="size-[18px]" />}
-            {data ? "카드 다시 생성" : "카드뉴스 생성"}
+            {data
+              ? ko
+                ? "카드 다시 생성"
+                : "Regenerate cards"
+              : ko
+                ? "카드뉴스 생성"
+                : "Generate card news"}
           </Button>
           {data && (
             <Button
@@ -262,19 +305,26 @@ export function CardNewsStudio({
               {imgBusy ? (
                 <>
                   <Spinner className="size-4" />
-                  이미지 생성 중 {imgProgress}/{cards.length}
+                  {ko ? "이미지 생성 중" : "Generating images"} {imgProgress}/
+                  {cards.length}
                 </>
               ) : (
                 <>
                   <Icon.sparkles className="size-4" />
-                  {images.some(Boolean) ? "AI 이미지 다시 생성" : "AI 이미지 생성"}
+                  {images.some(Boolean)
+                    ? ko
+                      ? "AI 이미지 다시 생성"
+                      : "Regenerate AI images"
+                    : ko
+                      ? "AI 이미지 생성"
+                      : "Generate AI images"}
                 </>
               )}
             </Button>
           )}
           {images.some(Boolean) && !imgBusy && (
             <Button variant="ghost" onClick={() => setImages([])}>
-              이미지 지우기
+              {ko ? "이미지 지우기" : "Clear images"}
             </Button>
           )}
         </div>
@@ -285,7 +335,9 @@ export function CardNewsStudio({
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm font-medium text-muted">
-                인스타그램 카드 {cards.length}장
+                {ko
+                  ? `인스타그램 카드 ${cards.length}장`
+                  : `${cards.length} Instagram cards`}
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 <Button size="sm" onClick={downloadAll} disabled={busy}>
@@ -294,15 +346,15 @@ export function CardNewsStudio({
                   ) : (
                     <Icon.external className="size-4" />
                   )}
-                  전체 PNG 저장
+                  {ko ? "전체 PNG 저장" : "Save all PNGs"}
                 </Button>
                 {sharePath ? (
                   <>
                     <button
                       type="button"
                       onClick={() => openShare("x")}
-                      aria-label="X에 공유"
-                      title="X에 공유"
+                      aria-label={ko ? "X에 공유" : "Share on X"}
+                      title={ko ? "X에 공유" : "Share on X"}
                       className="grid size-8 place-items-center rounded-full border border-border text-foreground transition-colors hover:border-primary/50 hover:text-primary"
                     >
                       <Icon.xBrand width={15} height={15} />
@@ -310,8 +362,8 @@ export function CardNewsStudio({
                     <button
                       type="button"
                       onClick={() => openShare("facebook")}
-                      aria-label="Facebook에 공유"
-                      title="Facebook에 공유"
+                      aria-label={ko ? "Facebook에 공유" : "Share on Facebook"}
+                      title={ko ? "Facebook에 공유" : "Share on Facebook"}
                       className="grid size-8 place-items-center rounded-full border border-border text-foreground transition-colors hover:border-primary/50 hover:text-primary"
                     >
                       <Icon.facebookBrand width={16} height={16} />
@@ -319,7 +371,9 @@ export function CardNewsStudio({
                   </>
                 ) : (
                   <span className="text-xs text-muted">
-                    홈페이지를 공개하면 X·Facebook으로 바로 공유할 수 있어요.
+                    {ko
+                      ? "홈페이지를 공개하면 X·Facebook으로 바로 공유할 수 있어요."
+                      : "Publish your website to share straight to X and Facebook."}
                   </span>
                 )}
               </div>
@@ -328,6 +382,31 @@ export function CardNewsStudio({
             <div className="flex gap-4 overflow-x-auto rounded-2xl border border-border bg-surface-muted/40 p-4">
               {cards.map((card, i) => (
                 <div key={i} className="shrink-0">
+                  <div className="mb-2 flex gap-1.5">
+                    <button
+                      onClick={() => pickImage(i)}
+                      disabled={busy || imgBusy}
+                      className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-border bg-surface py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary/50 hover:text-primary disabled:opacity-50"
+                    >
+                      <Icon.image className="size-3.5" />
+                      {ko ? "사진 올리기" : "Upload photo"}
+                    </button>
+                    <button
+                      onClick={() =>
+                        withBusy(() =>
+                          downloadNode(
+                            igRefs.current[i],
+                            `${slugName()}-card-${String(i + 1).padStart(2, "0")}.png`,
+                          ),
+                        )
+                      }
+                      disabled={busy}
+                      className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-border bg-surface py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary/50 hover:text-primary disabled:opacity-50"
+                    >
+                      <Icon.external className="size-3.5" />
+                      {ko ? `${i + 1}번 저장` : `Save #${i + 1}`}
+                    </button>
+                  </div>
                   <div
                     className="overflow-hidden rounded-xl border border-border shadow-sm"
                     style={{ width: PREVIEW_W, height: IG.h * igScale }}
@@ -350,35 +429,13 @@ export function CardNewsStudio({
                       />
                     </div>
                   </div>
-                  <div className="mt-2 flex gap-1">
-                    <button
-                      onClick={() => pickImage(i)}
-                      disabled={busy || imgBusy}
-                      className="flex-1 rounded-lg py-1.5 text-xs font-medium text-muted transition-colors hover:bg-surface-muted hover:text-foreground disabled:opacity-50"
-                    >
-                      사진 올리기
-                    </button>
-                    <button
-                      onClick={() =>
-                        withBusy(() =>
-                          downloadNode(
-                            igRefs.current[i],
-                            `${slugName()}-card-${String(i + 1).padStart(2, "0")}.png`,
-                          ),
-                        )
-                      }
-                      disabled={busy}
-                      className="flex-1 rounded-lg py-1.5 text-xs font-medium text-muted transition-colors hover:bg-surface-muted hover:text-foreground disabled:opacity-50"
-                    >
-                      {i + 1}번 저장
-                    </button>
-                  </div>
                 </div>
               ))}
             </div>
             <p className="text-xs text-muted">
-              PNG는 실제 크기(1080×1350)로 저장됩니다. AI 이미지 또는 직접
-              올린 사진이 각 카드의 배경으로 들어갑니다.
+              {ko
+                ? "PNG는 실제 크기(1080×1350)로 저장됩니다. AI 이미지 또는 직접 올린 사진이 각 카드의 배경으로 들어갑니다."
+                : "PNGs are saved at full size (1080×1350). AI images or your uploaded photos become each card's background."}
             </p>
           </div>
 

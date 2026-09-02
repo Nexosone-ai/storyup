@@ -5,8 +5,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/ui/Logo";
 import { Icon, type IconName } from "@/components/ui/icons";
+import { LanguageToggle } from "@/components/marketing/LanguageToggle";
 import { signOutAction } from "@/app/(auth)/actions";
 import { cn } from "@/utils/cn";
+import type { Locale } from "@/lib/i18n";
 
 export interface NavItem {
   label: string;
@@ -24,6 +26,7 @@ export function DashboardShell({
   workspace,
   userName,
   heading,
+  locale = "ko",
   children,
 }: {
   nav: NavItem[];
@@ -31,10 +34,12 @@ export function DashboardShell({
   workspace?: { name: string; items: NavItem[] };
   userName: string;
   heading?: string;
+  locale?: Locale;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const ko = locale === "ko";
 
   const isActive = (item: NavItem) =>
     item.exact ? pathname === item.href : pathname.startsWith(item.href);
@@ -92,12 +97,12 @@ export function DashboardShell({
 
   const navLinks = (
     <>
-      <p className="eyebrow mb-2 px-3">메뉴</p>
+      <p className="eyebrow mb-2 px-3">{ko ? "메뉴" : "Menu"}</p>
       {renderItems(nav)}
       {workspace && (
         <div className="mt-6 rounded-xl border border-border bg-surface-muted/50 p-2">
           <p className="eyebrow mb-1.5 truncate px-2 pt-1">
-            워크스페이스 · {workspace.name}
+            {ko ? "워크스페이스" : "Workspace"} · {workspace.name}
           </p>
           {renderItems(workspace.items)}
         </div>
@@ -126,7 +131,7 @@ export function DashboardShell({
             <Logo href="/dashboard" />
           </div>
           <div className="mt-8 flex-1 overflow-y-auto">{navLinks}</div>
-          <SidebarFooter userName={userName} />
+          <SidebarFooter userName={userName} locale={locale} />
         </aside>
 
         {/* Mobile drawer */}
@@ -148,7 +153,7 @@ export function DashboardShell({
                 </button>
               </div>
               <div className="mt-8 flex-1 overflow-y-auto">{navLinks}</div>
-              <SidebarFooter userName={userName} />
+              <SidebarFooter userName={userName} locale={locale} />
             </aside>
           </div>
         )}
@@ -169,14 +174,23 @@ export function DashboardShell({
   );
 }
 
-function SidebarFooter({ userName }: { userName: string }) {
+function SidebarFooter({
+  userName,
+  locale,
+}: {
+  userName: string;
+  locale: Locale;
+}) {
   return (
     <div className="mt-4 border-t border-border pt-3">
-      <div className="flex items-center gap-3 rounded-lg px-2.5 py-2">
-        <div className="grid size-8 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-          {userName.slice(0, 1).toUpperCase()}
+      <div className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-2">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="grid size-8 shrink-0 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+            {userName.slice(0, 1).toUpperCase()}
+          </div>
+          <p className="min-w-0 truncate text-sm font-medium">{userName}</p>
         </div>
-        <p className="min-w-0 truncate text-sm font-medium">{userName}</p>
+        <LanguageToggle locale={locale} />
       </div>
       <form action={signOutAction}>
         <button
@@ -184,7 +198,7 @@ function SidebarFooter({ userName }: { userName: string }) {
           className="mt-0.5 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
         >
           <Icon.logout className="size-[18px]" />
-          로그아웃
+          {locale === "ko" ? "로그아웃" : "Log out"}
         </button>
       </form>
     </div>

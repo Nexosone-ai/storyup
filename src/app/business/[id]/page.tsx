@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getBusiness, getWebsite, getWorkflowState } from "@/lib/queries";
+import { getLocale } from "@/lib/i18n";
 import { Badge } from "@/components/ui/Card";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/icons";
@@ -14,6 +15,7 @@ export default async function BusinessOverviewPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const ko = (await getLocale()) === "ko";
   const business = await getBusiness(id);
   if (!business) notFound();
 
@@ -26,48 +28,62 @@ export default async function BusinessOverviewPage({
   const steps = [
     {
       n: 1,
-      label: "브랜드 스토리",
-      desc: "당신의 이야기를 AI가 브랜드로 완성합니다.",
+      label: ko ? "브랜드 스토리" : "Brand story",
+      desc: ko
+        ? "당신의 이야기를 AI가 브랜드로 완성합니다."
+        : "AI turns your story into a complete brand.",
       done: state.brand,
       partial: false,
       href: `${base}/brand`,
       icon: Icon.sparkles,
-      cta: state.brand ? "보기·수정" : "만들기",
+      cta: state.brand ? (ko ? "보기·수정" : "View & edit") : ko ? "만들기" : "Create",
     },
     {
       n: 2,
-      label: "홈페이지",
-      desc: "브랜드 스토리로 홈페이지를 만들고 공개하세요.",
+      label: ko ? "홈페이지" : "Website",
+      desc: ko
+        ? "브랜드 스토리로 홈페이지를 만들고 공개하세요."
+        : "Build a website from your brand story and publish it.",
       done: state.website === "published",
       partial: state.website === "draft",
       href: `${base}/website`,
       icon: Icon.globe,
       cta:
         state.website === "published"
-          ? "관리"
+          ? ko
+            ? "관리"
+            : "Manage"
           : state.website === "draft"
-            ? "편집·공개"
-            : "만들기",
+            ? ko
+              ? "편집·공개"
+              : "Edit & publish"
+            : ko
+              ? "만들기"
+              : "Create",
     },
     {
       n: 3,
-      label: "블로그",
-      desc: "검색에 잘 걸리는 블로그 글을 AI와 함께 씁니다.",
+      label: ko ? "블로그" : "Blog",
+      desc: ko
+        ? "검색에 잘 걸리는 블로그 글을 AI와 함께 씁니다."
+        : "Write search-friendly blog posts with AI.",
       done: state.blogPublished > 0,
       partial: state.blogTotal > 0,
       href: `${base}/blog`,
       icon: Icon.pen,
-      cta: state.blogTotal > 0 ? "관리" : "첫 글 쓰기",
+      cta: state.blogTotal > 0 ? (ko ? "관리" : "Manage") : ko ? "첫 글 쓰기" : "Write first post",
     },
     {
       n: 4,
       label: "SNS",
-      desc: "블로그 글을 SNS 게시물과 카드뉴스로 바꿔 공유하세요.",
+      desc: ko
+        ? "블로그 글을 SNS 게시물과 카드뉴스로 바꿔 공유하세요."
+        : "Turn blog posts into SNS posts and card news to share.",
       done: state.sns,
       partial: false,
       href: `${base}/marketing`,
       icon: Icon.megaphone,
-      cta: state.sns ? "관리" : "만들기",
+      cta: state.sns ? (ko ? "관리" : "Manage") : ko ? "만들기" : "Create",
     },
   ];
 
@@ -78,7 +94,7 @@ export default async function BusinessOverviewPage({
     <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="eyebrow mb-2">워크스페이스</p>
+          <p className="eyebrow mb-2">{ko ? "워크스페이스" : "Workspace"}</p>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-semibold uppercase tracking-tight sm:text-3xl">
               {business.name}
@@ -86,10 +102,10 @@ export default async function BusinessOverviewPage({
             {website?.status === "published" ? (
               <Badge tone="success">
                 <span className="size-1.5 rounded-full bg-primary" />
-                공개됨
+                {ko ? "공개됨" : "Published"}
               </Badge>
             ) : (
-              <Badge tone="muted">비공개</Badge>
+              <Badge tone="muted">{ko ? "비공개" : "Private"}</Badge>
             )}
           </div>
           <p className="mt-1.5 text-muted">{business.category}</p>
@@ -103,7 +119,7 @@ export default async function BusinessOverviewPage({
             rel="noopener noreferrer"
           >
             <Icon.external width={16} height={16} />
-            공개 홈페이지 열기
+            {ko ? "공개 홈페이지 열기" : "Open live website"}
           </ButtonLink>
         )}
       </div>
@@ -112,15 +128,18 @@ export default async function BusinessOverviewPage({
       <div className="rounded-2xl border border-border bg-surface p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm font-medium">
-            브랜드 만들기 <span className="tnum text-primary">{doneCount}</span>
-            <span className="text-muted">/4 단계 완료</span>
+            {ko ? "브랜드 만들기 " : "Brand building "}
+            <span className="tnum text-primary">{doneCount}</span>
+            <span className="text-muted">
+              {ko ? "/4 단계 완료" : "/4 steps done"}
+            </span>
           </p>
           {next && (
             <Link
               href={next.href}
               className="text-sm font-medium text-primary hover:underline"
             >
-              다음: STEP {next.n} · {next.label} →
+              {ko ? "다음" : "Next"}: STEP {next.n} · {next.label} →
             </Link>
           )}
         </div>
@@ -168,12 +187,20 @@ export default async function BusinessOverviewPage({
                       </p>
                       {isNext && !s.done && (
                         <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">
-                          다음 할 일
+                          {ko ? "다음 할 일" : "Next step"}
                         </span>
                       )}
                     </div>
                     <p className="mt-0.5 truncate text-sm text-muted">
-                      {s.done ? "완료" : s.partial ? "진행 중" : s.desc}
+                      {s.done
+                        ? ko
+                          ? "완료"
+                          : "Done"
+                        : s.partial
+                          ? ko
+                            ? "진행 중"
+                            : "In progress"
+                          : s.desc}
                     </p>
                   </div>
                   <span className="shrink-0 text-sm font-medium text-primary">
