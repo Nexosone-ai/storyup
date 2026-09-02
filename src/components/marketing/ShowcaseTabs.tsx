@@ -23,9 +23,9 @@ function PlaceholderCover() {
   return (
     <div className="flex aspect-[16/9] w-full items-center justify-center bg-gradient-to-br from-primary/30 via-surface-muted to-accent/20">
       <span className="inline-flex items-center gap-2 opacity-50">
-        {/* eslint-disable-next-line @next/next/no-img-element -- 정적 로고 에셋 */}
+        {/* eslint-disable-next-line @next/next/no-img-element -- 정적 로고 에셋 (투명 배경) */}
         <img
-          src="/images/logo-icon.png"
+          src="/images/logo-symbol.png"
           alt=""
           aria-hidden
           className="size-7 grayscale"
