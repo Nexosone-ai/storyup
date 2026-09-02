@@ -119,6 +119,8 @@ export type WebsiteFontId = (typeof WEBSITE_FONTS)[number];
 export interface WebsiteContent {
   /** Chosen layout template (defaults to "classic"). */
   template?: WebsiteTemplateId;
+  /** 사이트 콘텐츠 언어 — 생성 시 대시보드 로케일이 저장된다 (기본 ko). */
+  language?: "ko" | "en";
   /** Visual style picked in the editor (defaults to forest + default font). */
   style?: {
     palette?: WebsitePaletteId;

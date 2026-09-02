@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { CONTACT_FIELDS, ContactEntry, type TemplateProps } from "./shared";
+import {
+  CONTACT_FIELDS,
+  ContactEntry,
+  SITE_UI,
+  siteLang,
+  type TemplateProps,
+} from "./shared";
 
 export function SplitTemplate({
   content,
@@ -10,6 +16,7 @@ export function SplitTemplate({
   editable,
 }: TemplateProps) {
   const { hero, story, offers, whyChooseUs, contact } = content;
+  const L = SITE_UI[siteLang(content)];
   const gallery = content.gallery ?? [];
   // 연락처가 하나도 없으면 공개 화면에서 Contact 섹션·링크를 숨긴다
   const showContact =
@@ -21,11 +28,11 @@ export function SplitTemplate({
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           {T({ path: "hero.businessName", value: hero.businessName, as: "span", className: "font-bold tracking-tight" })}
           <nav className="flex items-center gap-6 text-sm">
-            <a href="#story" className="text-muted hover:text-foreground">소개</a>
+            <a href="#story" className="text-muted hover:text-foreground">{L.about}</a>
             {showContact && (
-              <a href="#contact" className="text-muted hover:text-foreground">연락처</a>
+              <a href="#contact" className="text-muted hover:text-foreground">{L.contact}</a>
             )}
-            {blogHref && <Link href={blogHref} className="font-medium text-primary">블로그</Link>}
+            {blogHref && <Link href={blogHref} className="font-medium text-primary">{L.blog}</Link>}
           </nav>
         </div>
       </header>
@@ -39,7 +46,7 @@ export function SplitTemplate({
             {T({ path: "hero.shortDescription", value: hero.shortDescription, as: "p", className: "mt-6 max-w-lg text-lg leading-relaxed text-muted text-pretty" })}
             {showContact && (
               <a href="#contact" className="mt-8 inline-flex rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground shadow-xs">
-                {T({ path: "hero.ctaLabel", value: hero.ctaLabel || "문의하기", as: "span" })}
+                {T({ path: "hero.ctaLabel", value: hero.ctaLabel || L.inquire, as: "span" })}
               </a>
             )}
           </div>
@@ -110,7 +117,7 @@ export function SplitTemplate({
         <section className="border-b border-border">
           <div className="mx-auto max-w-6xl px-6 py-16">
             <p className="eyebrow mb-2">Gallery</p>
-            <h2 className="mb-8 text-2xl font-semibold tracking-tight">공간</h2>
+            <h2 className="mb-8 text-2xl font-semibold tracking-tight">{L.space}</h2>
             {Gallery(gallery)}
           </div>
         </section>
@@ -122,14 +129,14 @@ export function SplitTemplate({
           <div className="mx-auto grid max-w-6xl gap-8 px-6 py-16 md:grid-cols-[240px_1fr]">
             <div>
               <p className="eyebrow mb-2">Contact</p>
-              <h2 className="text-2xl font-semibold tracking-tight">문의하기</h2>
+              <h2 className="text-2xl font-semibold tracking-tight">{L.inquire}</h2>
             </div>
             <div className="grid gap-2 text-foreground/85 sm:grid-cols-2">
-              {CONTACT_FIELDS.map(([key, label]) => (
+              {CONTACT_FIELDS.map(([key, ko, en]) => (
                 <ContactEntry
                   key={key}
                   k={key}
-                  label={label}
+                  label={siteLang(content) === "en" ? en : ko}
                   value={contact[key] ?? ""}
                   T={T}
                   editable={editable}

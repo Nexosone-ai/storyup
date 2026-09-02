@@ -56,12 +56,12 @@ export default async function LandingPage() {
             >
               {L.cta} →
             </Link>
-            <Link
+           {/*} <Link
               href="#how"
               className="inline-flex items-center justify-center rounded-xl border border-white/25 px-7 py-3.5 text-sm font-semibold text-white/90 transition-colors hover:bg-white/5"
             >
               {L.how}
-            </Link>
+            </Link>*/}
           </div>
           <div className="mt-14 grid max-w-md grid-cols-3 gap-6 border-t border-white/10 pt-8">
             {L.stats.map((s) => (

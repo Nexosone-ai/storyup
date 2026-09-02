@@ -5,18 +5,23 @@ import { chargeAiUsage, InsufficientPointsError } from "@/lib/ai/billing";
 import { getImageProvider, ImageGenerationError } from "@/lib/ai/image";
 import type { ImageAspect } from "@/lib/ai/image";
 import { buildCardImagePrompt } from "@/lib/ai/image/prompt";
+import { getLocale } from "@/lib/i18n";
 
 export const maxDuration = 60;
 
 const ASPECTS: ImageAspect[] = ["1:1", "3:4", "4:3", "9:16", "16:9"];
 
 export async function POST(request: Request) {
+  const ko = (await getLocale()) === "ko";
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user)
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json(
+      { error: ko ? "로그인이 필요합니다." : "Please log in." },
+      { status: 401 },
+    );
 
   let businessId = "";
   let subject = "";
@@ -27,7 +32,10 @@ export async function POST(request: Request) {
     subject = String(body.subject ?? "").slice(0, 300);
     if (ASPECTS.includes(body.aspect)) aspect = body.aspect;
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json(
+      { error: ko ? "잘못된 요청입니다." : "Invalid request." },
+      { status: 400 },
+    );
   }
 
   // RLS ensures ownership.
@@ -38,7 +46,7 @@ export async function POST(request: Request) {
     .maybeSingle();
   if (!business)
     return NextResponse.json(
-      { error: "비즈니스를 찾을 수 없습니다." },
+      { error: ko ? "비즈니스를 찾을 수 없습니다." : "Business not found." },
       { status: 404 },
     );
 
@@ -64,7 +72,9 @@ export async function POST(request: Request) {
     const message =
       err instanceof ImageGenerationError
         ? err.message
-        : "이미지 생성 중 문제가 발생했습니다.";
+        : ko
+          ? "이미지 생성 중 문제가 발생했습니다."
+          : "Something went wrong while generating the image.";
     console.error("[ai/card-image]", err);
     return NextResponse.json({ error: message }, { status: 502 });
   }

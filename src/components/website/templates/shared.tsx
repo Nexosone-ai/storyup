@@ -113,18 +113,43 @@ export function ContactRow({
   );
 }
 
+// ---- 사이트 콘텐츠 언어 (세 템플릿 공용) ----
+
+export type SiteLang = "ko" | "en";
+
+/**
+ * 사이트 콘텐츠 언어 — 저장된 값이 있으면 그것을, 없으면(과거 생성 사이트)
+ * 히어로·스토리 텍스트의 한글 포함 여부로 추정한다.
+ */
+export function siteLang(content: WebsiteContent): SiteLang {
+  if (content.language) return content.language === "en" ? "en" : "ko";
+  const probe = `${content.hero?.headline ?? ""}${content.hero?.shortDescription ?? ""}${content.story?.body ?? ""}`;
+  if (!probe.trim()) return "ko";
+  return /[가-힣]/.test(probe) ? "ko" : "en";
+}
+
+/** 템플릿 크롬(내비게이션·섹션 제목 폴백)에 쓰는 고정 문구. */
+export const SITE_UI: Record<
+  SiteLang,
+  { about: string; contact: string; blog: string; inquire: string; space: string }
+> = {
+  ko: { about: "소개", contact: "연락처", blog: "블로그", inquire: "문의하기", space: "공간" },
+  en: { about: "About", contact: "Contact", blog: "Blog", inquire: "Contact us", space: "Our Space" },
+};
+
 // ---- Contact 필드 정의 (세 템플릿 공용) ----
 
 export type ContactKey = keyof WebsiteContent["contact"];
 
-export const CONTACT_FIELDS: Array<[ContactKey, string]> = [
-  ["phone", "전화"],
-  ["email", "이메일"],
-  ["address", "주소"],
-  ["instagram", "인스타그램"],
-  ["facebook", "페이스북"],
-  ["x", "X (트위터)"],
-  ["website", "웹사이트"],
+/** [키, 한국어 라벨, 영어 라벨] */
+export const CONTACT_FIELDS: Array<[ContactKey, string, string]> = [
+  ["phone", "전화", "Phone"],
+  ["email", "이메일", "Email"],
+  ["address", "주소", "Address"],
+  ["instagram", "인스타그램", "Instagram"],
+  ["facebook", "페이스북", "Facebook"],
+  ["x", "X (트위터)", "X (Twitter)"],
+  ["website", "웹사이트", "Website"],
 ];
 
 /** 공개 화면에서 연락처 값을 클릭 가능한 링크로 만들 때의 href (없으면 null). */

@@ -8,12 +8,17 @@ import { slugify } from "@/utils/slug";
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
+  const locale = await getLocale();
+  const ko = locale === "ko";
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user)
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json(
+      { error: ko ? "로그인이 필요합니다." : "Please log in." },
+      { status: 401 },
+    );
 
   let businessId = "";
   let blogPostId = "";
@@ -22,7 +27,10 @@ export async function POST(request: Request) {
     businessId = String(body.businessId);
     blogPostId = String(body.blogPostId);
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json(
+      { error: ko ? "잘못된 요청입니다." : "Invalid request." },
+      { status: 400 },
+    );
   }
 
   const { data: business } = await supabase
@@ -32,7 +40,7 @@ export async function POST(request: Request) {
     .maybeSingle();
   if (!business)
     return NextResponse.json(
-      { error: "비즈니스를 찾을 수 없습니다." },
+      { error: ko ? "비즈니스를 찾을 수 없습니다." : "Business not found." },
       { status: 404 },
     );
 
@@ -44,7 +52,7 @@ export async function POST(request: Request) {
     .maybeSingle();
   if (!post)
     return NextResponse.json(
-      { error: "블로그 글을 찾을 수 없습니다." },
+      { error: ko ? "블로그 글을 찾을 수 없습니다." : "Blog post not found." },
       { status: 404 },
     );
 
@@ -71,7 +79,7 @@ export async function POST(request: Request) {
       articleTitle: post.title,
       articleSummary: post.summary ?? "",
       articleContent: post.content ?? "",
-      language: await getLocale(),
+      language: locale,
     });
 
     // Persist as a marketing_contents row (JSON in content).
@@ -95,7 +103,9 @@ export async function POST(request: Request) {
     const message =
       err instanceof AIGenerationError
         ? err.message
-        : "카드뉴스 생성 중 문제가 발생했습니다.";
+        : ko
+          ? "카드뉴스 생성 중 문제가 발생했습니다."
+          : "Something went wrong while generating the card news.";
     console.error("[ai/card-news]", err);
     return NextResponse.json({ error: message }, { status: 502 });
   }

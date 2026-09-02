@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { CONTACT_FIELDS, ContactEntry, type TemplateProps } from "./shared";
+import {
+  CONTACT_FIELDS,
+  ContactEntry,
+  SITE_UI,
+  siteLang,
+  type TemplateProps,
+} from "./shared";
 
 export function MinimalTemplate({
   content,
@@ -10,6 +16,7 @@ export function MinimalTemplate({
   editable,
 }: TemplateProps) {
   const { hero, story, offers, whyChooseUs, contact } = content;
+  const L = SITE_UI[siteLang(content)];
   const gallery = content.gallery ?? [];
   // 연락처가 하나도 없으면 공개 화면에서 Contact 섹션·링크를 숨긴다
   const showContact =
@@ -21,7 +28,7 @@ export function MinimalTemplate({
         {T({ path: "hero.businessName", value: hero.businessName, as: "span", className: "text-sm font-semibold uppercase tracking-[0.2em]" })}
         {blogHref && (
           <Link href={blogHref} className="text-sm text-muted hover:text-foreground">
-            블로그
+            {L.blog}
           </Link>
         )}
       </header>
@@ -31,7 +38,7 @@ export function MinimalTemplate({
         {T({ path: "hero.shortDescription", value: hero.shortDescription, as: "p", className: "mt-8 text-xl leading-relaxed text-muted text-pretty" })}
         {showContact && (
           <a href="#contact" className="mt-8 inline-block border-b-2 border-primary pb-0.5 font-medium text-primary">
-            {T({ path: "hero.ctaLabel", value: hero.ctaLabel || "문의하기", as: "span" })}
+            {T({ path: "hero.ctaLabel", value: hero.ctaLabel || L.inquire, as: "span" })}
           </a>
         )}
         {(hero.image || editable) && (
@@ -117,11 +124,11 @@ export function MinimalTemplate({
         <section id="contact" className="mx-auto max-w-2xl px-6 py-16">
           <h2 className="eyebrow mb-8 block">Contact</h2>
           <div className="space-y-2 text-foreground/85">
-            {CONTACT_FIELDS.map(([key, label]) => (
+            {CONTACT_FIELDS.map(([key, ko, en]) => (
               <ContactEntry
                 key={key}
                 k={key}
-                label={label}
+                label={siteLang(content) === "en" ? en : ko}
                 value={contact[key] ?? ""}
                 T={T}
                 editable={editable}

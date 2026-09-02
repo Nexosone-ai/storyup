@@ -24,6 +24,8 @@ export function ShareBar({
   compact?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
+  // 글 제목의 언어에 맞춰 버튼 문구를 고른다 (사이트 콘텐츠 언어 추정)
+  const ko = /[가-힣]/.test(title);
 
   const absUrl = () =>
     typeof window === "undefined" ? path : `${window.location.origin}${path}`;
@@ -65,31 +67,37 @@ export function ShareBar({
 
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
-      <button type="button" onClick={shareX} className={btn} aria-label="X에 공유">
+      <button
+        type="button"
+        onClick={shareX}
+        className={btn}
+        aria-label={ko ? "X에 공유" : "Share on X"}
+      >
         <Icon.xBrand width={16} height={16} />
-        {!compact && "공유"}
+        {!compact && (ko ? "공유" : "Share")}
       </button>
       <button
         type="button"
         onClick={shareFacebook}
         className={btn}
-        aria-label="Facebook에 공유"
+        aria-label={ko ? "Facebook에 공유" : "Share on Facebook"}
       >
         <Icon.facebookBrand width={17} height={17} />
-        {!compact && "공유"}
+        {!compact && (ko ? "공유" : "Share")}
       </button>
       <button
         type="button"
         onClick={copyLink}
         className={btn}
-        aria-label="링크 복사"
+        aria-label={ko ? "링크 복사" : "Copy link"}
       >
         {copied ? (
           <Icon.check width={16} height={16} />
         ) : (
           <Icon.link width={16} height={16} />
         )}
-        {!compact && (copied ? "복사됨" : "링크 복사")}
+        {!compact &&
+          (copied ? (ko ? "복사됨" : "Copied") : ko ? "링크 복사" : "Copy link")}
       </button>
     </div>
   );

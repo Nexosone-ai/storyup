@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { uploadSiteImage } from "@/app/business/actions";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import { resizeImage } from "./ImageSlot";
 import type { GalleryRenderer } from "./shared";
 
@@ -14,6 +15,7 @@ function GallerySection({
   onChange: (next: string[]) => void;
   businessId: string;
 }) {
+  const ko = useLocale() === "ko";
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -32,9 +34,19 @@ function GallerySection({
         fd.append("file", resized);
         const res = await uploadSiteImage(businessId, fd);
         if (res.url) added.push(res.url);
-        else setErr(res.error ?? "일부 이미지를 업로드하지 못했습니다.");
+        else
+          setErr(
+            res.error ??
+              (ko
+                ? "일부 이미지를 업로드하지 못했습니다."
+                : "Some images could not be uploaded."),
+          );
       } catch {
-        setErr("업로드 중 문제가 발생했습니다.");
+        setErr(
+          ko
+            ? "업로드 중 문제가 발생했습니다."
+            : "Something went wrong while uploading.",
+        );
       }
     }
     if (added.length) onChange([...images, ...added]);
@@ -64,7 +76,7 @@ function GallerySection({
               onClick={() => onChange(images.filter((_, idx) => idx !== i))}
               className="absolute right-2 top-2 rounded-md bg-black/60 px-2 py-1 text-xs font-medium text-white opacity-0 backdrop-blur transition group-hover/g:opacity-100 hover:bg-black/75"
             >
-              삭제
+              {ko ? "삭제" : "Remove"}
             </button>
           </div>
         ))}
@@ -75,7 +87,13 @@ function GallerySection({
           className="flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-primary/40 bg-primary-soft/40 text-sm font-medium text-primary transition hover:bg-primary-soft disabled:opacity-60"
         >
           <span className="text-lg">＋</span>
-          {busy ? "업로드 중..." : "사진 추가"}
+          {busy
+            ? ko
+              ? "업로드 중..."
+              : "Uploading..."
+            : ko
+              ? "사진 추가"
+              : "Add photos"}
         </button>
       </div>
       {err && <p className="mt-2 text-sm text-danger">{err}</p>}

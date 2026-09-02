@@ -18,6 +18,26 @@ export interface ShowcaseDict {
   empty: string;
 }
 
+/** 사진이 없는 카드의 플레이스홀더 — 회색 STORYUP 로고를 얹은 그라데이션. */
+function PlaceholderCover() {
+  return (
+    <div className="flex aspect-[16/9] w-full items-center justify-center bg-gradient-to-br from-primary/30 via-surface-muted to-accent/20">
+      <span className="inline-flex items-center gap-2 opacity-50">
+        {/* eslint-disable-next-line @next/next/no-img-element -- 정적 로고 에셋 */}
+        <img
+          src="/images/logo-icon.png"
+          alt=""
+          aria-hidden
+          className="size-7 grayscale"
+        />
+        <span className="text-lg font-extrabold tracking-tight text-foreground/60">
+          STORY<span className="text-foreground/40">UP</span>
+        </span>
+      </span>
+    </div>
+  );
+}
+
 export function SiteCard({ item }: { item: ShowcaseSiteItem }) {
   return (
     <Link
@@ -33,8 +53,7 @@ export function SiteCard({ item }: { item: ShowcaseSiteItem }) {
           className="aspect-[16/9] w-full object-cover"
         />
       ) : (
-        /* 이미지가 없으면 블로그 카드와 동일한 그라데이션 폴백 */
-        <div className="aspect-[16/9] w-full bg-gradient-to-br from-primary/30 via-surface-muted to-accent/20" />
+        <PlaceholderCover />
       )}
       <div className="px-5 py-4">
         <p className="truncate font-semibold group-hover:text-primary">
@@ -61,7 +80,7 @@ export function PostCard({ item }: { item: ShowcasePostItem }) {
           className="aspect-[16/9] w-full object-cover"
         />
       ) : (
-        <div className="aspect-[16/9] w-full bg-gradient-to-br from-primary/30 via-surface-muted to-accent/20" />
+        <PlaceholderCover />
       )}
       <div className="px-5 py-4">
         <p className="text-xs font-medium text-primary">{item.businessName}</p>

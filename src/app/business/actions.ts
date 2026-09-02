@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { getLocale } from "@/lib/i18n";
 import { slugify } from "@/utils/slug";
 import { BUSINESS_CATEGORIES } from "@/types/domain";
 import type { WebsiteContent } from "@/types/domain";
@@ -18,8 +19,9 @@ export async function uploadSiteImage(
   businessId: string,
   formData: FormData,
 ): Promise<UploadResult> {
+  const ko = (await getLocale()) === "ko";
   const { supabase, user } = await requireUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
 
   // Ownership check via RLS.
   const { data: biz } = await supabase
@@ -27,13 +29,18 @@ export async function uploadSiteImage(
     .select("id")
     .eq("id", businessId)
     .maybeSingle();
-  if (!biz) return { error: "권한이 없습니다." };
+  if (!biz)
+    return { error: ko ? "권한이 없습니다." : "You don't have permission." };
 
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0)
-    return { error: "이미지를 선택해주세요." };
+    return { error: ko ? "이미지를 선택해주세요." : "Please choose an image." };
   if (file.size > 10 * 1024 * 1024)
-    return { error: "이미지는 10MB 이하여야 합니다." };
+    return {
+      error: ko
+        ? "이미지는 10MB 이하여야 합니다."
+        : "Images must be 10MB or smaller.",
+    };
 
   const admin = createAdminClient();
 
@@ -58,7 +65,7 @@ export async function uploadSiteImage(
   const { error } = await admin.storage
     .from(IMAGE_BUCKET)
     .upload(path, file, { contentType: file.type, upsert: false });
-  if (error) return { error: "업로드에 실패했습니다." };
+  if (error) return { error: ko ? "업로드에 실패했습니다." : "Upload failed." };
 
   const {
     data: { publicUrl },
@@ -92,32 +99,37 @@ export async function updateBusinessAction(
   businessId: string,
   fields: BusinessEditFields,
 ): Promise<ActionState> {
+  const ko = (await getLocale()) === "ko";
   const { supabase, user } = await requireUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
 
   const name = fields.name.trim();
-  if (!name) return { error: "비즈니스 이름을 입력해주세요." };
+  if (!name)
+    return {
+      error: ko ? "비즈니스 이름을 입력해주세요." : "Please enter a business name.",
+    };
   if (!(BUSINESS_CATEGORIES as readonly string[]).includes(fields.category))
-    return { error: "업종을 선택해주세요." };
+    return { error: ko ? "업종을 선택해주세요." : "Please select a category." };
 
   const { error } = await supabase
     .from("businesses")
     .update({ name, category: fields.category })
     .eq("id", businessId);
-  if (error) return { error: "저장에 실패했습니다." };
+  if (error) return { error: ko ? "저장에 실패했습니다." : "Failed to save." };
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/businesses");
   revalidatePath(`/business/${businessId}`);
-  return { ok: true, message: "저장되었습니다." };
+  return { ok: true, message: ko ? "저장되었습니다." : "Saved." };
 }
 
 /** 비즈니스를 영구 삭제한다. 브랜드·홈페이지·블로그 등이 함께 삭제된다(DB cascade). */
 export async function deleteBusinessAction(
   businessId: string,
 ): Promise<ActionState> {
+  const ko = (await getLocale()) === "ko";
   const { supabase, user } = await requireUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
 
   // 공개 사이트 경로 재검증용 슬러그 확보 (RLS로 소유권도 함께 확인됨).
   const { data: web } = await supabase
@@ -130,7 +142,8 @@ export async function deleteBusinessAction(
     .from("businesses")
     .delete({ count: "exact" })
     .eq("id", businessId);
-  if (error || !count) return { error: "삭제에 실패했습니다." };
+  if (error || !count)
+    return { error: ko ? "삭제에 실패했습니다." : "Failed to delete." };
 
   // 스토리지 이미지 정리 — 실패해도 삭제 자체는 성공으로 둔다.
   try {
@@ -151,7 +164,10 @@ export async function deleteBusinessAction(
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/businesses");
   if (web?.slug) revalidatePath(`/site/${web.slug}`);
-  return { ok: true, message: "비즈니스가 삭제되었습니다." };
+  return {
+    ok: true,
+    message: ko ? "비즈니스가 삭제되었습니다." : "Business deleted.",
+  };
 }
 
 // ---------------- Brand ----------------
@@ -171,8 +187,9 @@ export async function updateBrandAction(
   businessId: string,
   fields: BrandEditFields,
 ): Promise<ActionState> {
+  const ko = (await getLocale()) === "ko";
   const { supabase, user } = await requireUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
 
   const { error } = await supabase
     .from("brand_profiles")
@@ -187,10 +204,10 @@ export async function updateBrandAction(
       brand_keywords: fields.brand_keywords,
     })
     .eq("business_id", businessId);
-  if (error) return { error: "저장에 실패했습니다." };
+  if (error) return { error: ko ? "저장에 실패했습니다." : "Failed to save." };
 
   revalidatePath(`/business/${businessId}/brand`);
-  return { ok: true, message: "저장되었습니다." };
+  return { ok: true, message: ko ? "저장되었습니다." : "Saved." };
 }
 
 // ---------------- Website ----------------
@@ -199,17 +216,18 @@ export async function saveWebsiteAction(
   businessId: string,
   content: WebsiteContent,
 ): Promise<ActionState> {
+  const ko = (await getLocale()) === "ko";
   const { supabase, user } = await requireUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
 
   const { error } = await supabase
     .from("websites")
     .update({ content })
     .eq("business_id", businessId);
-  if (error) return { error: "저장에 실패했습니다." };
+  if (error) return { error: ko ? "저장에 실패했습니다." : "Failed to save." };
 
   revalidatePath(`/business/${businessId}/website`);
-  return { ok: true, message: "저장되었습니다." };
+  return { ok: true, message: ko ? "저장되었습니다." : "Saved." };
 }
 
 export interface SlugActionState extends ActionState {
@@ -224,13 +242,22 @@ export async function updateSiteSlugAction(
   businessId: string,
   rawSlug: string,
 ): Promise<SlugActionState> {
+  const ko = (await getLocale()) === "ko";
+  const takenMsg = ko
+    ? "이미 다른 사이트가 사용 중인 주소입니다."
+    : "That address is already in use by another site.";
+  const failMsg = ko
+    ? "주소 변경에 실패했습니다."
+    : "Failed to change the address.";
   const { supabase, user } = await requireUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
 
   const slug = slugify(rawSlug);
   if (slug.length < 3)
     return {
-      error: "주소는 영문 소문자·숫자·하이픈으로 3자 이상이어야 합니다.",
+      error: ko
+        ? "주소는 영문 소문자·숫자·하이픈으로 3자 이상이어야 합니다."
+        : "The address must be at least 3 characters using lowercase letters, numbers, and hyphens.",
     };
 
   // Ownership check via RLS (+ old slug for revalidation).
@@ -239,7 +266,8 @@ export async function updateSiteSlugAction(
     .select("slug")
     .eq("id", businessId)
     .maybeSingle();
-  if (!biz) return { error: "권한이 없습니다." };
+  if (!biz)
+    return { error: ko ? "권한이 없습니다." : "You don't have permission." };
 
   // Availability across both slug-unique tables.
   const [{ data: takenBiz }, { data: takenSite }] = await Promise.all([
@@ -256,20 +284,14 @@ export async function updateSiteSlugAction(
       .neq("business_id", businessId)
       .maybeSingle(),
   ]);
-  if (takenBiz || takenSite)
-    return { error: "이미 다른 사이트가 사용 중인 주소입니다." };
+  if (takenBiz || takenSite) return { error: takenMsg };
 
   const { error: bizErr } = await supabase
     .from("businesses")
     .update({ slug })
     .eq("id", businessId);
   if (bizErr)
-    return {
-      error:
-        bizErr.code === "23505"
-          ? "이미 다른 사이트가 사용 중인 주소입니다."
-          : "주소 변경에 실패했습니다.",
-    };
+    return { error: bizErr.code === "23505" ? takenMsg : failMsg };
 
   // 웹사이트가 아직 없으면 0행 업데이트로 무해하게 지나간다.
   const { error: siteErr } = await supabase
@@ -279,12 +301,7 @@ export async function updateSiteSlugAction(
   if (siteErr) {
     // 원자성이 없으므로 실패 시 비즈니스 슬러그를 되돌린다.
     await supabase.from("businesses").update({ slug: biz.slug }).eq("id", businessId);
-    return {
-      error:
-        siteErr.code === "23505"
-          ? "이미 다른 사이트가 사용 중인 주소입니다."
-          : "주소 변경에 실패했습니다.",
-    };
+    return { error: siteErr.code === "23505" ? takenMsg : failMsg };
   }
 
   revalidatePath(`/business/${businessId}/website`);
@@ -292,15 +309,20 @@ export async function updateSiteSlugAction(
   revalidatePath(`/site/${biz.slug}/blog`);
   revalidatePath(`/site/${slug}`);
   revalidatePath(`/site/${slug}/blog`);
-  return { ok: true, slug, message: "사이트 주소가 변경되었습니다." };
+  return {
+    ok: true,
+    slug,
+    message: ko ? "사이트 주소가 변경되었습니다." : "Site address updated.",
+  };
 }
 
 export async function publishWebsiteAction(
   businessId: string,
   publish: boolean,
 ): Promise<ActionState> {
+  const ko = (await getLocale()) === "ko";
   const { supabase, user } = await requireUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
 
   const { data: web } = await supabase
     .from("websites")
@@ -315,13 +337,20 @@ export async function publishWebsiteAction(
       published_at: publish ? new Date().toISOString() : null,
     })
     .eq("business_id", businessId);
-  if (error) return { error: "처리에 실패했습니다." };
+  if (error)
+    return { error: ko ? "처리에 실패했습니다." : "Something went wrong." };
 
   revalidatePath(`/business/${businessId}/website`);
   if (web?.slug) revalidatePath(`/site/${web.slug}`);
   return {
     ok: true,
-    message: publish ? "홈페이지가 공개되었습니다." : "비공개로 전환되었습니다.",
+    message: publish
+      ? ko
+        ? "홈페이지가 공개되었습니다."
+        : "Your website is now live."
+      : ko
+        ? "비공개로 전환되었습니다."
+        : "Your website is now private.",
   };
 }
 
@@ -332,8 +361,9 @@ export async function saveBlogAction(
   postId: string,
   fields: { title: string; content: string; summary: string },
 ): Promise<ActionState> {
+  const ko = (await getLocale()) === "ko";
   const { supabase, user } = await requireUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
 
   const { error } = await supabase
     .from("blog_posts")
@@ -344,10 +374,10 @@ export async function saveBlogAction(
     })
     .eq("id", postId)
     .eq("business_id", businessId);
-  if (error) return { error: "저장에 실패했습니다." };
+  if (error) return { error: ko ? "저장에 실패했습니다." : "Failed to save." };
 
   revalidatePath(`/business/${businessId}/blog/${postId}`);
-  return { ok: true, message: "저장되었습니다." };
+  return { ok: true, message: ko ? "저장되었습니다." : "Saved." };
 }
 
 /** Sets (or clears) a blog post's cover image URL. */
@@ -356,8 +386,9 @@ export async function updateBlogCoverAction(
   postId: string,
   url: string | null,
 ): Promise<ActionState> {
+  const ko = (await getLocale()) === "ko";
   const { supabase, user } = await requireUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
 
   const { data: post } = await supabase
     .from("blog_posts")
@@ -365,14 +396,15 @@ export async function updateBlogCoverAction(
     .eq("id", postId)
     .eq("business_id", businessId)
     .maybeSingle();
-  if (!post) return { error: "글을 찾을 수 없습니다." };
+  if (!post)
+    return { error: ko ? "글을 찾을 수 없습니다." : "Post not found." };
 
   const { error } = await supabase
     .from("blog_posts")
     .update({ cover_image_url: url })
     .eq("id", postId)
     .eq("business_id", businessId);
-  if (error) return { error: "저장에 실패했습니다." };
+  if (error) return { error: ko ? "저장에 실패했습니다." : "Failed to save." };
 
   const { data: web } = await supabase
     .from("websites")
@@ -385,7 +417,16 @@ export async function updateBlogCoverAction(
     revalidatePath(`/site/${web.slug}/blog`);
     revalidatePath(`/site/${web.slug}/blog/${post.slug}`);
   }
-  return { ok: true, message: url ? "커버 이미지가 저장되었습니다." : "기본 커버로 변경되었습니다." };
+  return {
+    ok: true,
+    message: url
+      ? ko
+        ? "커버 이미지가 저장되었습니다."
+        : "Cover image saved."
+      : ko
+        ? "기본 커버로 변경되었습니다."
+        : "Reset to the default cover.",
+  };
 }
 
 export async function publishBlogAction(
@@ -393,8 +434,9 @@ export async function publishBlogAction(
   postId: string,
   publish: boolean,
 ): Promise<ActionState> {
+  const ko = (await getLocale()) === "ko";
   const { supabase, user } = await requireUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
 
   const { data: post } = await supabase
     .from("blog_posts")
@@ -415,7 +457,8 @@ export async function publishBlogAction(
     })
     .eq("id", postId)
     .eq("business_id", businessId);
-  if (error) return { error: "처리에 실패했습니다." };
+  if (error)
+    return { error: ko ? "처리에 실패했습니다." : "Something went wrong." };
 
   revalidatePath(`/business/${businessId}/blog`);
   if (web?.slug) {
@@ -424,7 +467,13 @@ export async function publishBlogAction(
   }
   return {
     ok: true,
-    message: publish ? "블로그 글이 공개되었습니다." : "비공개로 전환되었습니다.",
+    message: publish
+      ? ko
+        ? "블로그 글이 공개되었습니다."
+        : "Blog post published."
+      : ko
+        ? "비공개로 전환되었습니다."
+        : "Blog post set to private.",
   };
 }
 
@@ -432,15 +481,17 @@ export async function deleteBlogAction(
   businessId: string,
   postId: string,
 ): Promise<ActionState> {
+  const ko = (await getLocale()) === "ko";
   const { supabase, user } = await requireUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
 
   const { error } = await supabase
     .from("blog_posts")
     .delete()
     .eq("id", postId)
     .eq("business_id", businessId);
-  if (error) return { error: "삭제에 실패했습니다." };
+  if (error)
+    return { error: ko ? "삭제에 실패했습니다." : "Failed to delete." };
 
   revalidatePath(`/business/${businessId}/blog`);
   return { ok: true };

@@ -254,7 +254,12 @@ export const InstagramCard = forwardRef<
         >
           <span>{handle}</span>
           {card.kind === "cover" ? (
-            <span style={{ color: accent, fontWeight: 600 }}>밀어서 보기 →</span>
+            <span style={{ color: accent, fontWeight: 600 }}>
+              {/* 카드 내용 언어에 맞춰 스와이프 안내 문구를 고른다 */}
+              {/[가-힣]/.test(card.title + card.subtitle)
+                ? "밀어서 보기 →"
+                : "Swipe →"}
+            </span>
           ) : (
             <span style={{ fontFamily: CARD.mono, letterSpacing: "0.1em" }}>
               STORYUP

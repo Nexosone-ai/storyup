@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { CONTACT_FIELDS, ContactEntry, type TemplateProps } from "./shared";
+import {
+  CONTACT_FIELDS,
+  ContactEntry,
+  SITE_UI,
+  siteLang,
+  type TemplateProps,
+} from "./shared";
 
 export function ClassicTemplate({
   content,
@@ -10,6 +16,7 @@ export function ClassicTemplate({
   editable,
 }: TemplateProps) {
   const { hero, story, offers, whyChooseUs, contact } = content;
+  const L = SITE_UI[siteLang(content)];
   const heroPhoto = !!hero.image;
   const gallery = content.gallery ?? [];
   // 연락처가 하나도 없으면 공개 화면에서 Contact 섹션·링크를 숨긴다 (에디터에선 입력 가능하게 유지)
@@ -22,12 +29,12 @@ export function ClassicTemplate({
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5">
           {T({ path: "hero.businessName", value: hero.businessName, as: "span", className: "font-bold tracking-tight" })}
           <nav className="flex items-center gap-5 text-sm">
-            <a href="#story" className="text-muted hover:text-foreground">소개</a>
+            <a href="#story" className="text-muted hover:text-foreground">{L.about}</a>
             {showContact && (
-              <a href="#contact" className="text-muted hover:text-foreground">연락처</a>
+              <a href="#contact" className="text-muted hover:text-foreground">{L.contact}</a>
             )}
             {blogHref && (
-              <Link href={blogHref} className="font-medium text-primary">블로그</Link>
+              <Link href={blogHref} className="font-medium text-primary">{L.blog}</Link>
             )}
           </nav>
         </div>
@@ -45,7 +52,7 @@ export function ClassicTemplate({
           {T({ path: "hero.shortDescription", value: hero.shortDescription, as: "p", className: `mx-auto mt-5 max-w-xl text-lg leading-relaxed text-pretty ${heroPhoto ? "text-white/85" : "text-muted"}` })}
           {showContact && (
             <a href="#contact" className="mt-9 inline-flex rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground shadow-xs">
-              {T({ path: "hero.ctaLabel", value: hero.ctaLabel || "문의하기", as: "span" })}
+              {T({ path: "hero.ctaLabel", value: hero.ctaLabel || L.inquire, as: "span" })}
             </a>
           )}
         </div>
@@ -111,11 +118,11 @@ export function ClassicTemplate({
           <div className="mx-auto max-w-3xl px-5 py-16 text-center">
             <h2 className="mb-6 text-2xl font-semibold tracking-tight">Contact</h2>
             <div className="mx-auto grid max-w-md gap-2 text-sm text-foreground/85">
-              {CONTACT_FIELDS.map(([key, label]) => (
+              {CONTACT_FIELDS.map(([key, ko, en]) => (
                 <ContactEntry
                   key={key}
                   k={key}
-                  label={label}
+                  label={siteLang(content) === "en" ? en : ko}
                   value={contact[key] ?? ""}
                   T={T}
                   editable={editable}

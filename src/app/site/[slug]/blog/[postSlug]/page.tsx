@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getPublishedSite, getPublishedPost } from "@/lib/queries";
+import { siteLang } from "@/components/website/templates/shared";
 import { renderMarkdown } from "@/utils/markdown";
 import { BlogCover } from "@/components/blog/BlogCover";
 import { ShareBar } from "@/components/site/ShareBar";
@@ -31,9 +32,9 @@ export async function generateMetadata({
   });
 }
 
-function fmtDate(iso: string | null): string {
+function fmtDate(iso: string | null, ko: boolean): string {
   if (!iso) return "";
-  return new Date(iso).toLocaleDateString("ko-KR", {
+  return new Date(iso).toLocaleDateString(ko ? "ko-KR" : "en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -54,6 +55,8 @@ export default async function PublicArticlePage({
   const html = await renderMarkdown(post.content ?? "");
   const name = site.website.content.hero?.businessName ?? site.business.name;
   const path = `/site/${slug}/blog/${postSlug}`;
+  // 사이트 콘텐츠 언어에 맞춰 크롬 문구를 고른다
+  const ko = siteLang(site.website.content) === "ko";
 
   // 검색·AI 답변엔진(AEO)용 구조화 데이터
   const jsonLd = {
@@ -65,7 +68,7 @@ export default async function PublicArticlePage({
     image: post.cover_image_url || undefined,
     datePublished: post.published_at || undefined,
     dateModified: post.updated_at,
-    inLanguage: "ko",
+    inLanguage: ko ? "ko" : "en",
     mainEntityOfPage: `${siteUrl}${path}`,
     author: { "@type": "Organization", name },
     publisher: { "@type": "Organization", name },
@@ -84,13 +87,13 @@ export default async function PublicArticlePage({
             {name}
           </Link>
           <Link href={`/site/${slug}/blog`} className="text-sm text-muted">
-            ← 블로그
+            {ko ? "← 블로그" : "← Blog"}
           </Link>
         </div>
       </header>
 
       <article className="mx-auto max-w-2xl px-5 py-12">
-        <p className="text-sm text-muted">{fmtDate(post.published_at)}</p>
+        <p className="text-sm text-muted">{fmtDate(post.published_at, ko)}</p>
         <h1 className="mt-2 text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
           {post.title}
         </h1>
@@ -134,7 +137,9 @@ export default async function PublicArticlePage({
 
         <div className="mt-8 border-t border-border pt-6">
           <p className="mb-3 text-sm font-medium text-muted">
-            이 글이 도움이 되었다면 공유해주세요
+            {ko
+              ? "이 글이 도움이 되었다면 공유해주세요"
+              : "Found this helpful? Share it"}
           </p>
           <ShareBar path={path} title={post.title} slug={slug} />
         </div>

@@ -12,18 +12,26 @@ import type {
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
+  const locale = await getLocale();
+  const ko = locale === "ko";
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user)
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json(
+      { error: ko ? "로그인이 필요합니다." : "Please log in." },
+      { status: 401 },
+    );
 
   let businessId: string;
   try {
     businessId = String((await request.json()).businessId);
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json(
+      { error: ko ? "잘못된 요청입니다." : "Invalid request." },
+      { status: 400 },
+    );
   }
 
   const { data: business } = await supabase
@@ -33,7 +41,7 @@ export async function POST(request: Request) {
     .maybeSingle();
   if (!business)
     return NextResponse.json(
-      { error: "비즈니스를 찾을 수 없습니다." },
+      { error: ko ? "비즈니스를 찾을 수 없습니다." : "Business not found." },
       { status: 404 },
     );
 
@@ -44,7 +52,11 @@ export async function POST(request: Request) {
     .maybeSingle();
   if (!brand)
     return NextResponse.json(
-      { error: "브랜드를 먼저 만들어주세요." },
+      {
+        error: ko
+          ? "브랜드를 먼저 만들어주세요."
+          : "Please create your brand first.",
+      },
       { status: 400 },
     );
 
@@ -83,8 +95,10 @@ export async function POST(request: Request) {
     const content = await getAIProvider().generateWebsite(
       input,
       brandResult,
-      await getLocale(),
+      locale,
     );
+    // 사이트 콘텐츠 언어를 저장 — 템플릿 크롬(메뉴·연락처 라벨)이 이를 따른다.
+    content.language = locale;
 
     const { error } = await supabase.from("websites").upsert(
       {
@@ -103,7 +117,9 @@ export async function POST(request: Request) {
     const message =
       err instanceof AIGenerationError
         ? err.message
-        : "홈페이지 생성 중 문제가 발생했습니다. 다시 시도해주세요.";
+        : ko
+          ? "홈페이지 생성 중 문제가 발생했습니다. 다시 시도해주세요."
+          : "Something went wrong while generating the website. Please try again.";
     console.error("[ai/website]", err);
     return NextResponse.json({ error: message }, { status: 502 });
   }
