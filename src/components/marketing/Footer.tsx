@@ -9,7 +9,7 @@ export async function Footer() {
     <footer className="band-dark">
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-6 py-14 sm:px-8 md:grid-cols-4">
         <div className="md:col-span-2">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-3">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white">
               {/* eslint-disable-next-line @next/next/no-img-element -- 정적 로고 에셋 */}
               <img
