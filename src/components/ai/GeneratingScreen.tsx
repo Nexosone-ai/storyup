@@ -58,14 +58,14 @@ export function GeneratingScreen({
     <div className="grid min-h-[60vh] place-items-center">
       <div className="w-full max-w-md rounded-2xl border border-border bg-surface p-8 shadow-sm">
         <div className="flex items-center gap-3">
-          <span className="relative grid size-10 shrink-0 place-items-center rounded-xl border border-border bg-white">
+          <span className="relative grid size-10 shrink-0 place-items-center">
             {/* eslint-disable-next-line @next/next/no-img-element -- 정적 로고 에셋 */}
             <img
-              src="/images/logo-icon.png"
+              src="/images/logo-symbol.png"
               alt=""
-              className="size-6 animate-pulse object-contain"
+              className="size-8 animate-pulse object-contain"
             />
-            <span className="absolute inset-0 animate-ping rounded-xl bg-primary/10" />
+            <span className="absolute inset-0 animate-ping rounded-full bg-primary/10" />
           </span>
           <h2 className="text-base font-semibold tracking-tight text-balance">
             {title}

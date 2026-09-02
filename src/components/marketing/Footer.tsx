@@ -10,14 +10,12 @@ export async function Footer() {
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-6 py-14 sm:px-8 md:grid-cols-4">
         <div className="md:col-span-2">
           <div className="flex items-center gap-2">
-            <span className="grid size-8 place-items-center rounded-lg bg-white">
-              {/* eslint-disable-next-line @next/next/no-img-element -- 정적 로고 에셋 */}
-              <img
-                src="/images/logo-icon.png"
-                alt=""
-                className="size-6 object-contain"
-              />
-            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element -- 정적 로고 에셋 */}
+            <img
+              src="/images/logo-symbol.png"
+              alt=""
+              className="size-8 shrink-0 object-contain"
+            />
             <span className="text-[19px] font-extrabold tracking-tight text-white">
               STORY
               <span className="brand-gradient-text">UP</span>

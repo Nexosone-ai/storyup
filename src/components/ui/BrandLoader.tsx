@@ -3,14 +3,14 @@ export function BrandLoader({ label }: { label?: string }) {
   return (
     <div className="grid min-h-[50vh] place-items-center">
       <div className="flex flex-col items-center gap-4">
-        <span className="relative grid size-14 place-items-center rounded-2xl border border-border bg-white shadow-sm">
+        <span className="relative grid size-14 place-items-center">
           {/* eslint-disable-next-line @next/next/no-img-element -- 정적 로고 에셋 */}
           <img
-            src="/images/logo-icon.png"
+            src="/images/logo-symbol.png"
             alt=""
-            className="size-9 animate-pulse object-contain"
+            className="size-11 animate-pulse object-contain"
           />
-          <span className="absolute inset-0 animate-ping rounded-2xl bg-primary/10" />
+          <span className="absolute inset-0 animate-ping rounded-full bg-primary/10" />
         </span>
         {label && <p className="text-sm text-muted">{label}</p>}
       </div>
