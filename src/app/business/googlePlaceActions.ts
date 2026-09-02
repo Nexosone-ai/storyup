@@ -1,28 +1,20 @@
 "use server";
 
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import {
+  fetchWithTimeout,
+  extractSocials,
+  type PlaceImportData,
+  type PlaceImportResult,
+} from "@/lib/placeImport";
 
 /**
  * 구글 지도 링크에서 사업자 정보를 가져오는 서버 액션.
  * Google Places API (New)를 사용한다 — GOOGLE_MAPS_API_KEY 필요.
  */
 
-export interface GooglePlaceData {
-  name: string;
-  address: string;
-  phone: string;
-  website: string;
-  instagram: string;
-  facebook: string;
-  x: string;
-  /** Supabase 스토리지에 저장된 사진 URL들 (최대 6장) */
-  photos: string[];
-}
-
-export interface GooglePlaceResult {
-  data?: GooglePlaceData;
-  error?: string;
-}
+export type GooglePlaceData = PlaceImportData;
+export type GooglePlaceResult = PlaceImportResult;
 
 const PLACES_BASE = "https://places.googleapis.com/v1";
 const IMAGE_BUCKET = "site-images";
@@ -35,20 +27,6 @@ interface PlaceDetails {
   internationalPhoneNumber?: string;
   websiteUri?: string;
   photos?: { name: string }[];
-}
-
-async function fetchWithTimeout(
-  url: string,
-  init: RequestInit = {},
-  ms = 8000,
-): Promise<Response> {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), ms);
-  try {
-    return await fetch(url, { ...init, signal: ctrl.signal });
-  } finally {
-    clearTimeout(timer);
-  }
 }
 
 /** 단축 링크(maps.app.goo.gl 등)를 따라가 전체 구글 지도 URL을 얻는다. */
@@ -216,47 +194,6 @@ async function savePhotos(
     }),
   );
   return results.filter((u): u is string => !!u);
-}
-
-/** 사업자 웹사이트 HTML에서 SNS 프로필 링크를 추출한다. */
-async function extractSocials(
-  websiteUri: string,
-): Promise<{ instagram: string; facebook: string; x: string }> {
-  const none = { instagram: "", facebook: "", x: "" };
-  try {
-    const res = await fetchWithTimeout(
-      websiteUri,
-      { headers: { "User-Agent": "Mozilla/5.0 (compatible; StoryupBot/1.0)" } },
-      6000,
-    );
-    if (!res.ok) return none;
-    const html = (await res.text()).slice(0, 600_000);
-
-    const first = (re: RegExp, exclude: RegExp) => {
-      for (const m of html.matchAll(re)) {
-        const url = m[0].replace(/["'\\).,]+$/, "");
-        if (!exclude.test(url)) return url;
-      }
-      return "";
-    };
-
-    return {
-      instagram: first(
-        /https?:\/\/(?:www\.)?instagram\.com\/[A-Za-z0-9_.]+/g,
-        /instagram\.com\/(?:p|reel|reels|explore|accounts|share)\b/i,
-      ),
-      facebook: first(
-        /https?:\/\/(?:www\.)?facebook\.com\/[A-Za-z0-9_.\-]+/g,
-        /facebook\.com\/(?:sharer|share|dialog|plugins|login|tr)\b/i,
-      ),
-      x: first(
-        /https?:\/\/(?:www\.)?(?:x|twitter)\.com\/[A-Za-z0-9_]+/g,
-        /(?:x|twitter)\.com\/(?:intent|share|home|search|hashtag|i)\b/i,
-      ),
-    };
-  } catch {
-    return none;
-  }
 }
 
 /**
