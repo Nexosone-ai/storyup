@@ -6,7 +6,7 @@ export function BrandLoader({ label }: { label?: string }) {
         <span className="relative grid size-14 place-items-center">
           {/* eslint-disable-next-line @next/next/no-img-element -- 정적 로고 에셋 */}
           <img
-            src="/images/logo-symbol.png"
+            src="/images/logo-icon.png"
             alt=""
             className="size-11 animate-pulse object-contain"
           />

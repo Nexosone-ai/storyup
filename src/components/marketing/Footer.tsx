@@ -12,7 +12,7 @@ export async function Footer() {
           <div className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element -- 정적 로고 에셋 */}
             <img
-              src="/images/logo-symbol.png"
+              src="/images/logo-icon.png"
               alt=""
               className="size-8 shrink-0 object-contain"
             />

@@ -20,7 +20,7 @@ export function Logo({
       {/* 투명 배경 심볼 — 어느 배경 위에서도 상자 없이 표시 */}
       {/* eslint-disable-next-line @next/next/no-img-element -- 정적 로고 에셋 */}
       <img
-        src="/images/logo-symbol.png"
+        src="/images/logo-icon.png"
         alt=""
         className="size-8 shrink-0 object-contain"
       />
