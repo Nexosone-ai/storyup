@@ -7,7 +7,10 @@ import { getDict } from "@/lib/i18n";
 import { getShowcaseSites, getShowcasePosts, getShowcaseCards } from "@/lib/queries";
 import { cn } from "@/utils/cn";
 
-export const metadata = { title: "스토리들" };
+export const metadata = {
+  title: "스토리들",
+  alternates: { canonical: "/showcase" },
+};
 
 export default async function ShowcasePage({
   searchParams,

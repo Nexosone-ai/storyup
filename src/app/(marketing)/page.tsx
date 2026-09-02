@@ -15,6 +15,9 @@ import {
   getShowcaseCards,
 } from "@/lib/queries";
 
+// www/비-www 이중 주소 중 표준 URL을 선언한다 (metadataBase 기준 절대화).
+export const metadata = { alternates: { canonical: "/" } };
+
 export default async function LandingPage() {
   const { t } = await getDict();
   const L = t.landing;

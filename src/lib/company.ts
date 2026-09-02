@@ -10,7 +10,7 @@ export const COMPANY = {
   mailOrderNumber: "", // 통신판매업 신고번호 (발급 후 기재)
   address: "부산광역시 중구 해관로 64, 403-제이2호(중앙동4가)",
   supportEmail: "", // 고객 지원 이메일 (확정 후 기재)
-  supportPhone: "", // 고객센터 전화번호 (확정 후 기재)
+  supportPhone: "070-5100-4329",
 } as const;
 
 export const companyInfoRows = () =>
@@ -20,5 +20,5 @@ export const companyInfoRows = () =>
     ["사업자등록번호", COMPANY.businessNumber],
     ["통신판매업신고", COMPANY.mailOrderNumber],
     ["주소", COMPANY.address],
-    ["고객지원", [COMPANY.supportEmail, COMPANY.supportPhone].filter(Boolean).join(" · ")],
+    ["고객센터", [COMPANY.supportEmail, COMPANY.supportPhone].filter(Boolean).join(" · ")],
   ].filter(([, v]) => !!v) as [string, string][];

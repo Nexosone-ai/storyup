@@ -15,7 +15,7 @@ export function Logo({
   return (
     <Link
       href={href}
-      className={cn("inline-flex items-center gap-2", className)}
+      className={cn("inline-flex items-center gap-1", className)}
     >
       {/* 투명 배경 심볼 — 어느 배경 위에서도 상자 없이 표시 */}
       {/* eslint-disable-next-line @next/next/no-img-element -- 정적 로고 에셋 */}

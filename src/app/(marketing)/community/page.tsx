@@ -6,7 +6,10 @@ import { getLocale } from "@/lib/i18n";
 import { getStoryFeed, getRealTalkFeed } from "@/lib/community";
 import { getUser } from "@/lib/queries";
 
-export const metadata = { title: "커뮤니티" };
+export const metadata = {
+  title: "커뮤니티",
+  alternates: { canonical: "/community" },
+};
 
 export default async function CommunityPage() {
   const [user, story, realtalk] = await Promise.all([
