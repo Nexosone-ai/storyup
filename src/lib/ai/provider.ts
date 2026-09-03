@@ -10,6 +10,7 @@ import type { BlogPromptInput } from "./prompts/blog";
 import type { MarketingPromptInput } from "./prompts/marketing";
 import type { CardNewsPromptInput } from "./prompts/card-news";
 import type { PromptLanguage } from "./prompts/brand-story";
+import type { PdfLandingExtract } from "@/lib/pdfImport";
 
 /**
  * Model-agnostic AI interface. Swap providers (Claude, others) or add
@@ -43,6 +44,12 @@ export interface AIProvider {
     category: string;
     text: string;
   }): Promise<string>;
+
+  /** PDF(소개서·브로슈어)에서 랜딩페이지 콘텐츠를 추출한다. */
+  extractLandingContent(
+    pdfBase64: string,
+    language?: PromptLanguage,
+  ): Promise<PdfLandingExtract>;
 }
 
 /** Raised when generation fails; carries a user-safe message. */

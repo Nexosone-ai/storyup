@@ -55,7 +55,7 @@ export async function BusinessCard({
 
       <dl className="mt-6 grid grid-cols-3 gap-2 border-t border-border pt-4 text-sm">
         <div>
-          <dt className="text-xs text-muted">{ko ? "홈페이지" : "Website"}</dt>
+          <dt className="text-xs text-muted">{ko ? "랜딩페이지" : "Landing page"}</dt>
           <dd className="mt-0.5 font-medium">
             {business.websiteStatus === "published"
               ? ko

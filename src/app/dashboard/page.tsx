@@ -60,8 +60,8 @@ export default async function DashboardPage() {
             </h3>
             <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted">
               {ko
-                ? "사업 이야기를 들려주면 AI가 브랜드와 홈페이지, 블로그를 만들어드립니다. 5분이면 충분해요."
-                : "Tell us your story and AI builds your brand, website, and blog. It only takes 5 minutes."}
+                ? "사업 이야기를 들려주면 AI가 브랜드와 랜딩페이지, 블로그를 만들어드립니다. 5분이면 충분해요."
+                : "Tell us your story and AI builds your brand, landing page, and blog. It only takes 5 minutes."}
             </p>
             <div className="mt-7">
               <ButtonLink href="/onboarding">

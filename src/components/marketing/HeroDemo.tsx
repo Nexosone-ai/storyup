@@ -20,7 +20,7 @@ export interface HeroDemoData {
 
 /**
  * 히어로 라이브 데모 — 4단계 루프:
- * 이야기 타이핑 → 브랜드 카드 → 홈페이지 목업 → 블로그 카드.
+ * 이야기 타이핑 → 브랜드 카드 → 랜딩페이지 목업 → 블로그 카드.
  * 시연 영상과 같은 흐름을 실시간 애니메이션으로 보여준다.
  */
 export function HeroDemo({ d }: { d: HeroDemoData }) {
@@ -35,7 +35,7 @@ export function HeroDemo({ d }: { d: HeroDemoData }) {
 
     const typeMs = 400 + d.typing.length * 52;
     const s2 = typeMs + 1400; // 브랜드 카드 시작
-    const s3 = s2 + 3400; // 홈페이지 목업
+    const s3 = s2 + 3400; // 랜딩페이지 목업
     const s4 = s3 + 4200; // 블로그 카드
     const end = s4 + 3400;
 
@@ -125,7 +125,7 @@ export function HeroDemo({ d }: { d: HeroDemoData }) {
           </div>
         </div>
 
-        {/* Scene 3 — 홈페이지 목업 */}
+        {/* Scene 3 — 랜딩페이지 목업 */}
         <div className={sceneCls(2)}>
           <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-lg">
             <div className="flex items-center gap-1.5 border-b border-border bg-surface-muted px-4 py-2.5">

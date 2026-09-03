@@ -58,8 +58,12 @@ export class GeminiImageProvider implements ImageProvider {
       );
       json = await res.json();
       if (!res.ok) {
+        // 업스트림 원문(영문)은 로그로만 남기고 사용자에겐 안내 문구를 보여준다.
+        console.error("[gemini-image]", res.status, json?.error?.message);
         throw new ImageGenerationError(
-          json?.error?.message || `이미지 생성 실패 (${res.status})`,
+          res.status === 429 || res.status >= 500
+            ? "이미지 서버가 혼잡합니다. 잠시 후 다시 시도해주세요."
+            : `이미지 생성 실패 (${res.status})`,
         );
       }
     } catch (err) {

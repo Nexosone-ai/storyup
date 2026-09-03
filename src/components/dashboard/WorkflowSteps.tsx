@@ -13,7 +13,7 @@ interface StepDef {
 }
 
 /**
- * 브랜드 스토리 → 홈페이지 → 블로그 → SNS 4단계 진행 스트립.
+ * 브랜드 스토리 → 랜딩페이지 → 블로그 → SNS 4단계 진행 스트립.
  * 각 작업 페이지 상단에 붙여 현재 단계와 다음 할 일을 보여준다.
  */
 export async function WorkflowSteps({
@@ -37,7 +37,7 @@ export async function WorkflowSteps({
     },
     {
       n: 2,
-      label: ko ? "홈페이지" : "Website",
+      label: ko ? "랜딩페이지" : "Landing page",
       href: `${base}/website`,
       done: state.website === "published",
       hint:
@@ -46,8 +46,8 @@ export async function WorkflowSteps({
             ? "편집 중 · 공개 전"
             : "Editing · not published"
           : ko
-            ? "홈페이지 만들고 공개"
-            : "Build and publish a website",
+            ? "랜딩페이지 만들고 공개"
+            : "Build and publish a landing page",
     },
     {
       n: 3,

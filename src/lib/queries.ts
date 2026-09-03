@@ -166,7 +166,7 @@ export async function getBlogPost(id: string): Promise<BlogPostRow | null> {
 export interface WorkflowState {
   /** STEP 1 — 브랜드 스토리 생성 여부 */
   brand: boolean;
-  /** STEP 2 — 홈페이지 상태 */
+  /** STEP 2 — 랜딩페이지 상태 */
   website: "none" | "draft" | "published";
   /** STEP 3 — 블로그 글 수 */
   blogTotal: number;
@@ -257,6 +257,20 @@ export async function getPublishedPosts(
     .eq("status", "published")
     .order("published_at", { ascending: false });
   return data ?? [];
+}
+
+/** 비즈니스의 블로그 메뉴(카테고리) 목록 — 글에 쓰인 값들의 중복 제거본. */
+export async function getBlogCategories(businessId: string): Promise<string[]> {
+  if (!supabaseConfigured()) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("blog_posts")
+    .select("category")
+    .eq("business_id", businessId)
+    .not("category", "is", null);
+  // category 컬럼 마이그레이션(0013) 이전 DB에서는 빈 목록으로 동작한다.
+  if (error || !data) return [];
+  return [...new Set(data.map((r) => r.category as string).filter(Boolean))];
 }
 
 export async function getPublishedPost(

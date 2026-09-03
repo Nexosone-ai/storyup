@@ -90,7 +90,7 @@ export async function POST(request: Request) {
     billing = await chargeWebsiteGeneration(
       user.id,
       businessId,
-      "AI 홈페이지 생성",
+      "AI 랜딩페이지 생성",
     );
   } catch (err) {
     if (err instanceof InsufficientPointsError)
@@ -125,8 +125,8 @@ export async function POST(request: Request) {
       err instanceof AIGenerationError
         ? err.message
         : ko
-          ? "홈페이지 생성 중 문제가 발생했습니다. 다시 시도해주세요."
-          : "Something went wrong while generating the website. Please try again.";
+          ? "랜딩페이지 생성 중 문제가 발생했습니다. 다시 시도해주세요."
+          : "Something went wrong while generating the landing page. Please try again.";
     console.error("[ai/website]", err);
     return NextResponse.json({ error: message }, { status: 502 });
   }

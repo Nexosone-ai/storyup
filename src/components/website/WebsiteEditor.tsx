@@ -17,8 +17,10 @@ import {
   updateSiteSlugAction,
 } from "@/app/business/actions";
 import { MapImportBar } from "./MapImportBar";
+import { PdfImportBar } from "./PdfImportBar";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import type { PlaceImportData } from "@/lib/placeImport";
+import type { PdfImportData } from "@/lib/pdfImport";
 import { SITE_FONTS, SITE_PALETTES, siteStyleVars } from "./siteStyle";
 import type {
   WebsiteContent,
@@ -44,6 +46,10 @@ export function WebsiteEditor({
   const [note, setNote] = useState<string | null>(null);
   const [slug, setSlug] = useState(website.slug);
   const [slugInput, setSlugInput] = useState(website.slug);
+  const [slugNote, setSlugNote] = useState<{
+    text: string;
+    error: boolean;
+  } | null>(null);
   const [saving, startSave] = useTransition();
   const [publishing, startPublish] = useTransition();
   const [slugSaving, startSlug] = useTransition();
@@ -111,6 +117,52 @@ export function WebsiteEditor({
     });
   }, []);
 
+  /** PDF에서 추출한 콘텐츠를 병합한다 — 추출된 값이 있으면 우선. */
+  const applyPdfImport = useCallback((d: PdfImportData) => {
+    setContent((c) => {
+      const pick = (imported: string, current?: string) =>
+        imported || current || "";
+      const gallery = [...(c.gallery ?? [])];
+      for (const p of d.photos) if (!gallery.includes(p)) gallery.push(p);
+      const offerItems = (c.offers?.items ?? []).map((item, i) =>
+        d.offers[i]
+          ? {
+              ...item,
+              title: pick(d.offers[i].title, item.title),
+              description: pick(d.offers[i].description, item.description),
+            }
+          : item,
+      );
+      return {
+        ...c,
+        hero: {
+          ...c.hero,
+          businessName: pick(d.name, c.hero.businessName),
+          headline: pick(d.headline, c.hero.headline),
+          shortDescription: pick(d.shortDescription, c.hero.shortDescription),
+          image: c.hero.image || d.photos[0] || c.hero.image,
+        },
+        story: {
+          ...c.story,
+          title: pick(d.storyTitle, c.story.title),
+          body: pick(d.storyBody, c.story.body),
+        },
+        offers: { ...c.offers, items: offerItems },
+        contact: {
+          ...c.contact,
+          phone: pick(d.phone, c.contact.phone),
+          email: pick(d.email, c.contact.email),
+          address: pick(d.address, c.contact.address),
+          website: pick(d.website, c.contact.website),
+          instagram: pick(d.instagram, c.contact.instagram),
+          facebook: pick(d.facebook, c.contact.facebook),
+          x: pick(d.x, c.contact.x),
+        },
+        gallery,
+      };
+    });
+  }, []);
+
   const setTemplate = (id: WebsiteTemplateId) =>
     setContent((c) => ({ ...c, template: id }));
 
@@ -137,26 +189,30 @@ export function WebsiteEditor({
       status === "published" &&
       !window.confirm(
         ko
-          ? "주소를 바꾸면 기존에 공유한 링크(홈페이지·블로그 글)가 더 이상 열리지 않습니다.\n새 주소로 변경할까요?"
-          : "Changing the address will break links you already shared (website and blog posts).\nChange to the new address?",
+          ? "주소를 바꾸면 기존에 공유한 링크(랜딩페이지·블로그 글)가 더 이상 열리지 않습니다.\n새 주소로 변경할까요?"
+          : "Changing the address will break links you already shared (landing page and blog posts).\nChange to the new address?",
       )
     )
       return;
     startSlug(async () => {
-      setNote(null);
+      setSlugNote(null);
       const res = await updateSiteSlugAction(businessId, next);
       if (res.error || !res.slug)
-        setNote(
-          res.error ??
+        setSlugNote({
+          text:
+            res.error ??
             (ko ? "주소 변경에 실패했습니다." : "Failed to change the address."),
-        );
+          error: true,
+        });
       else {
         setSlug(res.slug);
         setSlugInput(res.slug);
-        setNote(
-          res.message ??
+        setSlugNote({
+          text:
+            res.message ??
             (ko ? "사이트 주소가 변경되었습니다." : "Site address updated."),
-        );
+          error: false,
+        });
       }
     });
   };
@@ -180,7 +236,7 @@ export function WebsiteEditor({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-semibold tracking-tight">
-            {ko ? "홈페이지 편집" : "Edit website"}
+            {ko ? "랜딩페이지 편집" : "Edit landing page"}
           </h1>
           {status === "published" ? (
             <Badge tone="success">{ko ? "공개됨" : "Published"}</Badge>
@@ -238,10 +294,20 @@ export function WebsiteEditor({
             ? "영문 소문자·숫자·하이픈(-)만, 3자 이상. 게시된 사이트의 주소를 바꾸면 기존에 공유한 링크는 열리지 않아요."
             : "Lowercase letters, numbers, and hyphens (-) only, 3+ characters. Changing a published site’s address breaks links you already shared."}
         </p>
+        {slugNote && (
+          <p
+            className={`w-full text-sm font-medium ${slugNote.error ? "text-danger" : "text-primary"}`}
+          >
+            {slugNote.text}
+          </p>
+        )}
       </div>
 
       {/* Google Maps import */}
       <MapImportBar businessId={businessId} onImport={applyGoogleImport} />
+
+      {/* PDF import */}
+      <PdfImportBar businessId={businessId} onImport={applyPdfImport} />
 
       {/* Template picker + device toggle */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-3">

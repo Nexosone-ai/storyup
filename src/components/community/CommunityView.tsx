@@ -17,6 +17,8 @@ import {
   createRealTalkPost,
   toggleStoryLike,
   toggleRealTalkLike,
+  updateStoryPost,
+  updateRealTalkPost,
   deleteStoryPost,
   deleteRealTalkPost,
   uploadCommunityImage,
@@ -94,6 +96,7 @@ export function CommunityView({
           maxLength={1000}
           onCreate={createStoryPost}
           onLike={toggleStoryLike}
+          onUpdate={updateStoryPost}
           onDelete={deleteStoryPost}
         />
       ) : (
@@ -111,6 +114,7 @@ export function CommunityView({
           maxLength={200}
           onCreate={(content) => createRealTalkPost(content)}
           onLike={toggleRealTalkLike}
+          onUpdate={updateRealTalkPost}
           onDelete={deleteRealTalkPost}
         />
       )}
@@ -128,6 +132,7 @@ function Feed({
   maxLength,
   onCreate,
   onLike,
+  onUpdate,
   onDelete,
 }: {
   posts: FeedPost[];
@@ -142,6 +147,10 @@ function Feed({
     imageUrls?: string[],
   ) => Promise<{ error?: string; ok?: boolean }>;
   onLike: (postId: string) => Promise<{ error?: string; ok?: boolean }>;
+  onUpdate: (
+    postId: string,
+    content: string,
+  ) => Promise<{ error?: string; ok?: boolean }>;
   onDelete: (postId: string) => Promise<{ error?: string; ok?: boolean }>;
 }) {
   const router = useRouter();
@@ -152,6 +161,9 @@ function Feed({
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
 
   const onFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
@@ -214,6 +226,23 @@ function Feed({
       if (!confirm(ko ? "삭제할까요?" : "Delete this post?")) return;
       await onDelete(id);
       router.refresh();
+    });
+
+  const startEdit = (p: FeedPost) => {
+    setEditingId(p.id);
+    setEditText(p.content ?? "");
+    setEditError(null);
+  };
+
+  const saveEdit = (id: string) =>
+    start(async () => {
+      setEditError(null);
+      const res = await onUpdate(id, editText);
+      if (res.error) setEditError(res.error);
+      else {
+        setEditingId(null);
+        router.refresh();
+      }
     });
 
   return (
@@ -331,10 +360,50 @@ function Feed({
                   {timeAgo(p.createdAt, ko)}
                 </span>
               </div>
-              {p.content && (
-                <p className="whitespace-pre-wrap leading-relaxed text-foreground/90">
-                  {p.content}
-                </p>
+              {editingId === p.id ? (
+                <div className="space-y-2">
+                  <Textarea
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    maxLength={maxLength}
+                    className="min-h-20"
+                  />
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => saveEdit(p.id)}
+                      disabled={pending}
+                    >
+                      {pending ? (
+                        <Spinner className="size-4" />
+                      ) : ko ? (
+                        "저장"
+                      ) : (
+                        "Save"
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditingId(null)}
+                      disabled={pending}
+                    >
+                      {ko ? "취소" : "Cancel"}
+                    </Button>
+                    <span className="tnum text-xs text-muted">
+                      {editText.length}/{maxLength}
+                    </span>
+                  </div>
+                  {editError && (
+                    <p className="text-sm text-danger">{editError}</p>
+                  )}
+                </div>
+              ) : (
+                p.content && (
+                  <p className="whitespace-pre-wrap leading-relaxed text-foreground/90">
+                    {p.content}
+                  </p>
+                )
               )}
               {p.imageUrls.length > 0 && (
                 <div
@@ -380,15 +449,25 @@ function Feed({
                   <span>♥</span>
                   <span className="tnum">{p.likeCount}</span>
                 </button>
-                {p.mine && (
-                  <button
-                    onClick={() => remove(p.id)}
-                    disabled={pending}
-                    className="rounded-full p-1.5 text-muted hover:bg-red-50 hover:text-danger"
-                    aria-label={ko ? "삭제" : "Delete"}
-                  >
-                    <Icon.x width={16} height={16} />
-                  </button>
+                {p.mine && editingId !== p.id && (
+                  <>
+                    <button
+                      onClick={() => startEdit(p)}
+                      disabled={pending}
+                      className="rounded-full p-1.5 text-muted hover:bg-surface-muted hover:text-foreground"
+                      aria-label={ko ? "수정" : "Edit"}
+                    >
+                      <Icon.pen width={15} height={15} />
+                    </button>
+                    <button
+                      onClick={() => remove(p.id)}
+                      disabled={pending}
+                      className="rounded-full p-1.5 text-muted hover:bg-red-50 hover:text-danger"
+                      aria-label={ko ? "삭제" : "Delete"}
+                    >
+                      <Icon.x width={16} height={16} />
+                    </button>
+                  </>
                 )}
               </div>
               <CommentSection post={p} postType={postType} loggedIn={loggedIn} />

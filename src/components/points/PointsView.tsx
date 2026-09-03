@@ -146,9 +146,12 @@ export function PointsView({
         totalAmount: order.amount!,
         currency: "CURRENCY_KRW",
         payMethod: "CARD",
-        customer: order.customerEmail
-          ? { email: order.customerEmail }
-          : undefined,
+        // KG이니시스 PC 결제창 필수: 이름·전화번호·이메일 (전화번호 미보유 시 대체값)
+        customer: {
+          fullName: order.customerName ?? (ko ? "고객" : "Customer"),
+          email: order.customerEmail,
+          phoneNumber: order.customerPhone ?? "01000000000",
+        },
         redirectUrl: `${window.location.origin}/dashboard/points`,
       });
 
@@ -177,11 +180,15 @@ export function PointsView({
               : "Failed to confirm the payment."),
         );
       }
-    } catch {
+    } catch (err) {
+      console.error("[charge]", err);
+      const detail =
+        err instanceof Error && err.message ? ` (${err.message})` : "";
       setChargeError(
-        ko
+        (ko
           ? "결제 처리 중 문제가 발생했습니다. 다시 시도해주세요."
-          : "Something went wrong while processing the payment. Please try again.",
+          : "Something went wrong while processing the payment. Please try again.") +
+          detail,
       );
     } finally {
       setCharging(null);
@@ -218,7 +225,7 @@ export function PointsView({
         </h1>
       </div>
 
-      <Card className="bg-primary text-primary-foreground">
+      <div className="rounded-2xl bg-primary p-6 text-primary-foreground shadow-sm">
         <p className="text-sm opacity-85">{ko ? "보유 포인트" : "Balance"}</p>
         <p className="tnum mt-1 text-4xl font-bold">
           {balance.toLocaleString()} P
@@ -228,7 +235,7 @@ export function PointsView({
             ? "충전 크레딧은 STORYUP 서비스 이용 전용입니다"
             : "Purchased credits are for STORYUP services only"}
         </p>
-      </Card>
+      </div>
 
       {/* 내 플랜 · 이번 달 사용량 */}
       {(() => {
@@ -274,7 +281,7 @@ export function PointsView({
               </div>
               <div className="space-y-3">
                 <UsageRow
-                  label={ko ? "AI 홈페이지 (보유)" : "AI websites (owned)"}
+                  label={ko ? "AI 랜딩페이지 (보유)" : "AI landing pages (owned)"}
                   used={subscription.sites}
                   limit={plan.limits.sites}
                   ko={ko}
@@ -305,8 +312,8 @@ export function PointsView({
               </div>
               <p className="text-xs text-muted">
                 {ko
-                  ? "제공량을 초과하면 건당 포인트가 자동 차감됩니다. (홈페이지 3,000P · 블로그 1,000P · 카드뉴스 1,000P · 이미지 100P)"
-                  : "Past your quota, points are deducted per item. (Website 3,000P · Blog 1,000P · Card news 1,000P · Image 100P)"}
+                  ? "제공량을 초과하면 건당 포인트가 자동 차감됩니다. (랜딩페이지 3,000P · 블로그 1,000P · 카드뉴스 1,000P · 이미지 100P)"
+                  : "Past your quota, points are deducted per item. (Landing page 3,000P · Blog 1,000P · Card news 1,000P · Image 100P)"}
               </p>
             </Card>
           </section>
@@ -315,7 +322,7 @@ export function PointsView({
 
       {/* 충전 성공 */}
       {success && (
-        <Card className="border-primary/40 bg-primary-soft">
+        <div className="rounded-2xl border border-primary/40 bg-primary-soft p-6">
           <p className="font-semibold text-primary">
             {ko ? "충전이 완료되었습니다 🎉" : "Top-up complete 🎉"}
           </p>
@@ -324,7 +331,7 @@ export function PointsView({
             {ko ? "적립 · 현재 잔액" : "added · Current balance"}{" "}
             <b>{success.balance.toLocaleString()} P</b>
           </p>
-        </Card>
+        </div>
       )}
 
       {/* 크레딧 충전 */}

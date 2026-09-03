@@ -6,17 +6,17 @@ import { GeneratingScreen } from "@/components/ai/GeneratingScreen";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 
 const STEPS_KO = [
-  "홈페이지 구조를 잡는 중...",
+  "랜딩페이지 구조를 잡는 중...",
   "섹션 콘텐츠를 작성하는 중...",
   "브랜드 톤을 입히는 중...",
-  "홈페이지를 완성하는 중...",
+  "랜딩페이지를 완성하는 중...",
 ];
 
 const STEPS_EN = [
-  "Structuring your website...",
+  "Structuring your landing page...",
   "Writing section content...",
   "Applying your brand tone...",
-  "Finishing your website...",
+  "Finishing your landing page...",
 ];
 
 export function WebsiteGenerator({ businessId }: { businessId: string }) {
@@ -60,8 +60,8 @@ export function WebsiteGenerator({ businessId }: { businessId: string }) {
     <GeneratingScreen
       title={
         ko
-          ? "비즈니스 홈페이지를 만들고 있어요..."
-          : "Building your business website..."
+          ? "비즈니스 랜딩페이지를 만들고 있어요..."
+          : "Building your business landing page..."
       }
       steps={ko ? STEPS_KO : STEPS_EN}
       error={error}

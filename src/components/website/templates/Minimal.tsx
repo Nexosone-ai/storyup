@@ -6,6 +6,7 @@ import {
   siteLang,
   type TemplateProps,
 } from "./shared";
+import { BlogPreviewCards } from "./BlogPreview";
 
 export function MinimalTemplate({
   content,
@@ -13,6 +14,7 @@ export function MinimalTemplate({
   Img,
   Gallery,
   blogHref,
+  latestPosts,
   editable,
 }: TemplateProps) {
   const { hero, story, offers, whyChooseUs, contact } = content;
@@ -116,6 +118,28 @@ export function MinimalTemplate({
           <section className="mx-auto max-w-2xl px-6 py-16">
             <h2 className="eyebrow mb-8 block">Gallery</h2>
             {Gallery(gallery)}
+          </section>
+        </>
+      )}
+
+      {blogHref && latestPosts && latestPosts.length > 0 && (
+        <>
+          <div className="mx-auto max-w-2xl px-6">
+            <hr className="border-border" />
+          </div>
+          <section className="mx-auto max-w-2xl px-6 py-16">
+            <div className="mb-8 flex items-baseline justify-between">
+              <h2 className="eyebrow block">{L.latestPosts}</h2>
+              <Link href={blogHref} className="text-sm font-medium text-primary">
+                {L.viewAll}
+              </Link>
+            </div>
+            <BlogPreviewCards
+              posts={latestPosts}
+              blogHref={blogHref}
+              lang={siteLang(content)}
+              narrow
+            />
           </section>
         </>
       )}

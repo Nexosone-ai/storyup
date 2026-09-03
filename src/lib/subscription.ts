@@ -193,7 +193,7 @@ export interface SubscriptionOverview {
   planId: PlanId;
   plan: Plan;
   usage: { blogPosts: number; cardNews: number; aiImages: number };
-  /** 보유 홈페이지 수 (websites 행 기준). */
+  /** 보유 랜딩페이지 수 (websites 행 기준). */
   sites: number;
 }
 
@@ -220,7 +220,7 @@ export async function getSubscriptionOverview(
   };
 }
 
-/** 사용자가 보유한 홈페이지(websites) 수. */
+/** 사용자가 보유한 랜딩페이지(websites) 수. */
 export async function countUserWebsites(userId: string): Promise<number> {
   const admin = createAdminClient();
   const { data: businesses } = await admin

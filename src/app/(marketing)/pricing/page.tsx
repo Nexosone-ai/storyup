@@ -34,11 +34,11 @@ function planFeatures(plan: Plan, ko: boolean): string[] {
     ko ? "브랜드 스토리 생성" : "Brand story generation",
     l.sites === null
       ? ko
-        ? `AI 홈페이지 ${talk}`
-        : `AI websites: ${talk}`
+        ? `AI 랜딩페이지 ${talk}`
+        : `AI landing pages: ${talk}`
       : ko
-        ? `AI 홈페이지 ${l.sites}개`
-        : `${l.sites} AI website${l.sites > 1 ? "s" : ""}`,
+        ? `AI 랜딩페이지 ${l.sites}개`
+        : `${l.sites} AI landing page${l.sites > 1 ? "s" : ""}`,
     l.blogPosts === null
       ? ko
         ? `블로그 생성 ${talk}`
@@ -89,7 +89,7 @@ export default async function PricingPage() {
     ],
     [ko ? "브랜드 스토리 생성" : "Brand story", () => "✓"],
     [
-      ko ? "AI 홈페이지" : "AI websites",
+      ko ? "AI 랜딩페이지" : "AI landing pages",
       (p) =>
         p.limits.sites === null
           ? ko
@@ -149,7 +149,7 @@ export default async function PricingPage() {
   ];
 
   const overages: [string, number][] = [
-    [ko ? "AI 홈페이지" : "AI website", OVERAGE_COST.site],
+    [ko ? "AI 랜딩페이지" : "AI landing page", OVERAGE_COST.site],
     [ko ? "블로그 생성" : "Blog post", OVERAGE_COST.blogPost],
     [ko ? "SNS 카드뉴스" : "Card news", OVERAGE_COST.cardNews],
     [ko ? "AI 이미지" : "AI image", OVERAGE_COST.aiImage],

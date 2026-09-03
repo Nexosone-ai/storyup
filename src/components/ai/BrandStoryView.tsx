@@ -197,11 +197,11 @@ export function BrandStoryView({
           <Icon.globe width={18} height={18} />
           {websiteExists
             ? ko
-              ? "홈페이지 보기"
-              : "View website"
+              ? "랜딩페이지 보기"
+              : "View landing page"
             : ko
-              ? "홈페이지 만들기"
-              : "Create website"}
+              ? "랜딩페이지 만들기"
+              : "Create landing page"}
         </ButtonLink>
       </div>
     </div>

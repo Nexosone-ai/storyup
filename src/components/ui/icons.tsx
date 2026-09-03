@@ -33,6 +33,12 @@ export const Icon = {
       <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
     </Svg>
   ),
+  file: (p: IconProps) => (
+    <Svg {...p}>
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+      <path d="M14 3v5h5" />
+    </Svg>
+  ),
   globe: (p: IconProps) => (
     <Svg {...p}>
       <circle cx="12" cy="12" r="9" />

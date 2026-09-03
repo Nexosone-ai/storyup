@@ -235,6 +235,59 @@ export async function toggleRealTalkLike(postId: string) {
   return toggleLike("real_talk_likes", postId);
 }
 
+/**
+ * 본인 글 내용 수정. 커뮤니티 테이블에는 owner UPDATE RLS가 없으므로
+ * 소유권을 직접 확인한 뒤 관리자 클라이언트로 수정한다.
+ */
+async function updatePost(
+  table: "story_connect_posts" | "real_talk_posts",
+  postId: string,
+  content: string,
+  maxLength: number,
+): Promise<CommunityState> {
+  const ko = (await getLocale()) === "ko";
+  const body = content.trim();
+  if (body.length > maxLength)
+    return {
+      error: ko
+        ? `${maxLength}자 이내로 작성해주세요.`
+        : `Please keep it under ${maxLength} characters.`,
+    };
+
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
+
+  const { data: post } = await supabase
+    .from(table)
+    .select(table === "story_connect_posts" ? "user_id, image_urls" : "user_id")
+    .eq("id", postId)
+    .maybeSingle<{ user_id: string; image_urls?: string[] }>();
+  if (!post || post.user_id !== user.id)
+    return { error: ko ? "권한이 없습니다." : "You don't have permission." };
+
+  // 사진 없는 글은 내용이 비어 있을 수 없다.
+  if (!body && !(post.image_urls && post.image_urls.length > 0))
+    return { error: ko ? "내용을 입력해주세요." : "Please write something." };
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from(table)
+    .update({ content: body })
+    .eq("id", postId)
+    .eq("user_id", user.id);
+  if (error)
+    return { error: ko ? "수정에 실패했습니다." : "Failed to update." };
+  revalidatePath(PATH);
+  return { ok: true };
+}
+
+export async function updateStoryPost(postId: string, content: string) {
+  return updatePost("story_connect_posts", postId, content, 1000);
+}
+export async function updateRealTalkPost(postId: string, content: string) {
+  return updatePost("real_talk_posts", postId, content, 200);
+}
+
 async function deletePost(
   table: "story_connect_posts" | "real_talk_posts",
   postId: string,

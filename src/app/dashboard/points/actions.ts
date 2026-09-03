@@ -20,6 +20,8 @@ export interface ChargeOrderResult {
   storeId?: string;
   channelKey?: string;
   customerEmail?: string;
+  customerName?: string;
+  customerPhone?: string;
 }
 
 /** 서버가 권위 있는 가격으로 내부 주문을 생성한다. */
@@ -44,11 +46,21 @@ export async function createChargeOrderAction(
 
   try {
     const order = await createChargeOrder(user.id, packageId);
+    // KG이니시스 PC 결제창은 구매자 이름·전화번호·이메일이 필수다.
+    const meta = user.user_metadata as Record<string, unknown> | undefined;
+    const name =
+      (typeof meta?.name === "string" && meta.name.trim()) ||
+      user.email?.split("@")[0] ||
+      undefined;
+    const phone =
+      (typeof meta?.phone === "string" && meta.phone.trim()) || undefined;
     return {
       ...order,
       storeId,
       channelKey,
       customerEmail: user.email ?? undefined,
+      customerName: name,
+      customerPhone: phone,
     };
   } catch (err) {
     return {

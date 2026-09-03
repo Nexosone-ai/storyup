@@ -29,15 +29,19 @@ export function BlogEditor({
   post,
   siteSlug,
   sitePublished,
+  categories = [],
 }: {
   businessId: string;
   post: BlogPostRow;
   siteSlug: string | null;
   sitePublished: boolean;
+  /** 이 비즈니스의 기존 블로그 메뉴 목록 (자동완성용) */
+  categories?: string[];
 }) {
   const ko = useLocale() === "ko";
   const [title, setTitle] = useState(post.title);
   const [summary, setSummary] = useState(post.summary ?? "");
+  const [category, setCategory] = useState(post.category ?? "");
   const [content, setContent] = useState(post.content ?? "");
   const [status, setStatus] = useState(post.status);
   const [cover, setCover] = useState(post.cover_image_url ?? null);
@@ -198,6 +202,7 @@ export function BlogEditor({
         title,
         content,
         summary,
+        category,
       });
       setNote(res.error ?? (ko ? "저장되었습니다." : "Saved."));
     });
@@ -206,7 +211,12 @@ export function BlogEditor({
     startPublish(async () => {
       setNote(null);
       const next = status !== "published";
-      await saveBlogAction(businessId, post.id, { title, content, summary });
+      await saveBlogAction(businessId, post.id, {
+        title,
+        content,
+        summary,
+        category,
+      });
       const res = await publishBlogAction(businessId, post.id, next);
       if (res.error) setNote(res.error);
       else {
@@ -267,8 +277,8 @@ export function BlogEditor({
       {status === "published" && !sitePublished && (
         <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-warning">
           {ko
-            ? "홈페이지가 아직 공개되지 않아 블로그가 외부에 보이지 않습니다. 홈페이지를 먼저 공개해주세요."
-            : "Your website is not published yet, so this blog is not visible to the public. Publish your website first."}
+            ? "랜딩페이지가 아직 공개되지 않아 블로그가 외부에 보이지 않습니다. 랜딩페이지를 먼저 공개해주세요."
+            : "Your landing page is not published yet, so this blog is not visible to the public. Publish your landing page first."}
         </p>
       )}
 
@@ -288,6 +298,31 @@ export function BlogEditor({
           value={summary}
           onChange={(e) => setSummary(e.target.value)}
         />
+      </div>
+      <div>
+        <Label htmlFor="category">{ko ? "메뉴" : "Menu"}</Label>
+        <Input
+          id="category"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          list="blog-category-options"
+          maxLength={30}
+          placeholder={
+            ko
+              ? "예: 소식, 레시피 — 새 이름을 입력하면 메뉴가 추가됩니다"
+              : "e.g. News, Recipes — type a new name to add a menu"
+          }
+        />
+        <datalist id="blog-category-options">
+          {categories.map((c) => (
+            <option key={c} value={c} />
+          ))}
+        </datalist>
+        <p className="mt-1 text-xs text-muted">
+          {ko
+            ? "글이 속할 블로그 메뉴입니다. 비워두면 미분류로 저장됩니다."
+            : "The blog menu this post belongs to. Leave empty for uncategorized."}
+        </p>
       </div>
 
       {/* Cover image */}

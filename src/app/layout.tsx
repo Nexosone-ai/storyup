@@ -54,7 +54,7 @@ export const metadata: Metadata = {
     template: "%s · STORYUP",
   },
   description:
-    "사업 이야기를 들려주세요. AI가 브랜드, 홈페이지, 블로그 콘텐츠로 만들어드립니다.",
+    "사업 이야기를 들려주세요. AI가 브랜드, 랜딩페이지, 블로그 콘텐츠로 만들어드립니다.",
   openGraph: {
     title: "STORYUP",
     description: "Turn Your Story Into Business.",

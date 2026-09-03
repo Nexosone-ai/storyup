@@ -63,7 +63,7 @@ export function workspaceNav(businessId: string, locale: Locale = "ko"): NavItem
       step: 1,
     },
     {
-      label: ko ? "홈페이지" : "Website",
+      label: ko ? "랜딩페이지" : "Landing page",
       href: `${base}/website`,
       icon: "globe",
       step: 2,

@@ -35,6 +35,15 @@ export default async function PublicSitePage({
 
   const posts = await getPublishedPosts(site.business.id);
   const blogHref = posts.length > 0 ? `/site/${slug}/blog` : undefined;
+  // 랜딩페이지 하단 "최신 글" 섹션 — 클릭하면 해당 글로 이동한다.
+  const latestPosts = posts.slice(0, 3).map((p) => ({
+    slug: p.slug,
+    title: p.title,
+    summary: p.summary,
+    coverImageUrl: p.cover_image_url,
+    publishedAt: p.published_at,
+    keyword: p.keywords[0],
+  }));
 
   const c = site.website.content;
   // 검색·AI 답변엔진(AEO)용 구조화 데이터
@@ -60,7 +69,11 @@ export default async function PublicSitePage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <SiteRenderer content={site.website.content} blogHref={blogHref} />
+      <SiteRenderer
+        content={site.website.content}
+        blogHref={blogHref}
+        latestPosts={latestPosts}
+      />
     </>
   );
 }

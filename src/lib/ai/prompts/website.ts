@@ -6,7 +6,7 @@ export function websitePrompt(
   brand: BrandStoryResult,
   language: PromptLanguage = "ko",
 ): PromptSpec {
-  const system = `당신은 소상공인용 홈페이지 카피라이터입니다.
+  const system = `당신은 소상공인용 랜딩페이지 카피라이터입니다.
 브랜드 정보를 바탕으로 미리 정의된 템플릿 섹션에 들어갈 문구를 작성합니다.
 과장 없이, 방문객이 신뢰할 수 있는 자연스러운 카피를 씁니다.
 ${languageRule(language)}

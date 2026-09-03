@@ -24,6 +24,7 @@ import {
   type MarketingPromptInput,
 } from "./prompts/marketing";
 import { cardNewsPrompt, type CardNewsPromptInput } from "./prompts/card-news";
+import type { PdfLandingExtract } from "@/lib/pdfImport";
 
 const DEFAULT_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
 
@@ -115,6 +116,96 @@ export class ClaudeProvider implements AIProvider {
     };
     const res = await this.complete<{ subject: string }>(spec, 300);
     return res.subject;
+  }
+
+  /** PDF(회사 소개서·브로슈어·메뉴판 등)에서 랜딩페이지 콘텐츠를 추출한다. */
+  async extractLandingContent(
+    pdfBase64: string,
+    language: PromptLanguage = "ko",
+  ): Promise<PdfLandingExtract> {
+    const ko = language === "ko";
+    let raw = "";
+    try {
+      const res = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 2500,
+        system: ko
+          ? "당신은 사업체 소개 자료를 랜딩페이지 콘텐츠로 옮기는 카피라이터입니다. 반드시 순수 JSON만 반환하세요."
+          : "You turn business brochures into landing page copy. Return pure JSON only.",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "document",
+                source: {
+                  type: "base64",
+                  media_type: "application/pdf",
+                  data: pdfBase64,
+                },
+              },
+              {
+                type: "text",
+                text: `이 PDF는 한 사업체의 소개 자료입니다. 랜딩페이지에 넣을 콘텐츠를 추출해 아래 JSON으로만 응답하세요.
+
+규칙:
+- 모든 텍스트는 ${ko ? "한국어" : "영어(English)"}로 작성 (원문이 다른 언어면 번역)
+- PDF에 없는 항목은 빈 문자열 "" / 빈 배열
+- 전화번호·이메일·주소·URL은 원문 그대로
+- headline은 고객을 끌어당기는 한 문장(30자 내외), shortDescription은 1~2문장
+- storyBody는 사업 소개·철학을 2~4문장으로
+- offers는 대표 상품/서비스 최대 3개
+
+{
+  "name": "사업체 이름",
+  "headline": "",
+  "shortDescription": "",
+  "storyTitle": "",
+  "storyBody": "",
+  "offers": [{ "title": "", "description": "" }],
+  "phone": "",
+  "email": "",
+  "address": "",
+  "website": "",
+  "instagram": "",
+  "facebook": "",
+  "x": ""
+}`,
+              },
+            ],
+          },
+        ],
+      });
+      raw = res.content
+        .filter((b): b is Anthropic.TextBlock => b.type === "text")
+        .map((b) => b.text)
+        .join("");
+    } catch (err) {
+      throw new AIGenerationError("AI 응답을 받지 못했습니다.", err);
+    }
+    const parsed = parseJson<Partial<PdfLandingExtract>>(raw);
+    // 누락 필드를 빈 값으로 정규화해 호출부가 안심하고 쓰게 한다.
+    const s = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+    return {
+      name: s(parsed.name),
+      headline: s(parsed.headline),
+      shortDescription: s(parsed.shortDescription),
+      storyTitle: s(parsed.storyTitle),
+      storyBody: s(parsed.storyBody),
+      offers: Array.isArray(parsed.offers)
+        ? parsed.offers
+            .slice(0, 3)
+            .map((o) => ({ title: s(o?.title), description: s(o?.description) }))
+            .filter((o) => o.title || o.description)
+        : [],
+      phone: s(parsed.phone),
+      email: s(parsed.email),
+      address: s(parsed.address),
+      website: s(parsed.website),
+      instagram: s(parsed.instagram),
+      facebook: s(parsed.facebook),
+      x: s(parsed.x),
+    };
   }
 }
 

@@ -29,14 +29,24 @@ function fmtDate(iso: string | null, ko: boolean): string {
 
 export default async function PublicBlogListPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ menu?: string }>;
 }) {
   const { slug } = await params;
+  const { menu } = await searchParams;
   const site = await getPublishedSite(slug);
   if (!site) notFound();
 
-  const posts = await getPublishedPosts(site.business.id);
+  const allPosts = await getPublishedPosts(site.business.id);
+  const categories = [
+    ...new Set(allPosts.map((p) => p.category).filter(Boolean)),
+  ] as string[];
+  const active = menu && categories.includes(menu) ? menu : null;
+  const posts = active
+    ? allPosts.filter((p) => p.category === active)
+    : allPosts;
   const name = site.website.content.hero?.businessName ?? site.business.name;
   // 사이트 콘텐츠 언어에 맞춰 크롬 문구를 고른다
   const ko = siteLang(site.website.content) === "ko";
@@ -59,6 +69,34 @@ export default async function PublicBlogListPage({
         <h1 className="mb-8 text-3xl font-bold tracking-tight">
           {ko ? "블로그" : "Blog"}
         </h1>
+
+        {categories.length > 0 && (
+          <nav className="mb-8 flex flex-wrap gap-2">
+            <Link
+              href={`/site/${slug}/blog`}
+              className={
+                active === null
+                  ? "rounded-full bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground"
+                  : "rounded-full border border-border px-4 py-1.5 text-sm text-muted hover:text-foreground"
+              }
+            >
+              {ko ? "전체" : "All"}
+            </Link>
+            {categories.map((c) => (
+              <Link
+                key={c}
+                href={`/site/${slug}/blog?menu=${encodeURIComponent(c)}`}
+                className={
+                  active === c
+                    ? "rounded-full bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground"
+                    : "rounded-full border border-border px-4 py-1.5 text-sm text-muted hover:text-foreground"
+                }
+              >
+                {c}
+              </Link>
+            ))}
+          </nav>
+        )}
 
         {posts.length === 0 ? (
           <p className="text-muted">
@@ -89,6 +127,11 @@ export default async function PublicBlogListPage({
                     />
                   )}
                   <p className="text-xs text-muted">
+                    {post.category && (
+                      <span className="mr-2 font-medium text-primary">
+                        {post.category}
+                      </span>
+                    )}
                     {fmtDate(post.published_at, ko)}
                   </p>
                   <h2 className="mt-1 text-xl font-semibold group-hover:text-primary">

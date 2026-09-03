@@ -2,10 +2,12 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getPublishedSite, getPublishedPost } from "@/lib/queries";
+import { createClient } from "@/lib/supabase/server";
 import { siteLang } from "@/components/website/templates/shared";
 import { renderMarkdown } from "@/utils/markdown";
 import { BlogCover } from "@/components/blog/BlogCover";
 import { ShareBar } from "@/components/site/ShareBar";
+import { BlogComments } from "@/components/site/BlogComments";
 import { TrackPageView } from "@/components/site/TrackPageView";
 import { buildSeo, siteUrl } from "@/utils/seo";
 
@@ -57,6 +59,30 @@ export default async function PublicArticlePage({
   const path = `/site/${slug}/blog/${postSlug}`;
   // 사이트 콘텐츠 언어에 맞춰 크롬 문구를 고른다
   const ko = siteLang(site.website.content) === "ko";
+
+  // 방문자 댓글 — 마이그레이션(0014) 이전 DB에서는 섹션을 숨긴다.
+  const supabase = await createClient();
+  const [{ data: rawComments, error: commentsError }, userRes] =
+    await Promise.all([
+      supabase
+        .from("blog_comments")
+        .select("id, user_id, author_name, password_hash, content, created_at")
+        .eq("post_id", post.id)
+        .order("created_at", { ascending: true }),
+      supabase.auth.getUser(),
+    ]);
+  const viewer = userRes.data.user;
+  const isOwner = !!viewer && viewer.id === site.business.user_id;
+  const comments = commentsError
+    ? null
+    : (rawComments ?? []).map((c) => ({
+        id: c.id,
+        authorName: c.author_name,
+        content: c.content,
+        createdAt: c.created_at,
+        canDelete: isOwner || (!!viewer && c.user_id === viewer.id),
+        hasPassword: !!c.password_hash,
+      }));
 
   // 검색·AI 답변엔진(AEO)용 구조화 데이터
   const jsonLd = {
@@ -143,6 +169,15 @@ export default async function PublicArticlePage({
           </p>
           <ShareBar path={path} title={post.title} slug={slug} />
         </div>
+
+        {comments && (
+          <BlogComments
+            postId={post.id}
+            comments={comments}
+            lang={ko ? "ko" : "en"}
+            loggedIn={!!viewer}
+          />
+        )}
       </article>
     </div>
   );

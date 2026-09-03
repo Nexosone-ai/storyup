@@ -5,6 +5,7 @@ import {
   staticImage,
   staticGallery,
 } from "./templates";
+import type { SitePostPreview } from "./templates/BlogPreview";
 
 /**
  * Public homepage renderer. Server-safe (static text). Picks the layout from
@@ -13,10 +14,12 @@ import {
 export function SiteRenderer({
   content,
   blogHref,
+  latestPosts,
   scoped = false,
 }: {
   content: WebsiteContent;
   blogHref?: string;
+  latestPosts?: SitePostPreview[];
   scoped?: boolean;
 }) {
   return (
@@ -27,6 +30,7 @@ export function SiteRenderer({
         Img={staticImage}
         Gallery={staticGallery}
         blogHref={blogHref}
+        latestPosts={latestPosts}
         scoped={scoped}
       />
     </div>

@@ -12,7 +12,7 @@ export const maxDuration = 60;
 
 const ASPECTS: ImageAspect[] = ["1:1", "3:4", "4:3", "9:16", "16:9"];
 
-/** 홈페이지 에디터용 AI 이미지 생성 — 스토리지에 저장하고 URL을 반환한다. */
+/** 랜딩페이지 에디터용 AI 이미지 생성 — 스토리지에 저장하고 URL을 반환한다. */
 export async function POST(request: Request) {
   const ko = (await getLocale()) === "ko";
   const supabase = await createClient();

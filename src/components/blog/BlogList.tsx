@@ -68,6 +68,7 @@ export function BlogList({
               ) : (
                 <Badge tone="muted">{ko ? "초안" : "Draft"}</Badge>
               )}
+              {post.category && <Badge tone="default">{post.category}</Badge>}
             </div>
             {post.summary && (
               <p className="mt-0.5 truncate text-sm text-muted">

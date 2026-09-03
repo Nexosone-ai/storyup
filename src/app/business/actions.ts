@@ -123,7 +123,7 @@ export async function updateBusinessAction(
   return { ok: true, message: ko ? "저장되었습니다." : "Saved." };
 }
 
-/** 비즈니스를 영구 삭제한다. 브랜드·홈페이지·블로그 등이 함께 삭제된다(DB cascade). */
+/** 비즈니스를 영구 삭제한다. 브랜드·랜딩페이지·블로그 등이 함께 삭제된다(DB cascade). */
 export async function deleteBusinessAction(
   businessId: string,
 ): Promise<ActionState> {
@@ -260,6 +260,17 @@ export async function updateSiteSlugAction(
         : "The address must be at least 3 characters using lowercase letters, numbers, and hyphens.",
     };
 
+  // 브랜드·시스템 예약어는 사용자 사이트 주소로 쓸 수 없다.
+  const RESERVED = new Set([
+    "storyup", "admin", "api", "www", "app", "dashboard", "site", "blog",
+  ]);
+  if (RESERVED.has(slug))
+    return {
+      error: ko
+        ? "사용할 수 없는 주소입니다. 다른 주소를 입력해주세요."
+        : "That address is reserved. Please choose another one.",
+    };
+
   // Ownership check via RLS (+ old slug for revalidation).
   const { data: biz } = await supabase
     .from("businesses")
@@ -346,11 +357,11 @@ export async function publishWebsiteAction(
     ok: true,
     message: publish
       ? ko
-        ? "홈페이지가 공개되었습니다."
-        : "Your website is now live."
+        ? "랜딩페이지가 공개되었습니다."
+        : "Your landing page is now live."
       : ko
         ? "비공개로 전환되었습니다."
-        : "Your website is now private.",
+        : "Your landing page is now private.",
   };
 }
 
@@ -359,21 +370,35 @@ export async function publishWebsiteAction(
 export async function saveBlogAction(
   businessId: string,
   postId: string,
-  fields: { title: string; content: string; summary: string },
+  fields: { title: string; content: string; summary: string; category?: string },
 ): Promise<ActionState> {
   const ko = (await getLocale()) === "ko";
   const { supabase, user } = await requireUser();
   if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
 
-  const { error } = await supabase
+  const base = {
+    title: fields.title,
+    content: fields.content,
+    summary: fields.summary,
+  };
+  const withCategory =
+    fields.category !== undefined
+      ? { ...base, category: fields.category.trim() || null }
+      : base;
+
+  let { error } = await supabase
     .from("blog_posts")
-    .update({
-      title: fields.title,
-      content: fields.content,
-      summary: fields.summary,
-    })
+    .update(withCategory)
     .eq("id", postId)
     .eq("business_id", businessId);
+  // category 컬럼 마이그레이션(0013) 이전 DB에서는 컬럼 없이 저장한다.
+  if (error && "category" in withCategory && error.code === "PGRST204") {
+    ({ error } = await supabase
+      .from("blog_posts")
+      .update(base)
+      .eq("id", postId)
+      .eq("business_id", businessId));
+  }
   if (error) return { error: ko ? "저장에 실패했습니다." : "Failed to save." };
 
   revalidatePath(`/business/${businessId}/blog/${postId}`);

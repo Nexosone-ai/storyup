@@ -44,8 +44,8 @@ export function BusinessCardMenu({
     if (
       !window.confirm(
         ko
-          ? `'${name}' 비즈니스를 삭제할까요?\n\n브랜드·홈페이지·블로그 글 등 모든 콘텐츠가 함께 영구 삭제되며 되돌릴 수 없습니다.`
-          : `Delete the business '${name}'?\n\nAll content — brand, website, blog posts — will be permanently deleted. This cannot be undone.`,
+          ? `'${name}' 비즈니스를 삭제할까요?\n\n브랜드·랜딩페이지·블로그 글 등 모든 콘텐츠가 함께 영구 삭제되며 되돌릴 수 없습니다.`
+          : `Delete the business '${name}'?\n\nAll content — brand, landing page, blog posts — will be permanently deleted. This cannot be undone.`,
       )
     )
       return;

@@ -143,6 +143,7 @@ export interface Database {
           seo_description: string | null;
           social_caption: string | null;
           cover_image_url: string | null;
+          category: string | null;
           status: PublishStatus;
           published_at: string | null;
         } & Timestamps;
@@ -158,12 +159,39 @@ export interface Database {
           seo_description?: string | null;
           social_caption?: string | null;
           cover_image_url?: string | null;
+          category?: string | null;
           status?: PublishStatus;
           published_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["blog_posts"]["Insert"]>;
+        Relationships: [];
+      };
+      blog_comments: {
+        Row: {
+          id: string;
+          post_id: string;
+          business_id: string;
+          user_id: string | null;
+          author_name: string;
+          password_hash: string | null;
+          content: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          post_id: string;
+          business_id: string;
+          user_id?: string | null;
+          author_name: string;
+          password_hash?: string | null;
+          content: string;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["blog_comments"]["Insert"]
+        >;
         Relationships: [];
       };
       marketing_contents: {
@@ -724,5 +752,7 @@ export type BrandProfileRow =
   Database["public"]["Tables"]["brand_profiles"]["Row"];
 export type WebsiteRow = Database["public"]["Tables"]["websites"]["Row"];
 export type BlogPostRow = Database["public"]["Tables"]["blog_posts"]["Row"];
+export type BlogCommentRow =
+  Database["public"]["Tables"]["blog_comments"]["Row"];
 export type MarketingContentRow =
   Database["public"]["Tables"]["marketing_contents"]["Row"];

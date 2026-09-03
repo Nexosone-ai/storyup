@@ -78,8 +78,8 @@ export default async function AnalyticsPage({
         </h1>
         <p className="mt-1.5 text-muted">
           {ko
-            ? "공개 홈페이지와 블로그의 실제 조회수·유입 경로·공유 현황입니다."
-            : "Real views, referrers, and shares for your live website and blog."}
+            ? "공개 랜딩페이지와 블로그의 실제 조회수·유입 경로·공유 현황입니다."
+            : "Real views, referrers, and shares for your live landing page and blog."}
         </p>
       </div>
 
@@ -90,8 +90,8 @@ export default async function AnalyticsPage({
           </div>
           <p className="text-sm text-muted">
             {ko
-              ? "홈페이지가 아직 공개되지 않았습니다. 공개하면 방문자 지표가 수집되기 시작합니다."
-              : "Your website is not published yet. Visitor metrics start collecting once you publish."}
+              ? "랜딩페이지가 아직 공개되지 않았습니다. 공개하면 방문자 지표가 수집되기 시작합니다."
+              : "Your landing page is not published yet. Visitor metrics start collecting once you publish."}
           </p>
         </Card>
       )}

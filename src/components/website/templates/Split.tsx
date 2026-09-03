@@ -6,6 +6,7 @@ import {
   siteLang,
   type TemplateProps,
 } from "./shared";
+import { BlogPreviewCards } from "./BlogPreview";
 
 export function SplitTemplate({
   content,
@@ -13,6 +14,7 @@ export function SplitTemplate({
   Img,
   Gallery,
   blogHref,
+  latestPosts,
   editable,
 }: TemplateProps) {
   const { hero, story, offers, whyChooseUs, contact } = content;
@@ -119,6 +121,29 @@ export function SplitTemplate({
             <p className="eyebrow mb-2">Gallery</p>
             <h2 className="mb-8 text-2xl font-semibold tracking-tight">{L.space}</h2>
             {Gallery(gallery)}
+          </div>
+        </section>
+      )}
+
+      {blogHref && latestPosts && latestPosts.length > 0 && (
+        <section className="border-b border-border">
+          <div className="mx-auto max-w-6xl px-6 py-16">
+            <div className="mb-8 flex items-baseline justify-between">
+              <div>
+                <p className="eyebrow mb-2">Blog</p>
+                <h2 className="text-2xl font-semibold tracking-tight">
+                  {L.latestPosts}
+                </h2>
+              </div>
+              <Link href={blogHref} className="text-sm font-medium text-primary">
+                {L.viewAll}
+              </Link>
+            </div>
+            <BlogPreviewCards
+              posts={latestPosts}
+              blogHref={blogHref}
+              lang={siteLang(content)}
+            />
           </div>
         </section>
       )}

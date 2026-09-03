@@ -40,10 +40,10 @@ export default async function BusinessOverviewPage({
     },
     {
       n: 2,
-      label: ko ? "홈페이지" : "Website",
+      label: ko ? "랜딩페이지" : "Landing page",
       desc: ko
-        ? "브랜드 스토리로 홈페이지를 만들고 공개하세요."
-        : "Build a website from your brand story and publish it.",
+        ? "브랜드 스토리로 랜딩페이지를 만들고 공개하세요."
+        : "Build a landing page from your brand story and publish it.",
       done: state.website === "published",
       partial: state.website === "draft",
       href: `${base}/website`,
@@ -119,7 +119,7 @@ export default async function BusinessOverviewPage({
             rel="noopener noreferrer"
           >
             <Icon.external width={16} height={16} />
-            {ko ? "공개 홈페이지 열기" : "Open live website"}
+            {ko ? "공개 랜딩페이지 열기" : "Open live landing page"}
           </ButtonLink>
         )}
       </div>

@@ -1,5 +1,10 @@
 import { notFound } from "next/navigation";
-import { getBusiness, getBlogPost, getWebsite } from "@/lib/queries";
+import {
+  getBusiness,
+  getBlogPost,
+  getWebsite,
+  getBlogCategories,
+} from "@/lib/queries";
 import { BlogEditor } from "@/components/blog/BlogEditor";
 
 export const metadata = { title: "블로그 편집" };
@@ -13,9 +18,10 @@ export default async function BlogEditorPage({
   const business = await getBusiness(id);
   if (!business) notFound();
 
-  const [post, website] = await Promise.all([
+  const [post, website, categories] = await Promise.all([
     getBlogPost(postId),
     getWebsite(id),
+    getBlogCategories(id),
   ]);
   if (!post || post.business_id !== id) notFound();
 
@@ -25,6 +31,7 @@ export default async function BlogEditorPage({
       post={post}
       siteSlug={website?.slug ?? null}
       sitePublished={website?.status === "published"}
+      categories={categories}
     />
   );
 }

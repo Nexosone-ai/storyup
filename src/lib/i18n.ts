@@ -27,19 +27,19 @@ export const translations = {
       title2: "이야기를",
       title3: "비즈니스",
       title4: "로",
-      sub: "소상공인·1인 사업자의 진짜 이야기를 AI가 브랜드 스토리,\n홈페이지, 블로그, SNS 콘텐츠로 변환합니다.",
+      sub: "소상공인·1인 사업자의 진짜 이야기를 AI가 브랜드 스토리,\n랜딩페이지, 블로그, SNS 콘텐츠로 변환합니다.",
       cta: "무료로 시작하기",
       how: "작동 방식 보기",
       stats: [
         { v: "10분", l: "첫 브랜드 스토리 완성" },
-        { v: "3종", l: "홈페이지 템플릿" },
+        { v: "3종", l: "랜딩페이지 템플릿" },
         { v: "5가지", l: "콘텐츠 자산" },
       ],
       demo: {
         steps: [
           "STEP 1 · 이야기 입력",
           "STEP 2 · 브랜드 스토리",
-          "STEP 3 · 홈페이지",
+          "STEP 3 · 랜딩페이지",
           "STEP 4 · 블로그 · SNS",
         ],
         label: "나의 이야기",
@@ -79,7 +79,7 @@ export const translations = {
         {
           n: "03",
           t: "모든 채널로 자동 확장",
-          d: "홈페이지·블로그·SNS·카드뉴스까지 하나의 이야기에서 모든 마케팅 콘텐츠를 생성합니다.",
+          d: "랜딩페이지·블로그·SNS·카드뉴스까지 하나의 이야기에서 모든 마케팅 콘텐츠를 생성합니다.",
         },
       ],
       featEyebrow: "FEATURES",
@@ -94,8 +94,8 @@ export const translations = {
         },
         {
           k: "WEBSITE",
-          t: "홈페이지",
-          d: "3가지 전문 템플릿 중 선택해 10분 만에 완성되는 사업자 홈페이지. 직접 편집도 가능합니다.",
+          t: "랜딩페이지",
+          d: "3가지 전문 템플릿 중 선택해 10분 만에 완성되는 사업자 랜딩페이지. 직접 편집도 가능합니다.",
         },
         {
           k: "BLOG",
@@ -141,7 +141,7 @@ export const translations = {
       pricingEyebrow: "PRICING",
       pricingT: "무료로 시작, 필요할 때 충전",
       pricingSub:
-        "브랜드 스토리와 홈페이지는 무료로 시작할 수 있습니다. AI 콘텐츠 생성은 크레딧 충전으로 필요한 만큼만 사용하세요.",
+        "브랜드 스토리와 랜딩페이지는 무료로 시작할 수 있습니다. AI 콘텐츠 생성은 크레딧 충전으로 필요한 만큼만 사용하세요.",
       pricingBtn: "무료 플랜 시작하기",
       pricingLink: "요금제 자세히 보기 →",
       ctaTitle1: "당신의 이야기가",
@@ -152,9 +152,9 @@ export const translations = {
       showcaseT1: "이야기로 만든 ",
       showcaseT2: "스토리들",
       showcaseSub:
-        "소상공인들이 STORYUP으로 직접 만든 홈페이지·블로그·카드뉴스입니다.",
+        "소상공인들이 STORYUP으로 직접 만든 랜딩페이지·블로그·카드뉴스입니다.",
       showcase: {
-        tabSites: "홈페이지",
+        tabSites: "랜딩페이지",
         tabBlogs: "블로그",
         tabCards: "카드뉴스",
         more: "더 보기",
@@ -262,19 +262,19 @@ export const translations = {
       title2: "story into",
       title3: "business",
       title4: "",
-      sub: "AI turns the real stories of small business owners into brand stories, websites, blogs, and social content.",
+      sub: "AI turns the real stories of small business owners into brand stories, landing pages, blogs, and social content.",
       cta: "Get started free",
       how: "See how it works",
       stats: [
         { v: "10 min", l: "to your first brand story" },
-        { v: "3", l: "website templates" },
+        { v: "3", l: "landing page templates" },
         { v: "5", l: "content assets" },
       ],
       demo: {
         steps: [
           "STEP 1 · Your story",
           "STEP 2 · Brand story",
-          "STEP 3 · Website",
+          "STEP 3 · Landing page",
           "STEP 4 · Blog · Social",
         ],
         label: "My story",
@@ -314,7 +314,7 @@ export const translations = {
         {
           n: "03",
           t: "Expand to every channel",
-          d: "Website, blog, social posts, card news — every marketing asset grows from one story.",
+          d: "Landing page, blog, social posts, card news — every marketing asset grows from one story.",
         },
       ],
       featEyebrow: "FEATURES",
@@ -329,7 +329,7 @@ export const translations = {
         },
         {
           k: "WEBSITE",
-          t: "Website",
+          t: "Landing page",
           d: "Pick one of three professional templates and get a business site in 10 minutes. Fully editable.",
         },
         {
@@ -376,7 +376,7 @@ export const translations = {
       pricingEyebrow: "PRICING",
       pricingT: "Start free, top up when you grow",
       pricingSub:
-        "Brand story and website are free to start. Pay only for the AI content you generate, with prepaid credits.",
+        "Brand story and landing page are free to start. Pay only for the AI content you generate, with prepaid credits.",
       pricingBtn: "Start with the free plan",
       pricingLink: "See plans & pricing →",
       ctaTitle1: "Your story is",
@@ -387,9 +387,9 @@ export const translations = {
       showcaseT1: "Stories made into ",
       showcaseT2: "business",
       showcaseSub:
-        "Websites, blogs, and card news real business owners made with STORYUP.",
+        "Landing pages, blogs, and card news real business owners made with STORYUP.",
       showcase: {
-        tabSites: "Websites",
+        tabSites: "Landing pages",
         tabBlogs: "Blogs",
         tabCards: "Card news",
         more: "See more",

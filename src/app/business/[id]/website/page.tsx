@@ -6,7 +6,7 @@ import { WebsiteEditor } from "@/components/website/WebsiteEditor";
 import { WorkflowSteps } from "@/components/dashboard/WorkflowSteps";
 import { getLocale } from "@/lib/i18n";
 
-export const metadata = { title: "홈페이지" };
+export const metadata = { title: "랜딩페이지" };
 
 export default async function WebsitePage({
   params,
@@ -33,8 +33,8 @@ export default async function WebsitePage({
           </h2>
           <p className="mt-2 text-sm text-muted">
             {ko
-              ? "홈페이지는 브랜드 스토리를 바탕으로 만들어집니다."
-              : "Your website is built from your brand story."}
+              ? "랜딩페이지는 브랜드 스토리를 바탕으로 만들어집니다."
+              : "Your landing page is built from your brand story."}
           </p>
           <Link
             href={`/business/${id}/brand`}

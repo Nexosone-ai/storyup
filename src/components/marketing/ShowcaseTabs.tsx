@@ -97,7 +97,7 @@ export function PostCard({ item }: { item: ShowcasePostItem }) {
   );
 }
 
-/** 카드뉴스 미리보기 — 카드 영역은 클릭·스와이프로 넘겨 보고, 아래 정보 영역만 홈페이지로 이동한다. */
+/** 카드뉴스 미리보기 — 카드 영역은 클릭·스와이프로 넘겨 보고, 아래 정보 영역만 랜딩페이지로 이동한다. */
 export function CardNewsCard({ item }: { item: ShowcaseCardItem }) {
   return (
     <div className="group overflow-hidden rounded-2xl border border-border bg-surface-muted/60 transition hover:-translate-y-1 hover:border-primary/50">

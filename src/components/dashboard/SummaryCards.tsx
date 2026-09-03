@@ -9,7 +9,7 @@ export async function SummaryCards({
   const ko = (await getLocale()) === "ko";
   const items = [
     { label: ko ? "내 비즈니스" : "My businesses", value: totals.businesses },
-    { label: ko ? "홈페이지" : "Websites", value: totals.websites },
+    { label: ko ? "랜딩페이지" : "Landing pages", value: totals.websites },
     { label: ko ? "블로그 글" : "Blog posts", value: totals.blogPosts },
     { label: ko ? "공개된 콘텐츠" : "Published content", value: totals.published },
   ];

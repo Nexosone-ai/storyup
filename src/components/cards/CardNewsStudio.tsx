@@ -53,7 +53,7 @@ export function CardNewsStudio({
   posts: PostOption[];
   brandName: string;
   handle: string;
-  /** 공개된 홈페이지 슬러그 — 없으면 공유 링크 대신 안내를 보여준다. */
+  /** 공개된 랜딩페이지 슬러그 — 없으면 공유 링크 대신 안내를 보여준다. */
   siteSlug?: string | null;
   initial?: { cardNews?: CardNewsResult; blogPostId?: string };
 }) {
@@ -218,7 +218,7 @@ export function CardNewsStudio({
       }
     });
 
-  // 공유 대상: 선택한 글이 공개됐으면 그 글, 아니면 공개된 홈페이지.
+  // 공유 대상: 선택한 글이 공개됐으면 그 글, 아니면 공개된 랜딩페이지.
   const selectedPost = posts.find((p) => p.id === postId);
   const sharePath = !siteSlug
     ? null
@@ -372,8 +372,8 @@ export function CardNewsStudio({
                 ) : (
                   <span className="text-xs text-muted">
                     {ko
-                      ? "홈페이지를 공개하면 X·Facebook으로 바로 공유할 수 있어요."
-                      : "Publish your website to share straight to X and Facebook."}
+                      ? "랜딩페이지를 공개하면 X·Facebook으로 바로 공유할 수 있어요."
+                      : "Publish your landing page to share straight to X and Facebook."}
                   </span>
                 )}
               </div>

@@ -14,7 +14,7 @@ export interface Plan {
   /** 월 제공 포인트. null = 대량 제공(협의) */
   monthlyPoints: number | null;
   limits: {
-    /** AI 홈페이지 (누적 보유 개수). null = 협의 */
+    /** AI 랜딩페이지 (누적 보유 개수). null = 협의 */
     sites: number | null;
     /** 블로그 생성 건/월. null = 협의 */
     blogPosts: number | null;

@@ -50,7 +50,7 @@ export async function chargeAiUsage(
 }
 
 /**
- * AI 홈페이지 생성 과금 — 홈페이지 한도는 월 건수가 아니라 "보유 개수" 기준.
+ * AI 랜딩페이지 생성 과금 — 랜딩페이지 한도는 월 건수가 아니라 "보유 개수" 기준.
  * 같은 비즈니스의 재생성은 제공량을 소비하지 않는다.
  */
 export async function chargeWebsiteGeneration(
