@@ -28,6 +28,12 @@ export async function MarketingNav() {
             >
               {t.nav.community}
             </Link>
+            <Link
+              href="/pricing"
+              className="text-sm font-medium text-muted transition-colors hover:text-foreground"
+            >
+              {t.nav.pricing}
+            </Link>
           </nav>
         </div>
         <nav className="flex items-center gap-2">

@@ -223,7 +223,7 @@ export default async function LandingPage() {
                 {L.pricingBtn}
               </Link>
               <Link
-                href="/credit-policy"
+                href="/pricing"
                 className="text-sm text-white/60 underline-offset-4 hover:text-white hover:underline"
               >
                 {L.pricingLink}

@@ -19,6 +19,7 @@ export const translations = {
       logout: "로그아웃",
       portfolio: "스토리들",
       community: "커뮤니티",
+      pricing: "요금제",
     },
     landing: {
       badge: "AI 브랜드 빌더 · 무료 베타",
@@ -142,7 +143,7 @@ export const translations = {
       pricingSub:
         "브랜드 스토리와 홈페이지는 무료로 시작할 수 있습니다. AI 콘텐츠 생성은 크레딧 충전으로 필요한 만큼만 사용하세요.",
       pricingBtn: "무료 플랜 시작하기",
-      pricingLink: "크레딧 정책 보기 →",
+      pricingLink: "요금제 자세히 보기 →",
       ctaTitle1: "당신의 이야기가",
       ctaTitle2: "기다리고 있습니다.",
       ctaSub: "사업의 이유, 고객과의 인연, 작은 철학 하나. 그것으로 충분합니다.\n스토리업이 나머지를 해드립니다.",
@@ -168,6 +169,7 @@ export const translations = {
       product: [
         { label: "스토리들", href: "/showcase" },
         { label: "커뮤니티", href: "/community" },
+        { label: "요금제", href: "/pricing" },
       ],
       links: [
         { label: "이용약관", href: "/terms" },
@@ -247,6 +249,7 @@ export const translations = {
       logout: "Log out",
       portfolio: "Stories",
       community: "Community",
+      pricing: "Pricing",
     },
     landing: {
       badge: "AI Brand Builder · Free Beta",
@@ -370,7 +373,7 @@ export const translations = {
       pricingSub:
         "Brand story and website are free to start. Pay only for the AI content you generate, with prepaid credits.",
       pricingBtn: "Start with the free plan",
-      pricingLink: "See credit policy →",
+      pricingLink: "See plans & pricing →",
       ctaTitle1: "Your story is",
       ctaTitle2: "waiting.",
       ctaSub: "The reason you started, the customers you met, one small philosophy. That's enough — STORYUP does the rest.",
@@ -396,6 +399,7 @@ export const translations = {
       product: [
         { label: "Stories", href: "/showcase" },
         { label: "Community", href: "/community" },
+        { label: "Pricing", href: "/pricing" },
       ],
       links: [
         { label: "Terms of Service", href: "/terms" },
