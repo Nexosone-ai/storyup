@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getPublishedSite, getPublishedPosts } from "@/lib/queries";
-import { siteLang } from "@/components/website/templates/shared";
+import { siteLang, SiteLogo } from "@/components/website/templates/shared";
 import { BlogCover } from "@/components/blog/BlogCover";
 import { TrackPageView } from "@/components/site/TrackPageView";
 import { buildSeo } from "@/utils/seo";
@@ -48,6 +48,7 @@ export default async function PublicBlogListPage({
     ? allPosts.filter((p) => p.category === active)
     : allPosts;
   const name = site.website.content.hero?.businessName ?? site.business.name;
+  const logo = site.website.content.hero?.logo;
   // 사이트 콘텐츠 언어에 맞춰 크롬 문구를 고른다
   const ko = siteLang(site.website.content) === "ko";
 
@@ -56,10 +57,14 @@ export default async function PublicBlogListPage({
       <TrackPageView slug={slug} />
       <header className="border-b border-border">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-5">
-          <Link href={`/site/${slug}`} className="font-bold tracking-tight">
-            {name}
+          <Link
+            href={`/site/${slug}`}
+            className="flex min-w-0 items-center gap-2 font-bold tracking-tight"
+          >
+            <SiteLogo src={logo} className="h-7 max-w-28" />
+            <span className="truncate">{name}</span>
           </Link>
-          <Link href={`/site/${slug}`} className="text-sm text-muted">
+          <Link href={`/site/${slug}`} className="shrink-0 text-sm text-muted">
             {ko ? "← 홈으로" : "← Home"}
           </Link>
         </div>

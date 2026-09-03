@@ -16,6 +16,10 @@ export interface ShowcasePostItem {
   summary: string;
   cover: string | null;
   businessName: string;
+  /** 누적 조회수 (0015 마이그레이션 이전 데이터는 0) */
+  views: number;
+  /** 조회수 1위 글에만 채워지는 뱃지 문구 (로케일 반영) */
+  hotLabel?: string;
 }
 
 export function toSiteItem(site: WebsiteRow): ShowcaseSiteItem {
@@ -35,7 +39,21 @@ export function toPostItem(item: ShowcasePost): ShowcasePostItem {
     summary: item.post.summary ?? "",
     cover: item.post.cover_image_url ?? null,
     businessName: item.businessName,
+    views: item.post.view_count ?? 0,
   };
+}
+
+/** 조회수가 가장 많은 글(1개)에 인기글 뱃지 문구를 단다 — 조회수 0뿐이면 없음. */
+export function markHotPost(
+  items: ShowcasePostItem[],
+  label: string,
+): ShowcasePostItem[] {
+  const max = Math.max(0, ...items.map((i) => i.views));
+  if (max <= 0) return items;
+  const hotIndex = items.findIndex((i) => i.views === max);
+  return items.map((i, idx) =>
+    idx === hotIndex ? { ...i, hotLabel: label } : i,
+  );
 }
 
 export interface ShowcaseCardItem {

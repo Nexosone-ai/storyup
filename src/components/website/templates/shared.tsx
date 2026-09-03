@@ -86,6 +86,21 @@ export const staticImage: ImageRenderer = ({ value, className, kind }) => {
   );
 };
 
+/** 직접 업로드한 가게 로고 — 사이트 헤더에서 이름 옆에 표시한다 (없으면 렌더 안 함). */
+export function SiteLogo({
+  src,
+  className = "h-8 max-w-32",
+}: {
+  src?: string;
+  className?: string;
+}) {
+  if (!src) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- 사용자 업로드 원격 이미지, 높이 고정
+    <img src={src} alt="" className={`w-auto shrink-0 object-contain ${className}`} />
+  );
+}
+
 /** Immutably set a dotted path (e.g. "offers.items.0.title") on a clone. */
 export function setPath<T>(obj: T, path: string, value: string): T {
   const clone = structuredClone(obj);

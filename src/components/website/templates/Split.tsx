@@ -3,6 +3,7 @@ import {
   CONTACT_FIELDS,
   ContactEntry,
   SITE_UI,
+  SiteLogo,
   siteLang,
   type TemplateProps,
 } from "./shared";
@@ -28,7 +29,10 @@ export function SplitTemplate({
     <div className="bg-white">
       <header className="border-b border-border">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          {T({ path: "hero.businessName", value: hero.businessName, as: "span", className: "font-bold tracking-tight" })}
+          <span className="flex min-w-0 items-center gap-2.5">
+            <SiteLogo src={hero.logo} />
+            {T({ path: "hero.businessName", value: hero.businessName, as: "span", className: "truncate font-bold tracking-tight" })}
+          </span>
           <nav className="flex items-center gap-6 text-sm">
             <a href="#story" className="text-muted hover:text-foreground">{L.about}</a>
             {showContact && (

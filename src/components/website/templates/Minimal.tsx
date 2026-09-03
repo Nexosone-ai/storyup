@@ -3,6 +3,7 @@ import {
   CONTACT_FIELDS,
   ContactEntry,
   SITE_UI,
+  SiteLogo,
   siteLang,
   type TemplateProps,
 } from "./shared";
@@ -27,7 +28,10 @@ export function MinimalTemplate({
   return (
     <div className="bg-white">
       <header className="mx-auto flex max-w-2xl items-center justify-between px-6 py-8">
-        {T({ path: "hero.businessName", value: hero.businessName, as: "span", className: "text-sm font-semibold uppercase tracking-[0.2em]" })}
+        <span className="flex min-w-0 items-center gap-2.5">
+          <SiteLogo src={hero.logo} className="h-7 max-w-28" />
+          {T({ path: "hero.businessName", value: hero.businessName, as: "span", className: "truncate text-sm font-semibold uppercase tracking-[0.2em]" })}
+        </span>
         {blogHref && (
           <Link href={blogHref} className="text-sm text-muted hover:text-foreground">
             {L.blog}

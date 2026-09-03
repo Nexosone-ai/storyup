@@ -159,6 +159,9 @@ export const translations = {
         tabCards: "카드뉴스",
         more: "더 보기",
         empty: "아직 공개된 스토리가 없습니다.",
+        recent: "최근 글",
+        all: "전체 글",
+        popular: "인기글",
       },
     },
     footer: {
@@ -394,6 +397,9 @@ export const translations = {
         tabCards: "Card news",
         more: "See more",
         empty: "No published stories yet.",
+        recent: "Recent posts",
+        all: "All posts",
+        popular: "Popular",
       },
     },
     footer: {

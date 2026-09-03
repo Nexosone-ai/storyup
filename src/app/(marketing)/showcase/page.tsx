@@ -2,7 +2,12 @@ import Link from "next/link";
 import { MarketingNav } from "@/components/marketing/MarketingNav";
 import { Footer } from "@/components/marketing/Footer";
 import { SiteCard, PostCard, CardNewsCard } from "@/components/marketing/ShowcaseTabs";
-import { toSiteItem, toPostItem, toCardItem } from "@/components/marketing/showcaseData";
+import {
+  toSiteItem,
+  toPostItem,
+  toCardItem,
+  markHotPost,
+} from "@/components/marketing/showcaseData";
 import { getDict } from "@/lib/i18n";
 import { getShowcaseSites, getShowcasePosts, getShowcaseCards } from "@/lib/queries";
 import { cn } from "@/utils/cn";
@@ -35,6 +40,11 @@ export default async function ShowcasePage({
       : tab === "blog"
         ? posts.length === 0
         : cards.length === 0;
+
+  // 블로그 탭: 조회수 1위에 인기글 뱃지, 최신 3개는 '최근 글'로 따로 묶는다.
+  const postItems = markHotPost(posts.map(toPostItem), L.showcase.popular);
+  const recentPosts = postItems.slice(0, 3);
+  const restPosts = postItems.slice(3);
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -75,6 +85,31 @@ export default async function ShowcasePage({
 
           {isEmpty ? (
             <p className="py-16 text-center text-muted">{L.showcase.empty}</p>
+          ) : tab === "blog" ? (
+            <div className="space-y-12">
+              <section>
+                <h2 className="mb-5 text-lg font-semibold tracking-tight">
+                  {L.showcase.recent}
+                </h2>
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {recentPosts.map((item) => (
+                    <PostCard key={item.href} item={item} />
+                  ))}
+                </div>
+              </section>
+              {restPosts.length > 0 && (
+                <section>
+                  <h2 className="mb-5 text-lg font-semibold tracking-tight">
+                    {L.showcase.all}
+                  </h2>
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {restPosts.map((item) => (
+                      <PostCard key={item.href} item={item} />
+                    ))}
+                  </div>
+                </section>
+              )}
+            </div>
           ) : (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {tab === "site"
@@ -82,15 +117,10 @@ export default async function ShowcasePage({
                     const item = toSiteItem(s);
                     return <SiteCard key={item.href} item={item} />;
                   })
-                : tab === "blog"
-                  ? posts.map((p) => {
-                      const item = toPostItem(p);
-                      return <PostCard key={item.href} item={item} />;
-                    })
-                  : cards.map((c) => {
-                      const item = toCardItem(c);
-                      return <CardNewsCard key={item.id} item={item} />;
-                    })}
+                : cards.map((c) => {
+                    const item = toCardItem(c);
+                    return <CardNewsCard key={item.id} item={item} />;
+                  })}
             </div>
           )}
         </div>

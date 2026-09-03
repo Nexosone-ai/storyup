@@ -144,6 +144,8 @@ export interface Database {
           social_caption: string | null;
           cover_image_url: string | null;
           category: string | null;
+          /** 공개 페이지 누적 조회수 (0015 마이그레이션 이전 DB에서는 없을 수 있음) */
+          view_count: number;
           status: PublishStatus;
           published_at: string | null;
         } & Timestamps;
@@ -160,6 +162,7 @@ export interface Database {
           social_caption?: string | null;
           cover_image_url?: string | null;
           category?: string | null;
+          view_count?: number;
           status?: PublishStatus;
           published_at?: string | null;
           created_at?: string;
@@ -734,6 +737,13 @@ export interface Database {
           p_ref_id?: string | null;
         };
         Returns: number;
+      };
+      increment_blog_view: {
+        Args: {
+          p_business: string;
+          p_slug: string;
+        };
+        Returns: undefined;
       };
     };
     Enums: Record<string, never>;

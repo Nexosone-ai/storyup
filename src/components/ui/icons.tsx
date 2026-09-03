@@ -27,6 +27,12 @@ export const Icon = {
       <path d="M5 9.5V21h14V9.5" />
     </Svg>
   ),
+  eye: (p: IconProps) => (
+    <Svg {...p}>
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
+      <circle cx="12" cy="12" r="3" />
+    </Svg>
+  ),
   briefcase: (p: IconProps) => (
     <Svg {...p}>
       <rect x="3" y="7" width="18" height="13" rx="2" />

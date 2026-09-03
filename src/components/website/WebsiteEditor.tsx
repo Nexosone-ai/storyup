@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, useTransition } from "react";
+import { useCallback, useMemo, useRef, useState, useTransition } from "react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Field";
@@ -15,7 +15,9 @@ import {
   saveWebsiteAction,
   publishWebsiteAction,
   updateSiteSlugAction,
+  uploadSiteImage,
 } from "@/app/business/actions";
+import { resizeImage } from "./templates/ImageSlot";
 import { MapImportBar } from "./MapImportBar";
 import { PdfImportBar } from "./PdfImportBar";
 import { useLocale } from "@/components/i18n/LocaleProvider";
@@ -53,6 +55,8 @@ export function WebsiteEditor({
   const [saving, startSave] = useTransition();
   const [publishing, startPublish] = useTransition();
   const [slugSaving, startSlug] = useTransition();
+  const [logoBusy, setLogoBusy] = useState(false);
+  const logoFileRef = useRef<HTMLInputElement | null>(null);
 
   const template = content.template ?? "classic";
 
@@ -174,6 +178,35 @@ export function WebsiteEditor({
 
   const palette = content.style?.palette ?? "forest";
   const font = content.style?.font ?? "default";
+
+  /** 로고 파일 업로드 → 스토리지에 저장 후 hero.logo에 반영 (저장 버튼으로 확정). */
+  const onLogoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setLogoBusy(true);
+    setNote(null);
+    try {
+      const resized = await resizeImage(file, 512);
+      const fd = new FormData();
+      fd.append("file", resized);
+      const up = await uploadSiteImage(businessId, fd);
+      if (up.error || !up.url) {
+        setNote(up.error ?? (ko ? "업로드에 실패했습니다." : "Upload failed."));
+        return;
+      }
+      setContent((c) => ({ ...c, hero: { ...c.hero, logo: up.url } }));
+    } catch {
+      setNote(
+        ko ? "업로드 중 문제가 발생했습니다." : "Something went wrong during upload.",
+      );
+    } finally {
+      setLogoBusy(false);
+    }
+  };
+
+  const clearLogo = () =>
+    setContent((c) => ({ ...c, hero: { ...c.hero, logo: undefined } }));
 
   const save = () =>
     startSave(async () => {
@@ -349,6 +382,58 @@ export function WebsiteEditor({
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Logo upload */}
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface p-3">
+        <span className="eyebrow mr-1">{ko ? "로고" : "Logo"}</span>
+        <input
+          ref={logoFileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={onLogoFile}
+        />
+        {content.hero.logo ? (
+          // eslint-disable-next-line @next/next/no-img-element -- 사용자 업로드 원격 이미지, 높이 고정
+          <img
+            src={content.hero.logo}
+            alt={ko ? "로고" : "Logo"}
+            className="h-9 w-auto max-w-40 rounded-md border border-border bg-white object-contain px-1.5 py-0.5"
+          />
+        ) : (
+          <span className="text-sm text-muted">
+            {ko
+              ? "로고를 올리면 사이트 상단에 가게 이름과 함께 표시돼요."
+              : "Upload a logo to show it next to your business name in the site header."}
+          </span>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => logoFileRef.current?.click()}
+          disabled={logoBusy}
+        >
+          {logoBusy ? (
+            <Spinner className="size-4" />
+          ) : content.hero.logo ? (
+            ko ? "로고 변경" : "Change logo"
+          ) : ko ? (
+            "로고 업로드"
+          ) : (
+            "Upload logo"
+          )}
+        </Button>
+        {content.hero.logo && (
+          <Button variant="ghost" size="sm" onClick={clearLogo} disabled={logoBusy}>
+            {ko ? "로고 제거" : "Remove logo"}
+          </Button>
+        )}
+        <p className="w-full text-xs text-muted">
+          {ko
+            ? "배경이 투명한 PNG를 권장해요. 변경 후 '저장'을 눌러야 반영됩니다."
+            : "A transparent PNG works best. Press Save to apply the change."}
+        </p>
       </div>
 
       {/* Style picker: theme color + font */}

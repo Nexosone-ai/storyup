@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getPublishedSite, getPublishedPost } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
-import { siteLang } from "@/components/website/templates/shared";
+import { siteLang, SiteLogo } from "@/components/website/templates/shared";
 import { renderMarkdown } from "@/utils/markdown";
 import { BlogCover } from "@/components/blog/BlogCover";
 import { ShareBar } from "@/components/site/ShareBar";
@@ -109,8 +109,15 @@ export default async function PublicArticlePage({
       />
       <header className="border-b border-border">
         <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-5">
-          <Link href={`/site/${slug}`} className="font-bold tracking-tight">
-            {name}
+          <Link
+            href={`/site/${slug}`}
+            className="flex min-w-0 items-center gap-2 font-bold tracking-tight"
+          >
+            <SiteLogo
+              src={site.website.content.hero?.logo}
+              className="h-7 max-w-28"
+            />
+            <span className="truncate">{name}</span>
           </Link>
           <Link href={`/site/${slug}/blog`} className="text-sm text-muted">
             {ko ? "← 블로그" : "← Blog"}

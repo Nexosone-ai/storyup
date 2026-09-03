@@ -132,6 +132,8 @@ export interface WebsiteContent {
     shortDescription: string;
     ctaLabel: string;
     image?: string;
+    /** 직접 업로드한 가게 로고 — 있으면 사이트 헤더에 이름과 함께 표시된다. */
+    logo?: string;
   };
   story: {
     title: string;

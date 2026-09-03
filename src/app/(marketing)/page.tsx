@@ -6,6 +6,7 @@ import {
   toSiteItem,
   toPostItem,
   toCardItem,
+  markHotPost,
 } from "@/components/marketing/showcaseData";
 import Link from "next/link";
 import { getDict } from "@/lib/i18n";
@@ -27,7 +28,7 @@ export default async function LandingPage() {
     getShowcaseCards(6),
   ]);
   const siteItems = sites.map(toSiteItem);
-  const postItems = posts.map(toPostItem);
+  const postItems = markHotPost(posts.map(toPostItem), L.showcase.popular);
   const cardItems = cards.map(toCardItem);
 
   return (

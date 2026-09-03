@@ -3,6 +3,7 @@ import {
   CONTACT_FIELDS,
   ContactEntry,
   SITE_UI,
+  SiteLogo,
   siteLang,
   type TemplateProps,
 } from "./shared";
@@ -29,7 +30,10 @@ export function ClassicTemplate({
     <div>
       <header className="sticky top-0 z-20 border-b border-border bg-white/85 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5">
-          {T({ path: "hero.businessName", value: hero.businessName, as: "span", className: "font-bold tracking-tight" })}
+          <span className="flex min-w-0 items-center gap-2.5">
+            <SiteLogo src={hero.logo} />
+            {T({ path: "hero.businessName", value: hero.businessName, as: "span", className: "truncate font-bold tracking-tight" })}
+          </span>
           <nav className="flex items-center gap-5 text-sm">
             <a href="#story" className="text-muted hover:text-foreground">{L.about}</a>
             {showContact && (

@@ -28,13 +28,27 @@ export async function POST(req: Request) {
       .maybeSingle();
     if (!site) return NextResponse.json({ ok: false }, { status: 404 });
 
+    const path = String(body.path ?? "").slice(0, 300);
     await supabase.from("site_events").insert({
       business_id: site.business_id,
       event,
-      path: String(body.path ?? "").slice(0, 300),
+      path,
       channel: body.channel ? String(body.channel).slice(0, 40) : null,
       referrer: body.referrer ? String(body.referrer).slice(0, 300) : null,
     });
+
+    // 블로그 글 조회면 글의 누적 조회수도 올린다 (0015 이전 DB에서는 조용히 무시).
+    if (event === "page_view") {
+      const m = path.match(/^\/site\/[^/]+\/blog\/([^/?#]+)$/);
+      if (m) {
+        await supabase
+          .rpc("increment_blog_view", {
+            p_business: site.business_id,
+            p_slug: decodeURIComponent(m[1]),
+          })
+          .then(() => undefined, () => undefined);
+      }
+    }
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ ok: false }, { status: 400 });

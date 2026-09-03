@@ -374,7 +374,26 @@ export function BlogEditor({
         />
       </div>
       <div>
-        <Label htmlFor="category">{ko ? "메뉴" : "Menu"}</Label>
+        <Label htmlFor="category">{ko ? "카테고리" : "Category"}</Label>
+        {categories.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {categories.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCategory(category === c ? "" : c)}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                  category === c
+                    ? "border-primary bg-primary-soft text-primary"
+                    : "border-border text-muted hover:border-primary/50 hover:text-primary",
+                )}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        )}
         <Input
           id="category"
           value={category}
@@ -383,8 +402,8 @@ export function BlogEditor({
           maxLength={30}
           placeholder={
             ko
-              ? "예: 소식, 레시피 — 새 이름을 입력하면 메뉴가 추가됩니다"
-              : "e.g. News, Recipes — type a new name to add a menu"
+              ? "예: 소식, 레시피 — 새 이름을 입력하면 카테고리가 추가됩니다"
+              : "e.g. News, Recipes — type a new name to add a category"
           }
         />
         <datalist id="blog-category-options">
@@ -394,8 +413,8 @@ export function BlogEditor({
         </datalist>
         <p className="mt-1 text-xs text-muted">
           {ko
-            ? "글이 속할 블로그 메뉴입니다. 비워두면 미분류로 저장됩니다."
-            : "The blog menu this post belongs to. Leave empty for uncategorized."}
+            ? "글이 속할 카테고리입니다. 위에서 골라 쓰거나 새로 입력하세요. 비워두면 미분류로 저장됩니다."
+            : "The category this post belongs to. Pick one above or type a new one. Leave empty for uncategorized."}
         </p>
       </div>
 

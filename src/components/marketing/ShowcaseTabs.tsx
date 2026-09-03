@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/utils/cn";
+import { Icon } from "@/components/ui/icons";
 import { CardNewsSlider } from "@/components/marketing/CardNewsSlider";
 import type {
   ShowcaseSiteItem,
@@ -73,8 +74,13 @@ export function PostCard({ item }: { item: ShowcasePostItem }) {
       href={item.href}
       target="_blank"
   rel="noopener noreferrer"
-      className="group block overflow-hidden rounded-2xl border border-border bg-surface-muted/60 transition hover:-translate-y-1 hover:border-primary/50"
+      className="group relative block overflow-hidden rounded-2xl border border-border bg-surface-muted/60 transition hover:-translate-y-1 hover:border-primary/50"
     >
+      {item.hotLabel && (
+        <span className="absolute left-3 top-3 z-10 rounded-full bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground shadow-sm">
+          🔥 {item.hotLabel}
+        </span>
+      )}
       {item.cover ? (
         // eslint-disable-next-line @next/next/no-img-element -- AI 생성 원격 이미지
         <img
@@ -87,7 +93,17 @@ export function PostCard({ item }: { item: ShowcasePostItem }) {
         <PlaceholderCover />
       )}
       <div className="px-5 py-4">
-        <p className="text-xs font-medium text-primary">{item.businessName}</p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="truncate text-xs font-medium text-primary">
+            {item.businessName}
+          </p>
+          {item.views > 0 && (
+            <span className="tnum inline-flex shrink-0 items-center gap-1 text-xs text-muted">
+              <Icon.eye width={14} height={14} />
+              {item.views.toLocaleString()}
+            </span>
+          )}
+        </div>
         <p className="mt-1 line-clamp-1 font-semibold group-hover:text-primary">
           {item.title}
         </p>
