@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Label, Select } from "@/components/ui/Field";
 import { Spinner } from "@/components/ui/Spinner";
 import { Icon } from "@/components/ui/icons";
+import { GuideSteps, CopyButton } from "@/components/ui/GuideCard";
 import { InstagramCard, toIGCards, cardImageSubject } from "./InstagramCard";
 import { IG } from "./cardTheme";
 import { resizeImage } from "@/components/website/templates/ImageSlot";
@@ -18,6 +19,8 @@ interface PostOption {
   title: string;
   slug?: string;
   published?: boolean;
+  /** 블로그 생성 시 함께 만들어진 SNS 캡션 (구 글은 없을 수 있음) */
+  socialCaption?: string | null;
 }
 
 const PREVIEW_W = 264;
@@ -254,6 +257,14 @@ export function CardNewsStudio({
             ? "먼저 블로그 글을 작성하면 카드뉴스로 만들어드립니다."
             : "Write a blog post first and we will turn it into card news."}
         </p>
+        <ButtonLink
+          href={`/business/${businessId}/blog/new`}
+          variant="outline"
+          className="mt-5"
+        >
+          <Icon.pen width={16} height={16} />
+          {ko ? "블로그 글 쓰러 가기" : "Go write a blog post"}
+        </ButtonLink>
       </div>
     );
   }
@@ -437,6 +448,61 @@ export function CardNewsStudio({
                 ? "PNG는 실제 크기(1080×1350)로 저장됩니다. AI 이미지 또는 직접 올린 사진이 각 카드의 배경으로 들어갑니다."
                 : "PNGs are saved at full size (1080×1350). AI images or your uploaded photos become each card's background."}
             </p>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-2">
+            <Card className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="font-semibold">
+                  {ko ? "함께 올릴 캡션" : "Caption to post with"}
+                </h3>
+                {selectedPost?.socialCaption && (
+                  <CopyButton text={selectedPost.socialCaption} />
+                )}
+              </div>
+              {selectedPost?.socialCaption ? (
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+                  {selectedPost.socialCaption}
+                </p>
+              ) : (
+                <p className="text-sm text-muted">
+                  {ko
+                    ? "이 글의 캡션이 아직 없어요. 위 'SNS 게시물'에서 만들 수 있어요."
+                    : "No caption for this post yet — generate one in 'Social posts' above."}
+                </p>
+              )}
+            </Card>
+            <Card className="space-y-4">
+              <p className="flex items-center gap-2 font-semibold">
+                <Icon.instagramBrand width={18} height={18} />
+                {ko ? "이제 인스타그램에 올려보세요" : "Now post it to Instagram"}
+              </p>
+              <GuideSteps
+                steps={[
+                  {
+                    title: ko
+                      ? "'전체 PNG 저장'으로 카드 이미지를 모두 저장하세요"
+                      : "Save every card with 'Save all PNGs'",
+                    desc: ko
+                      ? "휴대폰에서 하면 갤러리에 저장돼요."
+                      : "On your phone they land in the gallery.",
+                  },
+                  {
+                    title: ko
+                      ? "인스타그램 앱에서 ➕ 새 게시물 → 카드를 1번부터 순서대로 선택하세요"
+                      : "In the Instagram app, tap ➕ New post and pick the cards in order from #1",
+                    desc: ko
+                      ? "여러 장을 고르면 옆으로 넘기는 게시물이 돼요."
+                      : "Picking several makes a swipeable carousel.",
+                  },
+                  {
+                    title: ko
+                      ? "옆의 캡션을 붙여넣고 공유를 누르면 끝!"
+                      : "Paste the caption and tap Share — done!",
+                  },
+                ]}
+              />
+            </Card>
           </div>
 
           {/* Hidden full-size export layer */}

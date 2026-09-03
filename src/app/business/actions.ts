@@ -439,6 +439,8 @@ export async function updateBlogCoverAction(
 
   revalidatePath(`/business/${businessId}/blog/${postId}`);
   if (web?.slug) {
+    // 커버는 랜딩페이지 '최신 글' 섹션에도 노출된다
+    revalidatePath(`/site/${web.slug}`);
     revalidatePath(`/site/${web.slug}/blog`);
     revalidatePath(`/site/${web.slug}/blog/${post.slug}`);
   }
@@ -487,6 +489,8 @@ export async function publishBlogAction(
 
   revalidatePath(`/business/${businessId}/blog`);
   if (web?.slug) {
+    // 랜딩페이지 '최신 글' 섹션도 즉시 갱신되도록 루트 경로까지 재검증
+    revalidatePath(`/site/${web.slug}`);
     revalidatePath(`/site/${web.slug}/blog`);
     if (post?.slug) revalidatePath(`/site/${web.slug}/blog/${post.slug}`);
   }

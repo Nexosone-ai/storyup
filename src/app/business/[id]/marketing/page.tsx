@@ -5,6 +5,7 @@ import { getLocale } from "@/lib/i18n";
 import { MarketingHub } from "@/components/marketing/MarketingHub";
 import { CardNewsStudio } from "@/components/cards/CardNewsStudio";
 import { WorkflowSteps } from "@/components/dashboard/WorkflowSteps";
+import { GuideCard } from "@/components/ui/GuideCard";
 import type { CardNewsResult } from "@/types/domain";
 
 export const metadata = { title: "SNS" };
@@ -71,6 +72,7 @@ export default async function MarketingPage({
     title: p.title,
     slug: p.slug,
     published: p.status === "published",
+    socialCaption: p.social_caption,
   }));
   const siteSlug = website?.status === "published" ? website.slug : null;
 
@@ -90,6 +92,37 @@ export default async function MarketingPage({
 
       <WorkflowSteps businessId={id} current={4} />
 
+      <GuideCard
+        storageKey="guide.sns.v1"
+        title={
+          ko ? "SNS 콘텐츠, 이렇게 쓰는 거예요" : "How the social studio works"
+        }
+        steps={[
+          {
+            title: ko ? "블로그 글을 고르세요" : "Pick a blog post",
+            desc: ko
+              ? "여기 있는 모든 콘텐츠는 내 블로그 글에서 만들어져요."
+              : "Everything here is made from your blog posts.",
+          },
+          {
+            title: ko
+              ? "글(캡션)과 카드뉴스 이미지를 만들어요"
+              : "Generate a caption and card news images",
+            desc: ko
+              ? "'SNS 게시물'은 인스타그램·페이스북에 붙여넣을 글이고, '카드뉴스'는 함께 올릴 이미지예요. 둘을 짝지어 올리면 완성!"
+              : "'Social posts' is the text to paste into Instagram/Facebook, and 'card news' is the images to post with it. Pair them and you're done!",
+          },
+          {
+            title: ko
+              ? "복사·저장해서 각 앱에서 직접 올리세요"
+              : "Copy or save, then post from each app",
+            desc: ko
+              ? "자동으로 올라가지는 않아요. 만든 콘텐츠를 복사하거나 저장한 뒤 인스타그램·페이스북 앱에서 직접 게시해요. 방법은 아래에서 단계별로 알려드려요."
+              : "Nothing is uploaded automatically. Copy or save what you made, then post it yourself from the Instagram/Facebook app — step-by-step instructions are below.",
+          },
+        ]}
+      />
+
       <section className="space-y-4">
         <h2 className="text-lg font-semibold tracking-tight">
           {ko ? "SNS 게시물" : "Social posts"}
@@ -101,7 +134,7 @@ export default async function MarketingPage({
         />
       </section>
 
-      <section className="space-y-4">
+      <section id="card-news" className="scroll-mt-24 space-y-4">
         <div>
           <h2 className="text-lg font-semibold tracking-tight">
             {ko ? "카드뉴스 이미지" : "Card news images"}

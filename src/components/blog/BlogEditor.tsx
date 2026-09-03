@@ -14,7 +14,8 @@ import {
   updateBlogCoverAction,
   uploadSiteImage,
 } from "@/app/business/actions";
-import { preprocessMarkdown } from "@/utils/markdown";
+import { preprocessMarkdown, markdownToPlainText } from "@/utils/markdown";
+import { GuideSteps, CopyButton } from "@/components/ui/GuideCard";
 import { BlogCover } from "@/components/blog/BlogCover";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { resizeImage } from "@/components/website/templates/ImageSlot";
@@ -47,6 +48,7 @@ export function BlogEditor({
   const [cover, setCover] = useState(post.cover_image_url ?? null);
   const [tab, setTab] = useState<Tab>("write");
   const [note, setNote] = useState<string | null>(null);
+  const [justPublished, setJustPublished] = useState(false);
   const [saving, startSave] = useTransition();
   const [publishing, startPublish] = useTransition();
   const [coverPending, startCover] = useTransition();
@@ -221,7 +223,9 @@ export function BlogEditor({
       if (res.error) setNote(res.error);
       else {
         setStatus(next ? "published" : "draft");
-        setNote(res.message ?? null);
+        setJustPublished(next);
+        // 게시 성공은 아래 안내 패널이 대신하므로 한 줄 메시지는 비공개 전환에만 쓴다.
+        setNote(next ? null : (res.message ?? null));
       }
     });
 
@@ -275,11 +279,81 @@ export function BlogEditor({
 
       {note && <p className="text-sm text-primary">{note}</p>}
       {status === "published" && !sitePublished && (
-        <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-warning">
-          {ko
-            ? "랜딩페이지가 아직 공개되지 않아 블로그가 외부에 보이지 않습니다. 랜딩페이지를 먼저 공개해주세요."
-            : "Your landing page is not published yet, so this blog is not visible to the public. Publish your landing page first."}
-        </p>
+        <div className="space-y-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-warning">
+          <p>
+            {ko
+              ? "랜딩페이지가 아직 공개되지 않아 블로그가 외부에 보이지 않습니다. 랜딩페이지를 먼저 공개해주세요."
+              : "Your landing page is not published yet, so this blog is not visible to the public. Publish your landing page first."}
+          </p>
+          <ButtonLink
+            href={`/business/${businessId}/website`}
+            variant="outline"
+            size="sm"
+          >
+            {ko ? "랜딩페이지 공개하러 가기" : "Go publish the landing page"}
+          </ButtonLink>
+        </div>
+      )}
+      {justPublished && status === "published" && (
+        <div className="space-y-4 rounded-2xl border border-primary/25 bg-primary-soft/40 p-5">
+          <div className="flex items-center gap-2 font-semibold">
+            <Icon.check width={18} height={18} className="text-primary" />
+            {ko ? "글이 공개됐어요!" : "Your post is live!"}
+          </div>
+          <p className="text-sm text-foreground/85">
+            {ko
+              ? "랜딩페이지의 '최신 글'과 블로그 메뉴에 자동으로 올라갔어요. 따로 옮길 필요는 없어요."
+              : "It was added to your landing page's latest posts and blog menu automatically — nothing else to move."}
+          </p>
+          {publicHref && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="min-w-0 truncate rounded-lg bg-surface px-3 py-2 text-xs text-muted">
+                {`${typeof window !== "undefined" ? window.location.origin : ""}${publicHref}`}
+              </span>
+              <CopyButton text={() => `${window.location.origin}${publicHref}`}>
+                {ko ? "링크 복사" : "Copy link"}
+              </CopyButton>
+              <ButtonLink
+                href={publicHref}
+                variant="outline"
+                size="sm"
+                target="_blank"
+              >
+                <Icon.external width={16} height={16} />
+                {ko ? "글 보기" : "View post"}
+              </ButtonLink>
+            </div>
+          )}
+          <div className="space-y-3 border-t border-primary/15 pt-4">
+            <p className="text-sm font-semibold">
+              {ko ? "네이버 블로그에도 올리기" : "Post it on Naver Blog too"}
+            </p>
+            <GuideSteps
+              steps={[
+                {
+                  title: ko
+                    ? "아래 버튼으로 글 전체를 복사하세요"
+                    : "Copy the full post with the button below",
+                },
+                {
+                  title: ko
+                    ? "네이버 블로그 앱/사이트에서 '글쓰기'를 열고 붙여넣은 뒤 발행하세요"
+                    : "Open 'Write' in the Naver Blog app or site, paste, and publish",
+                },
+              ]}
+            />
+            <CopyButton text={() => `${title}\n\n${markdownToPlainText(content)}`}>
+              {ko ? "네이버 블로그용 본문 복사" : "Copy post for Naver Blog"}
+            </CopyButton>
+          </div>
+          <div className="border-t border-primary/15 pt-4">
+            <ButtonLink href={`/business/${businessId}/marketing`} size="sm">
+              {ko
+                ? "이 글로 SNS 콘텐츠 만들기 →"
+                : "Turn this post into social content →"}
+            </ButtonLink>
+          </div>
+        </div>
       )}
 
       <div>

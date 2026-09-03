@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/Card";
+import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/icons";
 import { deleteBlogAction } from "@/app/business/actions";
 import { useLocale } from "@/components/i18n/LocaleProvider";
@@ -43,9 +44,24 @@ export function BlogList({
   if (posts.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border bg-surface p-12 text-center">
-        <p className="text-muted">
-          {ko ? "아직 작성한 글이 없습니다." : "No posts yet."}
+        <div className="mx-auto grid size-12 place-items-center rounded-full bg-surface-muted text-muted">
+          <Icon.pen width={22} height={22} />
+        </div>
+        <p className="mt-4 font-semibold">
+          {ko ? "아직 글이 없어요" : "No posts yet"}
         </p>
+        <p className="mx-auto mt-1.5 max-w-md text-sm text-muted">
+          {ko
+            ? "블로그 글은 손님이 내 가게를 검색해서 찾아오게 만드는 가장 좋은 방법이에요. 주제 한 줄만 적으면 AI가 대신 써드립니다."
+            : "Blog posts are the best way for customers to find your business through search. Write one line about a topic and AI does the rest."}
+        </p>
+        <ButtonLink
+          href={`/business/${businessId}/blog/new`}
+          className="mt-5"
+        >
+          <Icon.sparkles width={18} height={18} />
+          {ko ? "AI로 첫 글 쓰기" : "Write your first post with AI"}
+        </ButtonLink>
       </div>
     );
   }

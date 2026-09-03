@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Label, Select } from "@/components/ui/Field";
 import { Spinner } from "@/components/ui/Spinner";
 import { Icon } from "@/components/ui/icons";
+import { GuideSteps } from "@/components/ui/GuideCard";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 
 interface PostOption {
@@ -69,6 +70,14 @@ export function MarketingHub({
             ? "먼저 블로그 글을 작성해주세요. 블로그 글을 SNS 콘텐츠로 바꿔드립니다."
             : "Write a blog post first — we turn blog posts into social content."}
         </p>
+        <ButtonLink
+          href={`/business/${businessId}/blog/new`}
+          variant="outline"
+          className="mt-5"
+        >
+          <Icon.pen width={16} height={16} />
+          {ko ? "블로그 글 쓰러 가기" : "Go write a blog post"}
+        </ButtonLink>
       </div>
     );
   }
@@ -107,10 +116,84 @@ export function MarketingHub({
       </Card>
 
       {(instagram || facebook) && (
-        <div className="grid gap-5 md:grid-cols-2">
-          <PlatformCard label="Instagram" text={instagram} />
-          <PlatformCard label="Facebook" text={facebook} />
-        </div>
+        <>
+          <div className="grid gap-5 md:grid-cols-2">
+            <PlatformCard label="Instagram" text={instagram} />
+            <PlatformCard label="Facebook" text={facebook} />
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="font-semibold tracking-tight">
+              {ko ? "이제 이렇게 올리세요" : "Now post it like this"}
+            </h3>
+            <div className="grid gap-5 md:grid-cols-2">
+              <Card className="space-y-4">
+                <p className="flex items-center gap-2 font-semibold">
+                  <Icon.instagramBrand width={18} height={18} />
+                  Instagram
+                </p>
+                <GuideSteps
+                  steps={[
+                    {
+                      title: ko
+                        ? "위 캡션을 '복사' 버튼으로 복사하세요"
+                        : "Copy the caption above with the Copy button",
+                    },
+                    {
+                      title: ko
+                        ? "인스타그램 앱에서 ➕ 새 게시물을 누르고 사진을 고르세요"
+                        : "In the Instagram app, tap ➕ New post and pick photos",
+                      desc: ko
+                        ? "카드뉴스 이미지를 쓰면 보기 좋아요."
+                        : "Card news images work great here.",
+                    },
+                    {
+                      title: ko
+                        ? "캡션 칸에 붙여넣고 공유를 누르세요"
+                        : "Paste into the caption field and tap Share",
+                    },
+                  ]}
+                />
+                <a
+                  href="#card-news"
+                  className="inline-block text-sm font-medium text-primary hover:underline"
+                >
+                  {ko
+                    ? "이미지가 필요하면 아래 '카드뉴스 이미지'에서 만들 수 있어요 ↓"
+                    : "Need images? Make them in 'Card news images' below ↓"}
+                </a>
+              </Card>
+              <Card className="space-y-4">
+                <p className="flex items-center gap-2 font-semibold">
+                  <Icon.facebookBrand width={18} height={18} />
+                  Facebook
+                </p>
+                <GuideSteps
+                  steps={[
+                    {
+                      title: ko
+                        ? "위 캡션을 복사하세요"
+                        : "Copy the caption above",
+                    },
+                    {
+                      title: ko
+                        ? "페이스북 앱/페이지에서 '게시물 만들기'를 여세요"
+                        : "Open 'Create post' in the Facebook app or your page",
+                    },
+                    {
+                      title: ko
+                        ? "붙여넣고 게시를 누르세요"
+                        : "Paste and hit Post",
+                      desc: ko
+                        ? "랜딩페이지 링크를 함께 붙이면 방문으로 이어져요."
+                        : "Add your landing page link to drive visits.",
+                    },
+                  ]}
+                />
+              </Card>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

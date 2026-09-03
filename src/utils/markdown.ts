@@ -46,6 +46,26 @@ export function preprocessMarkdown(md: string): string {
   return embedVideos(fixCjkBold(md ?? ""));
 }
 
+/**
+ * 마크다운을 순수 텍스트로 변환한다 — 네이버 블로그 등
+ * 외부 편집기에 붙여넣을 본문 복사용 (클라이언트 안전, 의존성 없음).
+ */
+export function markdownToPlainText(md: string): string {
+  return (md ?? "")
+    .replace(/```\w*\n?/g, "")
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/(\*\*|__)([^*_]+)\1/g, "$2")
+    .replace(/(^|[^*_])[*_]([^*_\n]+)[*_]/g, "$1$2")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/^>\s?/gm, "")
+    .replace(/^\s*[-*+]\s+/gm, "· ")
+    .replace(/^ {0,3}([-*_][ \t]*){3,}$/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 /** Render trusted (owner-authored) markdown to HTML for public blog pages. */
 export async function renderMarkdown(md: string): Promise<string> {
   return marked.parse(preprocessMarkdown(md));
