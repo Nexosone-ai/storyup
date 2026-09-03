@@ -10,6 +10,7 @@ import {
   signUpAction,
   signInWithGoogleAction,
   resetRequestAction,
+  updatePasswordAction,
   type AuthState,
 } from "@/app/(auth)/actions";
 import type { Dict } from "@/lib/i18n";
@@ -145,6 +146,42 @@ export function SignupForm({ t }: { t: AuthDict }) {
     </form>
     <GoogleAuth t={t} />
     </>
+  );
+}
+
+export function UpdatePasswordForm({ t }: { t: AuthDict }) {
+  const [state, action, pending] = useActionState(updatePasswordAction, initial);
+
+  return (
+    <form action={action} className="space-y-4">
+      <div>
+        <Label htmlFor="password">{t.newPassword}</Label>
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          autoComplete="new-password"
+          minLength={6}
+          required
+        />
+        <p className="mt-1 text-xs text-muted">{t.pwHint}</p>
+      </div>
+      <div>
+        <Label htmlFor="confirm">{t.confirmPassword}</Label>
+        <Input
+          id="confirm"
+          name="confirm"
+          type="password"
+          autoComplete="new-password"
+          minLength={6}
+          required
+        />
+      </div>
+      <Alert state={state} />
+      <Button type="submit" className="w-full" disabled={pending}>
+        {pending ? <Spinner /> : t.updateBtn}
+      </Button>
+    </form>
   );
 }
 

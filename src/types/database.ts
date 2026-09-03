@@ -626,9 +626,76 @@ export interface Database {
         >;
         Relationships: [];
       };
+      subscriptions: {
+        Row: {
+          user_id: string;
+          plan: string;
+          status: string;
+          current_period_end: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          plan?: string;
+          status?: string;
+          current_period_end?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["subscriptions"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      usage_events: {
+        Row: {
+          id: string;
+          user_id: string;
+          kind: string;
+          charged: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          kind: string;
+          charged?: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["usage_events"]["Insert"]>;
+        Relationships: [];
+      };
+      plan_grants: {
+        Row: {
+          user_id: string;
+          period: string;
+          plan: string;
+          amount: number;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          period: string;
+          plan: string;
+          amount: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["plan_grants"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
+      grant_plan_points: {
+        Args: {
+          p_user: string;
+          p_plan: string;
+          p_period: string;
+          p_amount: number;
+        };
+        Returns: boolean;
+      };
       spend_points: {
         Args: {
           p_user: string;

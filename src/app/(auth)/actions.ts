@@ -128,7 +128,7 @@ export async function resetRequestAction(
 
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${siteUrl}/auth/callback?next=/dashboard`,
+    redirectTo: `${siteUrl}/auth/callback?next=/update-password`,
   });
   if (error) return { error: friendly(error.message, ko) };
   return {
@@ -136,6 +136,44 @@ export async function resetRequestAction(
       ? "비밀번호 재설정 링크를 이메일로 보냈습니다."
       : "We emailed you a password reset link.",
   };
+}
+
+export async function updatePasswordAction(
+  _prev: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  const ko = (await getLocale()) === "ko";
+  const password = String(formData.get("password") ?? "");
+  const confirm = String(formData.get("confirm") ?? "");
+
+  if (password.length < 6)
+    return {
+      error: ko
+        ? "비밀번호는 6자 이상이어야 합니다."
+        : "Password must be at least 6 characters.",
+    };
+  if (password !== confirm)
+    return {
+      error: ko
+        ? "비밀번호가 서로 일치하지 않습니다."
+        : "The passwords do not match.",
+    };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user)
+    return {
+      error: ko
+        ? "재설정 링크가 만료되었거나 올바르지 않습니다. 재설정 메일을 다시 요청해주세요."
+        : "The reset link has expired or is invalid. Please request a new one.",
+    };
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return { error: friendly(error.message, ko) };
+
+  redirect("/dashboard");
 }
 
 export async function signOutAction(): Promise<void> {

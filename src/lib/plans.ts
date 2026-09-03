@@ -66,6 +66,12 @@ export const PLANS: Plan[] = [
   },
 ];
 
+const PLAN_BY_ID = new Map(PLANS.map((p) => [p.id, p]));
+
+export function getPlanById(id: PlanId): Plan {
+  return PLAN_BY_ID.get(id) ?? PLANS[0];
+}
+
 /** 월 제공량 초과 시 건당 차감 포인트 (1P = ₩1). */
 export const OVERAGE_COST = {
   site: 3000,

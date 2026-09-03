@@ -164,7 +164,7 @@ export const translations = {
     footer: {
       tagline: "당신의 이야기를 비즈니스로 · Turn Your Story Into Business",
       desc: "소상공인의 이야기를 비즈니스 자산으로.",
-      productLabel: "제품",
+      productLabel: "메뉴",
       companyLabel: "회사",
       product: [
         { label: "스토리들", href: "/showcase" },
@@ -185,6 +185,11 @@ export const translations = {
       signupSub: "이야기 하나면 충분합니다.",
       resetTitle: "비밀번호 재설정",
       resetSub: "가입한 이메일로 재설정 링크를 보내드립니다.",
+      updateTitle: "새 비밀번호 설정",
+      updateSub: "사용할 새 비밀번호를 입력해주세요.",
+      newPassword: "새 비밀번호",
+      confirmPassword: "비밀번호 확인",
+      updateBtn: "비밀번호 변경",
       email: "이메일",
       password: "비밀번호",
       name: "이름",
@@ -394,7 +399,7 @@ export const translations = {
     footer: {
       tagline: "Turn Your Story Into Business.",
       desc: "Turning small-business stories into business assets.",
-      productLabel: "Product",
+      productLabel: "Menu",
       companyLabel: "Company",
       product: [
         { label: "Stories", href: "/showcase" },
@@ -415,6 +420,11 @@ export const translations = {
       signupSub: "One story is all it takes.",
       resetTitle: "Reset password",
       resetSub: "We'll email a reset link to your account.",
+      updateTitle: "Set a new password",
+      updateSub: "Enter the new password you'd like to use.",
+      newPassword: "New password",
+      confirmPassword: "Confirm password",
+      updateBtn: "Update password",
       email: "Email",
       password: "Password",
       name: "Name",

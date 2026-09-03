@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, Badge } from "@/components/ui/Card";
 import { Spinner } from "@/components/ui/Spinner";
 import { useLocale } from "@/components/i18n/LocaleProvider";
+import { CARD_NEWS_PAGES, getPlanById, type PlanId } from "@/lib/plans";
 import {
   createChargeOrderAction,
   confirmChargeAction,
@@ -48,13 +50,64 @@ export interface PaymentItem {
   created_at: string;
 }
 
+export interface SubscriptionInfo {
+  planId: PlanId;
+  usage: { blogPosts: number; cardNews: number; aiImages: number };
+  sites: number;
+}
+
+function UsageRow({
+  label,
+  used,
+  limit,
+  ko,
+  unlimitedLabel,
+}: {
+  label: string;
+  used: number;
+  limit: number | null;
+  ko: boolean;
+  unlimitedLabel?: string;
+}) {
+  const pct =
+    limit === null || limit === 0
+      ? 0
+      : Math.min(100, Math.round((used / limit) * 100));
+  return (
+    <div>
+      <div className="flex items-center justify-between text-sm">
+        <span>{label}</span>
+        <span className="tnum text-muted">
+          {limit === null
+            ? (unlimitedLabel ?? (ko ? "협의" : "Custom"))
+            : limit === 0
+              ? ko
+                ? "무료 모델 전용"
+                : "Free model only"
+              : `${used.toLocaleString()} / ${limit.toLocaleString()}`}
+        </span>
+      </div>
+      {limit !== null && limit > 0 && (
+        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-muted">
+          <div
+            className={`h-full rounded-full ${pct >= 100 ? "bg-danger" : "bg-primary"}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function PointsView({
   balance,
+  subscription,
   transactions,
   packages,
   payments,
 }: {
   balance: number;
+  subscription: SubscriptionInfo;
   transactions: PointTx[];
   packages: ChargePackage[];
   payments: PaymentItem[];
@@ -176,6 +229,89 @@ export function PointsView({
             : "Purchased credits are for STORYUP services only"}
         </p>
       </Card>
+
+      {/* 내 플랜 · 이번 달 사용량 */}
+      {(() => {
+        const plan = getPlanById(subscription.planId);
+        return (
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold tracking-tight">
+                {ko ? "내 플랜" : "My plan"}
+              </h2>
+              <Link
+                href="/pricing"
+                target="_blank"
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                {ko ? "플랜 업그레이드 →" : "Upgrade plan →"}
+              </Link>
+            </div>
+            <Card className="space-y-4">
+              <div className="flex items-baseline justify-between">
+                <p className="text-base font-bold uppercase tracking-[0.1em]">
+                  {plan.name[ko ? "ko" : "en"]}
+                </p>
+                <p className="tnum text-sm text-muted">
+                  {plan.priceKrw === null
+                    ? ko
+                      ? "별도 협의"
+                      : "Custom"
+                    : plan.priceKrw === 0
+                      ? ko
+                        ? "무료"
+                        : "Free"
+                      : `₩${plan.priceKrw.toLocaleString()}${ko ? "/월" : "/mo"}`}
+                  {plan.monthlyPoints !== null && (
+                    <>
+                      {" · "}
+                      {ko
+                        ? `매월 ${plan.monthlyPoints.toLocaleString()}P`
+                        : `${plan.monthlyPoints.toLocaleString()}P/mo`}
+                    </>
+                  )}
+                </p>
+              </div>
+              <div className="space-y-3">
+                <UsageRow
+                  label={ko ? "AI 홈페이지 (보유)" : "AI websites (owned)"}
+                  used={subscription.sites}
+                  limit={plan.limits.sites}
+                  ko={ko}
+                />
+                <UsageRow
+                  label={ko ? "블로그 생성 (이번 달)" : "Blog posts (this month)"}
+                  used={subscription.usage.blogPosts}
+                  limit={plan.limits.blogPosts}
+                  ko={ko}
+                />
+                <UsageRow
+                  label={
+                    ko
+                      ? `SNS 카드뉴스 ${CARD_NEWS_PAGES}매 (이번 달)`
+                      : `Card news, ${CARD_NEWS_PAGES} pages (this month)`
+                  }
+                  used={subscription.usage.cardNews}
+                  limit={plan.limits.cardNews}
+                  ko={ko}
+                />
+                <UsageRow
+                  label={ko ? "AI 이미지 (이번 달)" : "AI images (this month)"}
+                  used={subscription.usage.aiImages}
+                  limit={plan.limits.aiImages}
+                  ko={ko}
+                  unlimitedLabel={ko ? "협의" : "Custom"}
+                />
+              </div>
+              <p className="text-xs text-muted">
+                {ko
+                  ? "제공량을 초과하면 건당 포인트가 자동 차감됩니다. (홈페이지 3,000P · 블로그 1,000P · 카드뉴스 1,000P · 이미지 100P)"
+                  : "Past your quota, points are deducted per item. (Website 3,000P · Blog 1,000P · Card news 1,000P · Image 100P)"}
+              </p>
+            </Card>
+          </section>
+        );
+      })()}
 
       {/* 충전 성공 */}
       {success && (

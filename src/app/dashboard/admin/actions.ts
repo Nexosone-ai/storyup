@@ -6,6 +6,7 @@ import {
   adminRefundPayment,
   getPointBreakdown,
 } from "@/lib/payments/service";
+import { PLANS, type PlanId } from "@/lib/plans";
 
 export interface AdminState {
   error?: string;
@@ -84,6 +85,45 @@ export interface UserPointLookup {
   balance?: number;
   purchasedRemaining?: number;
   recent?: { reason: string; amount: number; created_at: string }[];
+}
+
+/** 사용자 플랜 지정 — 정기결제 도입 전까지 관리자가 수동으로 부여한다. */
+export async function setUserPlanAction(
+  email: string,
+  plan: string,
+): Promise<AdminState> {
+  const { admin } = await requireAdmin();
+  if (!admin) return { error: "권한이 없습니다." };
+  if (!PLANS.some((p) => p.id === plan))
+    return { error: "올바르지 않은 플랜입니다." };
+
+  const adminc = createAdminClient();
+  const { data: profile } = await adminc
+    .from("profiles")
+    .select("user_id,name")
+    .eq("email", email.trim())
+    .maybeSingle();
+  if (!profile) return { error: "해당 이메일의 사용자를 찾을 수 없습니다." };
+
+  const { error } = await adminc.from("subscriptions").upsert(
+    {
+      user_id: profile.user_id,
+      plan: plan as PlanId,
+      status: "active",
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" },
+  );
+  if (error)
+    return {
+      error:
+        "플랜 저장에 실패했습니다. (0012 마이그레이션이 적용됐는지 확인해주세요)",
+    };
+  revalidatePath("/dashboard/admin");
+  return {
+    ok: true,
+    message: `${profile.name ?? email}님의 플랜을 ${plan.toUpperCase()}(으)로 변경했습니다.`,
+  };
 }
 
 /** 사용자 검색 → 잔액·구매잔여·최근 거래. */
