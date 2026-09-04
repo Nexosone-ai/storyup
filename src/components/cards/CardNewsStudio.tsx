@@ -210,8 +210,21 @@ export function CardNewsStudio({
     }
   };
 
-  const downloadAll = () =>
-    withBusy(async () => {
+  // 배경(AI 이미지·직접 올린 사진)이 비어 있는 카드 수 — 2번째부터 사진이
+  // 빠진 채 올라가는 실수를 막기 위해 저장 전에 확인한다.
+  const missingCount = cards.filter((_, i) => !images[i]).length;
+
+  const downloadAll = () => {
+    if (
+      missingCount > 0 &&
+      !confirm(
+        ko
+          ? `배경 사진이 없는 카드가 ${missingCount}장 있어요.\n'AI 이미지 생성'을 누르거나 카드마다 '사진 올리기'로 채우는 걸 추천해요.\n\n그래도 지금 그대로 저장할까요?`
+          : `${missingCount} card(s) have no background image.\nWe recommend pressing 'Generate AI images' or uploading a photo per card first.\n\nSave as-is anyway?`,
+      )
+    )
+      return;
+    void withBusy(async () => {
       for (let i = 0; i < igRefs.current.length; i++) {
         await downloadNode(
           igRefs.current[i],
@@ -220,6 +233,7 @@ export function CardNewsStudio({
         await new Promise((r) => setTimeout(r, 350));
       }
     });
+  };
 
   // 공유 대상: 선택한 글이 공개됐으면 그 글, 아니면 공개된 랜딩페이지.
   const selectedPost = posts.find((p) => p.id === postId);
@@ -296,7 +310,7 @@ export function CardNewsStudio({
           </Select>
         </div>
         {error && <p className="text-sm text-danger">{error}</p>}
-        <div className="flex flex-wrap gap-2">
+        <div data-tour="card-actions" className="flex flex-wrap gap-2">
           <Button onClick={generate} disabled={loading || imgBusy}>
             {loading ? <Spinner /> : <Icon.sparkles className="size-[18px]" />}
             {data
@@ -307,37 +321,6 @@ export function CardNewsStudio({
                 ? "카드뉴스 생성"
                 : "Generate card news"}
           </Button>
-          {data && (
-            <Button
-              variant="outline"
-              onClick={generateImages}
-              disabled={imgBusy || loading}
-            >
-              {imgBusy ? (
-                <>
-                  <Spinner className="size-4" />
-                  {ko ? "이미지 생성 중" : "Generating images"} {imgProgress}/
-                  {cards.length}
-                </>
-              ) : (
-                <>
-                  <Icon.sparkles className="size-4" />
-                  {images.some(Boolean)
-                    ? ko
-                      ? "AI 이미지 다시 생성"
-                      : "Regenerate AI images"
-                    : ko
-                      ? "AI 이미지 생성"
-                      : "Generate AI images"}
-                </>
-              )}
-            </Button>
-          )}
-          {images.some(Boolean) && !imgBusy && (
-            <Button variant="ghost" onClick={() => setImages([])}>
-              {ko ? "이미지 지우기" : "Clear images"}
-            </Button>
-          )}
         </div>
       </Card>
 
@@ -389,6 +372,14 @@ export function CardNewsStudio({
                 )}
               </div>
             </div>
+
+            {missingCount > 0 && !imgBusy && (
+              <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-warning">
+                {ko
+                  ? `배경이 비어 있는 카드가 ${missingCount}장 있어요. 'AI 이미지 생성'을 누르거나 각 카드의 '사진 올리기'로 채우면 훨씬 눈에 띄어요.`
+                  : `${missingCount} card(s) have an empty background. Press 'Generate AI images' or upload a photo per card to make them stand out.`}
+              </p>
+            )}
 
             <div className="flex gap-4 overflow-x-auto rounded-2xl border border-border bg-surface-muted/40 p-4">
               {cards.map((card, i) => (

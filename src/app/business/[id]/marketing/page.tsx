@@ -5,7 +5,7 @@ import { getLocale } from "@/lib/i18n";
 import { MarketingHub } from "@/components/marketing/MarketingHub";
 import { CardNewsStudio } from "@/components/cards/CardNewsStudio";
 import { WorkflowSteps } from "@/components/dashboard/WorkflowSteps";
-import { GuideCard } from "@/components/ui/GuideCard";
+import { GuidedTour } from "@/components/ui/GuidedTour";
 import type { CardNewsResult } from "@/types/domain";
 
 export const metadata = { title: "SNS" };
@@ -92,38 +92,43 @@ export default async function MarketingPage({
 
       <WorkflowSteps businessId={id} current={4} />
 
-      <GuideCard
-        storageKey="guide.sns.v1"
-        title={
-          ko ? "SNS 콘텐츠, 이렇게 쓰는 거예요" : "How the social studio works"
+      <GuidedTour
+        storageKey="tour.sns.v1"
+        autoStart={
+          !initialText.instagram && !initialText.facebook && !initialCards
         }
         steps={[
           {
-            title: ko ? "블로그 글을 고르세요" : "Pick a blog post",
+            target: "[data-tour=sns-posts]",
+            title: ko
+              ? "① 블로그 글을 SNS 글로 바꿔요"
+              : "① Turn a blog post into a caption",
             desc: ko
-              ? "여기 있는 모든 콘텐츠는 내 블로그 글에서 만들어져요."
-              : "Everything here is made from your blog posts.",
+              ? "블로그 글을 고르고 'SNS 콘텐츠 생성'을 누르면 인스타그램·페이스북에 붙여넣을 글(캡션)이 만들어져요. 자동으로 게시되지는 않아요 — 복사해서 앱에서 올려요."
+              : "Pick a blog post and press Generate to get captions for Instagram and Facebook. Nothing posts automatically — copy and paste in the app.",
           },
           {
+            target: "[data-tour=card-news]",
             title: ko
-              ? "글(캡션)과 카드뉴스 이미지를 만들어요"
-              : "Generate a caption and card news images",
+              ? "② 같은 글로 카드뉴스 이미지를 만들어요"
+              : "② Make card news images from the same post",
             desc: ko
-              ? "'SNS 게시물'은 인스타그램·페이스북에 붙여넣을 글이고, '카드뉴스'는 함께 올릴 이미지예요. 둘을 짝지어 올리면 완성!"
-              : "'Social posts' is the text to paste into Instagram/Facebook, and 'card news' is the images to post with it. Pair them and you're done!",
+              ? "'카드뉴스 생성'을 누르면 인스타그램에 여러 장으로 올리는 카드 이미지가 만들어져요. 위에서 만든 캡션과 짝지어 올리면 완성!"
+              : "Press Generate to create swipeable Instagram cards. Pair them with the caption above and you're done!",
           },
           {
+            target: "[data-tour=card-actions]",
             title: ko
-              ? "복사·저장해서 각 앱에서 직접 올리세요"
-              : "Copy or save, then post from each app",
+              ? "③ 카드 배경은 꼭 채워주세요!"
+              : "③ Don't forget card backgrounds!",
             desc: ko
-              ? "자동으로 올라가지는 않아요. 만든 콘텐츠를 복사하거나 저장한 뒤 인스타그램·페이스북 앱에서 직접 게시해요. 방법은 아래에서 단계별로 알려드려요."
-              : "Nothing is uploaded automatically. Copy or save what you made, then post it yourself from the Instagram/Facebook app — step-by-step instructions are below.",
+              ? "카드를 만든 뒤 'AI 이미지 생성'을 누르거나, 카드마다 '사진 올리기'로 내 사진을 넣어주세요. 배경 없이 저장하면 글자만 있는 밋밋한 카드가 돼요."
+              : "After generating cards, press 'Generate AI images' or upload your own photo per card. Cards saved without a background look plain.",
           },
         ]}
       />
 
-      <section className="space-y-4">
+      <section data-tour="sns-posts" className="space-y-4">
         <h2 className="text-lg font-semibold tracking-tight">
           {ko ? "SNS 게시물" : "Social posts"}
         </h2>
@@ -134,7 +139,7 @@ export default async function MarketingPage({
         />
       </section>
 
-      <section id="card-news" className="scroll-mt-24 space-y-4">
+      <section id="card-news" data-tour="card-news" className="scroll-mt-24 space-y-4">
         <div>
           <h2 className="text-lg font-semibold tracking-tight">
             {ko ? "카드뉴스 이미지" : "Card news images"}
