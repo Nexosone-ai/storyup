@@ -1,13 +1,14 @@
 import type { WebsiteRow } from "@/types/database";
 import type { WebsiteContent, CardNewsResult } from "@/types/domain";
 import type { ShowcasePost, ShowcaseCard } from "@/lib/queries";
+import { stripHtml } from "@/utils/richtext";
 
 /** 직렬화 가능한 쇼케이스 카드 데이터 (서버에서 만들어 클라이언트 탭으로 전달) */
 export interface ShowcaseSiteItem {
   href: string;
   name: string;
   headline: string;
-  image: string | null;
+  logo: string | null;
 }
 
 export interface ShowcasePostItem {
@@ -27,8 +28,8 @@ export function toSiteItem(site: WebsiteRow): ShowcaseSiteItem {
   return {
     href: `/site/${site.slug}`,
     name: content.hero?.businessName ?? "",
-    headline: content.hero?.headline ?? "",
-    image: content.hero?.image ?? null,
+    headline: stripHtml(content.hero?.headline ?? ""),
+    logo: content.hero?.logo ?? null,
   };
 }
 
