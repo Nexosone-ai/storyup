@@ -204,6 +204,11 @@ export interface CardNewsResult {
   cover: { title: string; subtitle: string };
   slides: CardNewsSlide[]; // 3–4 content slides
   cta: { text: string; handle: string };
+  /**
+   * 카드별 배경 이미지 URL (toIGCards 순서: cover → slides → cta).
+   * AI 생성/직접 업로드 후 저장되며, 스튜디오 복원과 쇼케이스 표시에 쓰인다.
+   */
+  images?: (string | null)[];
 }
 
 // Input the onboarding wizard collects.

@@ -8,6 +8,10 @@ import { Spinner } from "@/components/ui/Spinner";
 import { Icon } from "@/components/ui/icons";
 import { GuideSteps, CopyButton } from "@/components/ui/GuideCard";
 import { InstagramCard, toIGCards, cardImageSubject } from "./InstagramCard";
+import {
+  uploadSiteImage,
+  saveCardImagesAction,
+} from "@/app/business/actions";
 import { IG } from "./cardTheme";
 import { resizeImage } from "@/components/website/templates/ImageSlot";
 import { trackEvent } from "@/lib/track";
@@ -24,15 +28,6 @@ interface PostOption {
 }
 
 const PREVIEW_W = 264;
-
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(r.result as string);
-    r.onerror = () => rej(r.error);
-    r.readAsDataURL(file);
-  });
-}
 
 async function downloadNode(node: HTMLElement | null, filename: string) {
   if (!node) return;
@@ -67,7 +62,14 @@ export function CardNewsStudio({
   const [data, setData] = useState<CardNewsResult | null>(
     initial?.cardNews ?? null,
   );
-  const [images, setImages] = useState<Array<string | undefined>>([]);
+  // 지난번에 저장해 둔 카드별 배경을 복원한다.
+  const [images, setImages] = useState<Array<string | undefined>>(
+    initial?.cardNews?.images?.map((u) => u ?? undefined) ?? [],
+  );
+  // 현재 카드 세트가 어느 블로그 글의 것인지 — 배경 저장 시 필요하다.
+  const [dataPostId, setDataPostId] = useState<string | null>(
+    initial?.blogPostId ?? null,
+  );
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [imgBusy, setImgBusy] = useState(false);
@@ -99,6 +101,7 @@ export function CardNewsStudio({
         );
       setData(json.cardNews as CardNewsResult);
       setImages([]); // reset backdrops for the new set
+      setDataPostId(postId);
     } catch (e) {
       setError(
         e instanceof Error
@@ -112,59 +115,63 @@ export function CardNewsStudio({
     }
   };
 
+  /** 배경 이미지 목록을 카드뉴스에 저장한다 (URL만 — 실패는 조용히 무시). */
+  const persistImages = (arr: Array<string | undefined>) => {
+    if (!dataPostId) return;
+    void saveCardImagesAction(
+      businessId,
+      dataPostId,
+      arr.map((u) => (u && /^https?:\/\//.test(u) ? u : null)),
+    ).catch(() => undefined);
+  };
+
   const generateImages = async () => {
     if (!cards.length) return;
     setError(null);
     setImgBusy(true);
     setImgProgress(0);
-    try {
-      const results = await Promise.all(
-        cards.map(async (card) => {
-          try {
-            const res = await fetch("/api/ai/card-image", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                businessId,
-                subject: cardImageSubject(card),
-                aspect: "3:4",
-              }),
-            });
-            const json = await res.json();
-            setImgProgress((p) => p + 1);
-            if (!res.ok)
-              throw new Error(
-                json.error ??
-                  (ko ? "이미지 생성 실패" : "Image generation failed"),
-              );
-            return json.image as string;
-          } catch (e) {
-            if (e instanceof Error && /키|API|401|502/.test(e.message)) {
-              throw e; // surface config errors
-            }
-            setImgProgress((p) => p + 1);
-            return undefined;
+    // 순차 생성 — 동시에 여러 장을 요청하면 이미지 서버 제한으로 일부만 성공한다.
+    const results: Array<string | undefined> = [];
+    let fatal: string | null = null;
+    for (const card of cards) {
+      try {
+        const res = await fetch("/api/ai/card-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            businessId,
+            subject: cardImageSubject(card),
+            aspect: "3:4",
+          }),
+        });
+        const json = await res.json().catch(() => ({}) as { error?: string });
+        if (!res.ok) {
+          const msg =
+            json.error ?? (ko ? "이미지 생성 실패" : "Image generation failed");
+          // 로그인·포인트 문제는 나머지 카드도 똑같이 실패하므로 즉시 중단한다.
+          if (res.status === 401 || res.status === 402) {
+            fatal = msg;
+            break;
           }
-        }),
-      );
-      setImages(results);
-      if (results.every((r) => !r))
-        setError(
-          ko
-            ? "이미지를 생성하지 못했습니다. API 키 설정을 확인해주세요."
-            : "Could not generate images. Please check the API key settings.",
-        );
-    } catch (e) {
-      setError(
-        e instanceof Error
-          ? e.message
-          : ko
-            ? "이미지 생성에 실패했습니다."
-            : "Image generation failed.",
-      );
-    } finally {
-      setImgBusy(false);
+          results.push(undefined);
+        } else {
+          results.push(json.image as string);
+        }
+      } catch {
+        results.push(undefined);
+      }
+      setImgProgress((p) => p + 1);
     }
+    setImages(results);
+    persistImages(results);
+    if (fatal) setError(fatal);
+    else if (results.every((r) => !r))
+      setError(
+        ko
+          ? "이미지를 생성하지 못했습니다. 잠시 후 다시 시도해주세요."
+          : "Could not generate images. Please try again shortly.",
+      );
+    setImgBusy(false);
   };
 
   const pickImage = (i: number) => {
@@ -178,14 +185,19 @@ export function CardNewsStudio({
     if (!file) return;
     setError(null);
     try {
-      // 카드 원본(1080px)에 맞춰 축소 후 data URL로 보관 — 내보내기(html-to-image)와 호환.
-      const dataUrl = await fileToDataUrl(await resizeImage(file, 1080));
-      const i = uploadTarget.current;
-      setImages((prev) => {
-        const next = [...prev];
-        next[i] = dataUrl;
-        return next;
-      });
+      // 카드 원본(1080px)에 맞춰 축소 후 스토리지에 올린다 — URL이어야 카드뉴스에 저장된다.
+      const resized = await resizeImage(file, 1080);
+      const fd = new FormData();
+      fd.append("file", resized);
+      const up = await uploadSiteImage(businessId, fd);
+      if (up.error || !up.url) {
+        setError(up.error ?? (ko ? "업로드에 실패했습니다." : "Upload failed."));
+        return;
+      }
+      const next = [...images];
+      next[uploadTarget.current] = up.url;
+      setImages(next);
+      persistImages(next);
     } catch {
       setError(
         ko
@@ -219,8 +231,8 @@ export function CardNewsStudio({
       missingCount > 0 &&
       !confirm(
         ko
-          ? `배경 사진이 없는 카드가 ${missingCount}장 있어요.\n'AI 이미지 생성'을 누르거나 카드마다 '사진 올리기'로 채우는 걸 추천해요.\n\n그래도 지금 그대로 저장할까요?`
-          : `${missingCount} card(s) have no background image.\nWe recommend pressing 'Generate AI images' or uploading a photo per card first.\n\nSave as-is anyway?`,
+          ? `배경 사진이 없는 카드가 ${missingCount}장 있어요.\n'AI 이미지로 배경 채우기'를 누르거나 카드마다 '사진 올리기'로 채우는 걸 추천해요.\n\n그래도 지금 그대로 다운로드할까요?`
+          : `${missingCount} card(s) have no background image.\nWe recommend pressing 'Fill backgrounds with AI' or uploading a photo per card first.\n\nDownload as-is anyway?`,
       )
     )
       return;
@@ -358,7 +370,10 @@ export function CardNewsStudio({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setImages([])}
+                        onClick={() => {
+                          setImages([]);
+                          persistImages([]);
+                        }}
                       >
                         {ko ? "이미지 지우기" : "Clear images"}
                       </Button>
@@ -371,7 +386,7 @@ export function CardNewsStudio({
                   ) : (
                     <Icon.external className="size-4" />
                   )}
-                  {ko ? "전체 PNG 저장" : "Save all PNGs"}
+                  {ko ? "전체 PNG 다운로드" : "Download all PNGs"}
                 </Button>
                 {sharePath ? (
                   <>
@@ -432,6 +447,25 @@ export function CardNewsStudio({
               </div>
             )}
 
+            {/* 배경이 다 채워지면 다음 단계(저장 → 인스타 업로드)를 바로 안내한다 */}
+            {missingCount === 0 && images.some(Boolean) && (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary-soft/50 px-4 py-3">
+                <p className="text-sm text-foreground/85">
+                  {ko
+                    ? "배경이 모두 채워졌고 카드뉴스에 자동 저장됐어요! 이제 PNG로 내려받아 인스타그램에 올려보세요."
+                    : "All backgrounds are filled and saved to your card news! Now download the PNGs and post them to Instagram."}
+                </p>
+                <Button size="sm" onClick={downloadAll} disabled={busy}>
+                  {busy ? (
+                    <Spinner className="size-4" />
+                  ) : (
+                    <Icon.external className="size-4" />
+                  )}
+                  {ko ? "전체 PNG 다운로드" : "Download all PNGs"}
+                </Button>
+              </div>
+            )}
+
             <div className="flex gap-4 overflow-x-auto rounded-2xl border border-border bg-surface-muted/40 p-4">
               {cards.map((card, i) => (
                 <div key={i} className="shrink-0">
@@ -457,7 +491,7 @@ export function CardNewsStudio({
                       className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-border bg-surface py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary/50 hover:text-primary disabled:opacity-50"
                     >
                       <Icon.external className="size-3.5" />
-                      {ko ? `${i + 1}번 저장` : `Save #${i + 1}`}
+                      {ko ? `${i + 1}번 다운로드` : `Download #${i + 1}`}
                     </button>
                   </div>
                   <div
@@ -487,8 +521,8 @@ export function CardNewsStudio({
             </div>
             <p className="text-xs text-muted">
               {ko
-                ? "PNG는 실제 크기(1080×1350)로 저장됩니다. AI 이미지 또는 직접 올린 사진이 각 카드의 배경으로 들어갑니다."
-                : "PNGs are saved at full size (1080×1350). AI images or your uploaded photos become each card's background."}
+                ? "PNG는 실제 크기(1080×1350)로 다운로드됩니다. 배경 이미지는 카드뉴스에 자동 저장되어 다음에 와도 유지돼요."
+                : "PNGs download at full size (1080×1350). Background images are saved to your card news automatically and persist across visits."}
             </p>
           </div>
 
@@ -523,8 +557,8 @@ export function CardNewsStudio({
                 steps={[
                   {
                     title: ko
-                      ? "'전체 PNG 저장'으로 카드 이미지를 모두 저장하세요"
-                      : "Save every card with 'Save all PNGs'",
+                      ? "'전체 PNG 다운로드'로 카드 이미지를 모두 내려받으세요"
+                      : "Download every card with 'Download all PNGs'",
                     desc: ko
                       ? "휴대폰에서 하면 갤러리에 저장돼요."
                       : "On your phone they land in the gallery.",

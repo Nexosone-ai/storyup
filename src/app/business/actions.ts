@@ -506,6 +506,60 @@ export async function publishBlogAction(
   };
 }
 
+/**
+ * 카드뉴스 배경 이미지 URL 목록을 저장한다 (스튜디오에서 자동 호출).
+ * marketing_contents의 카드뉴스 JSON에 images 배열을 병합해,
+ * 새로고침·쇼케이스에서도 배경이 유지되게 한다.
+ */
+export async function saveCardImagesAction(
+  businessId: string,
+  blogPostId: string,
+  images: (string | null)[],
+): Promise<ActionState> {
+  const ko = (await getLocale()) === "ko";
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
+
+  // 스토리지 URL만 저장한다 — data URL은 행 크기를 폭증시키므로 제외.
+  const clean = images
+    .slice(0, 12)
+    .map((u) =>
+      typeof u === "string" && /^https?:\/\//.test(u) ? u.slice(0, 600) : null,
+    );
+
+  // 소유권 확인은 RLS가 걸린 사용자 클라이언트 조회로 한다.
+  const { data: row } = await supabase
+    .from("marketing_contents")
+    .select("id, content")
+    .eq("business_id", businessId)
+    .eq("blog_post_id", blogPostId)
+    .eq("platform", "instagram_cards")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!row)
+    return {
+      error: ko ? "카드뉴스를 찾을 수 없습니다." : "Card news not found.",
+    };
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(row.content) as Record<string, unknown>;
+  } catch {
+    return { error: ko ? "저장에 실패했습니다." : "Failed to save." };
+  }
+  parsed.images = clean;
+
+  // marketing_contents에는 UPDATE RLS가 없어 관리자 클라이언트로 쓴다.
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("marketing_contents")
+    .update({ content: JSON.stringify(parsed) })
+    .eq("id", row.id);
+  if (error) return { error: ko ? "저장에 실패했습니다." : "Failed to save." };
+  return { ok: true };
+}
+
 export async function deleteBlogAction(
   businessId: string,
   postId: string,

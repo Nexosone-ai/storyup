@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getAIProvider } from "@/lib/ai";
 import { chargeAiUsage, InsufficientPointsError } from "@/lib/ai/billing";
 import { getImageProvider, ImageGenerationError } from "@/lib/ai/image";
@@ -66,6 +66,30 @@ export async function POST(request: Request) {
       .catch(() => subject);
     const prompt = buildCardImagePrompt(business.category, scene);
     const { b64, mime } = await getImageProvider().generateImage(prompt, aspect);
+
+    // 스토리지에 올려 URL로 반환 — 카드뉴스 JSON에 저장할 수 있고 새로고침해도 유지된다.
+    // 업로드가 실패하면 data URL로 폴백한다 (화면 표시는 되지만 저장은 안 됨).
+    try {
+      const admin = createAdminClient();
+      const ext = (mime.split("/")[1] || "png").replace("jpeg", "jpg");
+      const path = `${businessId}/cards/${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}.${ext}`;
+      const { error: upErr } = await admin.storage
+        .from("site-images")
+        .upload(path, Buffer.from(b64, "base64"), {
+          contentType: mime,
+          upsert: false,
+        });
+      if (!upErr) {
+        const {
+          data: { publicUrl },
+        } = admin.storage.from("site-images").getPublicUrl(path);
+        return NextResponse.json({ ok: true, image: publicUrl });
+      }
+    } catch {
+      // 폴백으로 진행
+    }
     return NextResponse.json({ ok: true, image: `data:${mime};base64,${b64}` });
   } catch (err) {
     await billing.refund();

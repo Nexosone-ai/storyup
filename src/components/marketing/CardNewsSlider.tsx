@@ -81,7 +81,11 @@ export function CardNewsSlider({ item }: { item: ShowcaseCardItem }) {
                   total={count}
                   brandName={item.businessName}
                   handle={item.handle}
-                  image={i === 0 ? (item.image ?? undefined) : undefined}
+                  // 저장된 카드별 배경 우선, 없으면 첫 카드만 대표 이미지로
+                  image={
+                    item.cardNews.images?.[i] ??
+                    (i === 0 ? (item.image ?? undefined) : undefined)
+                  }
                 />
               </div>
             )}
