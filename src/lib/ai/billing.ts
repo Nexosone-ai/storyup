@@ -103,8 +103,14 @@ async function chargeLegacy(
     p_ref_id: null,
   });
   if (error) {
-    if (error.message?.includes("INSUFFICIENT_POINTS"))
-      throw new InsufficientPointsError(ko, "charge");
+    if (error.message?.includes("INSUFFICIENT_POINTS")) {
+      const { data: txs } = await admin
+        .from("point_transactions")
+        .select("amount")
+        .eq("user_id", userId);
+      const balance = (txs ?? []).reduce((s, t) => s + t.amount, 0);
+      throw new InsufficientPointsError(ko, "charge", { needed: price, balance });
+    }
     console.error("[billing] spend_points failed", service, error);
     // 과금 인프라 오류로 서비스 자체를 막지는 않는다 (감사 로그만 남김)
     return noop;

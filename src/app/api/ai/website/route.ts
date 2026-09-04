@@ -5,6 +5,7 @@ import {
   chargeWebsiteGeneration,
   InsufficientPointsError,
 } from "@/lib/ai/billing";
+import { trackGrowthActivity } from "@/lib/gamification/engine";
 import { getLocale } from "@/lib/i18n";
 import type {
   BusinessInterviewInput,
@@ -107,6 +108,13 @@ export async function POST(request: Request) {
     // 사이트 콘텐츠 언어를 저장 — 템플릿 크롬(메뉴·연락처 라벨)이 이를 따른다.
     content.language = locale;
 
+    // 신규 생성인지(보상 구분) 업서트 전에 확인
+    const { data: existingSite } = await supabase
+      .from("websites")
+      .select("id")
+      .eq("business_id", businessId)
+      .maybeSingle();
+
     const { error } = await supabase.from("websites").upsert(
       {
         business_id: businessId,
@@ -117,6 +125,13 @@ export async function POST(request: Request) {
       { onConflict: "business_id" },
     );
     if (error) throw error;
+
+    // 성장 보상 — 최초 생성은 site_created(비즈니스당 1회), 재생성은 업데이트로 기록
+    await trackGrowthActivity(
+      user.id,
+      existingSite ? "site_updated" : "site_created",
+      existingSite ? undefined : businessId,
+    );
 
     return NextResponse.json({ ok: true });
   } catch (err) {

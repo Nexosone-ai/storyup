@@ -99,21 +99,21 @@ export function PointsView({
   return (
     <div className="mx-auto max-w-2xl space-y-8">
       <div>
-        <p className="eyebrow mb-2">{ko ? "포인트" : "Points"}</p>
+        <p className="eyebrow mb-2">UP</p>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          {ko ? "포인트 지갑" : "Points wallet"}
+          {ko ? "UP 지갑" : "UP wallet"}
         </h1>
       </div>
 
       <div className="rounded-2xl bg-primary p-6 text-primary-foreground shadow-sm">
-        <p className="text-sm opacity-85">{ko ? "보유 포인트" : "Balance"}</p>
+        <p className="text-sm opacity-85">{ko ? "보유 UP" : "Balance"}</p>
         <p className="tnum mt-1 text-4xl font-bold">
-          {balance.toLocaleString()} P
+          🪙 {balance.toLocaleString()} UP
         </p>
         <p className="mt-2 text-xs opacity-75">
           {ko
-            ? "포인트는 플랜 구독으로 매월 제공되며, STORYUP 서비스 이용 전용입니다"
-            : "Points are granted monthly with your plan and are for STORYUP services only"}
+            ? "UP은 플랜 구독과 활동 보상으로 쌓이며, STORYUP 서비스 이용 전용입니다 (현금·양도 불가)"
+            : "UP is earned through your plan and activity rewards, and can only be spent inside STORYUP (no cash-out or transfer)"}
         </p>
       </div>
 
@@ -153,8 +153,8 @@ export function PointsView({
                     <>
                       {" · "}
                       {ko
-                        ? `매월 ${plan.monthlyPoints.toLocaleString()}P`
-                        : `${plan.monthlyPoints.toLocaleString()}P/mo`}
+                        ? `매월 ${plan.monthlyPoints.toLocaleString()} UP`
+                        : `${plan.monthlyPoints.toLocaleString()} UP/mo`}
                     </>
                   )}
                 </p>
@@ -192,8 +192,8 @@ export function PointsView({
               </div>
               <p className="text-xs text-muted">
                 {ko
-                  ? "제공량을 초과하면 건당 포인트가 자동 차감됩니다. (랜딩페이지 3,000P · 블로그 1,000P · 카드뉴스 1,000P · 이미지 100P)"
-                  : "Past your quota, points are deducted per item. (Landing page 3,000P · Blog 1,000P · Card news 1,000P · Image 100P)"}
+                  ? "제공량을 초과하면 건당 UP이 자동 차감됩니다. (랜딩페이지 3,000 UP · 블로그 1,000 UP · 카드뉴스 1,000 UP · 이미지 100 UP)"
+                  : "Past your quota, UP is deducted per item. (Landing page 3,000 UP · Blog 1,000 UP · Card news 1,000 UP · Image 100 UP)"}
               </p>
             </Card>
           </section>
@@ -212,7 +212,7 @@ export function PointsView({
                 <div className="min-w-0">
                   <p className="tnum text-sm font-medium">
                     ₩{p.amount.toLocaleString()} →{" "}
-                    {p.credits.toLocaleString()} P
+                    {p.credits.toLocaleString()} UP
                   </p>
                   <p className="text-xs text-muted">
                     {fmtDate(p.created_at, ko)}
@@ -250,7 +250,7 @@ export function PointsView({
                   className={`tnum font-semibold ${t.amount >= 0 ? "text-primary" : "text-danger"}`}
                 >
                   {t.amount >= 0 ? "+" : ""}
-                  {t.amount.toLocaleString()} P
+                  {t.amount.toLocaleString()} UP
                 </span>
               </li>
             ))}

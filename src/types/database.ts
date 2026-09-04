@@ -29,6 +29,8 @@ export interface Database {
           name: string | null;
           email: string | null;
           is_admin: boolean;
+          /** 추천 코드 (0016 마이그레이션 이전 DB에서는 없을 수 있음) */
+          referral_code: string | null;
           created_at: string;
         };
         Insert: {
@@ -37,6 +39,7 @@ export interface Database {
           name?: string | null;
           email?: string | null;
           is_admin?: boolean;
+          referral_code?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
@@ -715,6 +718,168 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["plan_grants"]["Insert"]>;
         Relationships: [];
       };
+      reward_events: {
+        Row: {
+          id: string;
+          user_id: string;
+          reward_key: string;
+          rule: string;
+          up: number;
+          xp: number;
+          meta: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          reward_key: string;
+          rule: string;
+          up?: number;
+          xp?: number;
+          meta?: Json | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["reward_events"]["Insert"]>;
+        Relationships: [];
+      };
+      user_xp: {
+        Row: {
+          user_id: string;
+          xp: number;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          xp?: number;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["user_xp"]["Insert"]>;
+        Relationships: [];
+      };
+      activity_events: {
+        Row: {
+          id: string;
+          user_id: string;
+          action: string;
+          ref_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          action: string;
+          ref_id?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["activity_events"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      user_streaks: {
+        Row: {
+          user_id: string;
+          current: number;
+          longest: number;
+          last_date: string | null;
+          started: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          current?: number;
+          longest?: number;
+          last_date?: string | null;
+          started?: string | null;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["user_streaks"]["Insert"]>;
+        Relationships: [];
+      };
+      user_achievements: {
+        Row: {
+          user_id: string;
+          code: string;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          code: string;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["user_achievements"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      referrals: {
+        Row: {
+          referred_user_id: string;
+          referrer_user_id: string;
+          code: string;
+          paid_rewarded: boolean;
+          created_at: string;
+        };
+        Insert: {
+          referred_user_id: string;
+          referrer_user_id: string;
+          code: string;
+          paid_rewarded?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["referrals"]["Insert"]>;
+        Relationships: [];
+      };
+      reward_settings: {
+        Row: {
+          key: string;
+          value: Json;
+          updated_at: string;
+        };
+        Insert: {
+          key: string;
+          value: Json;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["reward_settings"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      search_stats: {
+        Row: {
+          user_id: string;
+          impressions: number;
+          clicks: number;
+          checked_at: string;
+        };
+        Insert: {
+          user_id: string;
+          impressions?: number;
+          clicks?: number;
+          checked_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["search_stats"]["Insert"]>;
+        Relationships: [];
+      };
+      story_score_history: {
+        Row: {
+          user_id: string;
+          date: string;
+          score: number;
+          breakdown: Json | null;
+        };
+        Insert: {
+          user_id: string;
+          date: string;
+          score: number;
+          breakdown?: Json | null;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["story_score_history"]["Insert"]
+        >;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -744,6 +909,17 @@ export interface Database {
           p_slug: string;
         };
         Returns: undefined;
+      };
+      grant_reward: {
+        Args: {
+          p_user: string;
+          p_key: string;
+          p_rule: string;
+          p_up: number;
+          p_xp: number;
+          p_reason: string;
+        };
+        Returns: boolean;
       };
     };
     Enums: Record<string, never>;

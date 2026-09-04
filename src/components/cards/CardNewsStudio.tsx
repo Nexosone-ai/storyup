@@ -15,6 +15,7 @@ import {
 import { IG } from "./cardTheme";
 import { resizeImage } from "@/components/website/templates/ImageSlot";
 import { trackEvent } from "@/lib/track";
+import { recordShareAction } from "@/app/dashboard/growth/actions";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import type { CardNewsResult } from "@/types/domain";
 
@@ -258,6 +259,8 @@ export function CardNewsStudio({
   const openShare = (channel: "x" | "facebook") => {
     if (!sharePath || !data) return;
     trackEvent({ slug: siteSlug!, event: "share", path: sharePath, channel });
+    // 성장 보상 — 서버에서 본인 확인 후 기록 (실패 무시)
+    void recordShareAction(channel);
     const url = `${window.location.origin}${sharePath}`;
     const target =
       channel === "x"

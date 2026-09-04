@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAIProvider, AIGenerationError } from "@/lib/ai";
 import { chargeAiUsage, InsufficientPointsError } from "@/lib/ai/billing";
+import { trackGrowthActivity } from "@/lib/gamification/engine";
 import { getLocale } from "@/lib/i18n";
 import type { BusinessInterviewInput, BrandTone } from "@/types/domain";
 
@@ -81,6 +82,9 @@ export async function POST(request: Request) {
       { onConflict: "business_id" },
     );
     if (error) throw error;
+
+    // 성장 보상 — 브랜드 프로필 완성 (비즈니스당 1회, 실패해도 무시)
+    await trackGrowthActivity(user.id, "brand_profile", businessId);
 
     return NextResponse.json({ ok: true });
   } catch (err) {

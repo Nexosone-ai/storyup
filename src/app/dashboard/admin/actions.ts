@@ -7,6 +7,11 @@ import {
   getPointBreakdown,
 } from "@/lib/payments/service";
 import { PLANS, type PlanId } from "@/lib/plans";
+import { markReferralPaidConversion } from "@/lib/gamification/referral";
+import {
+  SETTING_KEYS,
+  invalidateSettingsCache,
+} from "@/lib/gamification/config";
 
 export interface AdminState {
   error?: string;
@@ -119,6 +124,10 @@ export async function setUserPlanAction(
       error:
         "플랜 저장에 실패했습니다. (0012 마이그레이션이 적용됐는지 확인해주세요)",
     };
+
+  // 추천받은 사용자의 유료 전환 — 추천인에게 1회 보상 (free 제외)
+  if (plan !== "free") await markReferralPaidConversion(profile.user_id);
+
   revalidatePath("/dashboard/admin");
   return {
     ok: true,
@@ -218,3 +227,116 @@ export async function saveServicePriceAction(
   return { ok: true, message: "가격이 저장되었습니다." };
 }
 
+
+// ---------------- 게이미피케이션 (UP/XP/미션/보상 정책) ----------------
+
+const GROWTH_SETTING_KEYS = new Set<string>(Object.values(SETTING_KEYS));
+
+/** 보상 정책 저장 — key별 JSON. 저장 즉시 엔진 캐시를 무효화한다. */
+export async function saveRewardSettingAction(
+  key: string,
+  json: string,
+): Promise<AdminState> {
+  const { admin } = await requireAdmin();
+  if (!admin) return { error: "권한이 없습니다." };
+  if (!GROWTH_SETTING_KEYS.has(key))
+    return { error: "알 수 없는 설정 키입니다." };
+
+  let value: unknown;
+  try {
+    value = JSON.parse(json);
+  } catch {
+    return { error: "JSON 형식이 올바르지 않습니다." };
+  }
+
+  const adminc = createAdminClient();
+  const { error } = await adminc.from("reward_settings").upsert({
+    key,
+    value: value as never,
+    updated_at: new Date().toISOString(),
+  });
+  if (error)
+    return {
+      error: "저장에 실패했습니다. (0016 마이그레이션이 적용됐는지 확인해주세요)",
+    };
+  invalidateSettingsCache();
+  revalidatePath("/dashboard/admin");
+  return { ok: true, message: `${key} 설정이 저장되었습니다.` };
+}
+
+/** 보상 정책 초기화 — DB 오버라이드를 지우고 코드 기본값으로 되돌린다. */
+export async function resetRewardSettingAction(key: string): Promise<AdminState> {
+  const { admin } = await requireAdmin();
+  if (!admin) return { error: "권한이 없습니다." };
+  if (!GROWTH_SETTING_KEYS.has(key))
+    return { error: "알 수 없는 설정 키입니다." };
+  const adminc = createAdminClient();
+  await adminc.from("reward_settings").delete().eq("key", key);
+  invalidateSettingsCache();
+  revalidatePath("/dashboard/admin");
+  return { ok: true, message: `${key} 설정을 기본값으로 되돌렸습니다.` };
+}
+
+export interface UserGrowthLookup {
+  error?: string;
+  name?: string;
+  email?: string;
+  balance?: number;
+  xp?: number;
+  streak?: number;
+  achievements?: number;
+  referrals?: number;
+  recentRewards?: { rule: string; up: number; xp: number; created_at: string }[];
+}
+
+/** 사용자 성장 상태 조회 (UP·XP·스트릭·업적·추천). */
+export async function lookupUserGrowthAction(
+  email: string,
+): Promise<UserGrowthLookup> {
+  const { admin } = await requireAdmin();
+  if (!admin) return { error: "권한이 없습니다." };
+
+  const adminc = createAdminClient();
+  const { data: profile } = await adminc
+    .from("profiles")
+    .select("user_id,name,email")
+    .eq("email", email.trim())
+    .maybeSingle();
+  if (!profile) return { error: "해당 이메일의 사용자를 찾을 수 없습니다." };
+
+  const [breakdown, xpRow, streakRow, achCount, refCount, recent] =
+    await Promise.all([
+      getPointBreakdown(profile.user_id),
+      adminc.from("user_xp").select("xp").eq("user_id", profile.user_id).maybeSingle(),
+      adminc
+        .from("user_streaks")
+        .select("current")
+        .eq("user_id", profile.user_id)
+        .maybeSingle(),
+      adminc
+        .from("user_achievements")
+        .select("code", { count: "exact", head: true })
+        .eq("user_id", profile.user_id),
+      adminc
+        .from("referrals")
+        .select("referred_user_id", { count: "exact", head: true })
+        .eq("referrer_user_id", profile.user_id),
+      adminc
+        .from("reward_events")
+        .select("rule,up,xp,created_at")
+        .eq("user_id", profile.user_id)
+        .order("created_at", { ascending: false })
+        .limit(10),
+    ]);
+
+  return {
+    name: profile.name ?? "이름 없음",
+    email: profile.email ?? email,
+    balance: breakdown.balance,
+    xp: xpRow.data?.xp ?? 0,
+    streak: streakRow.data?.current ?? 0,
+    achievements: achCount.count ?? 0,
+    referrals: refCount.count ?? 0,
+    recentRewards: recent.data ?? [],
+  };
+}

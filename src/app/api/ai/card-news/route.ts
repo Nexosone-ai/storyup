@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAIProvider, AIGenerationError } from "@/lib/ai";
 import { chargeAiUsage, InsufficientPointsError } from "@/lib/ai/billing";
+import { trackGrowthActivity } from "@/lib/gamification/engine";
 import { getLocale } from "@/lib/i18n";
 import { slugify } from "@/utils/slug";
 
@@ -96,6 +97,9 @@ export async function POST(request: Request) {
       platform: "instagram_cards",
       content: JSON.stringify(result),
     });
+
+    // 성장 보상 — 같은 글의 카드뉴스 재생성은 중복 지급되지 않도록 글 ID를 멱등키로
+    await trackGrowthActivity(user.id, "card_created", blogPostId);
 
     return NextResponse.json({ ok: true, cardNews: result });
   } catch (err) {

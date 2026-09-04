@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { getUser, getProfileName, getDashboardData } from "@/lib/queries";
+import { getGrowthOverview } from "@/lib/gamification/overview";
 import { getLocale } from "@/lib/i18n";
 import { SummaryCards } from "@/components/dashboard/SummaryCards";
+import { GrowthSection } from "@/components/dashboard/GrowthSection";
 import { BusinessCard } from "@/components/dashboard/BusinessCard";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/icons";
@@ -19,9 +22,12 @@ export default async function DashboardPage() {
   const user = await getUser();
   if (!user) redirect("/login");
   const ko = (await getLocale()) === "ko";
-  const [name, data] = await Promise.all([
+  // 추천 링크(/join?ref=)로 가입한 경우 쿠키의 코드를 귀속 처리에 넘긴다
+  const refCode = (await cookies()).get("su_ref")?.value ?? null;
+  const [name, data, growth] = await Promise.all([
     getProfileName(),
     getDashboardData(user.id),
+    getGrowthOverview(user.id, refCode),
   ]);
 
   return (
@@ -43,6 +49,8 @@ export default async function DashboardPage() {
           {ko ? "새 비즈니스 만들기" : "Create new business"}
         </ButtonLink>
       </div>
+
+      <GrowthSection g={growth} ko={ko} />
 
       <SummaryCards totals={data.totals} />
 

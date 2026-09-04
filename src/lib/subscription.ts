@@ -83,15 +83,24 @@ export interface QuotaCharge {
 }
 
 export class InsufficientPointsError extends Error {
-  constructor(ko: boolean, context: "quota" | "charge" = "quota") {
+  constructor(
+    ko: boolean,
+    context: "quota" | "charge" = "quota",
+    detail?: { needed: number; balance: number },
+  ) {
+    const suffix = detail
+      ? ko
+        ? ` (필요 ${detail.needed.toLocaleString()} UP · 보유 ${detail.balance.toLocaleString()} UP)`
+        : ` (needs ${detail.needed.toLocaleString()} UP · you have ${detail.balance.toLocaleString()} UP)`
+      : "";
     super(
-      context === "quota"
+      (context === "quota"
         ? ko
-          ? "이번 달 제공량을 모두 사용했고, 추가 생성에 필요한 포인트가 부족합니다. 플랜을 업그레이드해주세요."
-          : "You've used this month's quota and don't have enough points for extra generations. Please upgrade your plan."
+          ? "이번 달 제공량을 모두 사용했고, 추가 생성에 필요한 UP이 부족합니다. 플랜을 업그레이드해주세요."
+          : "You've used this month's quota and don't have enough UP for extra generations. Please upgrade your plan."
         : ko
-          ? "포인트가 부족합니다. 플랜을 업그레이드해주세요."
-          : "Not enough points. Please upgrade your plan.",
+          ? "UP이 부족합니다. 플랜을 업그레이드해주세요."
+          : "Not enough UP. Please upgrade your plan.") + suffix,
     );
     this.name = "InsufficientPointsError";
   }
@@ -150,8 +159,15 @@ export async function consumeQuota(
       p_ref_id: null,
     });
     if (error) {
-      if (error.message?.includes("INSUFFICIENT_POINTS"))
-        throw new InsufficientPointsError(ko);
+      if (error.message?.includes("INSUFFICIENT_POINTS")) {
+        // 사용자에게 필요한 UP과 현재 잔액을 함께 알려준다
+        const { data: txs } = await admin
+          .from("point_transactions")
+          .select("amount")
+          .eq("user_id", userId);
+        const balance = (txs ?? []).reduce((s, t) => s + t.amount, 0);
+        throw new InsufficientPointsError(ko, "quota", { needed: cost, balance });
+      }
       console.error("[subscription] spend_points failed", kind, error);
       return null;
     }

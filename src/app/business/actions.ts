@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { trackGrowthActivity } from "@/lib/gamification/engine";
 import { getLocale } from "@/lib/i18n";
 import { slugify } from "@/utils/slug";
 import { BUSINESS_CATEGORIES } from "@/types/domain";
@@ -206,6 +207,10 @@ export async function updateBrandAction(
     .eq("business_id", businessId);
   if (error) return { error: ko ? "저장에 실패했습니다." : "Failed to save." };
 
+  // 성장 보상 — 브랜드 프로필 완성 (비즈니스당 1회 멱등, 핵심 필드가 채워졌을 때만)
+  if (fields.brand_story && fields.headline && fields.short_description)
+    await trackGrowthActivity(user.id, "brand_profile", businessId);
+
   revalidatePath(`/business/${businessId}/brand`);
   return { ok: true, message: ko ? "저장되었습니다." : "Saved." };
 }
@@ -225,6 +230,9 @@ export async function saveWebsiteAction(
     .update({ content })
     .eq("business_id", businessId);
   if (error) return { error: ko ? "저장에 실패했습니다." : "Failed to save." };
+
+  // 성장 활동 — 홈페이지 업데이트 (보상은 하루 1회)
+  await trackGrowthActivity(user.id, "site_updated");
 
   revalidatePath(`/business/${businessId}/website`);
   return { ok: true, message: ko ? "저장되었습니다." : "Saved." };
@@ -351,6 +359,9 @@ export async function publishWebsiteAction(
   if (error)
     return { error: ko ? "처리에 실패했습니다." : "Something went wrong." };
 
+  // 성장 활동 — 게시 상태 변경도 홈페이지 관리 활동으로 인정
+  if (publish) await trackGrowthActivity(user.id, "site_updated");
+
   revalidatePath(`/business/${businessId}/website`);
   if (web?.slug) revalidatePath(`/site/${web.slug}`);
   return {
@@ -400,6 +411,9 @@ export async function saveBlogAction(
       .eq("business_id", businessId));
   }
   if (error) return { error: ko ? "저장에 실패했습니다." : "Failed to save." };
+
+  // 성장 활동 — 콘텐츠 수정 (스트릭·미션 인정, 별도 UP 지급 없음)
+  await trackGrowthActivity(user.id, "blog_edited", postId);
 
   revalidatePath(`/business/${businessId}/blog/${postId}`);
   return { ok: true, message: ko ? "저장되었습니다." : "Saved." };
@@ -486,6 +500,9 @@ export async function publishBlogAction(
     .eq("business_id", businessId);
   if (error)
     return { error: ko ? "처리에 실패했습니다." : "Something went wrong." };
+
+  // 성장 보상 — 발행 시 1회 (멱등키: 글 ID, 재발행 중복 지급 없음)
+  if (publish) await trackGrowthActivity(user.id, "blog_published", postId);
 
   revalidatePath(`/business/${businessId}/blog`);
   if (web?.slug) {
