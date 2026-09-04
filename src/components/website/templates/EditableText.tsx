@@ -83,7 +83,7 @@ function EditableText({
         onChange(v);
       }}
       className={cn(
-        "cursor-text rounded-sm outline-none ring-primary/40 transition hover:bg-primary-soft/40 focus:bg-primary-soft/50 focus:ring-2",
+        "cursor-text rounded-sm outline-none ring-primary/40 transition hover:bg-primary-soft/40 focus:bg-primary-soft/50 focus:ring-2 [&_a]:underline",
         className,
       )}
       style={style}

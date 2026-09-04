@@ -22,10 +22,12 @@ const FONT_SIZE_EM: Record<string, string> = {
 
 const COLOR_RE = /^(#[0-9a-f]{3,8}|rgba?\([\d.,%\s]+\)|[a-z]+)$/i;
 const FONT_SIZE_RE = /^[\d.]+(em|rem|px|%)$/i;
+/** 하이퍼링크로 허용하는 주소 형식 (javascript: 등 차단) */
+const SAFE_HREF_RE = /^(https?:\/\/|mailto:|tel:)[^\s"'<>]+$/i;
 
 /** 값에 서식(또는 붙여넣기로 들어온) HTML 태그가 있는지 — 렌더 경로 분기용. */
 export function hasRichHtml(value: string): boolean {
-  return /<\/?(b|strong|i|em|u|s|strike|mark|span|font|br|div|p|li|h[1-6])\b/i.test(
+  return /<\/?(a|b|strong|i|em|u|s|strike|mark|span|font|br|div|p|li|h[1-6])\b/i.test(
     value,
   );
 }
@@ -96,7 +98,8 @@ function sanitizeTag(tag: string, open: string[]): string {
     let name = closing[1].toLowerCase();
     if (name === "strike") name = "s";
     if (name === "font") name = "span";
-    if (name === "span" || SIMPLE_TAGS.has(name)) return closeTag(name, open);
+    if (name === "span" || name === "a" || SIMPLE_TAGS.has(name))
+      return closeTag(name, open);
     return "";
   }
   const opening = tag.match(/^<\s*([a-z0-9]+)/i);
@@ -107,6 +110,13 @@ function sanitizeTag(tag: string, open: string[]): string {
   if (SIMPLE_TAGS.has(name) || name === "s") {
     open.push(name);
     return `<${name}>`;
+  }
+  if (name === "a") {
+    // 안전한 주소만 링크로 유지 — 항상 새 탭 + noopener 로 연다.
+    const href = attrValue(tag, "href")?.trim() ?? "";
+    if (!SAFE_HREF_RE.test(href)) return "";
+    open.push("a");
+    return `<a href="${href}" target="_blank" rel="noopener noreferrer nofollow" style="text-decoration:underline">`;
   }
   if (name === "span" || name === "font") {
     let style = "";

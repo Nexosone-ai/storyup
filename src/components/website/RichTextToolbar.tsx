@@ -69,6 +69,28 @@ export function RichTextToolbar() {
     document.execCommand(cmd, false, val);
   };
 
+  /** 선택 영역에 하이퍼링크 걸기 — prompt 동안 선택이 풀릴 수 있어 복원 후 적용. */
+  const addLink = () => {
+    const sel = window.getSelection();
+    const range =
+      sel && sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null;
+    const input = window.prompt(
+      ko
+        ? "연결할 주소(URL)를 입력하세요"
+        : "Enter the URL to link to",
+      "https://",
+    );
+    if (!input) return;
+    let url = input.trim();
+    if (!url || url === "https://") return;
+    if (!/^(https?:\/\/|mailto:|tel:)/i.test(url)) url = `https://${url}`;
+    if (range && sel) {
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+    exec("createLink", url);
+  };
+
   const showBelow = anchor.top < 104;
   const left = Math.min(
     Math.max(anchor.left, 170),
@@ -110,6 +132,19 @@ export function RichTextToolbar() {
       </button>
       <button type="button" title={ko ? "작게" : "Smaller"} className={btn} onClick={() => exec("fontSize", "2")}>
         가<span className="text-[10px] leading-none">－</span>
+      </button>
+      {divider}
+      <button type="button" title={ko ? "링크 걸기" : "Add link"} className={btn} onClick={addLink}>
+        🔗
+      </button>
+      <button
+        type="button"
+        title={ko ? "링크 해제" : "Remove link"}
+        className={`${btn} relative`}
+        onClick={() => exec("unlink")}
+      >
+        <span className="opacity-60">🔗</span>
+        <span className="absolute text-xs font-bold text-danger">✕</span>
       </button>
       {divider}
       <button
