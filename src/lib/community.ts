@@ -12,6 +12,8 @@ export interface FeedPost {
   id: string;
   content: string;
   authorName: string | null;
+  /** 작성자의 공개된 랜딩페이지 슬러그 — 이름 클릭 시 그 사업자 스토리로 이동 */
+  authorSiteSlug: string | null;
   imageUrls: string[];
   createdAt: string;
   likeCount: number;
@@ -60,6 +62,32 @@ async function buildFeed(
           { data: [] as never[] },
         ];
 
+  // 스토리 게시판은 작성자 이름을 공개하므로, 이름 클릭 시 이동할
+  // 작성자의 공개 랜딩페이지 슬러그를 함께 찾는다 (찐이야기는 익명이라 생략).
+  const slugByUser = new Map<string, string>();
+  if (postType === "story" && list.length > 0) {
+    const userIds = [...new Set(list.map((p) => p.user_id as string))];
+    const { data: bizs } = await supabase
+      .from("businesses")
+      .select("id, user_id")
+      .in("user_id", userIds);
+    const bizIds = (bizs ?? []).map((b) => b.id);
+    if (bizIds.length > 0) {
+      const { data: sites } = await supabase
+        .from("websites")
+        .select("business_id, slug, published_at")
+        .in("business_id", bizIds)
+        .eq("status", "published")
+        .order("published_at", { ascending: false });
+      const userByBiz = new Map((bizs ?? []).map((b) => [b.id, b.user_id]));
+      for (const s of sites ?? []) {
+        const uid = userByBiz.get(s.business_id);
+        // 최신 공개 사이트 우선 (이미 최신순 정렬)
+        if (uid && !slugByUser.has(uid)) slugByUser.set(uid, s.slug);
+      }
+    }
+  }
+
   const all = likes ?? [];
   const allComments = comments ?? [];
   return list.map((p) => {
@@ -68,6 +96,7 @@ async function buildFeed(
       id: p.id,
       content: p.content,
       authorName: "author_name" in p ? (p.author_name as string) : null,
+      authorSiteSlug: slugByUser.get(p.user_id as string) ?? null,
       imageUrls: "image_urls" in p ? ((p.image_urls as string[]) ?? []) : [],
       createdAt: p.created_at,
       likeCount: forPost.length,

@@ -349,13 +349,34 @@ function Feed({
               className="rounded-2xl border border-border bg-surface p-5"
             >
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-sm font-medium">
-                  {showAuthor
-                    ? p.authorName || (ko ? "익명" : "Anonymous")
-                    : ko
-                      ? "익명"
-                      : "Anonymous"}
-                </span>
+                {showAuthor && p.authorSiteSlug ? (
+                  <Link
+                    href={`/site/${p.authorSiteSlug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={
+                      ko
+                        ? "이 사업자의 스토리 보러 가기"
+                        : "Visit this business's story"
+                    }
+                    className="group/author flex items-center gap-1 text-sm font-medium underline-offset-2 hover:text-primary hover:underline"
+                  >
+                    {p.authorName || (ko ? "익명" : "Anonymous")}
+                    <Icon.external
+                      width={12}
+                      height={12}
+                      className="text-muted group-hover/author:text-primary"
+                    />
+                  </Link>
+                ) : (
+                  <span className="text-sm font-medium">
+                    {showAuthor
+                      ? p.authorName || (ko ? "익명" : "Anonymous")
+                      : ko
+                        ? "익명"
+                        : "Anonymous"}
+                  </span>
+                )}
                 <span className="text-xs text-muted">
                   {timeAgo(p.createdAt, ko)}
                 </span>
