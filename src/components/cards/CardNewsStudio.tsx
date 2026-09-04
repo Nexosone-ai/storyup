@@ -334,6 +334,37 @@ export function CardNewsStudio({
                   : `${cards.length} Instagram cards`}
               </p>
               <div className="flex flex-wrap items-center gap-2">
+                {images.some(Boolean) && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={generateImages}
+                      disabled={imgBusy || loading}
+                    >
+                      {imgBusy ? (
+                        <>
+                          <Spinner className="size-4" />
+                          {imgProgress}/{cards.length}
+                        </>
+                      ) : (
+                        <>
+                          <Icon.sparkles className="size-4" />
+                          {ko ? "AI 이미지 다시 생성" : "Regenerate AI images"}
+                        </>
+                      )}
+                    </Button>
+                    {!imgBusy && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setImages([])}
+                      >
+                        {ko ? "이미지 지우기" : "Clear images"}
+                      </Button>
+                    )}
+                  </>
+                )}
                 <Button size="sm" onClick={downloadAll} disabled={busy}>
                   {busy ? (
                     <Spinner className="size-4" />
@@ -373,12 +404,32 @@ export function CardNewsStudio({
               </div>
             </div>
 
-            {missingCount > 0 && !imgBusy && (
-              <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-warning">
-                {ko
-                  ? `배경이 비어 있는 카드가 ${missingCount}장 있어요. 'AI 이미지 생성'을 누르거나 각 카드의 '사진 올리기'로 채우면 훨씬 눈에 띄어요.`
-                  : `${missingCount} card(s) have an empty background. Press 'Generate AI images' or upload a photo per card to make them stand out.`}
-              </p>
+            {missingCount > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3">
+                <p className="text-sm text-warning">
+                  {ko
+                    ? `배경이 비어 있는 카드가 ${missingCount}장 있어요. AI로 한 번에 채우거나, 각 카드의 '사진 올리기'로 내 사진을 넣어보세요.`
+                    : `${missingCount} card(s) have an empty background. Fill them all with AI, or upload your own photo per card.`}
+                </p>
+                <Button
+                  size="sm"
+                  onClick={generateImages}
+                  disabled={imgBusy || loading}
+                >
+                  {imgBusy ? (
+                    <>
+                      <Spinner className="size-4" />
+                      {ko ? "생성 중" : "Generating"} {imgProgress}/
+                      {cards.length}
+                    </>
+                  ) : (
+                    <>
+                      <Icon.sparkles className="size-4" />
+                      {ko ? "AI 이미지로 배경 채우기" : "Fill backgrounds with AI"}
+                    </>
+                  )}
+                </Button>
+              </div>
             )}
 
             <div className="flex gap-4 overflow-x-auto rounded-2xl border border-border bg-surface-muted/40 p-4">

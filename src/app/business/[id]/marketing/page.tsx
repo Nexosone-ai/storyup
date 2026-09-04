@@ -122,8 +122,8 @@ export default async function MarketingPage({
               ? "③ 카드 배경은 꼭 채워주세요!"
               : "③ Don't forget card backgrounds!",
             desc: ko
-              ? "카드를 만든 뒤 'AI 이미지 생성'을 누르거나, 카드마다 '사진 올리기'로 내 사진을 넣어주세요. 배경 없이 저장하면 글자만 있는 밋밋한 카드가 돼요."
-              : "After generating cards, press 'Generate AI images' or upload your own photo per card. Cards saved without a background look plain.",
+              ? "카드를 만들면 카드 목록 위에 'AI 이미지로 배경 채우기' 버튼이 나타나요. 그 버튼을 누르거나 카드마다 '사진 올리기'로 내 사진을 넣어주세요. 배경 없이 저장하면 글자만 있는 밋밋한 카드가 돼요."
+              : "Once cards are generated, a 'Fill backgrounds with AI' button appears above them. Press it, or upload your own photo per card — cards without a background look plain.",
           },
         ]}
       />
