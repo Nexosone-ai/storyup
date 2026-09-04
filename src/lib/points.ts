@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { PointPackageRow, PaymentRow } from "@/types/database";
+import type { PaymentRow } from "@/types/database";
 
 export interface PointTx {
   id: string;
@@ -16,17 +16,6 @@ export async function getMyTransactions(userId: string): Promise<PointTx[]> {
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(50);
-  return data ?? [];
-}
-
-/** 판매 중인 충전 패키지 (RLS: active만 노출). */
-export async function getActivePackages(): Promise<PointPackageRow[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("point_packages")
-    .select("*")
-    .eq("active", true)
-    .order("sort_order", { ascending: true });
   return data ?? [];
 }
 

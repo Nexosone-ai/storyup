@@ -1,10 +1,6 @@
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/queries";
-import {
-  getMyTransactions,
-  getActivePackages,
-  getMyPayments,
-} from "@/lib/points";
+import { getMyTransactions, getMyPayments } from "@/lib/points";
 import { getPointBreakdown } from "@/lib/payments/service";
 import { getSubscriptionOverview } from "@/lib/subscription";
 import { PointsView } from "@/components/points/PointsView";
@@ -15,14 +11,12 @@ export default async function PointsPage() {
   const user = await getUser();
   if (!user) redirect("/login");
 
-  const [breakdown, transactions, packages, payments, overview] =
-    await Promise.all([
-      getPointBreakdown(user.id),
-      getMyTransactions(user.id),
-      getActivePackages(),
-      getMyPayments(user.id),
-      getSubscriptionOverview(user.id),
-    ]);
+  const [breakdown, transactions, payments, overview] = await Promise.all([
+    getPointBreakdown(user.id),
+    getMyTransactions(user.id),
+    getMyPayments(user.id),
+    getSubscriptionOverview(user.id),
+  ]);
 
   return (
     <PointsView
@@ -33,13 +27,6 @@ export default async function PointsPage() {
         sites: overview.sites,
       }}
       transactions={transactions}
-      packages={packages.map((p) => ({
-        id: p.id,
-        name: p.name,
-        price: p.price_krw,
-        credits: p.credits,
-        bonus: p.bonus_credits,
-      }))}
       payments={payments.map((p) => ({
         id: p.id,
         orderId: p.order_id,

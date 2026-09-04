@@ -139,9 +139,9 @@ export const translations = {
         },
       ],
       pricingEyebrow: "PRICING",
-      pricingT: "무료로 시작, 필요할 때 충전",
+      pricingT: "무료로 시작, 필요할 때 업그레이드",
       pricingSub:
-        "브랜드 스토리와 랜딩페이지는 무료로 시작할 수 있습니다. AI 콘텐츠 생성은 크레딧 충전으로 필요한 만큼만 사용하세요.",
+        "브랜드 스토리와 랜딩페이지는 무료로 시작할 수 있습니다. 콘텐츠가 더 필요해지면 월 구독 플랜으로 업그레이드하세요.",
       pricingBtn: "무료 플랜 시작하기",
       pricingLink: "요금제 자세히 보기 →",
       ctaTitle1: "당신의 이야기가",
@@ -377,9 +377,9 @@ export const translations = {
         },
       ],
       pricingEyebrow: "PRICING",
-      pricingT: "Start free, top up when you grow",
+      pricingT: "Start free, upgrade when you grow",
       pricingSub:
-        "Brand story and landing page are free to start. Pay only for the AI content you generate, with prepaid credits.",
+        "Brand story and landing page are free to start. Upgrade to a monthly plan when you need more content.",
       pricingBtn: "Start with the free plan",
       pricingLink: "See plans & pricing →",
       ctaTitle1: "Your story is",

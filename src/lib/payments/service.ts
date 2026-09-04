@@ -1,4 +1,3 @@
-import { randomUUID } from "crypto";
 import { createAdminClient } from "@/lib/supabase/server";
 import {
   getPortonePayment,
@@ -13,49 +12,6 @@ import type { PaymentRow } from "@/types/database";
  * - 포인트 적립은 PortOne API로 결제를 재검증한 뒤에만, 원장 유니크 제약으로 1회만.
  * - 모든 상태 변화는 payments + point_transactions에 감사 기록을 남긴다.
  */
-
-export interface ChargeOrder {
-  orderId: string;
-  orderName: string;
-  amount: number;
-  currency: "KRW";
-}
-
-/** 내부 주문 생성 — 서버가 권위 있는 가격을 확정한다. */
-export async function createChargeOrder(
-  userId: string,
-  packageId: string,
-): Promise<ChargeOrder> {
-  const admin = createAdminClient();
-  const { data: pkg } = await admin
-    .from("point_packages")
-    .select("*")
-    .eq("id", packageId)
-    .eq("active", true)
-    .maybeSingle();
-  if (!pkg) throw new Error("판매 중인 패키지가 아닙니다.");
-
-  const orderId = `su_${randomUUID()}`;
-  const orderName = `STORYUP 크레딧 — ${pkg.name} (${(
-    pkg.credits + pkg.bonus_credits
-  ).toLocaleString()}P)`;
-
-  const { error } = await admin.from("payments").insert({
-    user_id: userId,
-    order_id: orderId,
-    package_id: pkg.id,
-    provider: "portone",
-    currency: "KRW",
-    amount: pkg.price_krw,
-    credits: pkg.credits,
-    bonus_credits: pkg.bonus_credits,
-    status: "PENDING",
-    metadata: { package_name: pkg.name },
-  });
-  if (error) throw new Error("주문 생성에 실패했습니다.");
-
-  return { orderId, orderName, amount: pkg.price_krw, currency: "KRW" };
-}
 
 export interface SyncResult {
   status: PaymentRow["status"];

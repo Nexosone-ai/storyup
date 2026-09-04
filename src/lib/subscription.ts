@@ -87,11 +87,11 @@ export class InsufficientPointsError extends Error {
     super(
       context === "quota"
         ? ko
-          ? "이번 달 제공량을 모두 사용했고, 추가 생성에 필요한 포인트가 부족합니다. 포인트를 충전하거나 플랜을 업그레이드해주세요."
-          : "You've used this month's quota and don't have enough points for extra generations. Top up points or upgrade your plan."
+          ? "이번 달 제공량을 모두 사용했고, 추가 생성에 필요한 포인트가 부족합니다. 플랜을 업그레이드해주세요."
+          : "You've used this month's quota and don't have enough points for extra generations. Please upgrade your plan."
         : ko
-          ? "포인트가 부족합니다. 충전 후 이용해주세요."
-          : "Not enough points. Please top up and try again.",
+          ? "포인트가 부족합니다. 플랜을 업그레이드해주세요."
+          : "Not enough points. Please upgrade your plan.",
     );
     this.name = "InsufficientPointsError";
   }
