@@ -5,6 +5,7 @@ import { SiteRenderer } from "@/components/website/SiteRenderer";
 import { TrackPageView } from "@/components/site/TrackPageView";
 import { contactHref } from "@/components/website/templates/shared";
 import { buildSeo, siteUrl } from "@/utils/seo";
+import { stripHtml } from "@/utils/richtext";
 
 export async function generateMetadata({
   params,
@@ -18,7 +19,9 @@ export async function generateMetadata({
   const c = site.website.content;
   return buildSeo({
     title: c.hero?.businessName ?? site.business.name,
-    description: c.hero?.shortDescription ?? site.business.description,
+    description:
+      stripHtml(c.hero?.shortDescription ?? site.business.description ?? "") ||
+      undefined,
     path: `/site/${slug}`,
     image: c.hero?.image,
   });
@@ -51,7 +54,9 @@ export default async function PublicSitePage({
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
     name: c.hero?.businessName ?? site.business.name,
-    description: c.hero?.shortDescription || site.business.description || undefined,
+    description:
+      stripHtml(c.hero?.shortDescription || site.business.description || "") ||
+      undefined,
     url: `${siteUrl}/site/${slug}`,
     image: c.hero?.image || undefined,
     telephone: c.contact?.phone || undefined,

@@ -19,6 +19,8 @@ import {
 } from "@/app/business/actions";
 import { resizeImage } from "./templates/ImageSlot";
 import { MapImportBar } from "./MapImportBar";
+import { RichTextToolbar } from "./RichTextToolbar";
+import { stripHtml } from "@/utils/richtext";
 import { PdfImportBar } from "./PdfImportBar";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import type { PlaceImportData } from "@/lib/placeImport";
@@ -69,7 +71,7 @@ export function WebsiteEditor({
   const subjectFor = useCallback(
     (path: string): string => {
       if (path === "hero.image")
-        return `${content.hero.businessName}, ${content.hero.headline}`;
+        return `${content.hero.businessName}, ${stripHtml(content.hero.headline)}`;
       const m = path.match(/^(offers|whyChooseUs)\.items\.(\d+)\.image$/);
       if (m) {
         const section = m[1] as "offers" | "whyChooseUs";
@@ -479,8 +481,8 @@ export function WebsiteEditor({
       {note && <p className="text-sm text-primary">{note}</p>}
       <p className="text-xs text-muted">
         {ko
-          ? "아래 미리보기에서 텍스트를 클릭하면 바로 수정할 수 있어요. 수정 후 저장을 눌러주세요."
-          : "Click any text in the preview below to edit it in place. Press Save when you are done."}
+          ? "아래 미리보기에서 텍스트를 클릭하면 바로 수정할 수 있어요. 텍스트를 드래그로 선택하면 굵게·색상·형광펜 같은 서식 도구가 나타납니다. 수정 후 저장을 눌러주세요."
+          : "Click any text in the preview below to edit it in place. Select text to reveal formatting tools (bold, color, highlight). Press Save when you are done."}
       </p>
 
       {/* WYSIWYG canvas */}
@@ -504,6 +506,9 @@ export function WebsiteEditor({
           </div>
         </div>
       </div>
+
+      {/* 텍스트 선택 시 나타나는 위지윅 서식 툴바 */}
+      <RichTextToolbar />
     </div>
   );
 }

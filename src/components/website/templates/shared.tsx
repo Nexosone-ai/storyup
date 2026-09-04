@@ -1,5 +1,6 @@
 import type { CSSProperties, ElementType, ReactNode } from "react";
 import type { WebsiteContent } from "@/types/domain";
+import { hasRichHtml, sanitizeInlineHtml } from "@/utils/richtext";
 import { GalleryLightbox } from "./GalleryLightbox";
 
 export interface TextArgs {
@@ -39,7 +40,8 @@ export interface TemplateProps {
   editable?: boolean;
 }
 
-/** Server-safe renderer: plain text, no interactivity. */
+/** Server-safe renderer: plain text, no interactivity.
+ *  위지윅 서식이 저장된 값은 화이트리스트 새니타이즈 후 HTML로 렌더링한다. */
 export const staticText: TextRenderer = ({
   value,
   as = "span",
@@ -47,6 +49,15 @@ export const staticText: TextRenderer = ({
   style,
 }) => {
   const Tag = as as ElementType;
+  if (hasRichHtml(value)) {
+    return (
+      <Tag
+        className={className}
+        style={style}
+        dangerouslySetInnerHTML={{ __html: sanitizeInlineHtml(value) }}
+      />
+    );
+  }
   return (
     <Tag className={className} style={style}>
       {value}
