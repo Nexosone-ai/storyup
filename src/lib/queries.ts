@@ -428,6 +428,8 @@ export async function getShowcaseCards(limit = 12): Promise<ShowcaseCard[]> {
           },
           slides: Array.isArray(parsed.slides) ? parsed.slides : [],
           cta: parsed.cta ?? { text: "", handle: `@${site.slug}` },
+          // 저장된 카드별 배경 — 슬라이더가 모든 카드에 표시한다
+          images: Array.isArray(parsed.images) ? parsed.images : undefined,
         },
       });
     } catch {
