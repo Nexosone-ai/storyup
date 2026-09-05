@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { LocaleProvider } from "@/components/i18n/LocaleProvider";
-import { getUser, getProfileName } from "@/lib/queries";
+import { getUser, getProfileName, getPrimaryBusiness } from "@/lib/queries";
 import { isCurrentUserAdmin } from "@/lib/points";
-import { dashboardNav } from "@/lib/nav";
+import { dashboardNav, workspaceNav } from "@/lib/nav";
 import { getLocale } from "@/lib/i18n";
 
 export default async function DashboardLayout({
@@ -13,15 +13,25 @@ export default async function DashboardLayout({
 }) {
   const user = await getUser();
   if (!user) redirect("/login");
-  const [name, admin, locale] = await Promise.all([
+  const [name, admin, locale, business] = await Promise.all([
     getProfileName(),
     isCurrentUserAdmin(),
     getLocale(),
+    getPrimaryBusiness(),
   ]);
 
   return (
     <LocaleProvider locale={locale}>
-      <DashboardShell nav={dashboardNav(admin, locale)} userName={name} locale={locale}>
+      <DashboardShell
+        nav={dashboardNav(admin, locale)}
+        workspace={
+          business
+            ? { name: business.name, items: workspaceNav(business.id, locale) }
+            : undefined
+        }
+        userName={name}
+        locale={locale}
+      >
         {children}
       </DashboardShell>
     </LocaleProvider>

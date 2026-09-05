@@ -104,6 +104,22 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
   };
 }
 
+/** 사이드바 워크스페이스용 대표 비즈니스 — 성장 패널의 primaryBusinessId와
+ * 동일하게 가장 먼저 만든 비즈니스를 쓴다 (RLS로 본인 것만 조회). */
+export async function getPrimaryBusiness(): Promise<{
+  id: string;
+  name: string;
+} | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("businesses")
+    .select("id, name")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return data ?? null;
+}
+
 /** Owned business by id (RLS enforces ownership). */
 export async function getBusiness(id: string): Promise<BusinessRow | null> {
   const supabase = await createClient();
