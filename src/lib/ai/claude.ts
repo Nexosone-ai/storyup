@@ -100,17 +100,26 @@ export class ClaudeProvider implements AIProvider {
   async generateImageSubject(input: {
     category: string;
     text: string;
+    kind?: "still-life" | "scene";
   }): Promise<string> {
+    const scene = input.kind === "scene";
     const spec: PromptSpec = {
       system:
         '당신은 사진 촬영 지시문을 쓰는 아트 디렉터입니다. 반드시 {"subject": "..."} 형태의 순수 JSON만 반환하세요.',
       user: `업종: ${input.category}
 내용: ${input.text.slice(0, 300)}
 
-위 내용을 대표하는 정물 사진의 피사체를 영어 한 문장으로 묘사하세요.
+${
+  scene
+    ? `위 내용이 말하는 바를 시각적으로 보여주는 사진 장면(공간·현장·사물)을 영어 한 문장으로 묘사하세요.
+- 반드시 "내용"이 전달하려는 메시지와 업종에 맞는 장소/사물/분위기여야 함 (일반적인 사무실·책상 금지)
+- 사람, 손, 신체, 글자는 절대 포함 금지 (비어 있는 공간으로 묘사)
+- 예: "a bright airy fitness studio with rolled yoga mats, kettlebells and large sunlit windows"`
+    : `위 내용을 대표하는 정물 사진의 피사체를 영어 한 문장으로 묘사하세요.
 - 구체적인 사물·음식·공간 디테일만 포함
 - 사람, 손, 신체, 글자는 절대 포함 금지
-- 예: "freshly baked sourdough bread loaves and wheat stalks on a rustic wooden table"
+- 예: "freshly baked sourdough bread loaves and wheat stalks on a rustic wooden table"`
+}
 
 {"subject": "..."} JSON으로만 응답하세요.`,
     };

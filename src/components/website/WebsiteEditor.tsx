@@ -76,7 +76,10 @@ export function WebsiteEditor({
       if (m) {
         const section = m[1] as "offers" | "whyChooseUs";
         const item = content[section]?.items?.[Number(m[2])];
-        return item?.title || content.hero.businessName;
+        if (!item?.title) return content.hero.businessName;
+        // 제목만으로는 이미지가 엉뚱하게 나온다 — 설명까지 붙여 맥락을 전달
+        const desc = stripHtml(item.description ?? "").slice(0, 160);
+        return desc ? `${item.title} — ${desc}` : item.title;
       }
       return content.hero.businessName;
     },

@@ -1,9 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { Card, Badge } from "@/components/ui/Card";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { CARD_NEWS_PAGES, getPlanById, type PlanId } from "@/lib/plans";
+import {
+  SubscribePanel,
+  type BillingState,
+} from "@/components/points/SubscribePanel";
 import type { PointTx } from "@/lib/points";
 
 function fmtDate(iso: string, ko: boolean) {
@@ -84,13 +87,17 @@ function UsageRow({
 }
 
 export function PointsView({
+  userId,
   balance,
   subscription,
+  billing,
   transactions,
   payments,
 }: {
+  userId: string;
   balance: number;
   subscription: SubscriptionInfo;
+  billing: BillingState;
   transactions: PointTx[];
   payments: PaymentItem[];
 }) {
@@ -101,7 +108,7 @@ export function PointsView({
       <div>
         <p className="eyebrow mb-2">UP</p>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          {ko ? "UP 지갑" : "UP wallet"}
+          {ko ? "UP 포인트" : "UP Points"}
         </h1>
       </div>
 
@@ -122,18 +129,9 @@ export function PointsView({
         const plan = getPlanById(subscription.planId);
         return (
           <section className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold tracking-tight">
-                {ko ? "내 플랜" : "My plan"}
-              </h2>
-              <Link
-                href="/pricing"
-                target="_blank"
-                className="text-sm font-medium text-primary hover:underline"
-              >
-                {ko ? "플랜 업그레이드 →" : "Upgrade plan →"}
-              </Link>
-            </div>
+            <h2 className="text-lg font-semibold tracking-tight">
+              {ko ? "내 플랜" : "My plan"}
+            </h2>
             <Card className="space-y-4">
               <div className="flex items-baseline justify-between">
                 <p className="text-base font-bold uppercase tracking-[0.1em]">
@@ -200,6 +198,13 @@ export function PointsView({
         );
       })()}
 
+      {/* 구독 시작/변경/해지 */}
+      <SubscribePanel
+        userId={userId}
+        currentPlanId={subscription.planId}
+        billing={billing}
+      />
+
       {/* 결제 내역 */}
       {payments.length > 0 && (
         <section className="space-y-3">
@@ -211,8 +216,12 @@ export function PointsView({
               <li key={p.id} className="flex items-center justify-between p-4">
                 <div className="min-w-0">
                   <p className="tnum text-sm font-medium">
-                    ₩{p.amount.toLocaleString()} →{" "}
-                    {p.credits.toLocaleString()} UP
+                    ₩{p.amount.toLocaleString()}
+                    {p.credits > 0
+                      ? ` → ${p.credits.toLocaleString()} UP`
+                      : ko
+                        ? " · 구독 결제"
+                        : " · Subscription"}
                   </p>
                   <p className="text-xs text-muted">
                     {fmtDate(p.created_at, ko)}

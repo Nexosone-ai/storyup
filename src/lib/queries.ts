@@ -38,6 +38,8 @@ export async function getProfileName(): Promise<string> {
 
 export interface DashboardBusiness extends BusinessRow {
   websiteStatus: "none" | "draft" | "published";
+  /** 공개 사이트 주소용 슬러그 (웹사이트가 없으면 null) */
+  websiteSlug: string | null;
   blogCount: number;
   publishedBlogCount: number;
 }
@@ -69,7 +71,7 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
       ? await Promise.all([
           supabase
             .from("websites")
-            .select("business_id,status")
+            .select("business_id,status,slug")
             .in("business_id", ids),
           supabase
             .from("blog_posts")
@@ -78,14 +80,18 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
         ])
       : [{ data: [] }, { data: [] }];
 
-  const webByBiz = new Map<string, string>();
-  (websites ?? []).forEach((w) => webByBiz.set(w.business_id, w.status));
+  const webByBiz = new Map<string, { status: string; slug: string }>();
+  (websites ?? []).forEach((w) =>
+    webByBiz.set(w.business_id, { status: w.status, slug: w.slug }),
+  );
 
   const enriched: DashboardBusiness[] = list.map((b) => {
     const bposts = (posts ?? []).filter((p) => p.business_id === b.id);
+    const web = webByBiz.get(b.id);
     return {
       ...b,
-      websiteStatus: (webByBiz.get(b.id) as "draft" | "published") ?? "none",
+      websiteStatus: (web?.status as "draft" | "published") ?? "none",
+      websiteSlug: web?.slug ?? null,
       blogCount: bposts.length,
       publishedBlogCount: bposts.filter((p) => p.status === "published").length,
     };

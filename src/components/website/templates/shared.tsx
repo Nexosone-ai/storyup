@@ -88,11 +88,11 @@ export const staticImage: ImageRenderer = ({ value, className, kind }) => {
     );
   }
   return (
-    // eslint-disable-next-line @next/next/no-img-element
+    // eslint-disable-next-line @next/next/no-img-element -- 업로드 원본이 잘리지 않도록 카드류는 contain (hero 배경만 cover)
     <img
       src={value}
       alt=""
-      className={`h-full w-full object-cover ${className ?? ""}`}
+      className={`h-full w-full object-contain ${className ?? ""}`}
     />
   );
 };

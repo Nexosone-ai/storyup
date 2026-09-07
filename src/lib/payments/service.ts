@@ -88,8 +88,9 @@ export async function syncPayment(orderId: string): Promise<SyncResult> {
       .eq("id", payment.id)
       .in("status", ["PENDING", "FAILED"]);
 
-    // 멱등 적립: 이미 있으면 duplicate key → 무시
-    const credited = await creditOnce(payment);
+    // 멱등 적립: 이미 있으면 duplicate key → 무시.
+    // 구독 결제(credits=0)는 포인트 적립 대상이 아니다 — grant_plan_points가 담당.
+    const credited = payment.credits > 0 ? await creditOnce(payment) : 0;
     const balance = await getBalanceAdmin(payment.user_id);
     return { status: "PAID", credited, balance };
   }
@@ -157,10 +158,11 @@ async function creditOnce(payment: PaymentRow): Promise<number> {
   return credited;
 }
 
-/** 전액 취소 시 크레딧 회수 (결제당 1회). */
+/** 전액 취소 시 크레딧 회수 (결제당 1회). 구독 결제(적립 0)는 회수도 없다. */
 async function debitRefundOnce(payment: PaymentRow): Promise<void> {
   const admin = createAdminClient();
   const total = payment.credits + payment.bonus_credits;
+  if (total <= 0) return;
   const { error } = await admin.from("point_transactions").insert({
     user_id: payment.user_id,
     amount: -total,

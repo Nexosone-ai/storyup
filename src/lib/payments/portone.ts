@@ -61,6 +61,71 @@ export async function getPortonePayment(
   return (await res.json()) as PortonePayment;
 }
 
+/** 결제 수단(빌링키) 준비 여부 — 클라이언트 SDK 키까지 있어야 구독 시작 가능. */
+export function isBillingConfigured(): boolean {
+  return !!(
+    process.env.PORTONE_API_SECRET &&
+    process.env.NEXT_PUBLIC_PORTONE_STORE_ID &&
+    process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY
+  );
+}
+
+/** 빌링키로 결제 요청 (정기결제 1회분 청구). paymentId = 우리 order_id. */
+export async function payWithBillingKey(args: {
+  paymentId: string;
+  billingKey: string;
+  orderName: string;
+  amount: number;
+  customerId: string;
+}): Promise<PortonePayment> {
+  const res = await fetch(
+    `${API_BASE}/payments/${encodeURIComponent(args.paymentId)}/billing-key`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `PortOne ${apiSecret()}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        billingKey: args.billingKey,
+        orderName: args.orderName,
+        customer: { id: args.customerId },
+        amount: { total: args.amount },
+        currency: "KRW",
+      }),
+    },
+  );
+  const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!res.ok) {
+    throw new PaymentProviderError(
+      `빌링키 결제 실패 (${res.status})`,
+      res.status,
+      body,
+    );
+  }
+  // 응답은 { payment: {...} } 형태 — 이후 상태 확인은 getPortonePayment로 재검증한다.
+  return (body.payment ?? body) as PortonePayment;
+}
+
+/** 빌링키 삭제 — 구독 완전 종료 시 카드 정보를 남기지 않는다. */
+export async function deleteBillingKey(billingKey: string): Promise<void> {
+  const res = await fetch(
+    `${API_BASE}/billing-keys/${encodeURIComponent(billingKey)}`,
+    {
+      method: "DELETE",
+      headers: { Authorization: `PortOne ${apiSecret()}` },
+    },
+  );
+  // 이미 삭제된 키(404)는 성공으로 간주
+  if (!res.ok && res.status !== 404) {
+    throw new PaymentProviderError(
+      `빌링키 삭제 실패 (${res.status})`,
+      res.status,
+      await res.text().catch(() => undefined),
+    );
+  }
+}
+
 /** 결제 취소(환불). 전액 취소 기본. */
 export async function cancelPortonePayment(
   paymentId: string,

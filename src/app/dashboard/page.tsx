@@ -4,6 +4,7 @@ import { getUser, getProfileName, getDashboardData } from "@/lib/queries";
 import { getGrowthOverview } from "@/lib/gamification/overview";
 import { getLocale } from "@/lib/i18n";
 import { SummaryCards } from "@/components/dashboard/SummaryCards";
+import { QuickViewBar } from "@/components/dashboard/QuickViewBar";
 import { GrowthSection } from "@/components/dashboard/GrowthSection";
 import { BusinessCard } from "@/components/dashboard/BusinessCard";
 import { ButtonLink } from "@/components/ui/Button";
@@ -49,6 +50,15 @@ export default async function DashboardPage() {
           {ko ? "새 비즈니스 만들기" : "Create new business"}
         </ButtonLink>
       </div>
+
+      <QuickViewBar
+        businesses={data.businesses.map((b) => ({
+          id: b.id,
+          name: b.name,
+          websiteStatus: b.websiteStatus,
+          websiteSlug: b.websiteSlug,
+        }))}
+      />
 
       <GrowthSection g={growth} ko={ko} />
 

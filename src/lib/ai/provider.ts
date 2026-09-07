@@ -37,12 +37,14 @@ export interface AIProvider {
   generateCardNews(input: CardNewsPromptInput): Promise<CardNewsResult>;
 
   /**
-   * 이미지 생성용 영문 피사체 한 문장을 만든다 (사람 없는 정물 장면).
+   * 이미지 생성용 영문 피사체 한 문장을 만든다 (사람 없는 장면).
    * 한글 키워드는 이미지 모델이 이해하지 못해 피사체 없는 이미지가 나온다.
+   * kind: still-life(카드뉴스·블로그 커버용 정물) | scene(랜딩페이지용 공간/현장).
    */
   generateImageSubject(input: {
     category: string;
     text: string;
+    kind?: "still-life" | "scene";
   }): Promise<string>;
 
   /** PDF(소개서·브로슈어)에서 랜딩페이지 콘텐츠를 추출한다. */

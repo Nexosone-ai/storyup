@@ -28,15 +28,21 @@ export function currentPeriod(): { key: string; startIso: string } {
   return { key: seoul, startIso: `${seoul}-01T00:00:00+09:00` };
 }
 
-/** 사용자의 현재 플랜. 구독 행이 없거나 조회 실패 시 free. */
+/** 사용자의 현재 플랜. 구독 행이 없거나 조회 실패, 기간 만료 시 free. */
 export async function getPlanId(userId: string): Promise<PlanId> {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("subscriptions")
-    .select("plan, status")
+    .select("plan, status, current_period_end")
     .eq("user_id", userId)
     .maybeSingle();
   if (error || !data || data.status !== "active") return "free";
+  // 기간이 지난 구독(체험 종료·갱신 실패)은 크론 처리 전이라도 free로 취급
+  if (
+    data.current_period_end &&
+    new Date(data.current_period_end).getTime() < Date.now()
+  )
+    return "free";
   const plan = data.plan as PlanId;
   return PLAN_IDS.has(plan) ? plan : "free";
 }

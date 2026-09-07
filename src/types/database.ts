@@ -666,6 +666,11 @@ export interface Database {
           plan: string;
           status: string;
           current_period_end: string | null;
+          /** PortOne 빌링키 (0017 이전 DB에서는 없을 수 있음) */
+          billing_key: string | null;
+          cancel_at_period_end: boolean;
+          billing_failures: number;
+          trial: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -674,6 +679,10 @@ export interface Database {
           plan?: string;
           status?: string;
           current_period_end?: string | null;
+          billing_key?: string | null;
+          cancel_at_period_end?: boolean;
+          billing_failures?: number;
+          trial?: boolean;
           created_at?: string;
           updated_at?: string;
         };

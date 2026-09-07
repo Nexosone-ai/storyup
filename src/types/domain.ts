@@ -24,6 +24,18 @@ export const BRAND_TONES = [
   "Modern",
   "Emotional",
   "Innovative",
+  "Trustworthy",
+  "Warm",
+  "Energetic",
+  "Calm",
+  "Playful",
+  "Sophisticated",
+  "Natural",
+  "Traditional",
+  "Bold",
+  "Minimal",
+  "Youthful",
+  "Cozy",
 ] as const;
 export type BrandTone = (typeof BRAND_TONES)[number];
 

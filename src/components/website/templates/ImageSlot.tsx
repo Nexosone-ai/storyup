@@ -114,8 +114,15 @@ function ImageSlot({
 
       {value ? (
         <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={value} alt="" className="h-full w-full object-cover" />
+          {/* eslint-disable-next-line @next/next/no-img-element -- 업로드 원본이 잘리지 않도록 hero(배경)만 cover, 카드류는 contain */}
+          <img
+            src={value}
+            alt=""
+            className={cn(
+              "h-full w-full",
+              hero ? "object-cover" : "object-contain",
+            )}
+          />
           {hero && <div className="absolute inset-0 bg-black/40" />}
           {/* controls */}
           <div className="absolute right-2 top-2 z-10 flex gap-1.5 opacity-0 transition group-hover/img:opacity-100">

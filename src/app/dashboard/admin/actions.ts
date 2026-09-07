@@ -167,45 +167,6 @@ export async function lookupUserPointsAction(
   };
 }
 
-/** 충전 패키지 저장 (신규/수정). 가격·크레딧은 항상 서버 DB가 권위. */
-export async function savePackageAction(pkg: {
-  id?: string;
-  name: string;
-  price_krw: number;
-  credits: number;
-  bonus_credits: number;
-  active: boolean;
-  sort_order: number;
-}): Promise<AdminState> {
-  const { admin } = await requireAdmin();
-  if (!admin) return { error: "권한이 없습니다." };
-  if (!pkg.name.trim()) return { error: "패키지 이름을 입력해주세요." };
-  if (!Number.isInteger(pkg.price_krw) || pkg.price_krw <= 0)
-    return { error: "결제 금액이 올바르지 않습니다." };
-  if (!Number.isInteger(pkg.credits) || pkg.credits <= 0)
-    return { error: "크레딧 수량이 올바르지 않습니다." };
-  if (!Number.isInteger(pkg.bonus_credits) || pkg.bonus_credits < 0)
-    return { error: "보너스 크레딧이 올바르지 않습니다." };
-
-  const adminc = createAdminClient();
-  const row = {
-    name: pkg.name.trim(),
-    price_krw: pkg.price_krw,
-    credits: pkg.credits,
-    bonus_credits: pkg.bonus_credits,
-    active: pkg.active,
-    sort_order: pkg.sort_order,
-    updated_at: new Date().toISOString(),
-  };
-  const { error } = pkg.id
-    ? await adminc.from("point_packages").update(row).eq("id", pkg.id)
-    : await adminc.from("point_packages").insert(row);
-  if (error) return { error: "저장에 실패했습니다." };
-  revalidatePath("/dashboard/admin");
-  revalidatePath("/dashboard/points");
-  return { ok: true, message: "패키지가 저장되었습니다." };
-}
-
 /** AI 서비스 가격 저장. 0원 = 무료. */
 export async function saveServicePriceAction(
   service: string,

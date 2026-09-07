@@ -26,6 +26,21 @@ export function buildCardImagePrompt(category: string, scene: string): string {
   ].join(" ");
 }
 
+/**
+ * 랜딩페이지 섹션용 사진 — 정물 강제 대신 업종의 실제 공간/현장을 담는다.
+ * (헬스장 소개 카드에 책상 정물이 나오는 문제 방지.) scene은 영문 장면 묘사.
+ */
+export function buildSitePhotoPrompt(category: string, scene: string): string {
+  return [
+    `Professional editorial photography for a ${category} business website:`,
+    `${scene.trim().slice(0, 220)}.`,
+    "Quiet unoccupied space captured in natural composition, " +
+      "bright soft natural light, warm inviting tones, " +
+      "clean premium look, high-end magazine quality.",
+    NO_TEXT,
+  ].join(" ");
+}
+
 /** Wide still-life hero photograph for a blog post cover. scene은 영문 피사체 묘사. */
 export function buildBlogCoverPrompt(category: string, scene: string): string {
   return [

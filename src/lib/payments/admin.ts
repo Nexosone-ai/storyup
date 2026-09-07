@@ -1,9 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
-import type {
-  PaymentRow,
-  PointPackageRow,
-  ServicePriceRow,
-} from "@/types/database";
+import type { PaymentRow, ServicePriceRow } from "@/types/database";
 
 /** 관리자 화면 전용 조회 — 호출 전 반드시 isCurrentUserAdmin() 확인. */
 
@@ -36,15 +32,6 @@ export async function getRecentPaymentsAdmin(
     userName: byUser.get(p.user_id)?.name ?? "이름 없음",
     userEmail: byUser.get(p.user_id)?.email ?? "",
   }));
-}
-
-export async function getAllPackagesAdmin(): Promise<PointPackageRow[]> {
-  const admin = createAdminClient();
-  const { data } = await admin
-    .from("point_packages")
-    .select("*")
-    .order("sort_order", { ascending: true });
-  return data ?? [];
 }
 
 export async function getServicePricesAdmin(): Promise<ServicePriceRow[]> {

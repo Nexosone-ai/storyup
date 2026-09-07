@@ -4,12 +4,11 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Badge } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Input, Label, Select } from "@/components/ui/Field";
+import { Input, Select } from "@/components/ui/Field";
 import { Spinner } from "@/components/ui/Spinner";
 import {
   refundPaymentAction,
   lookupUserPointsAction,
-  savePackageAction,
   saveServicePriceAction,
   type UserPointLookup,
 } from "@/app/dashboard/admin/actions";
@@ -38,16 +37,6 @@ export interface AdminPaymentItem {
   credits: number;
   status: string;
   transactionId: string;
-}
-
-export interface AdminPackageItem {
-  id: string;
-  name: string;
-  price_krw: number;
-  credits: number;
-  bonus_credits: number;
-  active: boolean;
-  sort_order: number;
 }
 
 export interface AdminServicePriceItem {
@@ -257,110 +246,6 @@ export function AdminPointLookup() {
             )}
           </div>
         )}
-      </Card>
-    </section>
-  );
-}
-
-// ---------------- 패키지 관리 ----------------
-
-function PackageEditor({
-  initial,
-  onSaved,
-}: {
-  initial?: AdminPackageItem;
-  onSaved: () => void;
-}) {
-  const [name, setName] = useState(initial?.name ?? "");
-  const [price, setPrice] = useState(String(initial?.price_krw ?? ""));
-  const [credits, setCredits] = useState(String(initial?.credits ?? ""));
-  const [bonus, setBonus] = useState(String(initial?.bonus_credits ?? 0));
-  const [active, setActive] = useState(initial?.active ?? true);
-  const [sort, setSort] = useState(String(initial?.sort_order ?? 0));
-  const [error, setError] = useState<string | null>(null);
-  const [busy, start] = useTransition();
-
-  const save = () =>
-    start(async () => {
-      setError(null);
-      const res = await savePackageAction({
-        id: initial?.id,
-        name,
-        price_krw: Number(price),
-        credits: Number(credits),
-        bonus_credits: Number(bonus),
-        active,
-        sort_order: Number(sort) || 0,
-      });
-      if (res.error) setError(res.error);
-      else onSaved();
-    });
-
-  return (
-    <div className="space-y-2">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
-        <div>
-          <Label>이름</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
-        <div>
-          <Label>금액(₩)</Label>
-          <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} />
-        </div>
-        <div>
-          <Label>크레딧</Label>
-          <Input type="number" value={credits} onChange={(e) => setCredits(e.target.value)} />
-        </div>
-        <div>
-          <Label>보너스</Label>
-          <Input type="number" value={bonus} onChange={(e) => setBonus(e.target.value)} />
-        </div>
-        <div>
-          <Label>순서</Label>
-          <Input type="number" value={sort} onChange={(e) => setSort(e.target.value)} />
-        </div>
-        <div className="flex items-end gap-2 pb-1">
-          <label className="flex items-center gap-1.5 text-sm">
-            <input
-              type="checkbox"
-              checked={active}
-              onChange={(e) => setActive(e.target.checked)}
-            />
-            판매
-          </label>
-          <Button size="sm" onClick={save} disabled={busy}>
-            {busy ? <Spinner className="size-4" /> : "저장"}
-          </Button>
-        </div>
-      </div>
-      {error && <p className="text-sm text-danger">{error}</p>}
-    </div>
-  );
-}
-
-export function AdminPackages({ packages }: { packages: AdminPackageItem[] }) {
-  const router = useRouter();
-  const [adding, setAdding] = useState(false);
-  return (
-    <section className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold tracking-tight">충전 패키지 관리</h2>
-        <Button size="sm" variant="outline" onClick={() => setAdding((v) => !v)}>
-          {adding ? "닫기" : "+ 패키지 추가"}
-        </Button>
-      </div>
-      <Card className="space-y-5">
-        {adding && (
-          <PackageEditor
-            onSaved={() => {
-              setAdding(false);
-              router.refresh();
-            }}
-          />
-        )}
-        {packages.map((p) => (
-          <PackageEditor key={p.id} initial={p} onSaved={() => router.refresh()} />
-        ))}
       </Card>
     </section>
   );

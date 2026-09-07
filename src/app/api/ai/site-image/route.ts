@@ -4,7 +4,7 @@ import { getAIProvider } from "@/lib/ai";
 import { chargeAiUsage, InsufficientPointsError } from "@/lib/ai/billing";
 import { getImageProvider, ImageGenerationError } from "@/lib/ai/image";
 import type { ImageAspect } from "@/lib/ai/image";
-import { buildCardImagePrompt } from "@/lib/ai/image/prompt";
+import { buildSitePhotoPrompt } from "@/lib/ai/image/prompt";
 import { storeGeneratedImage } from "@/lib/ai/imageStore";
 import { getLocale } from "@/lib/i18n";
 
@@ -65,9 +65,9 @@ export async function POST(request: Request) {
     // 한글 문구를 영문 피사체 묘사로 변환 (이미지 모델은 한글을 이해하지 못함)
     const text = subject || business.name;
     const scene = await getAIProvider()
-      .generateImageSubject({ category: business.category, text })
+      .generateImageSubject({ category: business.category, text, kind: "scene" })
       .catch(() => text);
-    const prompt = buildCardImagePrompt(business.category, scene);
+    const prompt = buildSitePhotoPrompt(business.category, scene);
     const image = await getImageProvider().generateImage(prompt, aspect);
 
     const url = await storeGeneratedImage(businessId, "site-ai", image);
