@@ -68,5 +68,7 @@ export function markdownToPlainText(md: string): string {
 
 /** Render trusted (owner-authored) markdown to HTML for public blog pages. */
 export async function renderMarkdown(md: string): Promise<string> {
-  return marked.parse(preprocessMarkdown(md));
+  const html = await marked.parse(preprocessMarkdown(md));
+  // 본문 이미지는 접힌 화면 밖이므로 lazy load — LCP(커버 이미지)에 영향 없음.
+  return html.replace(/<img /g, '<img loading="lazy" decoding="async" ');
 }

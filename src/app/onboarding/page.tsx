@@ -3,7 +3,10 @@ import { getUser } from "@/lib/queries";
 import { getDict } from "@/lib/i18n";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 
-export const metadata = { title: "새 비즈니스 만들기" };
+export const metadata = {
+  title: "새 비즈니스 만들기",
+  robots: { index: false, follow: false },
+};
 
 export default async function OnboardingPage() {
   const user = await getUser();

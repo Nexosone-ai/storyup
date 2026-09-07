@@ -60,6 +60,19 @@ export const metadata: Metadata = {
     description: "Turn Your Story Into Business.",
     type: "website",
   },
+  // 서치콘솔/서치어드바이저 소유 확인 — env에 값을 넣으면 meta로 출력된다.
+  verification: {
+    ...(process.env.GOOGLE_SITE_VERIFICATION
+      ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+      : {}),
+    ...(process.env.NAVER_SITE_VERIFICATION
+      ? {
+          other: {
+            "naver-site-verification": process.env.NAVER_SITE_VERIFICATION,
+          },
+        }
+      : {}),
+  },
 };
 
 export default function RootLayout({

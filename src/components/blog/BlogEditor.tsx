@@ -17,6 +17,7 @@ import {
 import { preprocessMarkdown, markdownToPlainText } from "@/utils/markdown";
 import { GuideSteps, CopyButton } from "@/components/ui/GuideCard";
 import { BlogCover } from "@/components/blog/BlogCover";
+import { SeoScorePanel } from "@/components/blog/SeoScorePanel";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { resizeImage } from "@/components/website/templates/ImageSlot";
 import type { BlogPostRow } from "@/types/database";
@@ -305,6 +306,29 @@ export function BlogEditor({
               ? "랜딩페이지의 '최신 글'과 블로그 메뉴에 자동으로 올라갔어요. 따로 옮길 필요는 없어요."
               : "It was added to your landing page's latest posts and blog menu automatically — nothing else to move."}
           </p>
+          <ul className="space-y-1 text-xs text-foreground/75">
+            {(ko
+              ? [
+                  "웹페이지 발행 완료 — 검색엔진(Google·Naver)이 읽을 수 있는 페이지로 생성됐어요",
+                  "sitemap.xml 자동 반영 (최대 1시간 이내)",
+                  "관련 콘텐츠 내부 링크 자동 연결",
+                ]
+              : [
+                  "Web page published — readable by search engines (Google/Naver)",
+                  "Added to sitemap.xml automatically (within 1 hour)",
+                  "Related posts are interlinked automatically",
+                ]
+            ).map((line) => (
+              <li key={line} className="flex items-start gap-1.5">
+                <Icon.check
+                  width={14}
+                  height={14}
+                  className="mt-0.5 shrink-0 text-primary"
+                />
+                {line}
+              </li>
+            ))}
+          </ul>
           {publicHref && (
             <div className="flex flex-wrap items-center gap-2">
               <span className="min-w-0 truncate rounded-lg bg-surface px-3 py-2 text-xs text-muted">
@@ -565,6 +589,17 @@ export function BlogEditor({
           />
         )}
       </div>
+
+      {/* 실시간 SEO 자가진단 */}
+      <SeoScorePanel
+        title={title}
+        summary={summary}
+        seoTitle={post.seo_title}
+        seoDescription={post.seo_description}
+        keywords={post.keywords}
+        content={content}
+        hasCoverImage={!!cover}
+      />
     </div>
   );
 }

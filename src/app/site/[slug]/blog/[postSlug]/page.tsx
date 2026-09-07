@@ -1,7 +1,12 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getPublishedSite, getPublishedPost } from "@/lib/queries";
+import {
+  getPublishedSite,
+  getPublishedPost,
+  getPublishedPosts,
+} from "@/lib/queries";
+import { pickRelatedPosts } from "@/utils/relatedPosts";
 import { createClient } from "@/lib/supabase/server";
 import { siteLang, SiteLogo } from "@/components/website/templates/shared";
 import { renderMarkdown } from "@/utils/markdown";
@@ -60,6 +65,10 @@ export default async function PublicArticlePage({
   // 사이트 콘텐츠 언어에 맞춰 크롬 문구를 고른다
   const ko = siteLang(site.website.content) === "ko";
 
+  // 관련 콘텐츠 — 키워드/카테고리 기반 내부 링크 (SEO 토픽 클러스터의 기초)
+  const allPosts = await getPublishedPosts(site.business.id);
+  const relatedPosts = pickRelatedPosts(post, allPosts);
+
   // 방문자 댓글 — 마이그레이션(0014) 이전 DB에서는 섹션을 숨긴다.
   const supabase = await createClient();
   const [{ data: rawComments, error: commentsError }, userRes] =
@@ -84,7 +93,9 @@ export default async function PublicArticlePage({
         hasPassword: !!c.password_hash,
       }));
 
-  // 검색·AI 답변엔진(AEO)용 구조화 데이터
+  // 검색·AI 답변엔진(AEO)용 구조화 데이터 — Google 리치 결과 권장 필드 포함
+  const siteHome = `${siteUrl}/site/${slug}`;
+  const logo = site.website.content.hero?.logo;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
@@ -95,9 +106,17 @@ export default async function PublicArticlePage({
     datePublished: post.published_at || undefined,
     dateModified: post.updated_at,
     inLanguage: ko ? "ko" : "en",
+    url: `${siteUrl}${path}`,
     mainEntityOfPage: `${siteUrl}${path}`,
-    author: { "@type": "Organization", name },
-    publisher: { "@type": "Organization", name },
+    author: { "@type": "Organization", name, url: siteHome },
+    publisher: {
+      "@type": "Organization",
+      name,
+      url: siteHome,
+      ...(logo?.startsWith("http")
+        ? { logo: { "@type": "ImageObject", url: logo } }
+        : {}),
+    },
   };
 
   return (
@@ -139,6 +158,7 @@ export default async function PublicArticlePage({
           <img
             src={post.cover_image_url}
             alt={post.title}
+            fetchPriority="high"
             className="mt-8 aspect-[16/7] w-full rounded-2xl object-cover"
           />
         ) : (
@@ -176,6 +196,34 @@ export default async function PublicArticlePage({
           </p>
           <ShareBar path={path} title={post.title} slug={slug} />
         </div>
+
+        {relatedPosts.length > 0 && (
+          <nav
+            aria-label={ko ? "관련 콘텐츠" : "Related posts"}
+            className="mt-10 border-t border-border pt-6"
+          >
+            <p className="mb-3 text-sm font-semibold">
+              {ko ? "관련 콘텐츠" : "Related posts"}
+            </p>
+            <ul className="space-y-2">
+              {relatedPosts.map((p) => (
+                <li key={p.id}>
+                  <Link
+                    href={`/site/${slug}/blog/${p.slug}`}
+                    className="group flex items-baseline gap-2 text-sm"
+                  >
+                    <span className="font-medium underline-offset-2 group-hover:underline">
+                      {p.title}
+                    </span>
+                    <span className="shrink-0 text-xs text-muted">
+                      {fmtDate(p.published_at, ko)}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )}
 
         {comments && (
           <BlogComments
