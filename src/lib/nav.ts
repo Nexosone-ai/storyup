@@ -30,7 +30,7 @@ export function dashboardNav(admin: boolean, locale: Locale = "ko"): NavItem[] {
     ...(admin
       ? [
           {
-            label: ko ? "관리자" : "Admin",
+            label: ko ? "관리자페이지" : "Admin",
             href: "/dashboard/admin",
             icon: "shield",
           } as NavItem,
