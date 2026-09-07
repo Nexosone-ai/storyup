@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { award } from "./engine";
 import { checkReferralAchievements } from "./achievements";
+import { ensureTrialSubscription } from "@/lib/payments/billing";
 
 /**
  * 추천인 시스템 — 직접 추천만 (다단계 없음).
@@ -45,12 +46,14 @@ export async function ensureReferralCode(userId: string): Promise<string | null>
   }
 }
 
-/** 가입 보너스 + 추천 코드 준비 + (쿠키의) 추천 귀속. 멱등 — 매 대시보드 로드마다 호출해도 안전. */
+/** 가입 보너스 + 자동 체험 + 추천 코드 준비 + (쿠키의) 추천 귀속. 멱등 — 매 대시보드 로드마다 호출해도 안전. */
 export async function ensureUserSetup(
   userId: string,
   pendingRefCode?: string | null,
 ): Promise<void> {
   await award(userId, "signup", "signup");
+  // 베타 기간: 구독 행이 없는 신규 가입자에게 1개월 Pro 체험 자동 지급
+  await ensureTrialSubscription(userId);
   await ensureReferralCode(userId);
   if (pendingRefCode) await attributeReferral(userId, pendingRefCode);
 }

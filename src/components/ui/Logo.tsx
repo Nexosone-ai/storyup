@@ -33,6 +33,17 @@ export function Logo({
         STORY
         <span className="brand-gradient-text">UP</span>
       </span>
+      {/* 베타 표시 — 정식 오픈 시 제거 */}
+      <span
+        className={cn(
+          "ml-1 rounded-full border px-1.5 py-px text-[10px] font-bold uppercase tracking-wide",
+          dark
+            ? "border-white/40 text-white/80"
+            : "border-primary/40 text-primary",
+        )}
+      >
+        Beta
+      </span>
     </Link>
   );
 }

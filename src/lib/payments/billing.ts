@@ -21,6 +21,45 @@ import { markReferralPaidConversion } from "@/lib/gamification/referral";
 const PAID_PLANS: PlanId[] = ["basic", "pro"];
 const MAX_BILLING_FAILURES = 3;
 
+/**
+ * 베타 기간 신규 가입 자동 체험 — 카드 결제 정식 오픈 시 false로 바꾼다.
+ * 구독 행이 전혀 없는 사용자에게 1개월 Pro 체험을 만들어준다 (결제 없음).
+ */
+export const AUTO_TRIAL_ENABLED = true;
+const TRIAL_PLAN: PlanId = "pro";
+
+export async function ensureTrialSubscription(userId: string): Promise<void> {
+  if (!AUTO_TRIAL_ENABLED) return;
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("subscriptions")
+      .select("user_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error || data) return; // 조회 실패(마이그레이션 전) 또는 이미 구독/체험 있음
+
+    const end = new Date();
+    end.setMonth(end.getMonth() + 1);
+    // 동시 호출 대비: 이미 행이 생겼다면 조용히 무시
+    const { error: insErr } = await admin.from("subscriptions").upsert(
+      {
+        user_id: userId,
+        plan: TRIAL_PLAN,
+        status: "active",
+        current_period_end: end.toISOString(),
+        trial: true,
+      },
+      { ignoreDuplicates: true },
+    );
+    if (insErr) return;
+    // 체험 시작 즉시 이번 달 플랜 포인트 지급 (월 멱등)
+    await ensureMonthlyGrant(userId, TRIAL_PLAN);
+  } catch (err) {
+    console.error("[billing] ensureTrialSubscription failed", userId, err);
+  }
+}
+
 export interface BillingResult {
   ok?: boolean;
   error?: string;
