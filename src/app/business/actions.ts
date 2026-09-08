@@ -475,6 +475,25 @@ export async function saveBlogAction(
   await trackGrowthActivity(user.id, "blog_edited", postId);
 
   revalidatePath(`/business/${businessId}/blog/${postId}`);
+  // 공개된 글이면 공개 페이지 캐시도 갱신 (커버 변경과 동일한 규칙)
+  const { data: saved } = await supabase
+    .from("blog_posts")
+    .select("slug, status")
+    .eq("id", postId)
+    .eq("business_id", businessId)
+    .maybeSingle();
+  if (saved?.status === "published") {
+    const { data: web } = await supabase
+      .from("websites")
+      .select("slug")
+      .eq("business_id", businessId)
+      .maybeSingle();
+    if (web?.slug) {
+      revalidatePath(`/site/${web.slug}`);
+      revalidatePath(`/site/${web.slug}/blog`);
+      revalidatePath(`/site/${web.slug}/blog/${saved.slug}`);
+    }
+  }
   return { ok: true, message: ko ? "저장되었습니다." : "Saved." };
 }
 

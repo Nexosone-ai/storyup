@@ -483,15 +483,16 @@ export function BlogComposer({ businessId }: { businessId: string }) {
                       className="hidden"
                       onChange={onFileChange}
                     />
-                    <button
+                    <Button
                       type="button"
+                      variant="outline"
+                      size="sm"
                       onClick={() => fileInputRef.current?.click()}
-                      className="text-sm text-muted hover:text-foreground"
                     >
                       {ko
                         ? "또는 녹음 파일 올리기 (m4a/mp3/wav)"
                         : "or upload a recording (m4a/mp3/wav)"}
-                    </button>
+                    </Button>
                   </>
                 )}
               </div>

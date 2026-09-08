@@ -3,6 +3,20 @@ import { marked } from "marked";
 marked.setOptions({ gfm: true, breaks: true });
 
 /**
+ * GFM 취소선(~) 비활성화 — 한국어 본문의 "25~30%", "2~3일", "오후 2시~5시"
+ * 같은 물결 표기가 취소선으로 파싱되어 사이 글자에 줄이 그어지는 문제.
+ * 에디터에 취소선 버튼도 없으므로 del 토큰을 통째로 끈다.
+ * (BlogEditor도 이 모듈을 import하므로 전역 marked에 함께 적용된다.)
+ */
+marked.use({
+  tokenizer: {
+    del() {
+      return undefined;
+    },
+  },
+});
+
+/**
  * CommonMark는 굵게(**)의 닫는 구분자가 한글 조사 등과 붙어 있으면
  * (예: `**발효종**은`) 강조로 파싱하지 못한다. 해당 패턴만 미리
  * <strong>으로 변환한다 — 내부 마크다운(기울임 등)은 계속 파싱된다.
