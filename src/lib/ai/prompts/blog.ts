@@ -23,6 +23,61 @@ const LENGTH_GUIDE_EN: Record<BlogLength, string> = {
   Long: "about 900-1300 words, 4+ subheadings, intro/body/closing structure",
 };
 
+export interface BlogTranscriptPromptInput {
+  businessName: string;
+  category: string;
+  brandTone: string;
+  transcript: string;
+  tone: BlogTone;
+  length: BlogLength;
+  language?: PromptLanguage;
+}
+
+/** 음성 녹음 전사문을 블로그 글로 재구성한다 (말한 내용만 사용, 창작 금지). */
+export function blogFromTranscriptPrompt(
+  input: BlogTranscriptPromptInput,
+): PromptSpec {
+  const language = input.language ?? "ko";
+  const lengthGuide =
+    language === "en" ? LENGTH_GUIDE_EN[input.length] : LENGTH_GUIDE_KO[input.length];
+  const system = `당신은 소상공인이 말로 녹음한 내용을 블로그 글로 다듬어주는 전문 카피라이터입니다.
+${languageRule(language)}
+규칙:
+- 전사문에서 말한 내용과 사실만 사용하고, 없는 정보(가격·날짜·효능 등)를 지어내지 않습니다.
+- 구어체의 군더더기·반복·추임새를 정리하고 자연스러운 문어체로 바꿉니다.
+- 말한 순서에 얽매이지 말고 독자가 읽기 좋은 흐름(도입-본문-마무리)으로 재구성합니다.
+- content 는 Markdown 형식(##, **, - 목록 사용)으로 작성합니다.
+반드시 아래 JSON 스키마만 순수 JSON으로 반환하세요.`;
+
+  const user = `사업 정보:
+- 사업 이름: ${input.businessName}
+- 업종: ${input.category}
+- 브랜드 톤: ${input.brandTone}
+
+사장님이 말로 녹음한 내용(전사문):
+"""
+${input.transcript.slice(0, 8000)}
+"""
+
+작성 요청:
+- 글의 톤: ${input.tone}
+- 분량: ${input.length} (${lengthGuide}) — 단, 전사문 내용이 짧으면 억지로 늘리지 말 것
+
+아래 JSON 스키마로만 응답하세요:
+{
+  "title": "매력적인 블로그 제목",
+  "summary": "1~2문장 요약",
+  "content": "Markdown 본문",
+  "keywords": ["SEO 키워드 5개"],
+  "seo_title": "60자 이내 SEO 제목",
+  "seo_description": "150자 이내 메타 설명",
+  "social_caption": "SNS 공유용 짧은 캡션",
+  "image_subject": "커버 사진 피사체 묘사 (영어 한 문장, 사람·손·글자 없이 구체적인 사물·음식·공간만. 예: freshly baked sourdough bread loaves and wheat stalks on a rustic wooden table)"
+}`;
+
+  return { system, user };
+}
+
 export function blogPrompt(input: BlogPromptInput): PromptSpec {
   const language = input.language ?? "ko";
   const lengthGuide =

@@ -193,6 +193,13 @@ export const Icon = {
       <circle cx="12" cy="10" r="2.6" />
     </Svg>
   ),
+  mic: (p: IconProps) => (
+    <Svg {...p}>
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M5.5 11a6.5 6.5 0 0 0 13 0" />
+      <path d="M12 17.5V21" />
+    </Svg>
+  ),
   camera: (p: IconProps) => (
     <Svg {...p}>
       <path d="M4 8h3l2-2.5h6L17 8h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z" />

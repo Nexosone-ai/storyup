@@ -6,7 +6,10 @@ import type {
   WebsiteContent,
   BusinessInterviewInput,
 } from "@/types/domain";
-import type { BlogPromptInput } from "./prompts/blog";
+import type {
+  BlogPromptInput,
+  BlogTranscriptPromptInput,
+} from "./prompts/blog";
 import type { MarketingPromptInput } from "./prompts/marketing";
 import type { CardNewsPromptInput } from "./prompts/card-news";
 import type { PromptLanguage } from "./prompts/brand-story";
@@ -29,6 +32,11 @@ export interface AIProvider {
   ): Promise<WebsiteContent>;
 
   generateBlog(input: BlogPromptInput): Promise<BlogArticleResult>;
+
+  /** 음성 녹음 전사문을 블로그 글로 재구성한다. */
+  generateBlogFromTranscript(
+    input: BlogTranscriptPromptInput,
+  ): Promise<BlogArticleResult>;
 
   generateMarketing(
     input: MarketingPromptInput,

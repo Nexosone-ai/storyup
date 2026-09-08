@@ -74,6 +74,65 @@ export async function uploadSiteImage(
   return { url: publicUrl };
 }
 
+const VOICE_BUCKET = "voice-notes";
+
+export interface VoiceUploadTicket {
+  path?: string;
+  token?: string;
+  error?: string;
+}
+
+/**
+ * 음성 녹음 업로드용 서명 URL 발급 (블로그 음성 작성).
+ * 오디오는 Vercel 요청 본문 한도(4.5MB)를 넘기 쉬워 클라이언트가
+ * Storage에 직접 올린다. 버킷은 비공개 — 처리 후 라우트가 파일을 지운다.
+ */
+export async function createVoiceUploadUrl(
+  businessId: string,
+  ext: string,
+): Promise<VoiceUploadTicket> {
+  const ko = (await getLocale()) === "ko";
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
+
+  // Ownership check via RLS.
+  const { data: biz } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("id", businessId)
+    .maybeSingle();
+  if (!biz)
+    return { error: ko ? "권한이 없습니다." : "You don't have permission." };
+
+  const safeExt = /^[a-z0-9]{1,5}$/i.test(ext) ? ext.toLowerCase() : "bin";
+  const admin = createAdminClient();
+
+  // Ensure the private bucket exists (idempotent).
+  try {
+    const { data: buckets } = await admin.storage.listBuckets();
+    if (!buckets?.some((b) => b.name === VOICE_BUCKET)) {
+      await admin.storage.createBucket(VOICE_BUCKET, {
+        public: false,
+        fileSizeLimit: "25MB",
+      });
+    }
+  } catch {
+    // If listing/creating fails but the bucket already exists, signing still works.
+  }
+
+  const path = `${businessId}/${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}.${safeExt}`;
+  const { data, error } = await admin.storage
+    .from(VOICE_BUCKET)
+    .createSignedUploadUrl(path);
+  if (error || !data)
+    return {
+      error: ko ? "업로드 준비에 실패했습니다." : "Failed to prepare upload.",
+    };
+  return { path: data.path, token: data.token };
+}
+
 export interface ActionState {
   error?: string;
   message?: string;

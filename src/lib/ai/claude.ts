@@ -18,7 +18,12 @@ import {
   type PromptSpec,
 } from "./prompts/brand-story";
 import { websitePrompt } from "./prompts/website";
-import { blogPrompt, type BlogPromptInput } from "./prompts/blog";
+import {
+  blogPrompt,
+  blogFromTranscriptPrompt,
+  type BlogPromptInput,
+  type BlogTranscriptPromptInput,
+} from "./prompts/blog";
 import {
   marketingPrompt,
   type MarketingPromptInput,
@@ -84,6 +89,13 @@ export class ClaudeProvider implements AIProvider {
 
   generateBlog(input: BlogPromptInput) {
     return this.complete<BlogArticleResult>(blogPrompt(input), 3000);
+  }
+
+  generateBlogFromTranscript(input: BlogTranscriptPromptInput) {
+    return this.complete<BlogArticleResult>(
+      blogFromTranscriptPrompt(input),
+      3000,
+    );
   }
 
   generateMarketing(input: MarketingPromptInput) {
