@@ -117,9 +117,17 @@ export async function getPrimaryBusiness(): Promise<{
   name: string;
 } | null> {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  // 소유자 필터 필수 — businesses는 공개 사이트가 있으면 누구나 읽을 수 있는
+  // RLS 정책이 있어(businesses_public_read), user_id 없이 조회하면 남의
+  // 비즈니스가 잡힐 수 있다.
   const { data } = await supabase
     .from("businesses")
     .select("id, name")
+    .eq("user_id", user.id)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
