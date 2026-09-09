@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { getUser } from "@/lib/queries";
+import { getUser, getProfileName } from "@/lib/queries";
 import { getPlanId } from "@/lib/subscription";
 import { getSubscriptionRow } from "@/lib/payments/billing";
 import { isBillingConfigured } from "@/lib/payments/portone";
@@ -12,9 +12,10 @@ export default async function PlansPage() {
   const user = await getUser();
   if (!user) redirect("/login");
 
-  const [planId, subRow] = await Promise.all([
+  const [planId, subRow, profileName] = await Promise.all([
     getPlanId(user.id),
     getSubscriptionRow(user.id),
+    getProfileName(),
   ]);
 
   return (
@@ -29,6 +30,8 @@ export default async function PlansPage() {
         cancelAtPeriodEnd: !!subRow?.cancel_at_period_end,
         hasBillingKey: !!subRow?.billing_key,
       }}
+      customerName={profileName}
+      customerEmail={user.email ?? ""}
     />
   );
 }
