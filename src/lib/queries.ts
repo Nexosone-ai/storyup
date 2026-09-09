@@ -111,28 +111,43 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
 }
 
 /** 사이드바 워크스페이스용 대표 비즈니스 — 성장 패널의 primaryBusinessId와
- * 동일하게 가장 먼저 만든 비즈니스를 쓴다 (RLS로 본인 것만 조회). */
+ * 동일하게 가장 먼저 만든 비즈니스를 쓴다. businesses_public_read(0001_init.sql)로
+ * published 사이트가 있는 남의 비즈니스도 읽히므로, RLS만으로는 부족하고
+ * user_id로 명시 필터해 본인 것만 대표로 뽑는다. */
 export async function getPrimaryBusiness(): Promise<{
   id: string;
   name: string;
 } | null> {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
   const { data } = await supabase
     .from("businesses")
     .select("id, name")
+    .eq("user_id", user.id)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
   return data ?? null;
 }
 
-/** Owned business by id (RLS enforces ownership). */
+/** Owned business by id. businesses_public_read (0001_init.sql) lets anyone
+ *  read a business that has a published site, so RLS alone is not enough to
+ *  scope this to the owner — filter by user_id explicitly so the owner-only
+ *  dashboard shell notFound()s on someone else's business. */
 export async function getBusiness(id: string): Promise<BusinessRow | null> {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
   const { data } = await supabase
     .from("businesses")
     .select("*")
     .eq("id", id)
+    .eq("user_id", user.id)
     .maybeSingle();
   return data ?? null;
 }
