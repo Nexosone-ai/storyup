@@ -3,12 +3,20 @@ import type { WebsiteContent, CardNewsResult } from "@/types/domain";
 import type { ShowcasePost, ShowcaseCard } from "@/lib/queries";
 import { stripHtml } from "@/utils/richtext";
 
+/** 미리보기 슬라이드 한 장 — 사진 + 그 화면의 문구(있으면 오버레이). */
+export interface ShowcaseSlide {
+  src: string;
+  caption: string;
+}
+
 /** 직렬화 가능한 쇼케이스 카드 데이터 (서버에서 만들어 클라이언트 탭으로 전달) */
 export interface ShowcaseSiteItem {
   href: string;
   name: string;
   headline: string;
   logo: string | null;
+  /** 카드 슬라이드 미리보기 — 히어로 → 서비스 → 특장점 → 갤러리 순, 최대 6장. */
+  slides: ShowcaseSlide[];
 }
 
 export interface ShowcasePostItem {
@@ -25,11 +33,34 @@ export interface ShowcasePostItem {
 
 export function toSiteItem(site: WebsiteRow): ShowcaseSiteItem {
   const content = site.content as WebsiteContent;
+  // 슬라이드 미리보기: 히어로 → 서비스 → 특장점 → 갤러리 순으로 사진+문구를 모아
+  // 중복 사진 제거, 최대 6장.
+  const raw: ShowcaseSlide[] = [
+    { src: content.hero?.image ?? "", caption: stripHtml(content.hero?.headline ?? "") },
+    ...(content.offers?.items ?? []).map((i) => ({
+      src: i.image ?? "",
+      caption: stripHtml(i.title ?? ""),
+    })),
+    ...(content.whyChooseUs?.items ?? []).map((i) => ({
+      src: i.image ?? "",
+      caption: stripHtml(i.title ?? ""),
+    })),
+    ...(content.gallery ?? []).map((src) => ({ src, caption: "" })),
+  ];
+  const slides: ShowcaseSlide[] = [];
+  const seen = new Set<string>();
+  for (const s of raw) {
+    if (!s.src || seen.has(s.src)) continue;
+    seen.add(s.src);
+    slides.push(s);
+    if (slides.length >= 6) break;
+  }
   return {
     href: `/site/${site.slug}`,
     name: content.hero?.businessName ?? "",
     headline: stripHtml(content.hero?.headline ?? ""),
     logo: content.hero?.logo ?? null,
+    slides,
   };
 }
 

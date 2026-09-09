@@ -22,7 +22,7 @@ export interface ShowcaseDict {
 /** 사진이 없는 카드의 플레이스홀더 — 회색 STORYUP 로고를 얹은 그라데이션. */
 function PlaceholderCover() {
   return (
-    <div className="flex aspect-[16/9] w-full items-center justify-center bg-gradient-to-br from-primary/30 via-surface-muted to-accent/20">
+    <div className="flex aspect-[16/10] w-full items-center justify-center bg-gradient-to-br from-primary/30 via-surface-muted to-accent/20">
       <span className="inline-flex items-center gap-2 opacity-50">
         {/* eslint-disable-next-line @next/next/no-img-element -- 정적 로고 에셋 (투명 배경) */}
         <img
@@ -39,95 +39,134 @@ function PlaceholderCover() {
   );
 }
 
-// 미리보기 iframe이 렌더링하는 가상 브라우저 너비 (데스크톱 레이아웃 기준)
-const FRAME_W = 1280;
-
 /**
- * 랜딩페이지 카드 — 실제 사이트 전체를 세로로 긴 미리보기로 축소 렌더링하고,
- * 마우스를 올리면 페이지가 아래에서 위로 스크롤되듯 움직인다.
+ * 브라우저 화면 영역 — 사이트의 여러 화면(사진+문구)을 자동으로 슬라이드하며 미리보기한다.
+ * (화면에 보일 때만 재생해 카드가 많아도 가볍게 유지)
  */
-export function SiteCard({ item }: { item: ShowcaseSiteItem }) {
-  const boxRef = useRef<HTMLDivElement | null>(null);
-  const frameRef = useRef<HTMLIFrameElement | null>(null);
-  const [scale, setScale] = useState(0.25);
-  const [boxH, setBoxH] = useState(0);
-  const [pageH, setPageH] = useState(2400);
-  const [hovered, setHovered] = useState(false);
+function SitePreview({
+  slides,
+  name,
+}: {
+  slides: ShowcaseSiteItem["slides"];
+  name: string;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [i, setI] = useState(0);
+  const [visible, setVisible] = useState(false);
+  const n = slides.length;
 
   useEffect(() => {
-    const el = boxRef.current;
+    const el = ref.current;
     if (!el) return;
-    const update = () => {
-      setScale(el.clientWidth / FRAME_W);
-      setBoxH(el.clientHeight);
-    };
-    const raf = requestAnimationFrame(update);
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => {
-      cancelAnimationFrame(raf);
-      ro.disconnect();
-    };
+    const io = new IntersectionObserver(
+      ([e]) => setVisible(e.isIntersecting),
+      { rootMargin: "120px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
   }, []);
 
-  // 같은 오리진이므로 로드 후 실제 페이지 높이를 재서 끝까지 스크롤되게 한다.
-  const onFrameLoad = () => {
-    try {
-      const h =
-        frameRef.current?.contentDocument?.documentElement?.scrollHeight;
-      if (h && h > 400) setPageH(Math.min(h, 4500));
-    } catch {
-      // 측정 실패 시 기본 높이 유지
-    }
-  };
+  useEffect(() => {
+    if (!visible || n <= 1) return;
+    const t = setInterval(() => setI((c) => (c + 1) % n), 2800);
+    return () => clearInterval(t);
+  }, [visible, n]);
 
-  // 호버 시 이동량: 페이지 끝이 카드 바닥에 닿을 만큼 위로
-  const shift = Math.min(0, boxH - pageH * scale);
-  const duration = Math.max(1600, Math.abs(shift) * 7);
+  return (
+    <div
+      ref={ref}
+      className="relative aspect-[16/10] w-full overflow-hidden bg-surface-muted"
+    >
+      {slides.map((s, k) => (
+        <div
+          key={k}
+          className={cn(
+            "absolute inset-0 transition-opacity duration-700 ease-out",
+            k === i ? "opacity-100" : "opacity-0",
+          )}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- 사용자 업로드/AI 원격 이미지 */}
+          <img
+            src={s.src}
+            alt={k === 0 ? name : ""}
+            loading="lazy"
+            className="h-full w-full object-cover"
+          />
+          {s.caption && (
+            <>
+              <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+              <p className="absolute inset-x-0 bottom-0 line-clamp-2 px-4 pb-7 text-sm font-semibold leading-snug text-white drop-shadow-sm sm:text-base">
+                {s.caption}
+              </p>
+            </>
+          )}
+        </div>
+      ))}
+      {n > 1 && (
+        <div className="absolute inset-x-0 bottom-2.5 z-10 flex justify-center gap-1">
+          {slides.map((_, k) => (
+            <span
+              key={k}
+              className={cn(
+                "h-1 rounded-full bg-white transition-all",
+                k === i ? "w-4" : "w-1.5 opacity-50",
+              )}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
+/**
+ * 랜딩페이지 카드 — 사이트 화면들을 '브라우저 창' 목업 안에서 슬라이드로 미리보기해
+ * 한눈에 웹사이트로 읽히게 하고(블로그 썸네일과 구분), 아래에 상호명·헤드라인을 적는다.
+ */
+export function SiteCard({ item }: { item: ShowcaseSiteItem }) {
+  // 주소창에 표시할 도메인+경로 (예: storyup.me/site/slug)
+  const displayUrl = `storyup.me${item.href}`;
+  // 구버전 캐시 데이터(slides 없음)에도 안전하게 대응
+  const slides = item.slides ?? [];
   return (
     <Link
       href={item.href}
       target="_blank"
       rel="noopener noreferrer"
       className="group block"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
-      <div
-        ref={boxRef}
-        className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-border bg-surface-muted/60 transition group-hover:-translate-y-1 group-hover:border-primary/50 group-hover:shadow-lg"
-      >
-        <div
-          className="ease-linear will-change-transform"
-          style={{
-            transform: `translateY(${hovered ? shift : 0}px)`,
-            transition: `transform ${hovered ? duration : 700}ms ${hovered ? "linear" : "ease-out"}`,
-          }}
-        >
-          <div
-            style={{
-              width: FRAME_W,
-              height: pageH,
-              transform: `scale(${scale})`,
-              transformOrigin: "top left",
-            }}
-          >
-            <iframe
-              ref={frameRef}
-              src={item.href}
-              title={item.name}
-              width={FRAME_W}
-              height={pageH}
-              loading="lazy"
-              scrolling="no"
-              tabIndex={-1}
-              aria-hidden
-              onLoad={onFrameLoad}
-              className="pointer-events-none select-none border-0 bg-white"
-            />
-          </div>
+      <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm transition group-hover:-translate-y-1 group-hover:border-primary/50 group-hover:shadow-lg">
+        {/* 브라우저 크롬 — 신호등 점 + 주소창 */}
+        <div className="flex items-center gap-2 border-b border-border bg-surface-muted/70 px-3 py-2">
+          <span className="flex shrink-0 items-center gap-1.5">
+            <span className="size-2.5 rounded-full bg-[#ff5f57]" />
+            <span className="size-2.5 rounded-full bg-[#febc2e]" />
+            <span className="size-2.5 rounded-full bg-[#28c840]" />
+          </span>
+          <span className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-[11px] text-muted">
+            <Icon.globe width={11} height={11} className="shrink-0" />
+            <span className="truncate">{displayUrl}</span>
+          </span>
         </div>
+        {/* 페이지 화면 — 사진이 있으면 슬라이드, 없으면 문구(상호명·헤드라인) 표지 */}
+        {slides.length > 0 ? (
+          <SitePreview slides={slides} name={item.name} />
+        ) : item.name || item.headline ? (
+          <div className="flex aspect-[16/10] w-full items-center bg-gradient-to-br from-primary/25 via-surface-muted to-accent/20 px-6">
+            <div className="min-w-0">
+              <p className="line-clamp-3 text-lg font-bold leading-snug tracking-tight text-foreground sm:text-xl">
+                {item.headline || item.name}
+              </p>
+              {item.headline && item.name && (
+                <p className="mt-1 line-clamp-1 text-xs font-medium text-muted">
+                  {item.name}
+                </p>
+              )}
+            </div>
+          </div>
+        ) : (
+          <PlaceholderCover />
+        )}
       </div>
       <div className="flex items-center gap-2 px-1 pt-3">
         {item.logo && (
