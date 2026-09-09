@@ -9,7 +9,9 @@ import {
   getGrowthStatsAdmin,
   getGrowthSettingsAdmin,
 } from "@/lib/gamification/admin";
+import { getMembersAdmin } from "@/lib/admin/members";
 import { AdminView } from "@/components/admin/AdminView";
+import { AdminMembers } from "@/components/admin/AdminMembersView";
 import { AdminGrowthView } from "@/components/admin/AdminGrowthView";
 import {
   AdminPayments,
@@ -26,17 +28,20 @@ export default async function AdminPage() {
   if (!admin) redirect("/dashboard");
 
   await getProfileName(); // ensures profile exists
-  const [payments, prices, growthStats, growthSettings] = await Promise.all([
-    getRecentPaymentsAdmin(),
-    getServicePricesAdmin(),
-    getGrowthStatsAdmin(),
-    getGrowthSettingsAdmin(),
-  ]);
+  const [payments, prices, growthStats, growthSettings, members] =
+    await Promise.all([
+      getRecentPaymentsAdmin(),
+      getServicePricesAdmin(),
+      getGrowthStatsAdmin(),
+      getGrowthSettingsAdmin(),
+      getMembersAdmin(),
+    ]);
 
   return (
     <div className="space-y-10">
       <AdminView />
       <div className="mx-auto max-w-2xl space-y-10">
+        <AdminMembers members={members.members} total={members.total} />
         <AdminGrowthView stats={growthStats} settings={growthSettings} />
         <AdminPointLookup />
         <AdminServicePrices
