@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getUser } from "@/lib/queries";
+import { getUser, getProfileName } from "@/lib/queries";
 import { getMyTransactions, getMyPayments } from "@/lib/points";
 import { getPointBreakdown } from "@/lib/payments/service";
 import { getSubscriptionOverview } from "@/lib/subscription";
@@ -13,13 +13,14 @@ export default async function PointsPage() {
   const user = await getUser();
   if (!user) redirect("/login");
 
-  const [breakdown, transactions, payments, overview, subRow] =
+  const [breakdown, transactions, payments, overview, subRow, profileName] =
     await Promise.all([
       getPointBreakdown(user.id),
       getMyTransactions(user.id),
       getMyPayments(user.id),
       getSubscriptionOverview(user.id),
       getSubscriptionRow(user.id),
+      getProfileName(),
     ]);
 
   return (
@@ -48,6 +49,8 @@ export default async function PointsPage() {
         status: p.status,
         created_at: p.created_at,
       }))}
+      customerName={profileName}
+      customerEmail={user.email ?? ""}
     />
   );
 }

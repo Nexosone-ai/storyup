@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Badge } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Input, Label } from "@/components/ui/Field";
 import { Spinner } from "@/components/ui/Spinner";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { PLANS, type PlanId } from "@/lib/plans";
@@ -21,7 +22,12 @@ interface PortOneSDK {
     billingKeyMethod: "CARD";
     issueId: string;
     issueName: string;
-    customer?: { customerId?: string };
+    customer?: {
+      customerId?: string;
+      fullName?: string;
+      phoneNumber?: string;
+      email?: string;
+    };
   }): Promise<{ code?: string; message?: string; billingKey?: string }>;
 }
 
@@ -67,15 +73,24 @@ export function SubscribePanel({
   userId,
   currentPlanId,
   billing,
+  customerName,
+  customerEmail,
 }: {
   userId: string;
   currentPlanId: PlanId;
   billing: BillingState;
+  /** 결제자 정보 초기값 — PG(카드사)가 빌링키 발급 시 이름·이메일·휴대폰을 요구한다. */
+  customerName: string;
+  customerEmail: string;
 }) {
   const ko = useLocale() === "ko";
   const router = useRouter();
   const [note, setNote] = useState<{ text: string; error: boolean } | null>(null);
   const [busy, start] = useTransition();
+  // 결제자 정보 — 이름·이메일은 프로필에서 채우고, 휴대폰은 직접 입력받는다.
+  const [buyerName, setBuyerName] = useState(customerName);
+  const [buyerEmail, setBuyerEmail] = useState(customerEmail);
+  const [buyerPhone, setBuyerPhone] = useState("");
 
   const paidPlans = PLANS.filter((p) => p.id === "basic" || p.id === "pro");
   // 기간이 지난 active 행(크론 처리 전)은 만료로 취급 — 기준 시각은 마운트 시점 고정
@@ -89,6 +104,19 @@ export function SubscribePanel({
   const subscribe = (planId: PlanId) =>
     start(async () => {
       setNote(null);
+      // PG(카드사)가 빌링키 발급 시 요구하는 결제자 정보 — 하나라도 비면 발급이 거부된다.
+      const name = buyerName.trim();
+      const email = buyerEmail.trim();
+      const phone = buyerPhone.replace(/[^0-9]/g, "");
+      if (!name || !email || phone.length < 10) {
+        setNote({
+          text: ko
+            ? "결제자 이름·이메일·휴대폰 번호를 정확히 입력해주세요."
+            : "Please enter the payer's name, email, and phone number.",
+          error: true,
+        });
+        return;
+      }
       try {
         const portone = await loadPortone();
         const issue = await portone.requestIssueBillingKey({
@@ -97,7 +125,12 @@ export function SubscribePanel({
           billingKeyMethod: "CARD",
           issueId: `bk-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           issueName: "STORYUP 정기결제",
-          customer: { customerId: userId },
+          customer: {
+            customerId: userId,
+            fullName: name,
+            phoneNumber: phone,
+            email,
+          },
         });
         if (issue.code || !issue.billingKey) {
           // 사용자가 창을 닫은 경우 등 — 결제 시도 전이므로 조용히 안내만
@@ -207,6 +240,50 @@ export function SubscribePanel({
               {ko ? "해지" : "Cancel"}
             </Button>
           )}
+        </Card>
+      )}
+
+      {/* 결제자 정보 — 카드사 빌링키 발급에 필요 (이름·이메일·휴대폰) */}
+      {!subscribedPaid && billing.configured && (
+        <Card className="space-y-3">
+          <p className="text-sm font-medium">
+            {ko ? "결제자 정보" : "Payer information"}
+          </p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div>
+              <Label htmlFor="buyer-name">{ko ? "이름" : "Name"}</Label>
+              <Input
+                id="buyer-name"
+                value={buyerName}
+                onChange={(e) => setBuyerName(e.target.value)}
+                placeholder={ko ? "홍길동" : "Full name"}
+                autoComplete="name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="buyer-email">{ko ? "이메일" : "Email"}</Label>
+              <Input
+                id="buyer-email"
+                type="email"
+                value={buyerEmail}
+                onChange={(e) => setBuyerEmail(e.target.value)}
+                placeholder="you@example.com"
+                autoComplete="email"
+              />
+            </div>
+            <div>
+              <Label htmlFor="buyer-phone">{ko ? "휴대폰 번호" : "Phone"}</Label>
+              <Input
+                id="buyer-phone"
+                type="tel"
+                inputMode="numeric"
+                value={buyerPhone}
+                onChange={(e) => setBuyerPhone(e.target.value)}
+                placeholder="010-1234-5678"
+                autoComplete="tel"
+              />
+            </div>
+          </div>
         </Card>
       )}
 
