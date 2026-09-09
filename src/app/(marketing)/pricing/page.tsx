@@ -2,7 +2,7 @@ import Link from "next/link";
 import { MarketingNav } from "@/components/marketing/MarketingNav";
 import { Footer } from "@/components/marketing/Footer";
 import { getLocale } from "@/lib/i18n";
-import { PLANS, OVERAGE_COST, CARD_NEWS_PAGES, type Plan } from "@/lib/plans";
+import { PLANS, CARD_NEWS_PAGES, type Plan } from "@/lib/plans";
 import { COMPANY } from "@/lib/company";
 import { cn } from "@/utils/cn";
 
@@ -148,13 +148,6 @@ export default async function PricingPage() {
     ],
   ];
 
-  const overages: [string, number][] = [
-    [ko ? "AI 랜딩페이지" : "AI landing page", OVERAGE_COST.site],
-    [ko ? "블로그 생성" : "Blog post", OVERAGE_COST.blogPost],
-    [ko ? "SNS 카드뉴스" : "Card news", OVERAGE_COST.cardNews],
-    [ko ? "AI 이미지" : "AI image", OVERAGE_COST.aiImage],
-  ];
-
   return (
     <div className="flex min-h-dvh flex-col">
       <MarketingNav />
@@ -269,53 +262,6 @@ export default async function PricingPage() {
                 ))}
               </tbody>
             </table>
-          </div>
-
-          {/* 초과 사용 안내 */}
-          <div className="mt-10 rounded-2xl border border-border bg-surface-muted p-6 sm:p-8">
-            <h2 className="text-lg font-semibold tracking-tight">
-              {ko ? "월 제공량을 넘으면?" : "Past your monthly quota?"}
-            </h2>
-            <p className="mt-2 text-sm leading-relaxed text-muted">
-              {ko
-                ? "포인트로 필요한 만큼 추가 생성할 수 있습니다. 1P = ₩1이며, 미사용 포인트는 다음 달로 이월됩니다."
-                : "Keep creating with points — 1P = ₩1, and unused points roll over to the next month."}
-            </p>
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {overages.map(([label, cost]) => (
-                <div
-                  key={label}
-                  className="rounded-xl border border-border bg-surface p-4 text-center"
-                >
-                  <p className="text-xs text-muted">{label}</p>
-                  <p className="tnum mt-1 font-bold">
-                    {fmt(cost)}P
-                    <span className="text-xs font-medium text-muted">
-                      {ko ? " /건" : " each"}
-                    </span>
-                  </p>
-                </div>
-              ))}
-            </div>
-            <p className="mt-4 text-xs text-muted">
-              {ko ? (
-                <>
-                  자세한 포인트 규정은{" "}
-                  <Link href="/credit-policy" className="text-primary underline underline-offset-4">
-                    크레딧 정책
-                  </Link>
-                  을 확인하세요.
-                </>
-              ) : (
-                <>
-                  See the{" "}
-                  <Link href="/credit-policy" className="text-primary underline underline-offset-4">
-                    credit policy
-                  </Link>{" "}
-                  for details.
-                </>
-              )}
-            </p>
           </div>
         </div>
       </main>
