@@ -165,7 +165,7 @@ export default async function PricingPage() {
             </h1>
             <p className="mt-3 text-muted">
               {ko
-                ? "무료로 시작하고, 사업이 커지면 플랜을 올리세요. 월 제공량을 넘으면 포인트로 추가 생성할 수 있습니다."
+                ? "무료로 시작하고, 사업이 커지면 플랜을 올리세요."
                 : "Start free and upgrade as you grow. Past your monthly quota, keep creating with points."}
             </p>
           </div>
