@@ -2,6 +2,7 @@ import Link from "next/link";
 import { MarketingNav } from "@/components/marketing/MarketingNav";
 import { Footer } from "@/components/marketing/Footer";
 import { getLocale } from "@/lib/i18n";
+import { getUser } from "@/lib/queries";
 import { PLANS, CARD_NEWS_PAGES, type Plan } from "@/lib/plans";
 import { COMPANY } from "@/lib/company";
 import { cn } from "@/utils/cn";
@@ -76,6 +77,9 @@ function planFeatures(plan: Plan, ko: boolean): string[] {
 export default async function PricingPage() {
   const ko = (await getLocale()) === "ko";
   const tel = `tel:${COMPANY.supportPhone.replace(/-/g, "")}`;
+  // 구독은 회원만 가능 — 로그인 상태면 구독 페이지로, 아니면 회원가입으로 유도한다.
+  const user = await getUser();
+  const subscribeHref = user ? "/dashboard/plans" : "/signup";
 
   const rows: [string, (p: Plan) => string][] = [
     [
@@ -220,9 +224,17 @@ export default async function PricingPage() {
                         {ko ? "문의하기" : "Contact us"}
                       </a>
                     ) : (
-                      <span className="inline-flex w-full cursor-default items-center justify-center rounded-xl border border-dashed border-border px-4 py-2.5 text-sm font-bold text-muted">
-                        {ko ? "출시 준비 중" : "Coming soon"}
-                      </span>
+                      <Link
+                        href={subscribeHref}
+                        className={cn(
+                          "inline-flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-bold transition-colors",
+                          popular
+                            ? "neon-glow bg-primary text-primary-foreground hover:bg-primary-hover"
+                            : "border border-border hover:border-primary/60 hover:text-primary",
+                        )}
+                      >
+                        {ko ? "구독하기" : "Subscribe"}
+                      </Link>
                     )}
                   </div>
                 </div>

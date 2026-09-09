@@ -6,8 +6,9 @@ import { Card, Badge } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Field";
 import { Spinner } from "@/components/ui/Spinner";
+import { Icon } from "@/components/ui/icons";
 import { useLocale } from "@/components/i18n/LocaleProvider";
-import { PLANS, type PlanId } from "@/lib/plans";
+import { PLANS, getPlanById, type PlanId } from "@/lib/plans";
 import {
   startSubscriptionAction,
   cancelSubscriptionAction,
@@ -91,6 +92,8 @@ export function SubscribePanel({
   const [buyerName, setBuyerName] = useState(customerName);
   const [buyerEmail, setBuyerEmail] = useState(customerEmail);
   const [buyerPhone, setBuyerPhone] = useState("");
+  // 구독하기 클릭 시 뜨는 결제 창(모달)에서 어떤 플랜을 구독할지
+  const [modalPlan, setModalPlan] = useState<PlanId | null>(null);
 
   const paidPlans = PLANS.filter((p) => p.id === "basic" || p.id === "pro");
   // 기간이 지난 active 행(크론 처리 전)은 만료로 취급 — 기준 시각은 마운트 시점 고정
@@ -150,7 +153,10 @@ export function SubscribePanel({
             (ko ? "구독이 시작되었습니다." : "Subscription started."),
           error: !!res.error,
         });
-        if (!res.error) router.refresh();
+        if (!res.error) {
+          setModalPlan(null); // 성공 시 결제 창 닫기
+          router.refresh();
+        }
       } catch {
         setNote({
           text: ko
@@ -243,50 +249,6 @@ export function SubscribePanel({
         </Card>
       )}
 
-      {/* 결제자 정보 — 카드사 빌링키 발급에 필요 (이름·이메일·휴대폰) */}
-      {!subscribedPaid && billing.configured && (
-        <Card className="space-y-3">
-          <p className="text-sm font-medium">
-            {ko ? "결제자 정보" : "Payer information"}
-          </p>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div>
-              <Label htmlFor="buyer-name">{ko ? "이름" : "Name"}</Label>
-              <Input
-                id="buyer-name"
-                value={buyerName}
-                onChange={(e) => setBuyerName(e.target.value)}
-                placeholder={ko ? "홍길동" : "Full name"}
-                autoComplete="name"
-              />
-            </div>
-            <div>
-              <Label htmlFor="buyer-email">{ko ? "이메일" : "Email"}</Label>
-              <Input
-                id="buyer-email"
-                type="email"
-                value={buyerEmail}
-                onChange={(e) => setBuyerEmail(e.target.value)}
-                placeholder="you@example.com"
-                autoComplete="email"
-              />
-            </div>
-            <div>
-              <Label htmlFor="buyer-phone">{ko ? "휴대폰 번호" : "Phone"}</Label>
-              <Input
-                id="buyer-phone"
-                type="tel"
-                inputMode="numeric"
-                value={buyerPhone}
-                onChange={(e) => setBuyerPhone(e.target.value)}
-                placeholder="010-1234-5678"
-                autoComplete="tel"
-              />
-            </div>
-          </div>
-        </Card>
-      )}
-
       {/* 플랜 선택 */}
       <div className="grid gap-3 sm:grid-cols-2">
         {paidPlans.map((plan) => {
@@ -327,7 +289,10 @@ export function SubscribePanel({
               <Button
                 className="mt-auto"
                 disabled={busy || !billing.configured || isCurrent}
-                onClick={() => subscribe(plan.id)}
+                onClick={() => {
+                  setNote(null);
+                  setModalPlan(plan.id);
+                }}
               >
                 {busy ? (
                   <Spinner className="size-4" />
@@ -351,11 +316,141 @@ export function SubscribePanel({
           ? "구독 시 즉시 1개월분이 결제되고 매월 같은 날 자동 갱신됩니다. 플랜 변경 시에도 새 플랜 금액이 즉시 결제되며 오늘부터 1개월 주기가 새로 시작돼요. 해지하면 남은 기간까지 이용 후 자동 종료됩니다."
           : "Subscribing charges one month immediately and renews monthly. Switching plans charges the new price right away and restarts the monthly cycle. Cancelling keeps access until the period ends."}
       </p>
-      {note && (
+      {note && !modalPlan && (
         <p className={`text-sm ${note.error ? "text-danger" : "text-primary"}`}>
           {note.text}
         </p>
       )}
+
+      {/* 결제 창(모달) — 구독하기 클릭 시 열려 결제자 정보 입력 후 결제 진행 */}
+      {modalPlan &&
+        (() => {
+          if (!modalPlan) return null;
+          const plan = getPlanById(modalPlan);
+          const close = () => {
+            if (busy) return;
+            setModalPlan(null);
+            setNote(null);
+          };
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div
+                className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
+                onClick={close}
+              />
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-label={ko ? "구독 결제" : "Subscription checkout"}
+                className="relative z-10 w-full max-w-md rounded-2xl bg-surface p-6 shadow-xl"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-base font-bold uppercase tracking-[0.1em]">
+                      {plan.name[ko ? "ko" : "en"]}
+                      {subscribedPaid && (
+                        <span className="ml-2 text-xs font-medium text-muted">
+                          {ko ? "플랜 변경" : "Switch plan"}
+                        </span>
+                      )}
+                    </p>
+                    <p className="tnum mt-1 text-2xl font-bold">
+                      ₩{(plan.priceKrw ?? 0).toLocaleString()}
+                      <span className="text-sm font-medium text-muted">
+                        {ko ? " /월" : " /mo"}
+                      </span>
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label={ko ? "닫기" : "Close"}
+                    onClick={close}
+                    className="grid size-8 place-items-center rounded-lg text-muted hover:bg-surface-muted hover:text-foreground"
+                  >
+                    <Icon.x width={18} height={18} />
+                  </button>
+                </div>
+
+                <p className="mt-2 text-xs leading-relaxed text-muted">
+                  {ko
+                    ? "즉시 1개월분이 결제되고 매월 같은 날 자동 갱신됩니다. 카드 등록을 위해 결제자 정보가 필요합니다."
+                    : "One month is charged now and renews monthly. Your details are needed to register the card."}
+                </p>
+
+                {/* 결제자 정보 — 카드사 빌링키 발급 필수 항목 */}
+                <div className="mt-4 space-y-3">
+                  <div>
+                    <Label htmlFor="buyer-name">{ko ? "이름" : "Name"}</Label>
+                    <Input
+                      id="buyer-name"
+                      value={buyerName}
+                      onChange={(e) => setBuyerName(e.target.value)}
+                      placeholder={ko ? "홍길동" : "Full name"}
+                      autoComplete="name"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="buyer-email">{ko ? "이메일" : "Email"}</Label>
+                    <Input
+                      id="buyer-email"
+                      type="email"
+                      value={buyerEmail}
+                      onChange={(e) => setBuyerEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      autoComplete="email"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="buyer-phone">
+                      {ko ? "휴대폰 번호" : "Phone"}
+                    </Label>
+                    <Input
+                      id="buyer-phone"
+                      type="tel"
+                      inputMode="numeric"
+                      value={buyerPhone}
+                      onChange={(e) => setBuyerPhone(e.target.value)}
+                      placeholder="010-1234-5678"
+                      autoComplete="tel"
+                    />
+                  </div>
+                </div>
+
+                {note && (
+                  <p
+                    className={`mt-3 text-sm ${note.error ? "text-danger" : "text-primary"}`}
+                  >
+                    {note.text}
+                  </p>
+                )}
+
+                <div className="mt-5 flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={close}
+                    disabled={busy}
+                  >
+                    {ko ? "취소" : "Cancel"}
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    onClick={() => subscribe(modalPlan)}
+                    disabled={busy}
+                  >
+                    {busy ? (
+                      <Spinner className="size-4" />
+                    ) : ko ? (
+                      "카드 등록하고 결제"
+                    ) : (
+                      "Register card & pay"
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
     </section>
   );
 }
