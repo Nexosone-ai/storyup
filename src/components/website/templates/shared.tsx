@@ -15,11 +15,16 @@ export interface TextArgs {
 /** Renders a content string — either static text or an inline-editable field. */
 export type TextRenderer = (args: TextArgs) => ReactNode;
 
+/** AI 생성 시 요청할 이미지 비율 — 표시 박스에 맞춰 지정한다. */
+export type GenAspect = "1:1" | "3:4" | "4:3" | "16:9" | "9:16";
+
 export interface ImageArgs {
   path: string;
   value?: string;
   className?: string;
   kind?: "cover" | "hero";
+  /** AI 생성 이미지 비율 힌트 (표시 박스 비율). 지정 안 하면 kind로 추정. */
+  aspect?: GenAspect;
 }
 
 /** Renders an image slot — either a static <img> or an editable uploader. */

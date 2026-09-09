@@ -50,7 +50,7 @@ export function ClassicTemplate({
         className={`relative overflow-hidden border-b border-border ${heroPhoto ? "" : "bg-surface-muted/50"} ${editable && !heroPhoto ? "min-h-[220px]" : ""}`}
       >
         {(heroPhoto || editable) &&
-          Img({ path: "hero.image", value: hero.image, kind: "hero" })}
+          Img({ path: "hero.image", value: hero.image, kind: "hero", aspect: "16:9" })}
         <div
           className={`relative mx-auto max-w-3xl px-5 py-24 text-center sm:py-28 ${heroPhoto ? "text-white" : ""}`}
         >
@@ -77,7 +77,7 @@ export function ClassicTemplate({
               <div key={i} className="overflow-hidden rounded-2xl border border-border bg-white">
                 {(item.image || editable) && (
                   <div className="relative aspect-[16/10] w-full border-b border-border">
-                    {Img({ path: `offers.items.${i}.image`, value: item.image })}
+                    {Img({ path: `offers.items.${i}.image`, value: item.image, aspect: "16:9" })}
                   </div>
                 )}
                 <div className="p-6">
@@ -98,7 +98,7 @@ export function ClassicTemplate({
             <div key={i} className="text-center">
               {(item.image || editable) && (
                 <div className="relative mx-auto mb-4 aspect-square w-20 overflow-hidden rounded-full border border-border">
-                  {Img({ path: `whyChooseUs.items.${i}.image`, value: item.image })}
+                  {Img({ path: `whyChooseUs.items.${i}.image`, value: item.image, aspect: "1:1" })}
                 </div>
               )}
               {T({ path: `whyChooseUs.items.${i}.title`, value: item.title, as: "h3", className: "mb-2 font-semibold" })}

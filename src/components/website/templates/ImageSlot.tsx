@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { uploadSiteImage } from "@/app/business/actions";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { cn } from "@/utils/cn";
-import type { ImageRenderer } from "./shared";
+import type { GenAspect, ImageRenderer } from "./shared";
 
 /** Downscale + compress an image in the browser before upload. */
 export async function resizeImage(file: File, maxW: number): Promise<File> {
@@ -30,6 +30,7 @@ function ImageSlot({
   businessId,
   className,
   kind = "cover",
+  aspect,
   subject,
 }: {
   value?: string;
@@ -37,6 +38,8 @@ function ImageSlot({
   businessId: string;
   className?: string;
   kind?: "cover" | "hero";
+  /** 표시 박스 비율 — 지정하면 이 비율로 AI 이미지를 생성한다. */
+  aspect?: GenAspect;
   /** AI 생성 프롬프트에 쓰일 피사체 설명 (예: 메뉴명, 상호+헤드라인) */
   subject?: string;
 }) {
@@ -80,7 +83,8 @@ function ImageSlot({
         body: JSON.stringify({
           businessId,
           subject: subject ?? "",
-          aspect: kind === "hero" ? "16:9" : "4:3",
+          // 표시 박스 비율(aspect)로 생성해 여백/잘림을 없앤다. 없으면 kind로 추정.
+          aspect: aspect ?? (kind === "hero" ? "16:9" : "4:3"),
         }),
       });
       const json = await res.json();
@@ -215,7 +219,7 @@ export function makeEditableImageRenderer(
   onEdit: (path: string, value: string) => void,
   subjectFor?: (path: string) => string,
 ): ImageRenderer {
-  return function EditableImage({ path, value, className, kind }) {
+  return function EditableImage({ path, value, className, kind, aspect }) {
     return (
       <ImageSlot
         value={value}
@@ -223,6 +227,7 @@ export function makeEditableImageRenderer(
         businessId={businessId}
         className={className}
         kind={kind}
+        aspect={aspect}
         subject={subjectFor?.(path)}
       />
     );

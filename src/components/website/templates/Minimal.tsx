@@ -49,7 +49,7 @@ export function MinimalTemplate({
         )}
         {(hero.image || editable) && (
           <div className="relative mt-12 aspect-[16/9] w-full overflow-hidden rounded-2xl border border-border bg-primary-soft">
-            {Img({ path: "hero.image", value: hero.image, kind: "cover" })}
+            {Img({ path: "hero.image", value: hero.image, kind: "cover", aspect: "16:9" })}
           </div>
         )}
       </section>
@@ -76,7 +76,7 @@ export function MinimalTemplate({
               <div className="min-w-0 flex-1">
                 {(item.image || editable) && (
                   <div className="relative mb-3 aspect-[16/9] w-full overflow-hidden rounded-xl border border-border">
-                    {Img({ path: `offers.items.${i}.image`, value: item.image })}
+                    {Img({ path: `offers.items.${i}.image`, value: item.image, aspect: "16:9" })}
                   </div>
                 )}
                 {T({ path: `offers.items.${i}.title`, value: item.title, as: "h3", className: "text-xl font-semibold tracking-tight" })}
@@ -98,7 +98,7 @@ export function MinimalTemplate({
             <div key={i} className="flex items-start gap-4">
               {(item.image || editable) && (
                 <div className="relative aspect-square w-16 shrink-0 overflow-hidden rounded-lg border border-border">
-                  {Img({ path: `whyChooseUs.items.${i}.image`, value: item.image })}
+                  {Img({ path: `whyChooseUs.items.${i}.image`, value: item.image, aspect: "1:1" })}
                 </div>
               )}
               <div className="min-w-0 flex-1">

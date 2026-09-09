@@ -56,8 +56,8 @@ export function SplitTemplate({
               </a>
             )}
           </div>
-          <div className="relative hidden aspect-[4/5] overflow-hidden rounded-2xl border border-border bg-primary-soft md:block">
-            {Img({ path: "hero.image", value: hero.image, kind: "cover" })}
+          <div className="relative hidden aspect-[3/4] overflow-hidden rounded-2xl border border-border bg-primary-soft md:block">
+            {Img({ path: "hero.image", value: hero.image, kind: "cover", aspect: "3:4" })}
           </div>
         </div>
       </section>
@@ -83,7 +83,7 @@ export function SplitTemplate({
               <div key={i} className="grid gap-4 py-6 md:grid-cols-[120px_1fr_1.6fr] md:items-start">
                 {item.image || editable ? (
                   <div className="relative aspect-square w-full max-w-[120px] overflow-hidden rounded-lg border border-border">
-                    {Img({ path: `offers.items.${i}.image`, value: item.image })}
+                    {Img({ path: `offers.items.${i}.image`, value: item.image, aspect: "1:1" })}
                   </div>
                 ) : (
                   <span className="eyebrow text-primary">
@@ -108,7 +108,7 @@ export function SplitTemplate({
               <div key={i}>
                 {(item.image || editable) && (
                   <div className="relative mb-4 aspect-[4/3] w-full overflow-hidden rounded-xl border border-border">
-                    {Img({ path: `whyChooseUs.items.${i}.image`, value: item.image })}
+                    {Img({ path: `whyChooseUs.items.${i}.image`, value: item.image, aspect: "4:3" })}
                   </div>
                 )}
                 {T({ path: `whyChooseUs.items.${i}.title`, value: item.title, as: "h3", className: "mb-2 text-lg font-semibold" })}
