@@ -33,6 +33,13 @@ export const Icon = {
       <circle cx="12" cy="12" r="3" />
     </Svg>
   ),
+  eyeOff: (p: IconProps) => (
+    <Svg {...p}>
+      <path d="M10.6 5.6A9.7 9.7 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a15.8 15.8 0 0 1-2.9 3.6M6.5 6.6A15.7 15.7 0 0 0 2.5 12S6 18.5 12 18.5c1.5 0 2.9-.3 4.1-.9" />
+      <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+      <path d="M3 3l18 18" />
+    </Svg>
+  ),
   briefcase: (p: IconProps) => (
     <Svg {...p}>
       <rect x="3" y="7" width="18" height="13" rx="2" />

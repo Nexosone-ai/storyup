@@ -387,6 +387,8 @@ export async function updateSiteSlugAction(
   revalidatePath(`/site/${biz.slug}/blog`);
   revalidatePath(`/site/${slug}`);
   revalidatePath(`/site/${slug}/blog`);
+  // 슬러그 변경은 sitemap의 모든 해당 URL을 바꾼다
+  revalidatePath("/sitemap.xml");
   return {
     ok: true,
     slug,
@@ -422,6 +424,8 @@ export async function publishWebsiteAction(
   if (publish) await trackGrowthActivity(user.id, "site_updated");
 
   revalidatePath(`/business/${businessId}/website`);
+  // 사이트 공개/비공개는 사이트·소속 글 전체의 sitemap 노출에 영향
+  revalidatePath("/sitemap.xml");
   if (web?.slug) revalidatePath(`/site/${web.slug}`);
   return {
     ok: true,
@@ -493,6 +497,8 @@ export async function saveBlogAction(
       revalidatePath(`/site/${web.slug}/blog`);
       revalidatePath(`/site/${web.slug}/blog/${saved.slug}`);
     }
+    // 수정 시각(lastmod) 변경을 sitemap에 즉시 반영
+    revalidatePath("/sitemap.xml");
   }
   return { ok: true, message: ko ? "저장되었습니다." : "Saved." };
 }
@@ -583,6 +589,8 @@ export async function publishBlogAction(
   if (publish) await trackGrowthActivity(user.id, "blog_published", postId);
 
   revalidatePath(`/business/${businessId}/blog`);
+  // 발행/비공개 전환 시 sitemap을 즉시 갱신 (기본 1시간 캐시를 기다리지 않음)
+  revalidatePath("/sitemap.xml");
   if (web?.slug) {
     // 랜딩페이지 '최신 글' 섹션도 즉시 갱신되도록 루트 경로까지 재검증
     revalidatePath(`/site/${web.slug}`);

@@ -95,6 +95,7 @@ export default async function PublicArticlePage({
 
   // 검색·AI 답변엔진(AEO)용 구조화 데이터 — Google 리치 결과 권장 필드 포함
   const siteHome = `${siteUrl}/site/${slug}`;
+  const blogHome = `${siteUrl}/site/${slug}/blog`;
   const logo = site.website.content.hero?.logo;
   const jsonLd = {
     "@context": "https://schema.org",
@@ -119,12 +120,38 @@ export default async function PublicArticlePage({
     },
   };
 
+  // 사이트 계층(STORYUP → 브랜드 → 블로그 → 글) — Google 브레드크럼 리치 결과용
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "STORYUP", item: siteUrl },
+      { "@type": "ListItem", position: 2, name, item: siteHome },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: ko ? "블로그" : "Blog",
+        item: blogHome,
+      },
+      {
+        "@type": "ListItem",
+        position: 4,
+        name: post.title,
+        item: `${siteUrl}${path}`,
+      },
+    ],
+  };
+
   return (
     <div className="min-h-dvh bg-white">
       <TrackPageView slug={slug} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
       <header className="border-b border-border">
         <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-5">
@@ -145,7 +172,26 @@ export default async function PublicArticlePage({
       </header>
 
       <article className="mx-auto max-w-2xl px-5 py-12">
-        <p className="text-sm text-muted">{fmtDate(post.published_at, ko)}</p>
+        {/* 브레드크럼 — 위 BreadcrumbList 스키마와 짝을 이루는 실제 내부 링크 */}
+        <nav
+          aria-label={ko ? "탐색 경로" : "Breadcrumb"}
+          className="flex flex-wrap items-center gap-1.5 text-xs text-muted"
+        >
+          <Link href={`/site/${slug}`} className="hover:text-foreground">
+            {name}
+          </Link>
+          <span aria-hidden>›</span>
+          <Link href={`/site/${slug}/blog`} className="hover:text-foreground">
+            {ko ? "블로그" : "Blog"}
+          </Link>
+        </nav>
+        <p className="mt-3 text-sm text-muted">
+          {post.published_at && (
+            <time dateTime={post.published_at}>
+              {fmtDate(post.published_at, ko)}
+            </time>
+          )}
+        </p>
         <h1 className="mt-2 text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
           {post.title}
         </h1>
@@ -224,6 +270,28 @@ export default async function PublicArticlePage({
             </ul>
           </nav>
         )}
+
+        {/* 브랜드 사이트로 되돌아가는 내부 링크 — 검색엔진의 사이트 구조 탐색을 돕는다 */}
+        <div className="mt-10 border-t border-border pt-6">
+          <Link
+            href={`/site/${slug}`}
+            className="group flex items-center justify-between gap-3 rounded-2xl border border-border p-5 transition hover:border-primary/40"
+          >
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold group-hover:text-primary">
+                {ko ? `${name} 더 알아보기` : `More about ${name}`}
+              </span>
+              <span className="mt-0.5 block truncate text-xs text-muted">
+                {ko
+                  ? "브랜드 소개와 다른 이야기를 만나보세요"
+                  : "Discover the brand and its other stories"}
+              </span>
+            </span>
+            <span aria-hidden className="shrink-0 text-muted group-hover:text-primary">
+              →
+            </span>
+          </Link>
+        </div>
 
         {comments && (
           <BlogComments

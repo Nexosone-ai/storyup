@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, type InputHTMLAttributes } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Field";
 import { Spinner } from "@/components/ui/Spinner";
+import { Icon } from "@/components/ui/icons";
 import {
   signInAction,
   signUpAction,
@@ -17,6 +18,30 @@ import type { Dict } from "@/lib/i18n";
 
 type AuthDict = Dict["auth"];
 const initial: AuthState = {};
+
+/** 비밀번호 입력 + 표시/숨김 눈 토글. */
+function PasswordInput({
+  show,
+  hide,
+  ...props
+}: InputHTMLAttributes<HTMLInputElement> & { show: string; hide: string }) {
+  const [visible, setVisible] = useState(false);
+  const Eye = visible ? Icon.eyeOff : Icon.eye;
+  return (
+    <div className="relative">
+      <Input {...props} type={visible ? "text" : "password"} className="pr-11" />
+      <button
+        type="button"
+        onClick={() => setVisible((v) => !v)}
+        aria-label={visible ? hide : show}
+        aria-pressed={visible}
+        className="absolute right-1 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-md text-muted transition hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+      >
+        <Eye width={18} height={18} />
+      </button>
+    </div>
+  );
+}
 
 function Alert({ state }: { state: AuthState }) {
   if (state.error)
@@ -95,12 +120,13 @@ export function LoginForm({ t }: { t: AuthDict }) {
         </div>
         <div>
           <Label htmlFor="password">{t.password}</Label>
-          <Input
+          <PasswordInput
             id="password"
             name="password"
-            type="password"
             autoComplete="current-password"
             required
+            show={t.pwShow}
+            hide={t.pwHide}
           />
         </div>
         <Alert state={state} />
@@ -129,13 +155,14 @@ export function SignupForm({ t }: { t: AuthDict }) {
       </div>
       <div>
         <Label htmlFor="password">{t.password}</Label>
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           autoComplete="new-password"
           minLength={6}
           required
+          show={t.pwShow}
+          hide={t.pwHide}
         />
         <p className="mt-1 text-xs text-muted">{t.pwHint}</p>
       </div>
@@ -156,25 +183,27 @@ export function UpdatePasswordForm({ t }: { t: AuthDict }) {
     <form action={action} className="space-y-4">
       <div>
         <Label htmlFor="password">{t.newPassword}</Label>
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           autoComplete="new-password"
           minLength={6}
           required
+          show={t.pwShow}
+          hide={t.pwHide}
         />
         <p className="mt-1 text-xs text-muted">{t.pwHint}</p>
       </div>
       <div>
         <Label htmlFor="confirm">{t.confirmPassword}</Label>
-        <Input
+        <PasswordInput
           id="confirm"
           name="confirm"
-          type="password"
           autoComplete="new-password"
           minLength={6}
           required
+          show={t.pwShow}
+          hide={t.pwHide}
         />
       </div>
       <Alert state={state} />
