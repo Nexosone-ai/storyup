@@ -132,7 +132,8 @@ export function DashboardShell({
           <div className="px-2.5">
             <Logo href="/dashboard" />
           </div>
-          <div className="mt-8 flex-1 overflow-y-auto">{navLinks}</div>
+          <MainSiteButton ko={ko} />
+          <div className="mt-6 flex-1 overflow-y-auto">{navLinks}</div>
           <SidebarFooter userName={userName} locale={locale} />
         </aside>
 
@@ -154,7 +155,8 @@ export function DashboardShell({
                   <Icon.x />
                 </button>
               </div>
-              <div className="mt-8 flex-1 overflow-y-auto">{navLinks}</div>
+              <MainSiteButton ko={ko} onNavigate={() => setOpen(false)} />
+              <div className="mt-6 flex-1 overflow-y-auto">{navLinks}</div>
               <SidebarFooter userName={userName} locale={locale} />
             </aside>
           </div>
@@ -173,6 +175,29 @@ export function DashboardShell({
         </main>
       </div>
     </div>
+  );
+}
+
+/** 로고 바로 아래에 놓이는 메인 페이지 바로가기 버튼 (박스형). */
+function MainSiteButton({
+  ko,
+  onNavigate,
+}: {
+  ko: boolean;
+  onNavigate?: () => void;
+}) {
+  return (
+    <Link
+      href="/"
+      onClick={onNavigate}
+      className="group mt-5 flex items-center gap-2.5 rounded-xl border border-border bg-surface-muted/50 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-primary-soft hover:text-primary"
+    >
+      <Icon.globe className="size-[18px] shrink-0 text-muted transition-colors group-hover:text-primary" />
+      <span className="min-w-0 flex-1 truncate">
+        {ko ? "메인 페이지 바로가기" : "Go to main site"}
+      </span>
+      <Icon.external className="size-4 shrink-0 text-muted transition-colors group-hover:text-primary" />
+    </Link>
   );
 }
 

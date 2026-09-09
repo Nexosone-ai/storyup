@@ -93,6 +93,8 @@ export function PointsView({
   billing,
   transactions,
   payments,
+  customerName,
+  customerEmail,
 }: {
   userId: string;
   balance: number;
@@ -100,6 +102,8 @@ export function PointsView({
   billing: BillingState;
   transactions: PointTx[];
   payments: PaymentItem[];
+  customerName: string;
+  customerEmail: string;
 }) {
   const ko = useLocale() === "ko";
 
@@ -203,6 +207,8 @@ export function PointsView({
         userId={userId}
         currentPlanId={subscription.planId}
         billing={billing}
+        customerName={customerName}
+        customerEmail={customerEmail}
       />
 
       {/* 결제 내역 */}

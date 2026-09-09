@@ -76,10 +76,14 @@ export function PlansView({
   userId,
   currentPlanId,
   billing,
+  customerName,
+  customerEmail,
 }: {
   userId: string;
   currentPlanId: PlanId;
   billing: BillingState;
+  customerName: string;
+  customerEmail: string;
 }) {
   const ko = useLocale() === "ko";
   const tel = `tel:${COMPANY.supportPhone.replace(/-/g, "")}`;
@@ -211,6 +215,8 @@ export function PlansView({
           userId={userId}
           currentPlanId={currentPlanId}
           billing={billing}
+          customerName={customerName}
+          customerEmail={customerEmail}
         />
       </div>
     </div>
