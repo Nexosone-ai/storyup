@@ -27,6 +27,11 @@ export function dashboardNav(admin: boolean, locale: Locale = "ko"): NavItem[] {
       href: "/dashboard/points",
       icon: "coin",
     },
+    {
+      label: ko ? "구독 플랜" : "Plans",
+      href: "/dashboard/plans",
+      icon: "tag",
+    },
     ...(admin
       ? [
           {
