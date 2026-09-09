@@ -43,8 +43,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, skipped: true });
   }
 
-  // 우리 주문 형식이 아닌 이벤트는 무시 (다른 서비스/테스트 이벤트)
-  if (!paymentId.startsWith("su_")) {
+  // 우리 주문 형식(sub_…)이 아닌 이벤트는 무시 (다른 서비스/테스트 이벤트)
+  if (!paymentId.startsWith("sub_")) {
     return NextResponse.json({ ok: true, skipped: true });
   }
 

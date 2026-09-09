@@ -41,12 +41,6 @@ export function dashboardNav(admin: boolean, locale: Locale = "ko"): NavItem[] {
       href: "/dashboard/settings",
       icon: "settings",
     },
-    {
-      label: ko ? "메인 페이지" : "Main site",
-      href: "/",
-      icon: "globe",
-      exact: true,
-    },
   ];
 }
 
