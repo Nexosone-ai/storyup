@@ -326,6 +326,67 @@ export async function getPublishedPost(
   return data ?? null;
 }
 
+/**
+ * 여러 글의 댓글·좋아요 수를 한 번에 집계한다 (블로그 리스트 카드용).
+ * 0014/0018 마이그레이션 이전 DB에서는 해당 테이블이 없어 0으로 동작한다.
+ */
+export async function getBlogEngagement(
+  postIds: string[],
+): Promise<Map<string, { comments: number; likes: number }>> {
+  const map = new Map<string, { comments: number; likes: number }>();
+  if (!supabaseConfigured() || postIds.length === 0) return map;
+  for (const id of postIds) map.set(id, { comments: 0, likes: 0 });
+  const supabase = await createClient();
+  const [commentsRes, likesRes] = await Promise.all([
+    supabase.from("blog_comments").select("post_id").in("post_id", postIds),
+    supabase.from("blog_likes").select("post_id").in("post_id", postIds),
+  ]);
+  for (const r of commentsRes.data ?? []) {
+    const e = map.get(r.post_id);
+    if (e) e.comments += 1;
+  }
+  for (const r of likesRes.data ?? []) {
+    const e = map.get(r.post_id);
+    if (e) e.likes += 1;
+  }
+  return map;
+}
+
+/** 단일 글의 좋아요 수 + 현재 방문자의 좋아요 여부 (글 상세용). */
+export async function getPostLikeState(
+  postId: string,
+): Promise<{ count: number; likedByMe: boolean }> {
+  if (!supabaseConfigured()) return { count: 0, likedByMe: false };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  // 익명 방문자 키는 좋아요 액션에서 심는 bl_vid 쿠키를 따른다.
+  const { cookies } = await import("next/headers");
+  const store = await cookies();
+  const vid = store.get("bl_vid")?.value;
+  const visitorKey = user ? `user:${user.id}` : `anon:${vid ?? ""}`;
+
+  const { count, error } = await supabase
+    .from("blog_likes")
+    .select("id", { count: "exact", head: true })
+    .eq("post_id", postId);
+  if (error) return { count: 0, likedByMe: false };
+
+  // 방문자 키를 특정할 수 없으면(익명·쿠키 없음) 좋아요 여부는 false.
+  let likedByMe = false;
+  if (user || vid) {
+    const { data: mine } = await supabase
+      .from("blog_likes")
+      .select("id")
+      .eq("post_id", postId)
+      .eq("visitor_key", visitorKey)
+      .maybeSingle();
+    likedByMe = !!mine;
+  }
+  return { count: count ?? 0, likedByMe };
+}
+
 // ---------------- Showcase (landing portfolio) ----------------
 
 /** All published websites, newest first. RLS allows anon read. */

@@ -2,6 +2,7 @@
 
 import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { notifyBlogEngagement } from "@/lib/notifications";
 
 /**
  * 공개 블로그 글의 방문자 댓글 액션.
@@ -91,6 +92,15 @@ export async function createBlogCommentAction(
     return {
       error: ko ? "댓글 등록에 실패했습니다." : "Failed to post the comment.",
     };
+
+  // 글 주인(가맹점)에게 앱 내 알림. 실패해도 댓글 등록은 성공 처리한다.
+  await notifyBlogEngagement(admin, {
+    postId: post.id,
+    type: "blog_comment",
+    actorName: authorName,
+    preview: content.slice(0, 80),
+    actorUserId: user?.id ?? null,
+  });
   return { ok: true };
 }
 

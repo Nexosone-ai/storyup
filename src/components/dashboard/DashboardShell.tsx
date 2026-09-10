@@ -27,6 +27,7 @@ export function DashboardShell({
   userName,
   heading,
   locale = "ko",
+  unreadCount = 0,
   children,
 }: {
   nav: NavItem[];
@@ -35,6 +36,8 @@ export function DashboardShell({
   userName: string;
   heading?: string;
   locale?: Locale;
+  /** 안 읽은 알림 수 — 종모양 배지로 표시된다. */
+  unreadCount?: number;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -117,20 +120,24 @@ export function DashboardShell({
       {/* Mobile top bar */}
       <div className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-surface/90 px-4 backdrop-blur lg:hidden">
         <Logo />
-        <button
-          aria-label="메뉴 열기"
-          onClick={() => setOpen(true)}
-          className="grid size-9 place-items-center rounded-lg text-muted hover:bg-surface-muted hover:text-foreground"
-        >
-          <Icon.menu />
-        </button>
+        <div className="flex items-center gap-1">
+          <NotifBell unreadCount={unreadCount} ko={ko} />
+          <button
+            aria-label="메뉴 열기"
+            onClick={() => setOpen(true)}
+            className="grid size-9 place-items-center rounded-lg text-muted hover:bg-surface-muted hover:text-foreground"
+          >
+            <Icon.menu />
+          </button>
+        </div>
       </div>
 
       <div className="mx-auto flex max-w-[1440px]">
         {/* Desktop sidebar */}
         <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-border bg-surface px-3.5 py-5 lg:flex">
-          <div className="px-2.5">
+          <div className="flex items-center justify-between px-2.5">
             <Logo href="/dashboard" />
+            <NotifBell unreadCount={unreadCount} ko={ko} />
           </div>
           <MainSiteButton ko={ko} />
           <div className="mt-6 flex-1 overflow-y-auto">{navLinks}</div>
@@ -175,6 +182,24 @@ export function DashboardShell({
         </main>
       </div>
     </div>
+  );
+}
+
+/** 종모양 알림 아이콘 + 안 읽은 개수 배지. 알림 목록으로 이동한다. */
+function NotifBell({ unreadCount, ko }: { unreadCount: number; ko: boolean }) {
+  return (
+    <Link
+      href="/dashboard/notifications"
+      aria-label={ko ? "알림" : "Notifications"}
+      className="relative grid size-9 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
+    >
+      <Icon.bell className="size-[18px]" />
+      {unreadCount > 0 && (
+        <span className="tnum absolute -right-0.5 -top-0.5 grid min-w-[16px] place-items-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground">
+          {unreadCount > 99 ? "99+" : unreadCount}
+        </span>
+      )}
+    </Link>
   );
 }
 

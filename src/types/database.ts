@@ -200,6 +200,60 @@ export interface Database {
         >;
         Relationships: [];
       };
+      blog_likes: {
+        Row: {
+          id: string;
+          post_id: string;
+          business_id: string;
+          visitor_key: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          post_id: string;
+          business_id: string;
+          visitor_key: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["blog_likes"]["Insert"]>;
+        Relationships: [];
+      };
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          business_id: string | null;
+          type: "blog_comment" | "blog_like";
+          post_id: string | null;
+          post_title: string | null;
+          site_slug: string | null;
+          post_slug: string | null;
+          actor_name: string | null;
+          preview: string | null;
+          dedup_key: string | null;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          business_id?: string | null;
+          type: "blog_comment" | "blog_like";
+          post_id?: string | null;
+          post_title?: string | null;
+          site_slug?: string | null;
+          post_slug?: string | null;
+          actor_name?: string | null;
+          preview?: string | null;
+          dedup_key?: string | null;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["notifications"]["Insert"]
+        >;
+        Relationships: [];
+      };
       marketing_contents: {
         Row: {
           id: string;
@@ -949,5 +1003,8 @@ export type WebsiteRow = Database["public"]["Tables"]["websites"]["Row"];
 export type BlogPostRow = Database["public"]["Tables"]["blog_posts"]["Row"];
 export type BlogCommentRow =
   Database["public"]["Tables"]["blog_comments"]["Row"];
+export type BlogLikeRow = Database["public"]["Tables"]["blog_likes"]["Row"];
+export type NotificationRow =
+  Database["public"]["Tables"]["notifications"]["Row"];
 export type MarketingContentRow =
   Database["public"]["Tables"]["marketing_contents"]["Row"];

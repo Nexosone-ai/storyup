@@ -1,7 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getPublishedSite, getPublishedPosts } from "@/lib/queries";
+import {
+  getPublishedSite,
+  getPublishedPosts,
+  getBlogEngagement,
+} from "@/lib/queries";
 import { siteLang, SiteLogo } from "@/components/website/templates/shared";
 import { BlogCover } from "@/components/blog/BlogCover";
 import { TrackPageView } from "@/components/site/TrackPageView";
@@ -47,6 +51,8 @@ export default async function PublicBlogListPage({
   const posts = active
     ? allPosts.filter((p) => p.category === active)
     : allPosts;
+  // 각 글의 댓글·좋아요 수 (카드에 표시)
+  const engagement = await getBlogEngagement(posts.map((p) => p.id));
   const name = site.website.content.hero?.businessName ?? site.business.name;
   const logo = site.website.content.hero?.logo;
   // 사이트 콘텐츠 언어에 맞춰 크롬 문구를 고른다
@@ -147,6 +153,44 @@ export default async function PublicBlogListPage({
                       {post.summary}
                     </p>
                   )}
+                  <div className="mt-3 flex items-center gap-4 text-xs text-muted">
+                    <span className="inline-flex items-center gap-1">
+                      <svg
+                        width="15"
+                        height="15"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden
+                      >
+                        <path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 1 0-7.1 7.1l1.7 1.7L12 21.5l7.1-7.1 1.7-1.7a5 5 0 0 0 0-7.1Z" />
+                      </svg>
+                      <span className="tnum">
+                        {engagement.get(post.id)?.likes ?? 0}
+                      </span>
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <svg
+                        width="15"
+                        height="15"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden
+                      >
+                        <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 9.5 9.5 0 0 1-4-.9L3 20l1.4-4.5A8.5 8.5 0 1 1 21 11.5Z" />
+                      </svg>
+                      <span className="tnum">
+                        {engagement.get(post.id)?.comments ?? 0}
+                      </span>
+                    </span>
+                  </div>
                 </Link>
               </li>
             ))}

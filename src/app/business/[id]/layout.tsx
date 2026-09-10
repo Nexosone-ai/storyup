@@ -6,6 +6,7 @@ import { getUser, getProfileName, getBusiness } from "@/lib/queries";
 import { isCurrentUserAdmin } from "@/lib/points";
 import { dashboardNav, workspaceNav } from "@/lib/nav";
 import { getLocale } from "@/lib/i18n";
+import { getUnreadNotificationCount } from "@/lib/notifications";
 
 // robots.txt 차단만으로는 링크된 URL이 색인될 수 있어 meta로도 명시한다.
 export const metadata: Metadata = {
@@ -23,11 +24,12 @@ export default async function BusinessLayout({
   const user = await getUser();
   if (!user) redirect("/login");
 
-  const [name, business, admin, locale] = await Promise.all([
+  const [name, business, admin, locale, unreadCount] = await Promise.all([
     getProfileName(),
     getBusiness(id),
     isCurrentUserAdmin(),
     getLocale(),
+    getUnreadNotificationCount(),
   ]);
   if (!business) notFound();
 
@@ -38,6 +40,7 @@ export default async function BusinessLayout({
         workspace={{ name: business.name, items: workspaceNav(id, locale) }}
         userName={name}
         locale={locale}
+        unreadCount={unreadCount}
       >
         {children}
       </DashboardShell>

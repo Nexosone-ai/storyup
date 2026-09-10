@@ -87,7 +87,10 @@ export function BlogComments({
   };
 
   return (
-    <section className="mt-10 border-t border-border pt-8">
+    <section
+      id="comments"
+      className="mt-10 scroll-mt-20 border-t border-border pt-8"
+    >
       <h2 className="text-lg font-semibold tracking-tight">
         {ko ? "댓글" : "Comments"}{" "}
         <span className="tnum text-muted">{comments.length}</span>

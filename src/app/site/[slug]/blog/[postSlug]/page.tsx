@@ -5,6 +5,7 @@ import {
   getPublishedSite,
   getPublishedPost,
   getPublishedPosts,
+  getPostLikeState,
 } from "@/lib/queries";
 import { pickRelatedPosts } from "@/utils/relatedPosts";
 import { createClient } from "@/lib/supabase/server";
@@ -13,6 +14,7 @@ import { renderMarkdown } from "@/utils/markdown";
 import { BlogCover } from "@/components/blog/BlogCover";
 import { ShareBar } from "@/components/site/ShareBar";
 import { BlogComments } from "@/components/site/BlogComments";
+import { BlogLikeButton } from "@/components/site/BlogLikeButton";
 import { TrackPageView } from "@/components/site/TrackPageView";
 import { buildSeo, siteUrl } from "@/utils/seo";
 
@@ -92,6 +94,10 @@ export default async function PublicArticlePage({
         canDelete: isOwner || (!!viewer && c.user_id === viewer.id),
         hasPassword: !!c.password_hash,
       }));
+
+  // 좋아요 수/여부 + 댓글 수 (글 상단·하단 참여 바에 표시)
+  const likeState = await getPostLikeState(post.id);
+  const commentCount = comments?.length ?? 0;
 
   // 검색·AI 답변엔진(AEO)용 구조화 데이터 — Google 리치 결과 권장 필드 포함
   const siteHome = `${siteUrl}/site/${slug}`;
@@ -199,6 +205,34 @@ export default async function PublicArticlePage({
           <p className="mt-4 text-lg text-muted">{post.summary}</p>
         )}
         <ShareBar path={path} title={post.title} slug={slug} className="mt-5" />
+        {/* 참여 바 — 좋아요 토글 + 댓글 수 (댓글 영역으로 이동) */}
+        <div className="mt-4 flex items-center gap-2">
+          <BlogLikeButton
+            postId={post.id}
+            initialLiked={likeState.likedByMe}
+            initialCount={likeState.count}
+            lang={ko ? "ko" : "en"}
+          />
+          <a
+            href="#comments"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border px-3.5 py-2 text-sm font-medium text-muted transition-colors hover:border-primary/40 hover:text-primary"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 9.5 9.5 0 0 1-4-.9L3 20l1.4-4.5A8.5 8.5 0 1 1 21 11.5Z" />
+            </svg>
+            <span className="tnum">{commentCount}</span>
+          </a>
+        </div>
         {post.cover_image_url ? (
           // eslint-disable-next-line @next/next/no-img-element -- 원격 스토리지 URL, 크기 고정 컨테이너
           <img
