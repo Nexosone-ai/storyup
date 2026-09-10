@@ -9,7 +9,12 @@ import {
   markHotPost,
 } from "@/components/marketing/showcaseData";
 import { getDict } from "@/lib/i18n";
-import { getShowcaseSites, getShowcasePosts, getShowcaseCards } from "@/lib/queries";
+import {
+  getShowcaseSites,
+  getShowcasePosts,
+  getShowcaseCards,
+  getBlogEngagement,
+} from "@/lib/queries";
 import { cn } from "@/utils/cn";
 
 export const metadata = {
@@ -42,7 +47,11 @@ export default async function ShowcasePage({
         : cards.length === 0;
 
   // 블로그 탭: 조회수 1위에 인기글 뱃지, 최신 3개는 '최근 글'로 따로 묶는다.
-  const postItems = markHotPost(posts.map(toPostItem), L.showcase.popular);
+  const engagement = await getBlogEngagement(posts.map((p) => p.post.id));
+  const postItems = markHotPost(
+    posts.map((p) => toPostItem(p, engagement)),
+    L.showcase.popular,
+  );
   const recentPosts = postItems.slice(0, 3);
   const restPosts = postItems.slice(3);
 

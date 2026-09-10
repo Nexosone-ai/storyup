@@ -14,6 +14,7 @@ import {
   getShowcaseSites,
   getShowcasePosts,
   getShowcaseCards,
+  getBlogEngagement,
 } from "@/lib/queries";
 
 // www/비-www 이중 주소 중 표준 URL을 선언한다 (metadataBase 기준 절대화).
@@ -27,8 +28,12 @@ export default async function LandingPage() {
     getShowcasePosts(6),
     getShowcaseCards(6),
   ]);
+  const engagement = await getBlogEngagement(posts.map((p) => p.post.id));
   const siteItems = sites.map(toSiteItem);
-  const postItems = markHotPost(posts.map(toPostItem), L.showcase.popular);
+  const postItems = markHotPost(
+    posts.map((p) => toPostItem(p, engagement)),
+    L.showcase.popular,
+  );
   const cardItems = cards.map(toCardItem);
 
   return (

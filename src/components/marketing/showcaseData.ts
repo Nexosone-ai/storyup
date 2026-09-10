@@ -27,6 +27,10 @@ export interface ShowcasePostItem {
   businessName: string;
   /** 누적 조회수 (0015 마이그레이션 이전 데이터는 0) */
   views: number;
+  /** 좋아요 수 (0018 마이그레이션 이전 데이터는 0) */
+  likes: number;
+  /** 댓글 수 */
+  comments: number;
   /** 조회수 1위 글에만 채워지는 뱃지 문구 (로케일 반영) */
   hotLabel?: string;
 }
@@ -64,7 +68,11 @@ export function toSiteItem(site: WebsiteRow): ShowcaseSiteItem {
   };
 }
 
-export function toPostItem(item: ShowcasePost): ShowcasePostItem {
+export function toPostItem(
+  item: ShowcasePost,
+  engagement?: Map<string, { comments: number; likes: number }>,
+): ShowcasePostItem {
+  const e = engagement?.get(item.post.id);
   return {
     href: `/site/${item.siteSlug}/blog/${item.post.slug}`,
     title: item.post.title,
@@ -72,6 +80,8 @@ export function toPostItem(item: ShowcasePost): ShowcasePostItem {
     cover: item.post.cover_image_url ?? null,
     businessName: item.businessName,
     views: item.post.view_count ?? 0,
+    likes: e?.likes ?? 0,
+    comments: e?.comments ?? 0,
   };
 }
 

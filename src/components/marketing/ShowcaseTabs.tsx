@@ -219,12 +219,26 @@ export function PostCard({ item }: { item: ShowcasePostItem }) {
           <p className="truncate text-xs font-medium text-primary">
             {item.businessName}
           </p>
-          {item.views > 0 && (
-            <span className="tnum inline-flex shrink-0 items-center gap-1 text-xs text-muted">
-              <Icon.eye width={14} height={14} />
-              {item.views.toLocaleString()}
-            </span>
-          )}
+          <div className="tnum flex shrink-0 items-center gap-2 text-xs text-muted">
+            {item.views > 0 && (
+              <span className="inline-flex items-center gap-1">
+                <Icon.eye width={14} height={14} />
+                {item.views.toLocaleString()}
+              </span>
+            )}
+            {item.likes > 0 && (
+              <span className="inline-flex items-center gap-1">
+                <Icon.heart width={14} height={14} />
+                {item.likes.toLocaleString()}
+              </span>
+            )}
+            {item.comments > 0 && (
+              <span className="inline-flex items-center gap-1">
+                <Icon.chat width={14} height={14} />
+                {item.comments.toLocaleString()}
+              </span>
+            )}
+          </div>
         </div>
         <p className="mt-1 line-clamp-1 font-semibold group-hover:text-primary">
           {item.title}
