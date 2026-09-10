@@ -12,7 +12,7 @@ export async function MarketingNav() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-4 sm:px-8">
         <div className="flex items-center gap-8">
           <Logo />
           <nav className="hidden items-center gap-6 md:flex">
@@ -36,7 +36,7 @@ export async function MarketingNav() {
             </Link>
           </nav>
         </div>
-        <nav className="flex items-center gap-2">
+        <nav className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           <LanguageToggle locale={locale} />
           {user ? (
             <>
@@ -49,14 +49,14 @@ export async function MarketingNav() {
               <form action={signOutAction}>
                 <button
                   type="submit"
-                  className="rounded-lg px-2.5 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-muted hover:text-foreground sm:px-4"
+                  className="whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-muted hover:text-foreground sm:px-4"
                 >
                   {t.nav.logout}
                 </button>
               </form>
               <Link
                 href="/dashboard"
-                className="neon-glow inline-flex h-9 items-center justify-center rounded-lg bg-primary px-4 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary-hover"
+                className="neon-glow inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-primary px-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary-hover sm:px-4"
               >
                 {t.nav.dashboard}
               </Link>
@@ -65,13 +65,13 @@ export async function MarketingNav() {
             <>
               <Link
                 href="/login"
-                className="rounded-lg px-2.5 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-muted hover:text-foreground sm:px-4"
+                className="whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-muted hover:text-foreground sm:px-4"
               >
                 {t.nav.login}
               </Link>
               <Link
                 href="/signup"
-                className="neon-glow inline-flex h-9 items-center justify-center rounded-lg bg-primary px-4 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary-hover"
+                className="neon-glow inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-primary px-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary-hover sm:px-4"
               >
                 {t.nav.start}
               </Link>

@@ -33,10 +33,10 @@ export function Logo({
         STORY
         <span className="brand-gradient-text">UP</span>
       </span>
-      {/* 베타 표시 — 정식 오픈 시 제거 */}
+      {/* 베타 표시 — 정식 오픈 시 제거. 좁은 화면에선 숨겨 헤더 폭 확보 */}
       <span
         className={cn(
-          "ml-1 rounded-full border px-1.5 py-px text-[10px] font-bold uppercase tracking-wide",
+          "ml-1 hidden rounded-full border px-1.5 py-px text-[10px] font-bold uppercase tracking-wide sm:inline-block",
           dark
             ? "border-white/40 text-white/80"
             : "border-primary/40 text-primary",
