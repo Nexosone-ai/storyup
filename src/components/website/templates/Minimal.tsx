@@ -8,6 +8,7 @@ import {
   type TemplateProps,
 } from "./shared";
 import { BlogPreviewCards } from "./BlogPreview";
+import { InquiryForm } from "@/components/site/InquiryForm";
 
 export function MinimalTemplate({
   content,
@@ -17,13 +18,16 @@ export function MinimalTemplate({
   blogHref,
   latestPosts,
   editable,
+  siteSlug,
 }: TemplateProps) {
   const { hero, story, offers, whyChooseUs, contact } = content;
   const L = SITE_UI[siteLang(content)];
   const gallery = content.gallery ?? [];
-  // 연락처가 하나도 없으면 공개 화면에서 Contact 섹션·링크를 숨긴다
+  // 공개 사이트(또는 에디터 미리보기)엔 문의 폼을 보여준다.
+  const showInquiry = !!siteSlug || !!editable;
+  // 문의 폼이나 연락처 중 하나라도 있으면 Contact 섹션을 노출한다.
   const showContact =
-    !!editable || CONTACT_FIELDS.some(([key]) => !!contact[key]);
+    showInquiry || CONTACT_FIELDS.some(([key]) => !!contact[key]);
 
   return (
     <div className="bg-white">
@@ -149,19 +153,27 @@ export function MinimalTemplate({
       )}
 
       {showContact && (
-        <section id="contact" className="mx-auto max-w-2xl px-6 py-16">
-          <h2 className="eyebrow mb-8 block">Contact</h2>
-          <div className="space-y-2 text-foreground/85">
-            {CONTACT_FIELDS.map(([key, ko, en]) => (
-              <ContactEntry
-                key={key}
-                k={key}
-                label={siteLang(content) === "en" ? en : ko}
-                value={contact[key] ?? ""}
-                T={T}
-                editable={editable}
-              />
-            ))}
+        <section id="contact" className="mx-auto max-w-4xl px-6 py-16">
+          {/* 왼쪽: 사장님이 입력한 연락처 / 오른쪽: 문의 폼 */}
+          <div className="grid items-start gap-10 md:grid-cols-2">
+            <div>
+              <h2 className="eyebrow mb-6 block">Contact</h2>
+              <div className="space-y-2 text-foreground/85">
+                {CONTACT_FIELDS.map(([key, ko, en]) => (
+                  <ContactEntry
+                    key={key}
+                    k={key}
+                    label={siteLang(content) === "en" ? en : ko}
+                    value={contact[key] ?? ""}
+                    T={T}
+                    editable={editable}
+                  />
+                ))}
+              </div>
+            </div>
+            {showInquiry && (
+              <InquiryForm slug={siteSlug} lang={siteLang(content)} />
+            )}
           </div>
         </section>
       )}

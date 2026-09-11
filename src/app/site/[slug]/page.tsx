@@ -78,6 +78,7 @@ export default async function PublicSitePage({
         content={site.website.content}
         blogHref={blogHref}
         latestPosts={latestPosts}
+        siteSlug={slug}
       />
     </>
   );

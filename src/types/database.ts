@@ -218,12 +218,36 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["blog_likes"]["Insert"]>;
         Relationships: [];
       };
+      site_inquiries: {
+        Row: {
+          id: string;
+          business_id: string;
+          name: string;
+          contact: string;
+          message: string;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          name: string;
+          contact: string;
+          message: string;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["site_inquiries"]["Insert"]
+        >;
+        Relationships: [];
+      };
       notifications: {
         Row: {
           id: string;
           user_id: string;
           business_id: string | null;
-          type: "blog_comment" | "blog_like";
+          type: "blog_comment" | "blog_like" | "site_inquiry";
           post_id: string | null;
           post_title: string | null;
           site_slug: string | null;
@@ -238,7 +262,7 @@ export interface Database {
           id?: string;
           user_id: string;
           business_id?: string | null;
-          type: "blog_comment" | "blog_like";
+          type: "blog_comment" | "blog_like" | "site_inquiry";
           post_id?: string | null;
           post_title?: string | null;
           site_slug?: string | null;
@@ -1004,6 +1028,8 @@ export type BlogPostRow = Database["public"]["Tables"]["blog_posts"]["Row"];
 export type BlogCommentRow =
   Database["public"]["Tables"]["blog_comments"]["Row"];
 export type BlogLikeRow = Database["public"]["Tables"]["blog_likes"]["Row"];
+export type SiteInquiryRow =
+  Database["public"]["Tables"]["site_inquiries"]["Row"];
 export type NotificationRow =
   Database["public"]["Tables"]["notifications"]["Row"];
 export type MarketingContentRow =

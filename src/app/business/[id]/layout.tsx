@@ -2,7 +2,12 @@ import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { LocaleProvider } from "@/components/i18n/LocaleProvider";
-import { getUser, getProfileName, getBusiness } from "@/lib/queries";
+import {
+  getUser,
+  getProfileName,
+  getBusiness,
+  getUnreadInquiryCount,
+} from "@/lib/queries";
 import { isCurrentUserAdmin } from "@/lib/points";
 import { dashboardNav, workspaceNav } from "@/lib/nav";
 import { getLocale } from "@/lib/i18n";
@@ -24,20 +29,25 @@ export default async function BusinessLayout({
   const user = await getUser();
   if (!user) redirect("/login");
 
-  const [name, business, admin, locale, unreadCount] = await Promise.all([
-    getProfileName(),
-    getBusiness(id),
-    isCurrentUserAdmin(),
-    getLocale(),
-    getUnreadNotificationCount(),
-  ]);
+  const [name, business, admin, locale, unreadCount, unreadInquiries] =
+    await Promise.all([
+      getProfileName(),
+      getBusiness(id),
+      isCurrentUserAdmin(),
+      getLocale(),
+      getUnreadNotificationCount(),
+      getUnreadInquiryCount(),
+    ]);
   if (!business) notFound();
 
   return (
     <LocaleProvider locale={locale}>
       <DashboardShell
-        nav={dashboardNav(admin, locale)}
-        workspace={{ name: business.name, items: workspaceNav(id, locale) }}
+        nav={dashboardNav(admin, locale, unreadInquiries)}
+        workspace={{
+          name: business.name,
+          items: workspaceNav(id, locale),
+        }}
         userName={name}
         locale={locale}
         unreadCount={unreadCount}

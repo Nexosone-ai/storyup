@@ -27,6 +27,10 @@ function timeAgo(iso: string, ko: boolean): string {
 
 function label(n: NotificationRow, ko: boolean): string {
   const who = n.actor_name || (ko ? "방문자" : "A visitor");
+  if (n.type === "site_inquiry")
+    return ko
+      ? `${who}님이 랜딩페이지로 문의를 남겼어요`
+      : `${who} sent an inquiry from your landing page`;
   const title = n.post_title ? `"${n.post_title}"` : ko ? "내 글" : "your post";
   if (n.type === "blog_like")
     return ko
@@ -69,20 +73,24 @@ export default async function NotificationsPage() {
         <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">
           {items.map((n) => {
             const href =
-              n.site_slug && n.post_slug
-                ? `/site/${n.site_slug}/blog/${n.post_slug}`
-                : null;
+              n.type === "site_inquiry"
+                ? "/dashboard/inquiries"
+                : n.site_slug && n.post_slug
+                  ? `/site/${n.site_slug}/blog/${n.post_slug}`
+                  : null;
             const body = (
               <div className="flex min-w-0 flex-1 items-start gap-3">
                 <span
                   className={`mt-0.5 grid size-9 shrink-0 place-items-center rounded-full ${
-                    n.type === "blog_like"
+                    n.type === "blog_like" || n.type === "site_inquiry"
                       ? "bg-primary-soft text-primary"
                       : "bg-surface-muted text-muted"
                   }`}
                 >
                   {n.type === "blog_like" ? (
                     <Icon.heart width={18} height={18} />
+                  ) : n.type === "site_inquiry" ? (
+                    <Icon.bell width={18} height={18} />
                   ) : (
                     <Icon.chat width={18} height={18} />
                   )}

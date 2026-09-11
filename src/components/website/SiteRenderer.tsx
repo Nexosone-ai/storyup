@@ -16,11 +16,14 @@ export function SiteRenderer({
   blogHref,
   latestPosts,
   scoped = false,
+  siteSlug,
 }: {
   content: WebsiteContent;
   blogHref?: string;
   latestPosts?: SitePostPreview[];
   scoped?: boolean;
+  /** 공개 사이트 슬러그 — Contact 섹션의 문의 폼을 활성화한다. */
+  siteSlug?: string;
 }) {
   return (
     <div className={scoped ? "" : "min-h-dvh"}>
@@ -32,6 +35,7 @@ export function SiteRenderer({
         blogHref={blogHref}
         latestPosts={latestPosts}
         scoped={scoped}
+        siteSlug={siteSlug}
       />
     </div>
   );

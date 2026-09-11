@@ -43,6 +43,9 @@ export interface TemplateProps {
   latestPosts?: import("./BlogPreview").SitePostPreview[];
   scoped?: boolean;
   editable?: boolean;
+  /** 공개 사이트 슬러그 — 있으면 Contact 섹션에 실제 문의 폼을 렌더링한다.
+   *  에디터 미리보기에선 없음(비활성 미리보기). */
+  siteSlug?: string;
 }
 
 /** Server-safe renderer: plain text, no interactivity.

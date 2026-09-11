@@ -2,7 +2,11 @@ import type { NavItem } from "@/components/dashboard/DashboardShell";
 import type { Locale } from "@/lib/i18n";
 
 /** 모든 화면에서 동일하게 보이는 대시보드 메뉴. */
-export function dashboardNav(admin: boolean, locale: Locale = "ko"): NavItem[] {
+export function dashboardNav(
+  admin: boolean,
+  locale: Locale = "ko",
+  unreadInquiries = 0,
+): NavItem[] {
   const ko = locale === "ko";
   return [
     {
@@ -15,6 +19,12 @@ export function dashboardNav(admin: boolean, locale: Locale = "ko"): NavItem[] {
       label: ko ? "내 비즈니스" : "My businesses",
       href: "/dashboard/businesses",
       icon: "briefcase",
+    },
+    {
+      label: ko ? "문의" : "Inquiries",
+      href: "/dashboard/inquiries",
+      icon: "chat",
+      badge: unreadInquiries > 0 ? String(unreadInquiries) : undefined,
     },
     {
       label: ko ? "서포터즈" : "Supporters",

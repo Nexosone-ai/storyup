@@ -5,6 +5,7 @@ import type {
   BrandProfileRow,
   WebsiteRow,
   BlogPostRow,
+  SiteInquiryRow,
 } from "@/types/database";
 import type { CardNewsResult } from "@/types/domain";
 
@@ -150,6 +151,49 @@ export async function getBusiness(id: string): Promise<BusinessRow | null> {
     .eq("user_id", user.id)
     .maybeSingle();
   return data ?? null;
+}
+
+/** 문의 1건 + 어느 랜딩페이지(비즈니스)로 왔는지 이름. */
+export type UserInquiry = SiteInquiryRow & { businessName: string };
+
+/** 로그인 사용자가 받은 모든 문의 (전 비즈니스, 최신순). RLS로 본인 것만 조회된다. */
+export async function getUserInquiries(): Promise<UserInquiry[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data: bizList } = await supabase
+    .from("businesses")
+    .select("id, name")
+    .eq("user_id", user.id);
+  const nameMap = new Map((bizList ?? []).map((b) => [b.id, b.name]));
+
+  const { data, error } = await supabase
+    .from("site_inquiries")
+    .select("*")
+    .order("created_at", { ascending: false });
+  // 0019 마이그레이션 이전 DB에서는 테이블이 없어 오류 → 빈 목록.
+  if (error) return [];
+  return (data ?? []).map((i) => ({
+    ...i,
+    businessName: nameMap.get(i.business_id) ?? "",
+  }));
+}
+
+/** 대시보드 메뉴 배지용 — 로그인 사용자의 안 읽은 문의 총개수. */
+export async function getUnreadInquiryCount(): Promise<number> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return 0;
+  const { count, error } = await supabase
+    .from("site_inquiries")
+    .select("id", { count: "exact", head: true })
+    .is("read_at", null);
+  if (error) return 0;
+  return count ?? 0;
 }
 
 export async function getBrandProfile(
