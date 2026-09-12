@@ -10,6 +10,7 @@ import {
   signInAction,
   signUpAction,
   signInWithGoogleAction,
+  signInWithKakaoAction,
   resetRequestAction,
   updatePasswordAction,
   type AuthState,
@@ -82,15 +83,36 @@ function GoogleIcon() {
   );
 }
 
-/** Divider + "구글로 계속하기" — 이메일 폼과 별도의 form이어야 함 (중첩 불가) */
-function GoogleAuth({ t, redirect }: { t: AuthDict; redirect?: string }) {
+function KakaoIcon() {
   return (
-    <div className="mt-5">
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
+      <path
+        fill="#000000"
+        d="M12 3C6.99 3 3 6.19 3 10.13c0 2.52 1.68 4.73 4.2 5.99-.14.5-.9 3.1-.93 3.31 0 0-.02.16.08.22.1.06.23.01.23.01.3-.04 3.44-2.25 3.98-2.62.46.06.94.1 1.44.1 5.01 0 9-3.19 9-7.13S17.01 3 12 3Z"
+      />
+    </svg>
+  );
+}
+
+/** Divider + 소셜 로그인(카카오·구글) — 각 버튼은 이메일 폼과 별도의 form이어야 함 (중첩 불가) */
+function SocialAuth({ t, redirect }: { t: AuthDict; redirect?: string }) {
+  return (
+    <div className="mt-5 space-y-2.5">
       <div className="mb-5 flex items-center gap-3">
         <div className="h-px flex-1 bg-border" />
         <span className="text-xs text-muted">{t.or}</span>
         <div className="h-px flex-1 bg-border" />
       </div>
+      <form action={signInWithKakaoAction}>
+        {redirect ? <input type="hidden" name="redirect" value={redirect} /> : null}
+        <button
+          type="submit"
+          className="flex w-full items-center justify-center gap-2.5 rounded-lg bg-[#FEE500] px-4 py-2.5 text-sm font-medium text-[#191600] transition hover:brightness-95"
+        >
+          <KakaoIcon />
+          {t.kakao}
+        </button>
+      </form>
       <form action={signInWithGoogleAction}>
         {redirect ? <input type="hidden" name="redirect" value={redirect} /> : null}
         <button
@@ -134,7 +156,7 @@ export function LoginForm({ t }: { t: AuthDict }) {
           {pending ? <Spinner /> : t.login}
         </Button>
       </form>
-      <GoogleAuth t={t} redirect={redirect} />
+      <SocialAuth t={t} redirect={redirect} />
     </>
   );
 }
@@ -171,7 +193,7 @@ export function SignupForm({ t }: { t: AuthDict }) {
         {pending ? <Spinner /> : t.signup}
       </Button>
     </form>
-    <GoogleAuth t={t} />
+    <SocialAuth t={t} />
     </>
   );
 }

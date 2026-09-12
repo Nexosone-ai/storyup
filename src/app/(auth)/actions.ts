@@ -117,6 +117,26 @@ export async function signInWithGoogleAction(formData: FormData): Promise<void> 
   redirect(data.url);
 }
 
+export async function signInWithKakaoAction(formData: FormData): Promise<void> {
+  const next = String(formData.get("redirect") ?? "/dashboard");
+  const safeNext = next.startsWith("/") ? next : "/dashboard";
+
+  // 로컬(3001)과 프로덕션 어디서 열려도 현재 오리진으로 돌아오도록 헤더에서 추론
+  const h = await headers();
+  const origin = h.get("origin") ?? siteUrl;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "kakao",
+    options: {
+      redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(safeNext)}`,
+    },
+  });
+
+  if (error || !data.url) redirect("/login?error=auth");
+  redirect(data.url);
+}
+
 export async function resetRequestAction(
   _prev: AuthState,
   formData: FormData,

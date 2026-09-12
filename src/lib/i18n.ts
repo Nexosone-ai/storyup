@@ -211,6 +211,7 @@ export const translations = {
       pwHide: "비밀번호 숨기기",
       or: "또는",
       google: "구글로 계속하기",
+      kakao: "카카오로 계속하기",
     },
     onboarding: {
       later: "나중에 하기",
@@ -479,6 +480,7 @@ export const translations = {
       pwHide: "Hide password",
       or: "or",
       google: "Continue with Google",
+      kakao: "Continue with Kakao",
     },
     onboarding: {
       later: "Do it later",
