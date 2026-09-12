@@ -5,8 +5,8 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { trackGrowthActivity } from "@/lib/gamification/engine";
 import { getLocale } from "@/lib/i18n";
 import { slugify } from "@/utils/slug";
-import { BUSINESS_CATEGORIES } from "@/types/domain";
-import type { WebsiteContent } from "@/types/domain";
+import { BUSINESS_CATEGORIES, INDUSTRY_IDS } from "@/types/domain";
+import type { WebsiteContent, IndustryId } from "@/types/domain";
 
 const IMAGE_BUCKET = "site-images";
 
@@ -294,6 +294,66 @@ export async function saveWebsiteAction(
   await trackGrowthActivity(user.id, "site_updated");
 
   revalidatePath(`/business/${businessId}/website`);
+  return { ok: true, message: ko ? "저장되었습니다." : "Saved." };
+}
+
+/**
+ * 설정 페이지에서 개별 사이트의 헤더 로고만 바꾼다.
+ * 전체 콘텐츠를 클라이언트로 주고받지 않도록, 서버에서 현재 content를 읽어 hero.logo만 교체한다.
+ * logoUrl이 null이면 로고를 제거한다(헤더는 hero 사진으로 자동 대체).
+ */
+export async function updateSiteLogoAction(
+  businessId: string,
+  logoUrl: string | null,
+): Promise<ActionState> {
+  const ko = (await getLocale()) === "ko";
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
+
+  const { data: site } = await supabase
+    .from("websites")
+    .select("content")
+    .eq("business_id", businessId)
+    .maybeSingle();
+  if (!site)
+    return { error: ko ? "사이트를 찾을 수 없습니다." : "Site not found." };
+
+  const content = site.content as WebsiteContent;
+  const next: WebsiteContent = {
+    ...content,
+    hero: { ...content.hero, logo: logoUrl ?? undefined },
+  };
+  const { error } = await supabase
+    .from("websites")
+    .update({ content: next })
+    .eq("business_id", businessId);
+  if (error) return { error: ko ? "저장에 실패했습니다." : "Failed to save." };
+
+  revalidatePath(`/business/${businessId}/website`);
+  revalidatePath("/dashboard/settings");
+  return { ok: true, message: ko ? "저장되었습니다." : "Saved." };
+}
+
+/** 사업체 업종(대분류)을 저장한다. 빈 값이면 미설정으로 지운다. */
+export async function updateBusinessIndustryAction(
+  businessId: string,
+  industry: string,
+): Promise<ActionState> {
+  const ko = (await getLocale()) === "ko";
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
+
+  if (industry && !INDUSTRY_IDS.includes(industry as IndustryId))
+    return { error: ko ? "올바른 업종이 아닙니다." : "Invalid industry." };
+
+  const { error } = await supabase
+    .from("businesses")
+    .update({ industry: industry || null })
+    .eq("id", businessId);
+  if (error) return { error: ko ? "저장에 실패했습니다." : "Failed to save." };
+
+  revalidatePath(`/business/${businessId}/brand`);
+  revalidatePath("/showcase");
   return { ok: true, message: ko ? "저장되었습니다." : "Saved." };
 }
 

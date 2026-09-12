@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   createBlogCommentAction,
   deleteBlogCommentAction,
@@ -16,6 +17,8 @@ export interface BlogCommentItem {
   canDelete: boolean;
   /** 비밀번호로 삭제하는 방문자 댓글인지 */
   hasPassword: boolean;
+  /** 작성자가 STORYUP 사장님이고 게시된 랜딩페이지가 있으면 그 슬러그 (이름 클릭 시 이동). */
+  authorSlug?: string | null;
 }
 
 function fmtDate(iso: string, ko: boolean): string {
@@ -100,7 +103,16 @@ export function BlogComments({
         {comments.map((c) => (
           <li key={c.id} className="rounded-xl bg-surface-muted/60 px-4 py-3">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-medium">{c.authorName}</p>
+              {c.authorSlug ? (
+                <Link
+                  href={`/site/${c.authorSlug}`}
+                  className="text-sm font-medium text-primary underline-offset-2 hover:underline"
+                >
+                  {c.authorName}
+                </Link>
+              ) : (
+                <p className="text-sm font-medium">{c.authorName}</p>
+              )}
               <div className="flex items-center gap-2.5">
                 <span className="text-xs text-muted">
                   {fmtDate(c.createdAt, ko)}

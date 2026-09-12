@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import type {
   BusinessRow,
   BrandProfileRow,
@@ -7,7 +7,7 @@ import type {
   BlogPostRow,
   SiteInquiryRow,
 } from "@/types/database";
-import type { CardNewsResult } from "@/types/domain";
+import type { CardNewsResult, WebsiteContent } from "@/types/domain";
 
 /** Current authenticated user, or null. */
 export async function getUser() {
@@ -181,6 +181,53 @@ export async function getUserInquiries(): Promise<UserInquiry[]> {
   }));
 }
 
+export interface SiteLogoItem {
+  businessId: string;
+  name: string;
+  /** 직접 업로드한 로고 (없으면 null → 헤더에서 hero 사진으로 대체). */
+  logo: string | null;
+  /** 로고 미설정 시 대체로 쓰이는 hero 사진. */
+  heroImage: string | null;
+}
+
+/** 설정 페이지 로고 관리용 — 사이트가 있는 사업체별 현재 로고·hero 사진. */
+export async function getUserSiteLogos(): Promise<SiteLogoItem[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data: bizList } = await supabase
+    .from("businesses")
+    .select("id, name")
+    .eq("user_id", user.id)
+    .order("updated_at", { ascending: false });
+  if (!bizList?.length) return [];
+
+  const { data: sites } = await supabase
+    .from("websites")
+    .select("business_id, content")
+    .in(
+      "business_id",
+      bizList.map((b) => b.id),
+    );
+  const siteMap = new Map(
+    (sites ?? []).map((s) => [s.business_id, s.content as WebsiteContent]),
+  );
+  // 로고는 사이트 헤더용이므로 사이트가 있는 사업체만 노출한다.
+  return bizList
+    .filter((b) => siteMap.has(b.id))
+    .map((b) => {
+      const c = siteMap.get(b.id)!;
+      return {
+        businessId: b.id,
+        name: b.name,
+        logo: c.hero?.logo ?? null,
+        heroImage: c.hero?.image ?? null,
+      };
+    });
+}
+
 /** 대시보드 메뉴 배지용 — 로그인 사용자의 안 읽은 문의 총개수. */
 export async function getUnreadInquiryCount(): Promise<number> {
   const supabase = await createClient();
@@ -340,6 +387,42 @@ export async function getPublishedPosts(
   return data ?? [];
 }
 
+/**
+ * 주어진 사용자들의 공개(게시) 랜딩페이지 슬러그 맵 (user_id → slug).
+ * 게시된 사이트 슬러그는 이미 공개 정보이므로, 남의 비즈니스도 조회할 수 있도록
+ * 관리자 클라이언트로 읽는다. 블로그 댓글 작성자 이름을 그 사장님 랜딩페이지로 링크할 때 쓴다.
+ */
+export async function getAuthorSiteSlugs(
+  userIds: (string | null)[],
+): Promise<Map<string, string>> {
+  const ids = [...new Set(userIds.filter((v): v is string => !!v))];
+  const map = new Map<string, string>();
+  if (ids.length === 0 || !supabaseConfigured()) return map;
+  const admin = createAdminClient();
+
+  const { data: bizList } = await admin
+    .from("businesses")
+    .select("id, user_id")
+    .in("user_id", ids);
+  if (!bizList?.length) return map;
+  const bizOwner = new Map(bizList.map((b) => [b.id, b.user_id]));
+
+  const { data: sites } = await admin
+    .from("websites")
+    .select("business_id, slug")
+    .in(
+      "business_id",
+      bizList.map((b) => b.id),
+    )
+    .eq("status", "published");
+  for (const s of sites ?? []) {
+    const owner = bizOwner.get(s.business_id);
+    // 사장님당 첫 게시 사이트만 (여러 개면 하나로 충분).
+    if (owner && s.slug && !map.has(owner)) map.set(owner, s.slug);
+  }
+  return map;
+}
+
 /** 비즈니스의 블로그 메뉴(카테고리) 목록 — 글에 쓰인 값들의 중복 제거본. */
 export async function getBlogCategories(businessId: string): Promise<string[]> {
   if (!supabaseConfigured()) return [];
@@ -434,7 +517,10 @@ export async function getPostLikeState(
 // ---------------- Showcase (landing portfolio) ----------------
 
 /** All published websites, newest first. RLS allows anon read. */
-export async function getShowcaseSites(limit = 12): Promise<WebsiteRow[]> {
+/** 쇼케이스 사이트 — 업종(대분류) 필터를 위해 사업체 industry를 함께 싣는다. */
+export type ShowcaseSite = WebsiteRow & { industry: string | null };
+
+export async function getShowcaseSites(limit = 12): Promise<ShowcaseSite[]> {
   if (!supabaseConfigured()) return [];
   const supabase = await createClient();
   const { data } = await supabase
@@ -443,7 +529,17 @@ export async function getShowcaseSites(limit = 12): Promise<WebsiteRow[]> {
     .eq("status", "published")
     .order("published_at", { ascending: false })
     .limit(limit);
-  return data ?? [];
+  const sites = data ?? [];
+  if (!sites.length) return [];
+  const { data: bizs } = await supabase
+    .from("businesses")
+    .select("id, industry")
+    .in(
+      "id",
+      sites.map((s) => s.business_id),
+    );
+  const ind = new Map((bizs ?? []).map((b) => [b.id, b.industry]));
+  return sites.map((s) => ({ ...s, industry: ind.get(s.business_id) ?? null }));
 }
 
 export interface ShowcasePost {
@@ -451,6 +547,8 @@ export interface ShowcasePost {
   /** 글이 속한 공개 사이트의 슬러그 (링크용) */
   siteSlug: string;
   businessName: string;
+  /** 사업체 업종(대분류) id — 업종별 필터용. 미설정이면 null */
+  industry: string | null;
 }
 
 /** Published posts whose site is also published, newest first. */
@@ -475,17 +573,29 @@ export async function getShowcasePosts(limit = 12): Promise<ShowcasePost[]> {
     ]),
   );
 
-  const { data: posts } = await supabase
-    .from("blog_posts")
-    .select("*")
-    .in("business_id", [...byBusiness.keys()])
-    .eq("status", "published")
-    .order("published_at", { ascending: false })
-    .limit(limit);
+  const [{ data: posts }, { data: bizs }] = await Promise.all([
+    supabase
+      .from("blog_posts")
+      .select("*")
+      .in("business_id", [...byBusiness.keys()])
+      .eq("status", "published")
+      .order("published_at", { ascending: false })
+      .limit(limit),
+    supabase
+      .from("businesses")
+      .select("id, industry")
+      .in("id", [...byBusiness.keys()]),
+  ]);
+  const ind = new Map((bizs ?? []).map((b) => [b.id, b.industry]));
 
   return (posts ?? []).map((post) => {
     const site = byBusiness.get(post.business_id)!;
-    return { post, siteSlug: site.slug, businessName: site.name };
+    return {
+      post,
+      siteSlug: site.slug,
+      businessName: site.name,
+      industry: ind.get(post.business_id) ?? null,
+    };
   });
 }
 
@@ -497,6 +607,8 @@ export interface ShowcaseCard {
   businessName: string;
   /** 블로그 커버 → 사이트 히어로 → 갤러리 순으로 자동 채운 대표 이미지 */
   image: string | null;
+  /** 사업체 업종(대분류) id — 업종별 필터용. 미설정이면 null */
+  industry: string | null;
   /** 카드뉴스 전체 내용 — 쇼케이스에서 슬라이드로 보여준다. */
   cardNews: CardNewsResult;
 }
@@ -528,13 +640,20 @@ export async function getShowcaseCards(limit = 12): Promise<ShowcaseCard[]> {
     }),
   );
 
-  const { data: rows } = await supabase
-    .from("marketing_contents")
-    .select("id, business_id, blog_post_id, content, created_at")
-    .in("business_id", [...byBusiness.keys()])
-    .eq("platform", "instagram_cards")
-    .order("created_at", { ascending: false })
-    .limit(limit);
+  const [{ data: rows }, { data: bizs }] = await Promise.all([
+    supabase
+      .from("marketing_contents")
+      .select("id, business_id, blog_post_id, content, created_at")
+      .in("business_id", [...byBusiness.keys()])
+      .eq("platform", "instagram_cards")
+      .order("created_at", { ascending: false })
+      .limit(limit),
+    supabase
+      .from("businesses")
+      .select("id, industry")
+      .in("id", [...byBusiness.keys()]),
+  ]);
+  const industryByBiz = new Map((bizs ?? []).map((b) => [b.id, b.industry]));
 
   // 카드뉴스가 만들어진 블로그 글의 커버 이미지를 대표 이미지로 우선 사용한다.
   const postIds = [...new Set((rows ?? []).map((r) => r.blog_post_id).filter(Boolean))] as string[];
@@ -560,6 +679,7 @@ export async function getShowcaseCards(limit = 12): Promise<ShowcaseCard[]> {
         subtitle: parsed.cover.subtitle ?? "",
         siteSlug: site.slug,
         businessName: site.name,
+        industry: industryByBiz.get(row.business_id) ?? null,
         image:
           (row.blog_post_id && coverByPost.get(row.blog_post_id)) ||
           site.image,

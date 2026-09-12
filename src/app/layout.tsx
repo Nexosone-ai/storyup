@@ -60,6 +60,12 @@ export const metadata: Metadata = {
     description: "Turn Your Story Into Business.",
     type: "website",
   },
+  // PWA — iOS 홈 화면 앱 동작(전체화면·상단바). manifest는 app/manifest.ts에서 자동 연결됨.
+  appleWebApp: {
+    capable: true,
+    title: "STORYUP",
+    statusBarStyle: "default",
+  },
   // 서치콘솔/서치어드바이저 소유 확인 — env에 값을 넣으면 meta로 출력된다.
   verification: {
     ...(process.env.GOOGLE_SITE_VERIFICATION

@@ -91,6 +91,14 @@ export default async function InquiriesPage() {
                   >
                     {it.contact}
                   </a>
+                  {it.kakao && (
+                    <p className="mt-0.5 text-sm text-muted">
+                      <span className="mr-1.5 font-medium">
+                        {ko ? "카카오톡" : "KakaoTalk"}
+                      </span>
+                      {it.kakao}
+                    </p>
+                  )}
                 </div>
                 <div className="flex shrink-0 items-center gap-2.5">
                   <span className="text-xs text-muted">

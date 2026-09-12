@@ -69,6 +69,10 @@ export const InstagramCard = forwardRef<
           <img
             src={image}
             alt=""
+            // 첫 카드(표지)만 즉시·우선 로드, 나머지는 지연 로드해 초기 로딩을 가볍게 한다.
+            loading={pageNo === 1 ? "eager" : "lazy"}
+            fetchPriority={pageNo === 1 ? "high" : "auto"}
+            decoding="async"
             style={{
               position: "absolute",
               inset: 0,

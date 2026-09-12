@@ -12,18 +12,21 @@ import { createBusinessAction } from "@/app/onboarding/actions";
 import {
   BUSINESS_CATEGORIES,
   BRAND_TONES,
+  INDUSTRIES,
   type BusinessInterviewInput,
   type BusinessCategory,
   type BrandTone,
+  type IndustryId,
 } from "@/types/domain";
 import type { Dict } from "@/lib/i18n";
 
 type OnbDict = Dict["onboarding"];
-const TOTAL = 6;
+const TOTAL = 7;
 
 const empty: BusinessInterviewInput = {
   name: "",
   category: "" as BusinessCategory,
+  industry: "" as IndustryId,
   founder_story: "",
   target_customer: "",
   strengths: "",
@@ -56,6 +59,8 @@ export function OnboardingWizard({ t }: { t: OnbDict }) {
         return data.strengths.trim().length > 0;
       case 6:
         return !!data.tone;
+      case 7:
+        return true; // 업종은 선택 사항
       default:
         return false;
     }
@@ -205,6 +210,32 @@ export function OnboardingWizard({ t }: { t: OnbDict }) {
                     )}
                   >
                     {t.toneLabels[tone]}
+                  </button>
+                ))}
+              </div>
+            </StepShell>
+          )}
+
+          {step === 7 && (
+            <StepShell title={t.industryQ.t} hint={t.industryQ.h || undefined}>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {INDUSTRIES.map((it) => (
+                  <button
+                    key={it.id}
+                    onClick={() =>
+                      set(
+                        "industry",
+                        (data.industry === it.id ? "" : it.id) as IndustryId,
+                      )
+                    }
+                    className={cn(
+                      "rounded-lg border px-4 py-3 text-sm font-medium transition-all duration-150 active:translate-y-px",
+                      data.industry === it.id
+                        ? "border-primary bg-primary-soft text-primary shadow-xs"
+                        : "border-border-strong bg-surface text-foreground hover:border-muted/50 hover:bg-surface-muted",
+                    )}
+                  >
+                    {t.industryLabels[it.id]}
                   </button>
                 ))}
               </div>

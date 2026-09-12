@@ -16,12 +16,13 @@ export interface InquiryState {
 
 export async function createInquiryAction(
   slug: string,
-  input: { name: string; contact: string; message: string },
+  input: { name: string; contact: string; kakao?: string; message: string },
   lang: "ko" | "en" = "ko",
 ): Promise<InquiryState> {
   const ko = lang === "ko";
   const name = input.name.trim().slice(0, 60);
   const contact = input.contact.trim().slice(0, 120);
+  const kakao = (input.kakao ?? "").trim().slice(0, 120);
   const message = input.message.trim();
 
   if (!name)
@@ -57,6 +58,7 @@ export async function createInquiryAction(
     business_id: site.business_id,
     name,
     contact,
+    kakao: kakao || null,
     message,
   });
   if (error)

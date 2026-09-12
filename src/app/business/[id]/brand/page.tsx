@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getBusiness, getBrandProfile, getWebsite } from "@/lib/queries";
 import { BrandGenerator } from "@/components/ai/BrandGenerator";
 import { BrandStoryView } from "@/components/ai/BrandStoryView";
+import { IndustryPicker } from "@/components/business/IndustryPicker";
 import { WorkflowSteps } from "@/components/dashboard/WorkflowSteps";
 
 export const metadata = { title: "브랜드 스토리" };
@@ -23,6 +24,7 @@ export default async function BrandPage({
   return (
     <div className="space-y-6">
       <WorkflowSteps businessId={id} current={1} />
+      <IndustryPicker businessId={id} current={business.industry} />
       {brand ? (
         <BrandStoryView
           businessId={id}

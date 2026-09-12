@@ -8,13 +8,14 @@ import {
   toCardItem,
   markHotPost,
 } from "@/components/marketing/showcaseData";
-import { getDict } from "@/lib/i18n";
+import { getDict, getLocale } from "@/lib/i18n";
 import {
   getShowcaseSites,
   getShowcasePosts,
   getShowcaseCards,
   getBlogEngagement,
 } from "@/lib/queries";
+import { INDUSTRIES } from "@/types/domain";
 import { cn } from "@/utils/cn";
 
 export const metadata = {
@@ -25,19 +26,39 @@ export const metadata = {
 export default async function ShowcasePage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; industry?: string }>;
 }) {
-  const { tab: tabParam } = await searchParams;
+  const { tab: tabParam, industry: industryParam } = await searchParams;
   const tab =
     tabParam === "blog" ? "blog" : tabParam === "cards" ? "cards" : "site";
 
   const { t } = await getDict();
+  const ko = (await getLocale()) === "ko";
   const L = t.landing;
-  const [sites, posts, cards] = await Promise.all([
+  const [allSites, allPosts, allCards] = await Promise.all([
     getShowcaseSites(60),
     getShowcasePosts(60),
     getShowcaseCards(60),
   ]);
+
+  // 업종 필터 — 실제 콘텐츠(사업체)가 있는 업종만 칩으로 노출한다(없으면 필터 행 숨김).
+  const presentIds = new Set<string>();
+  for (const s of allSites) if (s.industry) presentIds.add(s.industry);
+  for (const p of allPosts) if (p.industry) presentIds.add(p.industry);
+  for (const c of allCards) if (c.industry) presentIds.add(c.industry);
+  const industryChips = INDUSTRIES.filter((it) => presentIds.has(it.id));
+  const activeIndustry =
+    industryParam && presentIds.has(industryParam) ? industryParam : null;
+
+  const sites = activeIndustry
+    ? allSites.filter((s) => s.industry === activeIndustry)
+    : allSites;
+  const posts = activeIndustry
+    ? allPosts.filter((p) => p.industry === activeIndustry)
+    : allPosts;
+  const cards = activeIndustry
+    ? allCards.filter((c) => c.industry === activeIndustry)
+    : allCards;
 
   const isEmpty =
     tab === "site"
@@ -91,6 +112,37 @@ export default async function ShowcasePage({
               </Link>
             ))}
           </div>
+
+          {/* 업종 필터 — 콘텐츠가 있는 업종만, 탭 아래에 노출. 클릭하면 해당 업종만 보인다. */}
+          {industryChips.length > 0 && (
+            <div className="mb-10 flex flex-wrap items-center justify-center gap-2">
+              <Link
+                href={`/showcase?tab=${tab}`}
+                className={cn(
+                  "rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
+                  activeIndustry === null
+                    ? "bg-primary text-primary-foreground"
+                    : "border border-border text-muted hover:border-primary/50 hover:text-primary",
+                )}
+              >
+                {ko ? "전체" : "All"}
+              </Link>
+              {industryChips.map((it) => (
+                <Link
+                  key={it.id}
+                  href={`/showcase?tab=${tab}&industry=${it.id}`}
+                  className={cn(
+                    "rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
+                    activeIndustry === it.id
+                      ? "bg-primary text-primary-foreground"
+                      : "border border-border text-muted hover:border-primary/50 hover:text-primary",
+                  )}
+                >
+                  {ko ? it.ko : it.en}
+                </Link>
+              ))}
+            </div>
+          )}
 
           {isEmpty ? (
             <p className="py-16 text-center text-muted">{L.showcase.empty}</p>

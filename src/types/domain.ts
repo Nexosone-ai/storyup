@@ -17,6 +17,35 @@ export const BUSINESS_CATEGORIES = [
 ] as const;
 export type BusinessCategory = (typeof BUSINESS_CATEGORIES)[number];
 
+/**
+ * 업종 대분류(10개) — 사장님이 브랜드 설정에서 고르고, 쇼케이스에서 업종별로 필터한다.
+ * 기존 category(영문, AI 프롬프트용)와 별개인 사용자용 분류다.
+ */
+export const INDUSTRIES = [
+  { id: "food", ko: "음식·카페", en: "Food & Cafe" },
+  { id: "retail", ko: "쇼핑·유통", en: "Shopping & Retail" },
+  { id: "beauty", ko: "뷰티·건강", en: "Beauty & Health" },
+  { id: "education", ko: "교육·문화", en: "Education & Culture" },
+  { id: "service", ko: "생활·전문서비스", en: "Living & Pro Services" },
+  { id: "realestate", ko: "부동산·건축", en: "Real Estate & Building" },
+  { id: "travel", ko: "여행·레저·자동차", en: "Travel, Leisure & Auto" },
+  { id: "tech", ko: "IT·마케팅·콘텐츠", en: "IT, Marketing & Content" },
+  { id: "manufacturing", ko: "제조·기업·산업", en: "Manufacturing & Industry" },
+  { id: "etc", ko: "단체·개인·기타", en: "Groups, Personal & Other" },
+] as const;
+export type IndustryId = (typeof INDUSTRIES)[number]["id"];
+export const INDUSTRY_IDS = INDUSTRIES.map((i) => i.id) as IndustryId[];
+
+/** 업종 id → 표시 라벨. 알 수 없거나 미설정이면 null. */
+export function industryLabel(
+  id: string | null | undefined,
+  ko: boolean,
+): string | null {
+  if (!id) return null;
+  const found = INDUSTRIES.find((i) => i.id === id);
+  return found ? (ko ? found.ko : found.en) : null;
+}
+
 export const BRAND_TONES = [
   "Professional",
   "Friendly",
@@ -227,6 +256,8 @@ export interface CardNewsResult {
 export interface BusinessInterviewInput {
   name: string;
   category: BusinessCategory;
+  /** 업종 대분류 id (쇼케이스 분류용). 온보딩에서 선택 사항. */
+  industry?: IndustryId;
   founder_story: string;
   target_customer: string;
   strengths: string;

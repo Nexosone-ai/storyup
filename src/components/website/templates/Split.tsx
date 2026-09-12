@@ -2,8 +2,11 @@ import Link from "next/link";
 import {
   CONTACT_FIELDS,
   ContactEntry,
+  PoweredByStoryup,
   SITE_UI,
+  SiteEditLink,
   SiteLogo,
+  SiteMap,
   siteLang,
   type TemplateProps,
 } from "./shared";
@@ -19,6 +22,7 @@ export function SplitTemplate({
   latestPosts,
   editable,
   siteSlug,
+  editHref,
 }: TemplateProps) {
   const { hero, story, offers, whyChooseUs, contact } = content;
   const L = SITE_UI[siteLang(content)];
@@ -34,7 +38,7 @@ export function SplitTemplate({
       <header className="border-b border-border">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <span className="flex min-w-0 items-center gap-2.5">
-            <SiteLogo src={hero.logo} />
+            <SiteLogo src={hero.logo} fallback={hero.image} />
             {T({ path: "hero.businessName", value: hero.businessName, as: "span", className: "truncate font-bold tracking-tight" })}
           </span>
           <nav className="flex items-center gap-6 text-sm">
@@ -43,6 +47,7 @@ export function SplitTemplate({
               <a href="#contact" className="text-muted hover:text-foreground">{L.contact}</a>
             )}
             {blogHref && <Link href={blogHref} className="font-medium text-primary">{L.blog}</Link>}
+            {editHref && <SiteEditLink href={editHref} lang={siteLang(content)} />}
           </nav>
         </div>
       </header>
@@ -156,6 +161,19 @@ export function SplitTemplate({
         </section>
       )}
 
+      {/* 오시는 길 — 지도 (문의하기 위 섹션) */}
+      {contact.address && (
+        <section className="border-b border-border">
+          <div className="mx-auto max-w-6xl px-6 py-16">
+            <p className="eyebrow mb-2">Location</p>
+            <h2 className="mb-8 text-2xl font-semibold tracking-tight">
+              {L.directions}
+            </h2>
+            <SiteMap address={contact.address} lang={siteLang(content)} />
+          </div>
+        </section>
+      )}
+
       {/* Contact — 왼쪽: 제목·연락처 / 오른쪽: 문의 폼 */}
       {showContact && (
         <section id="contact">
@@ -186,7 +204,10 @@ export function SplitTemplate({
       <footer className="border-t border-border">
         <div className="mx-auto max-w-6xl px-6 py-8 text-sm text-muted">
           <span className="font-semibold text-foreground">{hero.businessName}</span>
-          <span className="ml-3">© {new Date().getFullYear()} · Powered by STORYUP</span>
+          <span className="ml-3">
+            © {new Date().getFullYear()} ·{" "}
+            <PoweredByStoryup lang={siteLang(content)} />
+          </span>
         </div>
       </footer>
     </div>

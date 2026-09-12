@@ -2,8 +2,10 @@ import { notFound } from "next/navigation";
 import { getBusiness, getWebsite, getBlogPosts } from "@/lib/queries";
 import { getAnalytics } from "@/lib/analytics";
 import { getLocale } from "@/lib/i18n";
+import { computeSeoReport } from "@/utils/seoScore";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/icons";
+import { SeoAudit, type SeoAuditItem } from "@/components/blog/SeoAudit";
 import { cn } from "@/utils/cn";
 
 export const metadata = { title: "애널리틱스" };
@@ -52,6 +54,23 @@ export default async function AnalyticsPage({
 
   const slugToTitle = new Map(posts.map((p) => [p.slug, p.title]));
   const published = website?.status === "published";
+
+  // 글별 SEO 자가진단 — 에디터와 동일한 기준(computeSeoReport)을 서버에서 계산한다.
+  const seoItems: SeoAuditItem[] = posts.map((p) => ({
+    postId: p.id,
+    title: p.title,
+    status: p.status,
+    editHref: `/business/${id}/blog/${p.id}`,
+    report: computeSeoReport({
+      title: p.title,
+      summary: p.summary ?? "",
+      seoTitle: p.seo_title,
+      seoDescription: p.seo_description,
+      keywords: p.keywords ?? [],
+      content: p.content ?? "",
+      hasCoverImage: !!p.cover_image_url,
+    }),
+  }));
   const maxDaily = Math.max(1, ...data.daily.map((d) => d.views));
 
   const stats = [
@@ -247,6 +266,19 @@ export default async function AnalyticsPage({
             ))}
           </div>
         )}
+      </Card>
+
+      {/* 글별 SEO 진단 */}
+      <Card>
+        <h2 className="mb-1 font-semibold tracking-tight">
+          {ko ? "블로그 SEO 진단" : "Blog SEO audit"}
+        </h2>
+        <p className="mb-5 text-sm text-muted">
+          {ko
+            ? "글마다 검색 최적화 점수와 개선할 항목을 정리했어요. 점수가 낮은 글부터 손보면 좋아요."
+            : "Per-post SEO scores and what to fix. Start with the lowest-scoring posts."}
+        </p>
+        <SeoAudit items={seoItems} />
       </Card>
     </div>
   );

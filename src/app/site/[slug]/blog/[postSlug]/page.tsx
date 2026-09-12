@@ -6,10 +6,15 @@ import {
   getPublishedPost,
   getPublishedPosts,
   getPostLikeState,
+  getAuthorSiteSlugs,
 } from "@/lib/queries";
 import { pickRelatedPosts } from "@/utils/relatedPosts";
 import { createClient } from "@/lib/supabase/server";
-import { siteLang, SiteLogo } from "@/components/website/templates/shared";
+import {
+  siteLang,
+  SiteLogo,
+  PoweredByStoryup,
+} from "@/components/website/templates/shared";
 import { renderMarkdown } from "@/utils/markdown";
 import { BlogCover } from "@/components/blog/BlogCover";
 import { ShareBar } from "@/components/site/ShareBar";
@@ -84,6 +89,10 @@ export default async function PublicArticlePage({
     ]);
   const viewer = userRes.data.user;
   const isOwner = !!viewer && viewer.id === site.business.user_id;
+  // 댓글 작성자(로그인 사장님) 중 게시된 랜딩페이지가 있으면 이름을 그 페이지로 링크한다.
+  const authorSlugs = commentsError
+    ? new Map<string, string>()
+    : await getAuthorSiteSlugs((rawComments ?? []).map((c) => c.user_id));
   const comments = commentsError
     ? null
     : (rawComments ?? []).map((c) => ({
@@ -93,6 +102,7 @@ export default async function PublicArticlePage({
         createdAt: c.created_at,
         canDelete: isOwner || (!!viewer && c.user_id === viewer.id),
         hasPassword: !!c.password_hash,
+        authorSlug: c.user_id ? (authorSlugs.get(c.user_id) ?? null) : null,
       }));
 
   // 좋아요 수/여부 + 댓글 수 (글 상단·하단 참여 바에 표시)
@@ -167,7 +177,9 @@ export default async function PublicArticlePage({
           >
             <SiteLogo
               src={site.website.content.hero?.logo}
+              fallback={site.website.content.hero?.image}
               className="h-7 max-w-28"
+              fallbackClassName="size-7"
             />
             <span className="truncate">{name}</span>
           </Link>
@@ -336,6 +348,13 @@ export default async function PublicArticlePage({
           />
         )}
       </article>
+
+      <footer className="border-t border-border">
+        <div className="mx-auto max-w-2xl px-5 py-8 text-sm text-muted">
+          © {new Date().getFullYear()} {name} ·{" "}
+          <PoweredByStoryup lang={ko ? "ko" : "en"} />
+        </div>
+      </footer>
     </div>
   );
 }

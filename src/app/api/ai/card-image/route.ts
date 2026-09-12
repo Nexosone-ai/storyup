@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import sharp from "sharp";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getAIProvider } from "@/lib/ai";
 import { chargeAiUsage, InsufficientPointsError } from "@/lib/ai/billing";
@@ -67,18 +68,39 @@ export async function POST(request: Request) {
     const prompt = buildCardImagePrompt(business.category, scene);
     const { b64, mime } = await getImageProvider().generateImage(prompt, aspect);
 
+    // 이미지 모델이 뱉는 대형 PNG(장당 ~2MB)를 WebP로 압축·리사이즈한다.
+    // 카드는 1080×1350로 표시되므로 그 안으로 맞추고 화질 80이면 눈에 띄는 손실 없이
+    // 파일이 5~10배 작아져 카드뉴스 로딩이 빨라진다. 변환 실패 시 원본을 그대로 쓴다.
+    let outBuf = Buffer.from(b64, "base64");
+    let outMime = mime;
+    let outExt = (mime.split("/")[1] || "png").replace("jpeg", "jpg");
+    try {
+      outBuf = await sharp(Buffer.from(b64, "base64"))
+        .resize({
+          width: 1080,
+          height: 1350,
+          fit: "inside",
+          withoutEnlargement: true,
+        })
+        .webp({ quality: 80 })
+        .toBuffer();
+      outMime = "image/webp";
+      outExt = "webp";
+    } catch {
+      // 변환 실패 → 원본 그대로 업로드
+    }
+
     // 스토리지에 올려 URL로 반환 — 카드뉴스 JSON에 저장할 수 있고 새로고침해도 유지된다.
     // 업로드가 실패하면 data URL로 폴백한다 (화면 표시는 되지만 저장은 안 됨).
     try {
       const admin = createAdminClient();
-      const ext = (mime.split("/")[1] || "png").replace("jpeg", "jpg");
       const path = `${businessId}/cards/${Date.now()}-${Math.random()
         .toString(36)
-        .slice(2, 8)}.${ext}`;
+        .slice(2, 8)}.${outExt}`;
       const { error: upErr } = await admin.storage
         .from("site-images")
-        .upload(path, Buffer.from(b64, "base64"), {
-          contentType: mime,
+        .upload(path, outBuf, {
+          contentType: outMime,
           upsert: false,
         });
       if (!upErr) {
@@ -90,7 +112,10 @@ export async function POST(request: Request) {
     } catch {
       // 폴백으로 진행
     }
-    return NextResponse.json({ ok: true, image: `data:${mime};base64,${b64}` });
+    return NextResponse.json({
+      ok: true,
+      image: `data:${outMime};base64,${outBuf.toString("base64")}`,
+    });
   } catch (err) {
     await billing.refund();
     const message =

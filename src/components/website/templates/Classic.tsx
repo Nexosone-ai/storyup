@@ -2,8 +2,11 @@ import Link from "next/link";
 import {
   CONTACT_FIELDS,
   ContactEntry,
+  PoweredByStoryup,
   SITE_UI,
+  SiteEditLink,
   SiteLogo,
+  SiteMap,
   siteLang,
   type TemplateProps,
 } from "./shared";
@@ -19,6 +22,7 @@ export function ClassicTemplate({
   latestPosts,
   editable,
   siteSlug,
+  editHref,
 }: TemplateProps) {
   const { hero, story, offers, whyChooseUs, contact } = content;
   const L = SITE_UI[siteLang(content)];
@@ -35,7 +39,7 @@ export function ClassicTemplate({
       <header className="sticky top-0 z-20 border-b border-border bg-white/85 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5">
           <span className="flex min-w-0 items-center gap-2.5">
-            <SiteLogo src={hero.logo} />
+            <SiteLogo src={hero.logo} fallback={hero.image} />
             {T({ path: "hero.businessName", value: hero.businessName, as: "span", className: "truncate font-bold tracking-tight" })}
           </span>
           <nav className="flex items-center gap-5 text-sm">
@@ -46,6 +50,7 @@ export function ClassicTemplate({
             {blogHref && (
               <Link href={blogHref} className="font-medium text-primary">{L.blog}</Link>
             )}
+            {editHref && <SiteEditLink href={editHref} lang={siteLang(content)} />}
           </nav>
         </div>
       </header>
@@ -143,6 +148,17 @@ export function ClassicTemplate({
         </section>
       )}
 
+      {contact.address && (
+        <section className="border-t border-border">
+          <div className="mx-auto max-w-5xl px-5 py-16">
+            <h2 className="mb-6 text-2xl font-semibold tracking-tight">
+              {L.directions}
+            </h2>
+            <SiteMap address={contact.address} lang={siteLang(content)} />
+          </div>
+        </section>
+      )}
+
       {showContact && (
         <section id="contact" className="bg-surface-muted/50">
           {/* 왼쪽: 사장님이 입력한 연락처 / 오른쪽: 문의 폼 */}
@@ -173,8 +189,14 @@ export function ClassicTemplate({
 
       <footer className="border-t border-border bg-white">
         <div className="mx-auto max-w-5xl px-5 py-8 text-center text-sm text-muted">
-          <p className="font-semibold text-foreground">{hero.businessName}</p>
-          <p className="mt-1">© {new Date().getFullYear()} {hero.businessName}. Powered by STORYUP.</p>
+          <p>
+            © {new Date().getFullYear()}{" "}
+            <span className="font-semibold px-2 text-foreground">
+              {hero.businessName}
+            </span>
+             ·  {" "}
+            <PoweredByStoryup lang={siteLang(content)} />
+          </p>
         </div>
       </footer>
     </div>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/ui/Logo";
 import { Icon, type IconName } from "@/components/ui/icons";
+import { InstallAppButton } from "@/components/dashboard/InstallAppButton";
 import { LanguageToggle } from "@/components/marketing/LanguageToggle";
 import { signOutAction } from "@/app/(auth)/actions";
 import { cn } from "@/utils/cn";
@@ -140,6 +141,7 @@ export function DashboardShell({
             <NotifBell unreadCount={unreadCount} ko={ko} />
           </div>
           <MainSiteButton ko={ko} />
+          <InstallAppButton ko={ko} />
           <div className="mt-6 flex-1 overflow-y-auto">{navLinks}</div>
           <SidebarFooter userName={userName} locale={locale} />
         </aside>
@@ -163,6 +165,7 @@ export function DashboardShell({
                 </button>
               </div>
               <MainSiteButton ko={ko} onNavigate={() => setOpen(false)} />
+              <InstallAppButton ko={ko} onAction={() => setOpen(false)} />
               <div className="mt-6 flex-1 overflow-y-auto">{navLinks}</div>
               <SidebarFooter userName={userName} locale={locale} />
             </aside>

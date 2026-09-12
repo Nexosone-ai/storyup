@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getPublishedSite, getPublishedPosts } from "@/lib/queries";
+import { getPublishedSite, getPublishedPosts, getUser } from "@/lib/queries";
 import { SiteRenderer } from "@/components/website/SiteRenderer";
 import { TrackPageView } from "@/components/site/TrackPageView";
 import { contactHref } from "@/components/website/templates/shared";
@@ -38,6 +38,12 @@ export default async function PublicSitePage({
 
   const posts = await getPublishedPosts(site.business.id);
   const blogHref = posts.length > 0 ? `/site/${slug}/blog` : undefined;
+  // 사이트 주인이 직접 볼 때만 헤더에 "편집" 바로가기를 노출한다.
+  const viewer = await getUser();
+  const editHref =
+    viewer && viewer.id === site.business.user_id
+      ? `/business/${site.business.id}/website`
+      : undefined;
   // 랜딩페이지 하단 "최신 글" 섹션 — 클릭하면 해당 글로 이동한다.
   const latestPosts = posts.slice(0, 3).map((p) => ({
     slug: p.slug,
@@ -79,6 +85,7 @@ export default async function PublicSitePage({
         blogHref={blogHref}
         latestPosts={latestPosts}
         siteSlug={slug}
+        editHref={editHref}
       />
     </>
   );

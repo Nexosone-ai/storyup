@@ -51,6 +51,8 @@ export interface Database {
           user_id: string;
           name: string;
           category: string;
+          /** 업종 대분류 id (0021 마이그레이션). null = 미설정 */
+          industry: string | null;
           description: string | null;
           founder_story: string | null;
           target_customer: string | null;
@@ -63,6 +65,7 @@ export interface Database {
           user_id: string;
           name: string;
           category: string;
+          industry?: string | null;
           description?: string | null;
           founder_story?: string | null;
           target_customer?: string | null;
@@ -224,6 +227,7 @@ export interface Database {
           business_id: string;
           name: string;
           contact: string;
+          kakao: string | null;
           message: string;
           read_at: string | null;
           created_at: string;
@@ -233,6 +237,7 @@ export interface Database {
           business_id: string;
           name: string;
           contact: string;
+          kakao?: string | null;
           message: string;
           read_at?: string | null;
           created_at?: string;

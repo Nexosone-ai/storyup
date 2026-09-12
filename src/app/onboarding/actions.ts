@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { slugWithFallback, randomSuffix } from "@/utils/slug";
-import { BUSINESS_CATEGORIES, BRAND_TONES } from "@/types/domain";
+import { BUSINESS_CATEGORIES, BRAND_TONES, INDUSTRY_IDS } from "@/types/domain";
 import type { BusinessInterviewInput } from "@/types/domain";
 
 export interface CreateBusinessResult {
@@ -21,6 +21,9 @@ export async function createBusinessAction(
     return { error: "사업을 시작한 이야기를 들려주세요." };
   if (!BRAND_TONES.includes(input.tone))
     return { error: "브랜드 톤을 선택해주세요." };
+  // 업종은 선택 사항 — 값이 있으면 유효성만 검사한다.
+  if (input.industry && !INDUSTRY_IDS.includes(input.industry))
+    return { error: "올바른 업종을 선택해주세요." };
 
   const supabase = await createClient();
   const {
@@ -43,6 +46,7 @@ export async function createBusinessAction(
       user_id: user.id,
       name,
       category: input.category,
+      industry: input.industry || null,
       founder_story: input.founder_story.trim(),
       target_customer: input.target_customer?.trim() || null,
       strengths: input.strengths?.trim() || null,

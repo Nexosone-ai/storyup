@@ -17,6 +17,7 @@ export function SiteRenderer({
   latestPosts,
   scoped = false,
   siteSlug,
+  editHref,
 }: {
   content: WebsiteContent;
   blogHref?: string;
@@ -24,6 +25,8 @@ export function SiteRenderer({
   scoped?: boolean;
   /** 공개 사이트 슬러그 — Contact 섹션의 문의 폼을 활성화한다. */
   siteSlug?: string;
+  /** 사이트 주인이 볼 때만 넘어오는 편집 화면 링크 — 헤더에 "편집" 버튼 표시. */
+  editHref?: string;
 }) {
   return (
     <div className={scoped ? "" : "min-h-dvh"}>
@@ -36,6 +39,7 @@ export function SiteRenderer({
         latestPosts={latestPosts}
         scoped={scoped}
         siteSlug={siteSlug}
+        editHref={editHref}
       />
     </div>
   );

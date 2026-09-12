@@ -19,6 +19,7 @@ export function InquiryForm({
   const preview = !slug; // 에디터 미리보기(슬러그 없음)에선 전송하지 않는다.
   const [name, setName] = useState("");
   const [contact, setContact] = useState("");
+  const [kakao, setKakao] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -31,12 +32,17 @@ export function InquiryForm({
     if (preview) return;
     start(async () => {
       setError(null);
-      const res = await createInquiryAction(slug!, { name, contact, message }, lang);
+      const res = await createInquiryAction(
+        slug!,
+        { name, contact, kakao, message },
+        lang,
+      );
       if (res.error) setError(res.error);
       else {
         setDone(true);
         setName("");
         setContact("");
+        setKakao("");
         setMessage("");
       }
     });
@@ -84,6 +90,16 @@ export function InquiryForm({
           className={inputCls}
         />
       </div>
+      <input
+        value={kakao}
+        onChange={(e) => setKakao(e.target.value)}
+        placeholder={
+          ko ? "카카오톡 아이디 (선택)" : "KakaoTalk ID (optional)"
+        }
+        maxLength={120}
+        disabled={preview}
+        className={inputCls}
+      />
       <textarea
         value={message}
         onChange={(e) => setMessage(e.target.value)}

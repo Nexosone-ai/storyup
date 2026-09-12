@@ -2,8 +2,11 @@ import Link from "next/link";
 import {
   CONTACT_FIELDS,
   ContactEntry,
+  PoweredByStoryup,
   SITE_UI,
+  SiteEditLink,
   SiteLogo,
+  SiteMap,
   siteLang,
   type TemplateProps,
 } from "./shared";
@@ -19,6 +22,7 @@ export function MinimalTemplate({
   latestPosts,
   editable,
   siteSlug,
+  editHref,
 }: TemplateProps) {
   const { hero, story, offers, whyChooseUs, contact } = content;
   const L = SITE_UI[siteLang(content)];
@@ -33,14 +37,22 @@ export function MinimalTemplate({
     <div className="bg-white">
       <header className="mx-auto flex max-w-2xl items-center justify-between px-6 py-8">
         <span className="flex min-w-0 items-center gap-2.5">
-          <SiteLogo src={hero.logo} className="h-7 max-w-28" />
+          <SiteLogo
+            src={hero.logo}
+            fallback={hero.image}
+            className="h-7 max-w-28"
+            fallbackClassName="size-7"
+          />
           {T({ path: "hero.businessName", value: hero.businessName, as: "span", className: "truncate text-sm font-semibold uppercase tracking-[0.2em]" })}
         </span>
-        {blogHref && (
-          <Link href={blogHref} className="text-sm text-muted hover:text-foreground">
-            {L.blog}
-          </Link>
-        )}
+        <div className="flex items-center gap-4">
+          {blogHref && (
+            <Link href={blogHref} className="text-sm text-muted hover:text-foreground">
+              {L.blog}
+            </Link>
+          )}
+          {editHref && <SiteEditLink href={editHref} lang={siteLang(content)} />}
+        </div>
       </header>
 
       <section className="mx-auto max-w-2xl px-6 pb-16 pt-10 sm:pt-20">
@@ -152,6 +164,18 @@ export function MinimalTemplate({
         </>
       )}
 
+      {contact.address && (
+        <>
+          <div className="mx-auto max-w-2xl px-6">
+            <hr className="border-border" />
+          </div>
+          <section className="mx-auto max-w-2xl px-6 py-16">
+            <h2 className="eyebrow mb-6 block">{L.directions}</h2>
+            <SiteMap address={contact.address} lang={siteLang(content)} />
+          </section>
+        </>
+      )}
+
       {showContact && (
         <section id="contact" className="mx-auto max-w-4xl px-6 py-16">
           {/* 왼쪽: 사장님이 입력한 연락처 / 오른쪽: 문의 폼 */}
@@ -179,7 +203,8 @@ export function MinimalTemplate({
       )}
 
       <footer className="mx-auto max-w-2xl px-6 py-10 text-sm text-muted">
-        {hero.businessName} · © {new Date().getFullYear()} · Powered by STORYUP
+        {hero.businessName} · © {new Date().getFullYear()} ·{" "}
+        <PoweredByStoryup lang={siteLang(content)} />
       </footer>
     </div>
   );

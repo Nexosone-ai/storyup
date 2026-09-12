@@ -5,8 +5,13 @@ import {
   getPublishedSite,
   getPublishedPosts,
   getBlogEngagement,
+  getUser,
 } from "@/lib/queries";
-import { siteLang, SiteLogo } from "@/components/website/templates/shared";
+import {
+  siteLang,
+  SiteLogo,
+  PoweredByStoryup,
+} from "@/components/website/templates/shared";
 import { BlogCover } from "@/components/blog/BlogCover";
 import { TrackPageView } from "@/components/site/TrackPageView";
 import { buildSeo } from "@/utils/seo";
@@ -57,6 +62,12 @@ export default async function PublicBlogListPage({
   const logo = site.website.content.hero?.logo;
   // 사이트 콘텐츠 언어에 맞춰 크롬 문구를 고른다
   const ko = siteLang(site.website.content) === "ko";
+  // 사이트 주인이 볼 때만 헤더에 "글쓰기" 바로가기를 노출한다.
+  const viewer = await getUser();
+  const writeHref =
+    viewer && viewer.id === site.business.user_id
+      ? `/business/${site.business.id}/blog/new`
+      : null;
 
   return (
     <div className="min-h-dvh bg-white">
@@ -67,12 +78,41 @@ export default async function PublicBlogListPage({
             href={`/site/${slug}`}
             className="flex min-w-0 items-center gap-2 font-bold tracking-tight"
           >
-            <SiteLogo src={logo} className="h-7 max-w-28" />
+            <SiteLogo
+              src={logo}
+              fallback={site.website.content.hero?.image}
+              className="h-7 max-w-28"
+              fallbackClassName="size-7"
+            />
             <span className="truncate">{name}</span>
           </Link>
-          <Link href={`/site/${slug}`} className="shrink-0 text-sm text-muted">
-            {ko ? "← 홈으로" : "← Home"}
-          </Link>
+          <div className="flex shrink-0 items-center gap-3">
+            {writeHref && (
+              <Link
+                href={writeHref}
+                className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary-soft px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary hover:text-primary-foreground"
+              >
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  <path d="M12 5v14" />
+                  <path d="M5 12h14" />
+                </svg>
+                {ko ? "글쓰기" : "New post"}
+              </Link>
+            )}
+            <Link href={`/site/${slug}`} className="text-sm text-muted">
+              {ko ? "← 홈으로" : "← Home"}
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -197,6 +237,13 @@ export default async function PublicBlogListPage({
           </ul>
         )}
       </main>
+
+      <footer className="border-t border-border">
+        <div className="mx-auto max-w-3xl px-5 py-8 text-sm text-muted">
+          © {new Date().getFullYear()} {name} ·{" "}
+          <PoweredByStoryup lang={ko ? "ko" : "en"} />
+        </div>
+      </footer>
     </div>
   );
 }
