@@ -59,6 +59,15 @@ export const metadata: Metadata = {
     title: "STORYUP",
     description: "Turn Your Story Into Business.",
     type: "website",
+    images: [
+      { url: "/og-image.png", width: 1200, height: 630, alt: "STORYUP" },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "STORYUP",
+    description: "Turn Your Story Into Business.",
+    images: ["/og-image.png"],
   },
   // PWA — iOS 홈 화면 앱 동작(전체화면·상단바). manifest는 app/manifest.ts에서 자동 연결됨.
   appleWebApp: {
