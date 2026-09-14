@@ -212,6 +212,7 @@ export const translations = {
       or: "또는",
       google: "구글로 계속하기",
       kakao: "카카오로 계속하기",
+      facebook: "페이스북으로 계속하기",
     },
     onboarding: {
       later: "나중에 하기",
@@ -481,6 +482,7 @@ export const translations = {
       or: "or",
       google: "Continue with Google",
       kakao: "Continue with Kakao",
+      facebook: "Continue with Facebook",
     },
     onboarding: {
       later: "Do it later",

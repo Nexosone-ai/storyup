@@ -137,6 +137,27 @@ export async function signInWithKakaoAction(formData: FormData): Promise<void> {
   redirect(data.url);
 }
 
+export async function signInWithFacebookAction(
+  formData: FormData,
+): Promise<void> {
+  const next = String(formData.get("redirect") ?? "/dashboard");
+  const safeNext = next.startsWith("/") ? next : "/dashboard";
+
+  const h = await headers();
+  const origin = h.get("origin") ?? siteUrl;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "facebook",
+    options: {
+      redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(safeNext)}`,
+    },
+  });
+
+  if (error || !data.url) redirect("/login?error=auth");
+  redirect(data.url);
+}
+
 export async function resetRequestAction(
   _prev: AuthState,
   formData: FormData,

@@ -11,6 +11,7 @@ import {
   signUpAction,
   signInWithGoogleAction,
   signInWithKakaoAction,
+  signInWithFacebookAction,
   resetRequestAction,
   updatePasswordAction,
   type AuthState,
@@ -94,7 +95,18 @@ function KakaoIcon() {
   );
 }
 
-/** Divider + 소셜 로그인(카카오·구글) — 각 버튼은 이메일 폼과 별도의 form이어야 함 (중첩 불가) */
+function FacebookIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
+      <path
+        fill="#ffffff"
+        d="M15.12 8.44h-2.02V7.1c0-.62.41-.77.7-.77h1.29V4.16l-1.77-.01c-1.97 0-2.42 1.47-2.42 2.42v1.87H9.57v2.4h1.33V18h2.2v-5.16h1.8l.22-2.4Z"
+      />
+    </svg>
+  );
+}
+
+/** Divider + 소셜 로그인(카카오·구글·페이스북) — 각 버튼은 이메일 폼과 별도의 form이어야 함 (중첩 불가) */
 function SocialAuth({ t, redirect }: { t: AuthDict; redirect?: string }) {
   return (
     <div className="mt-5 space-y-2.5">
@@ -121,6 +133,16 @@ function SocialAuth({ t, redirect }: { t: AuthDict; redirect?: string }) {
         >
           <GoogleIcon />
           {t.google}
+        </button>
+      </form>
+      <form action={signInWithFacebookAction}>
+        {redirect ? <input type="hidden" name="redirect" value={redirect} /> : null}
+        <button
+          type="submit"
+          className="flex w-full items-center justify-center gap-2.5 rounded-lg bg-[#1877F2] px-4 py-2.5 text-sm font-medium text-white transition hover:brightness-95"
+        >
+          <FacebookIcon />
+          {t.facebook}
         </button>
       </form>
     </div>
