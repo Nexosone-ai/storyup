@@ -9,6 +9,7 @@ import {
   getUnreadInquiryCount,
 } from "@/lib/queries";
 import { isCurrentUserAdmin } from "@/lib/points";
+import { isCurrentUserMarketer } from "@/lib/marketers";
 import { dashboardNav, workspaceNav } from "@/lib/nav";
 import { getLocale } from "@/lib/i18n";
 import { getUnreadNotificationCount } from "@/lib/notifications";
@@ -25,10 +26,11 @@ export default async function DashboardLayout({
 }) {
   const user = await getUser();
   if (!user) redirect("/login");
-  const [name, admin, locale, business, unreadCount, unreadInquiries] =
+  const [name, admin, marketer, locale, business, unreadCount, unreadInquiries] =
     await Promise.all([
       getProfileName(),
       isCurrentUserAdmin(),
+      isCurrentUserMarketer(),
       getLocale(),
       getPrimaryBusiness(),
       getUnreadNotificationCount(),
@@ -38,7 +40,7 @@ export default async function DashboardLayout({
   return (
     <LocaleProvider locale={locale}>
       <DashboardShell
-        nav={dashboardNav(admin, locale, unreadInquiries)}
+        nav={dashboardNav(admin, locale, unreadInquiries, marketer)}
         workspace={
           business
             ? { name: business.name, items: workspaceNav(business.id, locale) }

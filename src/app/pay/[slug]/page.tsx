@@ -19,10 +19,13 @@ export async function generateMetadata({
 
 export default async function PayPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ ref?: string }>;
 }) {
   const { slug } = await params;
+  const { ref } = await searchParams;
   const product = await getActiveProductBySlug(slug);
   if (!product) notFound();
 
@@ -53,7 +56,11 @@ export default async function PayPage({
 
         <div className="my-5 h-px bg-border" />
 
-        <CheckoutForm productId={product.id} slug={product.slug} />
+        <CheckoutForm
+          productId={product.id}
+          slug={product.slug}
+          refCode={ref ?? null}
+        />
 
         <p className="mt-4 text-center text-xs leading-relaxed text-muted">
           안전한 카드 결제 · PortOne(토스페이먼츠) 제공

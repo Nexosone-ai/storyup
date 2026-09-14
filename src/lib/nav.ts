@@ -6,6 +6,7 @@ export function dashboardNav(
   admin: boolean,
   locale: Locale = "ko",
   unreadInquiries = 0,
+  marketer = false,
 ): NavItem[] {
   const ko = locale === "ko";
   return [
@@ -42,6 +43,15 @@ export function dashboardNav(
       href: "/dashboard/plans",
       icon: "tag",
     },
+    ...(marketer
+      ? [
+          {
+            label: ko ? "마케터" : "Marketer",
+            href: "/dashboard/marketer",
+            icon: "megaphone",
+          } as NavItem,
+        ]
+      : []),
     ...(admin
       ? [
           {

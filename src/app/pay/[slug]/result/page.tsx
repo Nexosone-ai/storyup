@@ -16,10 +16,12 @@ export default async function PayResultPage({
     paymentId?: string;
     code?: string;
     message?: string;
+    ref?: string;
   }>;
 }) {
   const { slug } = await params;
   const sp = await searchParams;
+  const retryHref = `/pay/${slug}${sp.ref ? `?ref=${encodeURIComponent(sp.ref)}` : ""}`;
 
   // PortOne 리다이렉트 실패 시 code/message가 실린다.
   let ok = false;
@@ -69,7 +71,7 @@ export default async function PayResultPage({
 
         {!ok && (
           <Link
-            href={`/pay/${slug}`}
+            href={retryHref}
             className="mt-6 inline-flex w-full items-center justify-center rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-medium transition hover:bg-surface-muted"
           >
             다시 시도하기

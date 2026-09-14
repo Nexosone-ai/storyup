@@ -9,6 +9,7 @@ import {
 import { getPlanById, type PlanId } from "@/lib/plans";
 import { ensureMonthlyGrant } from "@/lib/subscription";
 import { markReferralPaidConversion } from "@/lib/gamification/referral";
+import { accrueSubscriptionCommission } from "@/lib/marketers";
 
 /**
  * 정기결제(빌링키) 구독 서비스.
@@ -164,6 +165,14 @@ async function chargeOnce(args: {
         payment_method: remote.method?.type ?? "CARD",
       })
       .eq("id", paymentRow.id);
+
+    // 마케터 수당 적립 (매 결제마다 반복, payment_id 유니크로 멱등). 실패는 결제에 영향 없음.
+    await accrueSubscriptionCommission({
+      paymentId: paymentRow.id,
+      clientUserId: args.userId,
+      planId: args.planId,
+      amount: plan.priceKrw,
+    });
   } catch (err) {
     // 결제는 됐는데 검증 조회만 실패한 경우 — 웹훅/재동기화가 정리한다
     console.error("[billing] verify failed", orderId, err);

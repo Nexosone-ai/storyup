@@ -623,6 +623,7 @@ export interface Database {
           payment_key: string | null;
           transaction_id: string | null;
           status: string;
+          ref_marketer_id: string | null;
           requested_at: string;
           approved_at: string | null;
           cancelled_at: string | null;
@@ -645,6 +646,7 @@ export interface Database {
           payment_key?: string | null;
           transaction_id?: string | null;
           status?: string;
+          ref_marketer_id?: string | null;
           requested_at?: string;
           approved_at?: string | null;
           cancelled_at?: string | null;
@@ -654,6 +656,134 @@ export interface Database {
         };
         Update: Partial<
           Database["public"]["Tables"]["product_orders"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      marketers: {
+        Row: {
+          user_id: string;
+          status: string;
+          payout_type: string;
+          rank: string;
+          bank_name: string | null;
+          bank_account: string | null;
+          account_holder: string | null;
+          tax_id: string | null;
+          memo: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          status?: string;
+          payout_type?: string;
+          rank?: string;
+          bank_name?: string | null;
+          bank_account?: string | null;
+          account_holder?: string | null;
+          tax_id?: string | null;
+          memo?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["marketers"]["Insert"]>;
+        Relationships: [];
+      };
+      marketer_rewards: {
+        Row: {
+          id: string;
+          item_type: string;
+          item_key: string;
+          rank: string;
+          reward_amount: number;
+          active: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          item_type: string;
+          item_key: string;
+          rank: string;
+          reward_amount?: number;
+          active?: boolean;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["marketer_rewards"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      marketer_commissions: {
+        Row: {
+          id: string;
+          marketer_id: string;
+          source_type: string;
+          payment_id: string | null;
+          product_order_id: string | null;
+          client_user_id: string | null;
+          item_key: string;
+          item_label: string | null;
+          rank_at_sale: string;
+          gross_sale: number;
+          amount: number;
+          status: string;
+          settlement_id: string | null;
+          occurred_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          marketer_id: string;
+          source_type: string;
+          payment_id?: string | null;
+          product_order_id?: string | null;
+          client_user_id?: string | null;
+          item_key: string;
+          item_label?: string | null;
+          rank_at_sale: string;
+          gross_sale?: number;
+          amount?: number;
+          status?: string;
+          settlement_id?: string | null;
+          occurred_at?: string;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["marketer_commissions"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      marketer_settlements: {
+        Row: {
+          id: string;
+          marketer_id: string;
+          period: string;
+          payout_type: string;
+          gross: number;
+          tax: number;
+          net: number;
+          commission_count: number;
+          status: string;
+          paid_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          marketer_id: string;
+          period: string;
+          payout_type: string;
+          gross?: number;
+          tax?: number;
+          net?: number;
+          commission_count?: number;
+          status?: string;
+          paid_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["marketer_settlements"]["Insert"]
         >;
         Relationships: [];
       };
@@ -1106,6 +1236,13 @@ export type ServicePriceRow =
 export type ProductRow = Database["public"]["Tables"]["products"]["Row"];
 export type ProductOrderRow =
   Database["public"]["Tables"]["product_orders"]["Row"];
+export type MarketerRow = Database["public"]["Tables"]["marketers"]["Row"];
+export type MarketerRewardRow =
+  Database["public"]["Tables"]["marketer_rewards"]["Row"];
+export type MarketerCommissionRow =
+  Database["public"]["Tables"]["marketer_commissions"]["Row"];
+export type MarketerSettlementRow =
+  Database["public"]["Tables"]["marketer_settlements"]["Row"];
 export type BusinessRow = Database["public"]["Tables"]["businesses"]["Row"];
 export type BrandProfileRow =
   Database["public"]["Tables"]["brand_profiles"]["Row"];

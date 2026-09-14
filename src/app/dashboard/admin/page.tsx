@@ -10,6 +10,12 @@ import {
   listProductOrdersAdmin,
 } from "@/lib/payments/orders";
 import {
+  listMarketersAdmin,
+  getMarketerRewardsAdmin,
+  listSettlementsAdmin,
+} from "@/lib/marketers";
+import { PLANS } from "@/lib/plans";
+import {
   getGrowthStatsAdmin,
   getGrowthSettingsAdmin,
 } from "@/lib/gamification/admin";
@@ -26,6 +32,11 @@ import {
   AdminProducts,
   AdminProductOrders,
 } from "@/components/admin/AdminProductsView";
+import {
+  AdminMarketers,
+  AdminMarketerRewards,
+  AdminSettlements,
+} from "@/components/admin/AdminMarketersView";
 
 export const metadata = { title: "관리자" };
 
@@ -54,8 +65,30 @@ export default async function AdminPage() {
     listProductOrdersAdmin(),
   ]);
 
+  const [marketers, marketerRewards, settlements] = await Promise.all([
+    listMarketersAdmin(),
+    getMarketerRewardsAdmin(),
+    listSettlementsAdmin(),
+  ]);
+
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.storyup.me";
+
+  // 수당 정책 설정 대상: 유료 구독 플랜 + 판매중 상품
+  const rewardTargets = [
+    ...PLANS.filter((p) => p.priceKrw && p.priceKrw > 0).map((p) => ({
+      itemType: "subscription_plan" as const,
+      itemKey: p.id,
+      label: `${p.name.ko} 구독`,
+      price: p.priceKrw,
+    })),
+    ...products.map((p) => ({
+      itemType: "product" as const,
+      itemKey: p.id,
+      label: p.name,
+      price: p.price,
+    })),
+  ];
 
   return (
     <div className="space-y-10">
@@ -88,6 +121,31 @@ export default async function AdminPage() {
             amount: o.amount,
             method: o.payment_method ?? "",
             status: o.status,
+          }))}
+        />
+        <AdminMarketers marketers={marketers} />
+        <AdminMarketerRewards
+          targets={rewardTargets}
+          rewards={marketerRewards.map((r) => ({
+            itemType: r.item_type as "subscription_plan" | "product",
+            itemKey: r.item_key,
+            rank: r.rank,
+            amount: r.reward_amount,
+            active: r.active,
+          }))}
+        />
+        <AdminSettlements
+          settlements={settlements.map((s) => ({
+            id: s.id,
+            name: s.name,
+            email: s.email,
+            period: s.period,
+            gross: s.gross,
+            tax: s.tax,
+            net: s.net,
+            count: s.commission_count,
+            status: s.status,
+            payoutType: s.payout_type,
           }))}
         />
         <AdminPointLookup />

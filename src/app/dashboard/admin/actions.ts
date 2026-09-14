@@ -13,6 +13,13 @@ import {
   SETTING_KEYS,
   invalidateSettingsCache,
 } from "@/lib/gamification/config";
+import {
+  setMarketerByEmail,
+  saveMarketerReward,
+  generateSettlements,
+  markSettlementPaid,
+  type Rank,
+} from "@/lib/marketers";
 
 export interface AdminState {
   error?: string;
@@ -294,6 +301,68 @@ export async function deleteProductAction(id: string): Promise<AdminState> {
   if (error) return { error: "상품 삭제에 실패했습니다." };
   revalidatePath("/dashboard/admin");
   return { ok: true, message: "상품이 삭제되었습니다." };
+}
+
+// ---------------- 마케터(리셀러/메이커) 조직 ----------------
+
+/** 유저를 마케터로 지정/해제. */
+export async function setMarketerAction(
+  email: string,
+  enable: boolean,
+  payoutType: "freelancer" | "business",
+): Promise<AdminState> {
+  const { admin } = await requireAdmin();
+  if (!admin) return { error: "권한이 없습니다." };
+  const res = await setMarketerByEmail(email, enable, payoutType);
+  if (res.error) return { error: res.error };
+  revalidatePath("/dashboard/admin");
+  return {
+    ok: true,
+    message: enable ? "마케터로 지정했습니다." : "마케터를 해제했습니다.",
+  };
+}
+
+/** 직급별 상품/플랜 수당 저장. */
+export async function saveMarketerRewardAction(
+  itemType: "subscription_plan" | "product",
+  itemKey: string,
+  rank: Rank,
+  amount: number,
+  active: boolean,
+): Promise<AdminState> {
+  const { admin } = await requireAdmin();
+  if (!admin) return { error: "권한이 없습니다." };
+  const res = await saveMarketerReward({ itemType, itemKey, rank, amount, active });
+  if (res.error) return { error: res.error };
+  revalidatePath("/dashboard/admin");
+  return { ok: true, message: "수당이 저장되었습니다." };
+}
+
+/** 월별 정산 생성 (해당 월 미정산 수당 마감). */
+export async function generateSettlementsAction(
+  period: string,
+): Promise<AdminState> {
+  const { admin } = await requireAdmin();
+  if (!admin) return { error: "권한이 없습니다." };
+  const res = await generateSettlements(period);
+  if (res.error) return { error: res.error };
+  revalidatePath("/dashboard/admin");
+  return {
+    ok: true,
+    message: `${period} 정산 ${res.created ?? 0}건을 생성했습니다.`,
+  };
+}
+
+/** 정산 배치 지급완료 처리. */
+export async function markSettlementPaidAction(
+  settlementId: string,
+): Promise<AdminState> {
+  const { admin } = await requireAdmin();
+  if (!admin) return { error: "권한이 없습니다." };
+  const res = await markSettlementPaid(settlementId);
+  if (res.error) return { error: res.error };
+  revalidatePath("/dashboard/admin");
+  return { ok: true, message: "지급완료로 처리했습니다." };
 }
 
 // ---------------- 게이미피케이션 (UP/XP/미션/보상 정책) ----------------

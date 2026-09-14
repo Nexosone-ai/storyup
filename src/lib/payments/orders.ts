@@ -1,6 +1,10 @@
 import { randomUUID } from "crypto";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getPortonePayment } from "@/lib/payments/portone";
+import {
+  resolveActiveMarketerByCode,
+  accrueProductCommission,
+} from "@/lib/marketers";
 import type { ProductRow, ProductOrderRow } from "@/types/database";
 
 /**
@@ -47,6 +51,7 @@ export async function getActiveProductBySlug(
 export async function createProductOrder(args: {
   productId: string;
   buyer: Buyer;
+  refCode?: string | null;
 }): Promise<{ order?: CreatedOrder; error?: string }> {
   const storeId = process.env.NEXT_PUBLIC_PORTONE_STORE_ID;
   const channelKey = process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY;
@@ -62,6 +67,11 @@ export async function createProductOrder(args: {
     .maybeSingle();
   if (!product) return { error: "판매 중인 상품이 아닙니다." };
 
+  // 마케터 귀속 — 결제링크의 ?ref=코드가 활성 마케터면 주문에 연결
+  const refMarketerId = args.refCode
+    ? await resolveActiveMarketerByCode(args.refCode)
+    : null;
+
   const orderId = `ord_${randomUUID()}`;
   const { error } = await admin.from("product_orders").insert({
     order_id: orderId,
@@ -72,6 +82,7 @@ export async function createProductOrder(args: {
     buyer_name: args.buyer.name || null,
     buyer_phone: args.buyer.phone || null,
     buyer_email: args.buyer.email || null,
+    ref_marketer_id: refMarketerId,
     status: "PENDING",
   });
   if (error) {
@@ -168,6 +179,10 @@ export async function syncProductOrder(
       })
       .eq("id", order.id)
       .in("status", ["PENDING", "FAILED"]);
+
+    // 마케터 수당 적립 (product_order_id 유니크로 멱등). 실패는 결제에 영향 없음.
+    await accrueProductCommission(orderId);
+
     return { status: "PAID", productName: order.product_name, amount: order.amount };
   }
 

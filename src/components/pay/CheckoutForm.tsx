@@ -12,9 +12,11 @@ import { createProductOrderAction } from "@/app/pay/actions";
 export function CheckoutForm({
   productId,
   slug,
+  refCode,
 }: {
   productId: string;
   slug: string;
+  refCode?: string | null;
 }) {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -28,7 +30,11 @@ export function CheckoutForm({
       setNote(null);
       const buyer = { name: name.trim(), email: email.trim(), phone };
       // 1) 서버가 금액을 확정한 PENDING 주문 생성
-      const { order, error } = await createProductOrderAction(productId, buyer);
+      const { order, error } = await createProductOrderAction(
+        productId,
+        buyer,
+        refCode,
+      );
       if (error || !order) {
         setNote(error ?? "주문을 시작하지 못했습니다.");
         return;
@@ -44,7 +50,9 @@ export function CheckoutForm({
           currency: "KRW",
           payMethod: "CARD",
           // 모바일 등 리다이렉트 결제수단은 이 URL로 복귀해 서버에서 최종 검증한다.
-          redirectUrl: `${window.location.origin}/pay/${slug}/result`,
+          redirectUrl: `${window.location.origin}/pay/${slug}/result${
+            refCode ? `?ref=${encodeURIComponent(refCode)}` : ""
+          }`,
           customer: {
             fullName: buyer.name,
             phoneNumber: buyer.phone.replace(/[^0-9]/g, ""),
