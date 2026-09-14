@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import PortOne from "@portone/browser-sdk/v2";
 import { Card, Badge } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Field";
@@ -14,42 +15,6 @@ import {
   cancelSubscriptionAction,
   resumeSubscriptionAction,
 } from "@/app/dashboard/points/actions";
-
-/** PortOne V2 브라우저 SDK (빌링키 발급) 최소 타입. */
-interface PortOneSDK {
-  requestIssueBillingKey(opts: {
-    storeId: string;
-    channelKey: string;
-    billingKeyMethod: "CARD";
-    issueId: string;
-    issueName: string;
-    customer?: {
-      customerId?: string;
-      fullName?: string;
-      phoneNumber?: string;
-      email?: string;
-    };
-  }): Promise<{ code?: string; message?: string; billingKey?: string }>;
-}
-
-declare global {
-  interface Window {
-    PortOne?: PortOneSDK;
-  }
-}
-
-async function loadPortone(): Promise<PortOneSDK> {
-  if (window.PortOne) return window.PortOne;
-  await new Promise<void>((resolve, reject) => {
-    const s = document.createElement("script");
-    s.src = "https://cdn.portone.io/v2/browser-sdk.js";
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error("PortOne SDK load failed"));
-    document.head.appendChild(s);
-  });
-  if (!window.PortOne) throw new Error("PortOne SDK unavailable");
-  return window.PortOne;
-}
 
 export interface BillingState {
   /** 서버에 PortOne 키가 모두 설정됐는지 (미설정이면 버튼 비활성) */
@@ -121,8 +86,7 @@ export function SubscribePanel({
         return;
       }
       try {
-        const portone = await loadPortone();
-        const issue = await portone.requestIssueBillingKey({
+        const issue = await PortOne.requestIssueBillingKey({
           storeId: process.env.NEXT_PUBLIC_PORTONE_STORE_ID ?? "",
           channelKey: process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY ?? "",
           billingKeyMethod: "CARD",
@@ -135,11 +99,11 @@ export function SubscribePanel({
             email,
           },
         });
-        if (issue.code || !issue.billingKey) {
+        if (!issue || issue.code || !issue.billingKey) {
           // 사용자가 창을 닫은 경우 등 — 결제 시도 전이므로 조용히 안내만
           setNote({
             text:
-              issue.message ??
+              issue?.message ??
               (ko ? "카드 등록이 완료되지 않았습니다." : "Card registration was not completed."),
             error: true,
           });

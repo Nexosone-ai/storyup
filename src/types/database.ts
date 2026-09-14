@@ -579,6 +579,84 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["payments"]["Insert"]>;
         Relationships: [];
       };
+      products: {
+        Row: {
+          id: string;
+          slug: string;
+          name: string;
+          description: string | null;
+          price: number;
+          image_url: string | null;
+          active: boolean;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          slug: string;
+          name: string;
+          description?: string | null;
+          price: number;
+          image_url?: string | null;
+          active?: boolean;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["products"]["Insert"]>;
+        Relationships: [];
+      };
+      product_orders: {
+        Row: {
+          id: string;
+          order_id: string;
+          product_id: string | null;
+          product_name: string;
+          amount: number;
+          currency: string;
+          buyer_name: string | null;
+          buyer_phone: string | null;
+          buyer_email: string | null;
+          provider: string;
+          payment_method: string | null;
+          payment_key: string | null;
+          transaction_id: string | null;
+          status: string;
+          requested_at: string;
+          approved_at: string | null;
+          cancelled_at: string | null;
+          metadata: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          product_id?: string | null;
+          product_name: string;
+          amount: number;
+          currency?: string;
+          buyer_name?: string | null;
+          buyer_phone?: string | null;
+          buyer_email?: string | null;
+          provider?: string;
+          payment_method?: string | null;
+          payment_key?: string | null;
+          transaction_id?: string | null;
+          status?: string;
+          requested_at?: string;
+          approved_at?: string | null;
+          cancelled_at?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["product_orders"]["Insert"]
+        >;
+        Relationships: [];
+      };
       service_prices: {
         Row: {
           service: string;
@@ -1025,6 +1103,9 @@ export type PointPackageRow =
   Database["public"]["Tables"]["point_packages"]["Row"];
 export type ServicePriceRow =
   Database["public"]["Tables"]["service_prices"]["Row"];
+export type ProductRow = Database["public"]["Tables"]["products"]["Row"];
+export type ProductOrderRow =
+  Database["public"]["Tables"]["product_orders"]["Row"];
 export type BusinessRow = Database["public"]["Tables"]["businesses"]["Row"];
 export type BrandProfileRow =
   Database["public"]["Tables"]["brand_profiles"]["Row"];

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyPortoneWebhook } from "@/lib/payments/portone";
 import { syncPayment } from "@/lib/payments/service";
+import { syncProductOrder } from "@/lib/payments/orders";
 
 export const maxDuration = 30;
 
@@ -43,13 +44,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, skipped: true });
   }
 
-  // 우리 주문 형식(sub_…)이 아닌 이벤트는 무시 (다른 서비스/테스트 이벤트)
-  if (!paymentId.startsWith("sub_")) {
+  // 주문 형식별 분기: sub_=정기결제, ord_=일반결제(상품). 그 외는 무시.
+  const isSub = paymentId.startsWith("sub_");
+  const isOrder = paymentId.startsWith("ord_");
+  if (!isSub && !isOrder) {
     return NextResponse.json({ ok: true, skipped: true });
   }
 
   try {
-    const result = await syncPayment(paymentId);
+    const result = isOrder
+      ? await syncProductOrder(paymentId)
+      : await syncPayment(paymentId);
     return NextResponse.json({ ok: true, status: result.status });
   } catch (err) {
     console.error("[payments/webhook] sync failed", paymentId, err);

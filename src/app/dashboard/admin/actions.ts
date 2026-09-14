@@ -1,5 +1,6 @@
 "use server";
 
+import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import {
@@ -188,6 +189,112 @@ export async function saveServicePriceAction(
   return { ok: true, message: "가격이 저장되었습니다." };
 }
 
+
+// ---------------- PG 일반결제 상품 관리 ----------------
+
+export interface AdminProductInput {
+  name: string;
+  description: string;
+  price: number;
+  imageUrl: string;
+  active: boolean;
+  sortOrder: number;
+}
+
+/** 상품명 → URL slug. ASCII 부분 + 랜덤 접미사(중복 방지). 한글만이면 랜덤. */
+function makeSlug(name: string): string {
+  const base = name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+  const suffix = randomBytes(3).toString("hex"); // 6자
+  return base ? `${base}-${suffix}` : suffix;
+}
+
+function validateProduct(input: AdminProductInput): string | null {
+  if (!input.name.trim()) return "상품명을 입력해주세요.";
+  if (!Number.isInteger(input.price) || input.price <= 0)
+    return "가격은 1원 이상으로 입력해주세요.";
+  return null;
+}
+
+/** 상품 생성 — 저장 즉시 /pay/{slug} 링크가 활성화된다. */
+export async function createProductAction(
+  input: AdminProductInput,
+): Promise<AdminState> {
+  const { admin } = await requireAdmin();
+  if (!admin) return { error: "권한이 없습니다." };
+  const invalid = validateProduct(input);
+  if (invalid) return { error: invalid };
+
+  const adminc = createAdminClient();
+  // slug 유니크 충돌 시 재시도
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const slug = makeSlug(input.name);
+    const { error } = await adminc.from("products").insert({
+      slug,
+      name: input.name.trim(),
+      description: input.description.trim() || null,
+      price: input.price,
+      image_url: input.imageUrl.trim() || null,
+      active: input.active,
+      sort_order: input.sortOrder,
+    });
+    if (!error) {
+      revalidatePath("/dashboard/admin");
+      return { ok: true, message: "상품이 등록되었습니다." };
+    }
+    if (error.code !== "23505") {
+      console.error("[admin] product create failed", error);
+      return {
+        error:
+          "상품 등록에 실패했습니다. (0022 마이그레이션이 적용됐는지 확인해주세요)",
+      };
+    }
+  }
+  return { error: "상품 등록에 실패했습니다. 다시 시도해주세요." };
+}
+
+/** 상품 수정 — slug(공유 링크)는 유지한다. */
+export async function updateProductAction(
+  id: string,
+  input: AdminProductInput,
+): Promise<AdminState> {
+  const { admin } = await requireAdmin();
+  if (!admin) return { error: "권한이 없습니다." };
+  const invalid = validateProduct(input);
+  if (invalid) return { error: invalid };
+
+  const adminc = createAdminClient();
+  const { error } = await adminc
+    .from("products")
+    .update({
+      name: input.name.trim(),
+      description: input.description.trim() || null,
+      price: input.price,
+      image_url: input.imageUrl.trim() || null,
+      active: input.active,
+      sort_order: input.sortOrder,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+  if (error) return { error: "상품 저장에 실패했습니다." };
+  revalidatePath("/dashboard/admin");
+  return { ok: true, message: "상품이 저장되었습니다." };
+}
+
+/** 상품 삭제 — 주문 기록은 product_name 스냅샷으로 보존된다(FK set null). */
+export async function deleteProductAction(id: string): Promise<AdminState> {
+  const { admin } = await requireAdmin();
+  if (!admin) return { error: "권한이 없습니다." };
+  const adminc = createAdminClient();
+  const { error } = await adminc.from("products").delete().eq("id", id);
+  if (error) return { error: "상품 삭제에 실패했습니다." };
+  revalidatePath("/dashboard/admin");
+  return { ok: true, message: "상품이 삭제되었습니다." };
+}
 
 // ---------------- 게이미피케이션 (UP/XP/미션/보상 정책) ----------------
 
