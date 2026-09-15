@@ -11,7 +11,7 @@ export default function PrivacyPage() {
         <li>서비스 이용: 입력한 사업 정보, 생성·게시한 콘텐츠</li>
         <li>
           결제: 주문 정보(주문번호·금액·결제 수단 종류). 카드번호 등 민감한
-          결제 정보는 결제대행사(PortOne·토스페이먼츠)가 처리하며 서비스는
+          결제 정보는 결제대행사(PortOne·KG이니시스)가 처리하며 서비스는
           저장하지 않습니다.
         </li>
       </ul>
@@ -20,7 +20,7 @@ export default function PrivacyPage() {
       <ul>
         <li>회원 식별 및 서비스 제공</li>
         <li>AI 콘텐츠 생성 및 게시 기능 제공</li>
-        <li>크레딧 충전·차감 및 결제 관리</li>
+        <li>구독 결제 및 서비스 이용권(UP) 지급·차감 관리</li>
         <li>고객 문의 대응</li>
       </ul>
 
@@ -28,7 +28,7 @@ export default function PrivacyPage() {
       <ul>
         <li>인증·데이터 보관: Supabase</li>
         <li>호스팅: Vercel</li>
-        <li>결제 처리: PortOne, 토스페이먼츠</li>
+        <li>결제 처리: PortOne(포트원)·KG이니시스</li>
         <li>AI 콘텐츠 생성: Anthropic</li>
       </ul>
 

@@ -25,13 +25,6 @@ function planFeatures(plan: Plan, ko: boolean): string[] {
   const per = ko ? "건/월" : "/mo";
   const talk = ko ? "협의" : "Custom";
   return [
-    plan.monthlyPoints === null
-      ? ko
-        ? "포인트 대량 제공"
-        : "Bulk points included"
-      : ko
-        ? `매월 ${fmt(plan.monthlyPoints)}P 제공`
-        : `${fmt(plan.monthlyPoints)}P every month`,
     ko ? "브랜드 스토리 생성" : "Brand story generation",
     l.sites === null
       ? ko
@@ -82,15 +75,6 @@ export default async function PricingPage() {
   const subscribeHref = user ? "/dashboard/plans" : "/signup";
 
   const rows: [string, (p: Plan) => string][] = [
-    [
-      ko ? "월 제공 포인트" : "Monthly points",
-      (p) =>
-        p.monthlyPoints === null
-          ? ko
-            ? "대량 제공"
-            : "Bulk"
-          : `${fmt(p.monthlyPoints)}P`,
-    ],
     [ko ? "브랜드 스토리 생성" : "Brand story", () => "✓"],
     [
       ko ? "AI 랜딩페이지" : "AI landing pages",
@@ -165,8 +149,8 @@ export default async function PricingPage() {
             </h1>
             <p className="mt-3 text-muted">
               {ko
-                ? "무료로 시작하고, 사업이 커지면 플랜을 올리세요."
-                : "Start free and upgrade as you grow. Past your monthly quota, keep creating with points."}
+                ? "무료로 시작하고, 사업이 커지면 월 구독 플랜을 올리세요."
+                : "Start free and upgrade your monthly plan as you grow."}
             </p>
           </div>
 

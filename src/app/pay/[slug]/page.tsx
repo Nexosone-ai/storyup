@@ -63,7 +63,7 @@ export default async function PayPage({
         />
 
         <p className="mt-4 text-center text-xs leading-relaxed text-muted">
-          안전한 카드 결제 · PortOne(토스페이먼츠) 제공
+          안전한 카드 결제 · PortOne(KG이니시스) 제공
         </p>
       </div>
     </main>
