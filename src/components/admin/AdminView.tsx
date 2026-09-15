@@ -56,13 +56,6 @@ export function AdminView() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
-      <div>
-        <p className="eyebrow mb-2">관리자</p>
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          운영 관리
-        </h1>
-      </div>
-
       <section className="space-y-3">
         <h2 className="text-lg font-semibold tracking-tight">포인트 지급 / 차감</h2>
         <Card className="space-y-3">
