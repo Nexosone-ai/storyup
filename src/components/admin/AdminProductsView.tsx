@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Badge } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Input, Label, Textarea } from "@/components/ui/Field";
+import { Input, Label, Textarea, Select } from "@/components/ui/Field";
 import { Spinner } from "@/components/ui/Spinner";
 import {
   createProductAction,
@@ -22,6 +22,8 @@ export interface AdminProductItem {
   imageUrl: string;
   active: boolean;
   sortOrder: number;
+  grantsPlan: string;
+  grantDays: number;
 }
 
 const EMPTY: AdminProductInput = {
@@ -31,6 +33,8 @@ const EMPTY: AdminProductInput = {
   imageUrl: "",
   active: true,
   sortOrder: 0,
+  grantsPlan: "",
+  grantDays: 30,
 };
 
 function fmtDateTime(iso: string) {
@@ -112,6 +116,38 @@ function ProductForm({
           onChange={(e) => set("imageUrl", e.target.value)}
           placeholder="https://…"
         />
+      </div>
+      {/* 결제 시 자동 지급할 구독 플랜 — 결제 완료 후 구매자 계정(이메일 일치)에 자동 부여 */}
+      <div className="flex flex-wrap gap-3 rounded-lg border border-border bg-surface p-3">
+        <div className="flex-1 min-w-[160px]">
+          <Label htmlFor="p-plan">결제 시 자동 지급 플랜</Label>
+          <Select
+            id="p-plan"
+            value={form.grantsPlan}
+            onChange={(e) => set("grantsPlan", e.target.value)}
+          >
+            <option value="">지급 없음 (일반 상품)</option>
+            <option value="basic">Basic</option>
+            <option value="pro">Pro</option>
+          </Select>
+        </div>
+        {form.grantsPlan && (
+          <div className="w-28">
+            <Label htmlFor="p-days">지급 기간(일)</Label>
+            <Input
+              id="p-days"
+              type="number"
+              min={1}
+              value={form.grantDays || ""}
+              onChange={(e) => set("grantDays", Number(e.target.value))}
+              placeholder="30"
+            />
+          </div>
+        )}
+        <p className="w-full text-xs text-muted">
+          지급 플랜을 설정하면 결제 완료 시 구매자 이메일과 일치하는 계정에 해당 플랜이
+          자동 부여됩니다. 계정이 없으면 주문 내역에 표시되고 관리자가 수동 지급합니다.
+        </p>
       </div>
       <label className="flex items-center gap-2 text-sm">
         <input
@@ -233,6 +269,8 @@ export function AdminProducts({
                     imageUrl: p.imageUrl,
                     active: p.active,
                     sortOrder: p.sortOrder,
+                    grantsPlan: p.grantsPlan,
+                    grantDays: p.grantDays,
                   }}
                   onSubmit={(input) => submitEdit(p.id, input)}
                   onCancel={() => setEditing(null)}

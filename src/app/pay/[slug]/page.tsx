@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getActiveProductBySlug } from "@/lib/payments/orders";
+import { createClient } from "@/lib/supabase/server";
 import { CheckoutForm } from "@/components/pay/CheckoutForm";
 
 export async function generateMetadata({
@@ -28,6 +29,24 @@ export default async function PayPage({
   const { ref } = await searchParams;
   const product = await getActiveProductBySlug(slug);
   if (!product) notFound();
+
+  // 로그인 사용자면 가입 정보(이름·이메일)를 결제 폼에 미리 채운다.
+  // 이메일이 계정과 일치해야 결제 후 플랜 자동 지급도 정확히 연결된다.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  let defaultName = "";
+  let defaultEmail = user?.email ?? "";
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("name, email")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    defaultName = profile?.name ?? "";
+    defaultEmail = profile?.email ?? user.email ?? "";
+  }
 
   return (
     <main className="mx-auto flex min-h-full max-w-md flex-col justify-center px-5 py-10">
@@ -60,6 +79,8 @@ export default async function PayPage({
           productId={product.id}
           slug={product.slug}
           refCode={ref ?? null}
+          defaultName={defaultName}
+          defaultEmail={defaultEmail}
         />
 
         <p className="mt-4 text-center text-xs leading-relaxed text-muted">

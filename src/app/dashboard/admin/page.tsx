@@ -107,6 +107,8 @@ export default async function AdminPage() {
             imageUrl: p.image_url ?? "",
             active: p.active,
             sortOrder: p.sort_order,
+            grantsPlan: p.grants_plan ?? "",
+            grantDays: p.grant_days,
           }))}
         />
         <AdminProductOrders

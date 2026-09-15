@@ -5,6 +5,8 @@ import {
   resolveActiveMarketerByCode,
   accrueProductCommission,
 } from "@/lib/marketers";
+import { ensureMonthlyGrant } from "@/lib/subscription";
+import type { PlanId } from "@/lib/plans";
 import type { ProductRow, ProductOrderRow } from "@/types/database";
 
 /**
@@ -195,6 +197,8 @@ export async function syncProductOrder(
 
     // 마케터 수당 적립 (product_order_id 유니크로 멱등). 실패는 결제에 영향 없음.
     await accrueProductCommission(orderId);
+    // 자동 이행 — 상품에 지급 플랜이 연결돼 있으면 구매자 계정에 플랜 부여 (멱등).
+    await fulfillProductOrder(orderId);
 
     return { status: "PAID", productName: order.product_name, amount: order.amount };
   }
@@ -237,6 +241,97 @@ export async function syncProductOrder(
     amount: order.amount,
     error: "결제가 아직 완료되지 않았습니다.",
   };
+}
+
+// ---------------- 결제 자동 이행 (fulfillment) ----------------
+
+const GRANTABLE_PLANS = new Set(["basic", "pro"]);
+
+/**
+ * 상품 결제 자동 이행 — 상품에 grants_plan이 설정돼 있으면,
+ * 구매자 이메일과 일치하는 계정에 해당 플랜을 grant_days만큼 부여(기존 기간이면 연장).
+ * 계정을 못 찾으면 지급하지 않고 사유만 기록(관리자 수동 처리). 멱등(fulfilled 플래그).
+ */
+export async function fulfillProductOrder(orderId: string): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: order } = await admin
+      .from("product_orders")
+      .select("id, status, product_id, buyer_email, metadata")
+      .eq("order_id", orderId)
+      .maybeSingle();
+    if (!order || order.status !== "PAID" || !order.product_id) return;
+    const meta = (order.metadata as Record<string, unknown> | null) ?? {};
+    if (meta.fulfilled) return; // 이미 이행됨
+
+    const { data: product } = await admin
+      .from("products")
+      .select("grants_plan, grant_days")
+      .eq("id", order.product_id)
+      .maybeSingle();
+    // 지급 대상 상품이 아니면 아무 것도 하지 않는다 (플래그도 남기지 않음)
+    if (!product?.grants_plan || !GRANTABLE_PLANS.has(product.grants_plan)) return;
+
+    const plan = product.grants_plan as PlanId;
+    const days = product.grant_days ?? 30;
+    const email = (order.buyer_email ?? "").trim();
+
+    let result: string;
+    if (!email) {
+      result = "no_email";
+    } else {
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("user_id")
+        .eq("email", email)
+        .maybeSingle();
+      if (!profile) {
+        result = "no_account";
+      } else {
+        // 기존 구독 기간이 남아 있으면 이어서 연장, 없으면 지금부터. 빌링키는 건드리지 않음.
+        const { data: sub } = await admin
+          .from("subscriptions")
+          .select("current_period_end")
+          .eq("user_id", profile.user_id)
+          .maybeSingle();
+        const now = Date.now();
+        const baseMs =
+          sub?.current_period_end &&
+          new Date(sub.current_period_end).getTime() > now
+            ? new Date(sub.current_period_end).getTime()
+            : now;
+        const end = new Date(baseMs + days * 86_400_000).toISOString();
+        await admin.from("subscriptions").upsert(
+          {
+            user_id: profile.user_id,
+            plan,
+            status: "active",
+            current_period_end: end,
+            trial: false,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" },
+        );
+        // 이번 달 플랜 사용량 지급 (월 멱등)
+        await ensureMonthlyGrant(profile.user_id, plan);
+        result = `granted:${plan}`;
+      }
+    }
+
+    await admin
+      .from("product_orders")
+      .update({
+        metadata: {
+          ...meta,
+          fulfilled: true,
+          fulfillment: result,
+          fulfilled_at: new Date().toISOString(),
+        },
+      })
+      .eq("id", order.id);
+  } catch (err) {
+    console.error("[orders] fulfill error", orderId, err);
+  }
 }
 
 // ---------------- 관리자 조회 ----------------

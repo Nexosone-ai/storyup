@@ -206,6 +206,10 @@ export interface AdminProductInput {
   imageUrl: string;
   active: boolean;
   sortOrder: number;
+  /** 결제 시 자동 지급할 구독 플랜 ("" = 지급 없음, "basic", "pro") */
+  grantsPlan: string;
+  /** 지급 기간(일) */
+  grantDays: number;
 }
 
 /** 상품명 → URL slug. ASCII 부분 + 랜덤 접미사(중복 방지). 한글만이면 랜덤. */
@@ -248,6 +252,8 @@ export async function createProductAction(
       image_url: input.imageUrl.trim() || null,
       active: input.active,
       sort_order: input.sortOrder,
+      grants_plan: input.grantsPlan || null,
+      grant_days: input.grantDays > 0 ? input.grantDays : 30,
     });
     if (!error) {
       revalidatePath("/dashboard/admin");
@@ -284,6 +290,8 @@ export async function updateProductAction(
       image_url: input.imageUrl.trim() || null,
       active: input.active,
       sort_order: input.sortOrder,
+      grants_plan: input.grantsPlan || null,
+      grant_days: input.grantDays > 0 ? input.grantDays : 30,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id);

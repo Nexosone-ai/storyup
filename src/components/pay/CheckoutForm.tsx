@@ -13,14 +13,19 @@ export function CheckoutForm({
   productId,
   slug,
   refCode,
+  defaultName = "",
+  defaultEmail = "",
 }: {
   productId: string;
   slug: string;
   refCode?: string | null;
+  /** 로그인 사용자면 가입 정보로 미리 채운다 */
+  defaultName?: string;
+  defaultEmail?: string;
 }) {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [name, setName] = useState(defaultName);
+  const [email, setEmail] = useState(defaultEmail);
   const [phone, setPhone] = useState("");
   const [note, setNote] = useState<string | null>(null);
   const [busy, start] = useTransition();

@@ -592,6 +592,10 @@ export interface Database {
           image_url: string | null;
           active: boolean;
           sort_order: number;
+          /** 결제 시 자동 지급할 구독 플랜 id (0025). null = 지급 없음 */
+          grants_plan: string | null;
+          /** 지급 기간(일) (0025) */
+          grant_days: number;
           created_at: string;
           updated_at: string;
         };
@@ -604,6 +608,8 @@ export interface Database {
           image_url?: string | null;
           active?: boolean;
           sort_order?: number;
+          grants_plan?: string | null;
+          grant_days?: number;
           created_at?: string;
           updated_at?: string;
         };
