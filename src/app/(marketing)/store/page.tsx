@@ -87,7 +87,7 @@ export default async function StorePage() {
                       href={`/pay/${p.slug}`}
                       className="neon-glow mt-3 inline-flex w-full items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary-hover"
                     >
-                      {ko ? "결제하기" : "Buy now"}
+                      {ko ? "상세보기" : "View details"}
                     </Link>
                   </div>
                 </div>
