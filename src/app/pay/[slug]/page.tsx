@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getActiveProductBySlug } from "@/lib/payments/orders";
 import { createClient } from "@/lib/supabase/server";
 import { CheckoutForm } from "@/components/pay/CheckoutForm";
+import { ServiceExamples } from "@/components/pay/ServiceExamples";
 
 export async function generateMetadata({
   params,
@@ -90,8 +91,14 @@ export default async function PayPage({
           ₩{product.price.toLocaleString()}
         </p>
 
-        {/* 상품 상세 이미지 — 이용권 내용·가격 다음, 결제 폼 위에 노출 */}
-        {product.detail_image_url && (
+        {/* 상품 상세 — 이용권 내용·가격 다음, 결제 폼 위에 노출.
+            플랜 상품은 코드로 렌더링(반응형·넘침 없음), 그 외엔 상세 이미지가 있으면 표시. */}
+        {product.grants_plan ? (
+          <div className="mt-6">
+            <p className="mb-3 text-sm font-semibold text-foreground">상품 상세</p>
+            <ServiceExamples />
+          </div>
+        ) : product.detail_image_url ? (
           <div className="mt-5">
             <p className="mb-2 text-sm font-semibold text-foreground">상품 상세</p>
             {/* eslint-disable-next-line @next/next/no-img-element -- 원격 스토리지 URL */}
@@ -101,7 +108,7 @@ export default async function PayPage({
               className="w-full rounded-xl border border-border"
             />
           </div>
-        )}
+        ) : null}
 
         <div className="my-5 h-px bg-border" />
 
