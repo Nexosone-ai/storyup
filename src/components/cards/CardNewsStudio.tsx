@@ -30,14 +30,33 @@ interface PostOption {
 
 const PREVIEW_W = 264;
 
-async function downloadNode(node: HTMLElement | null, filename: string) {
-  if (!node) return;
-  const { toPng } = await import("html-to-image");
-  const dataUrl = await toPng(node, { pixelRatio: 1, cacheBust: true });
+/** 카드 DOM을 실제 크기(1080×1350) PNG Blob으로 렌더. 첫 시도가 비면 1회 재시도. */
+async function nodeToBlob(node: HTMLElement | null): Promise<Blob | null> {
+  if (!node) return null;
+  const { toBlob } = await import("html-to-image");
+  const opts = { pixelRatio: 1, cacheBust: true } as const;
+  let blob = await toBlob(node, opts);
+  if (!blob) blob = await toBlob(node, opts); // 폰트·원격이미지 로딩 타이밍 보정
+  return blob;
+}
+
+/** Blob을 파일로 저장. data URL 대신 Object URL을 써서 큰 이미지·모바일에서도 안정적. */
+function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = dataUrl;
+  a.href = url;
   a.download = filename;
+  a.rel = "noopener";
+  document.body.appendChild(a);
   a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+/** 카드 한 장 다운로드 (개별 버튼용) */
+async function downloadNode(node: HTMLElement | null, filename: string) {
+  const blob = await nodeToBlob(node);
+  if (blob) saveBlob(blob, filename);
 }
 
 export function CardNewsStudio({
@@ -238,13 +257,57 @@ export function CardNewsStudio({
     )
       return;
     void withBusy(async () => {
+      // 1) 모든 카드를 실제 크기 PNG 파일로 렌더
+      const files: File[] = [];
       for (let i = 0; i < igRefs.current.length; i++) {
-        await downloadNode(
-          igRefs.current[i],
-          `${slugName()}-card-${String(i + 1).padStart(2, "0")}.png`,
-        );
-        await new Promise((r) => setTimeout(r, 350));
+        const blob = await nodeToBlob(igRefs.current[i]);
+        if (blob) {
+          files.push(
+            new File(
+              [blob],
+              `${slugName()}-card-${String(i + 1).padStart(2, "0")}.png`,
+              { type: "image/png" },
+            ),
+          );
+        }
+        // 렌더 사이 짧은 양보 — 무거운 캔버스 작업으로 UI가 얼지 않게
+        await new Promise((r) => setTimeout(r, 30));
       }
+      if (files.length === 0) {
+        throw new Error("no cards");
+      }
+
+      // 2) 휴대폰·태블릿: 네이티브 공유로 한 번에 → '사진(갤러리)에 저장' 가능
+      const nav = navigator as Navigator & {
+        canShare?: (data?: ShareData) => boolean;
+      };
+      const isTouch =
+        typeof navigator !== "undefined" &&
+        (navigator.maxTouchPoints > 0 ||
+          /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
+      if (
+        isTouch &&
+        typeof nav.share === "function" &&
+        nav.canShare?.({ files })
+      ) {
+        try {
+          await nav.share({
+            files,
+            title: ko ? "카드뉴스" : "Card news",
+          });
+          return;
+        } catch (e) {
+          // 사용자가 취소하면 그대로 종료, 그 외 오류는 ZIP으로 폴백
+          if (e instanceof DOMException && e.name === "AbortError") return;
+        }
+      }
+
+      // 3) PC 등: 전체를 ZIP 한 파일로 묶어 단일 다운로드 (다중 다운로드 차단 회피)
+      const JSZip = (await import("jszip")).default;
+      const zip = new JSZip();
+      for (const f of files) zip.file(f.name, f);
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      saveBlob(zipBlob, `${slugName()}-cardnews.zip`);
     });
   };
 
@@ -524,8 +587,8 @@ export function CardNewsStudio({
             </div>
             <p className="text-xs text-muted">
               {ko
-                ? "PNG는 실제 크기(1080×1350)로 다운로드됩니다. 배경 이미지는 카드뉴스에 자동 저장되어 다음에 와도 유지돼요."
-                : "PNGs download at full size (1080×1350). Background images are saved to your card news automatically and persist across visits."}
+                ? "PNG는 실제 크기(1080×1350)로 저장됩니다. 휴대폰은 '전체 PNG 다운로드'를 누르면 공유 창이 떠서 '사진(갤러리)에 저장'을 고르면 되고, PC는 모든 카드가 ZIP 한 파일로 받아집니다. 배경 이미지는 카드뉴스에 자동 저장되어 다음에 와도 유지돼요."
+                : "PNGs are full size (1080×1350). On phones, tap 'Download all PNGs' and pick 'Save to Photos' from the share sheet; on desktop all cards come as a single ZIP file. Background images are saved to your card news automatically and persist across visits."}
             </p>
           </div>
 
