@@ -61,12 +61,19 @@ export async function getPortonePayment(
   return (await res.json()) as PortonePayment;
 }
 
-/** 결제 수단(빌링키) 준비 여부 — 클라이언트 SDK 키까지 있어야 구독 시작 가능. */
+/**
+ * 결제 수단(빌링키) 준비 여부 — 클라이언트 SDK 키까지 있어야 구독 시작 가능.
+ * 정기결제(빌링)는 일반결제와 PG 채널이 다르므로 별도 채널키를 우선 사용하고,
+ * 없으면 기존 채널키로 폴백한다(단일 채널 환경 호환).
+ */
 export function isBillingConfigured(): boolean {
+  const billingChannel =
+    process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY_BILLING ||
+    process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY;
   return !!(
     process.env.PORTONE_API_SECRET &&
     process.env.NEXT_PUBLIC_PORTONE_STORE_ID &&
-    process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY
+    billingChannel
   );
 }
 

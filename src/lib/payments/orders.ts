@@ -54,6 +54,7 @@ export async function createProductOrder(args: {
   refCode?: string | null;
 }): Promise<{ order?: CreatedOrder; error?: string }> {
   const storeId = process.env.NEXT_PUBLIC_PORTONE_STORE_ID;
+  // 상품 단건 결제는 '일반결제' 채널을 쓴다 (정기결제/빌링 채널과 별개).
   const channelKey = process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY;
   if (!storeId || !channelKey || !process.env.PORTONE_API_SECRET)
     return { error: "결제 설정이 완료되지 않았습니다. 잠시 후 다시 시도해주세요." };

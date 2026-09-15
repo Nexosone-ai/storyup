@@ -88,7 +88,11 @@ export function SubscribePanel({
       try {
         const issue = await PortOne.requestIssueBillingKey({
           storeId: process.env.NEXT_PUBLIC_PORTONE_STORE_ID ?? "",
-          channelKey: process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY ?? "",
+          // 정기결제(빌링)는 일반결제와 채널이 다르다 — 빌링 채널키 우선, 없으면 기존 키로 폴백
+          channelKey:
+            process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY_BILLING ||
+            process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY ||
+            "",
           billingKeyMethod: "CARD",
           issueId: `bk-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           issueName: "STORYUP 정기결제",
