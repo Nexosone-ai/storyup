@@ -1,5 +1,6 @@
 import { signOutAction } from "@/app/(auth)/actions";
 import { LanguageToggle } from "@/components/marketing/LanguageToggle";
+import { MarketingMobileNav } from "@/components/marketing/MarketingMobileNav";
 import { Logo } from "@/components/ui/Logo";
 import { getDict } from "@/lib/i18n";
 import { getProfileName, getUser } from "@/lib/queries";
@@ -12,8 +13,15 @@ export async function MarketingNav() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-4 sm:px-8">
-        <div className="flex items-center gap-8">
+      <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-4 sm:px-8">
+        <div className="flex items-center gap-2 md:gap-8">
+          <MarketingMobileNav
+            links={[
+              { href: "/showcase", label: t.nav.portfolio },
+              { href: "/community", label: t.nav.community },
+              { href: "/pricing", label: t.nav.pricing },
+            ]}
+          />
           <Logo />
           <nav className="hidden items-center gap-6 md:flex">
             <Link
