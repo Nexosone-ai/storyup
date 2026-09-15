@@ -210,11 +210,20 @@ export default async function PublicArticlePage({
             </time>
           )}
         </p>
-        <h1 className="mt-2 text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
+        <h1 className="break-keep-kr mt-2 text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
           {post.title}
         </h1>
         {post.summary && (
-          <p className="mt-4 text-lg text-muted">{post.summary}</p>
+          <p className="break-keep-kr mt-4 text-lg text-muted">{post.summary}</p>
+        )}
+        {/* 작성자(사장님) 본인에게만 보이는 편집 바로가기 */}
+        {isOwner && (
+          <Link
+            href={`/business/${site.business.id}/blog/${post.id}`}
+            className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary-soft px-3.5 py-1.5 text-sm font-medium text-primary transition hover:bg-primary/10"
+          >
+            ✏️ {ko ? "이 글 편집" : "Edit this post"}
+          </Link>
         )}
         <ShareBar path={path} title={post.title} slug={slug} className="mt-5" />
         {/* 참여 바 — 좋아요 토글 + 댓글 수 (댓글 영역으로 이동) */}

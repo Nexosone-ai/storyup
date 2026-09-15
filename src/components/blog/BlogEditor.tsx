@@ -11,6 +11,7 @@ import { cn } from "@/utils/cn";
 import {
   saveBlogAction,
   publishBlogAction,
+  scheduleBlogAction,
   updateBlogCoverAction,
   uploadSiteImage,
 } from "@/app/business/actions";
@@ -50,6 +51,14 @@ export function BlogEditor({
   const [tab, setTab] = useState<Tab>("write");
   const [note, setNote] = useState<string | null>(null);
   const [justPublished, setJustPublished] = useState(false);
+  // 예약 발행 — scheduled_at(0024). draft + 미래값이면 '예약 대기' 상태.
+  const [scheduledAt, setScheduledAt] = useState<string | null>(
+    post.scheduled_at ?? null,
+  );
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [scheduleInput, setScheduleInput] = useState("");
+  // 현재 시각은 마운트 시점 1회만 고정 (렌더 순수성 규칙)
+  const [mountedAt] = useState(() => Date.now());
   const [saving, startSave] = useTransition();
   const [publishing, startPublish] = useTransition();
   const [coverPending, startCover] = useTransition();
@@ -224,11 +233,65 @@ export function BlogEditor({
       if (res.error) setNote(res.error);
       else {
         setStatus(next ? "published" : "draft");
+        setScheduledAt(null); // 즉시 발행/비공개 전환은 예약을 해제한다
+        setShowSchedule(false);
         setJustPublished(next);
         // 게시 성공은 아래 안내 패널이 대신하므로 한 줄 메시지는 비공개 전환에만 쓴다.
         setNote(next ? null : (res.message ?? null));
       }
     });
+
+  // 예약 발행 — 저장 후 예약 시각 기록 (도래 시 크론이 공개로 전환)
+  const schedulePost = () =>
+    startPublish(async () => {
+      setNote(null);
+      if (!scheduleInput) {
+        setNote(ko ? "예약 시각을 선택해주세요." : "Pick a date and time.");
+        return;
+      }
+      const iso = new Date(scheduleInput).toISOString();
+      await saveBlogAction(businessId, post.id, {
+        title,
+        content,
+        summary,
+        category,
+      });
+      const res = await scheduleBlogAction(businessId, post.id, iso);
+      if (res.error) setNote(res.error);
+      else {
+        setScheduledAt(iso);
+        setStatus("draft");
+        setShowSchedule(false);
+        setNote(res.message ?? null);
+      }
+    });
+
+  const cancelSchedule = () =>
+    startPublish(async () => {
+      setNote(null);
+      const res = await scheduleBlogAction(businessId, post.id, null);
+      if (res.error) setNote(res.error);
+      else {
+        setScheduledAt(null);
+        setNote(res.message ?? null);
+      }
+    });
+
+  const isScheduled =
+    status !== "published" &&
+    !!scheduledAt &&
+    new Date(scheduledAt).getTime() > mountedAt;
+  const fmtWhen = (iso: string) =>
+    new Date(iso).toLocaleString(ko ? "ko-KR" : "en-US", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  // datetime-local 최소값 — 현재 시각(로컬) 기준
+  const minLocal = (() => {
+    const d = new Date(mountedAt + 60_000);
+    const off = d.getTimezoneOffset() * 60_000;
+    return new Date(d.getTime() - off).toISOString().slice(0, 16);
+  })();
 
   const publicHref =
     sitePublished && siteSlug
@@ -250,6 +313,8 @@ export function BlogEditor({
           </ButtonLink>
           {status === "published" ? (
             <Badge tone="success">{ko ? "공개됨" : "Published"}</Badge>
+          ) : isScheduled ? (
+            <Badge tone="warning">{ko ? "예약됨" : "Scheduled"}</Badge>
           ) : (
             <Badge tone="muted">{ko ? "초안" : "Draft"}</Badge>
           )}
@@ -264,21 +329,96 @@ export function BlogEditor({
           <Button variant="outline" size="sm" onClick={save} disabled={saving}>
             {saving ? <Spinner className="h-4 w-4" /> : ko ? "저장" : "Save"}
           </Button>
+          {/* 예약 발행 — 아직 공개 전인 글에만 노출 */}
+          {status !== "published" && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setNote(null);
+                setShowSchedule((v) => !v);
+              }}
+              disabled={publishing}
+            >
+              {ko ? "예약 발행" : "Schedule"}
+            </Button>
+          )}
           <Button size="sm" onClick={togglePublish} disabled={publishing}>
             {publishing ? (
               <Spinner className="h-4 w-4" />
             ) : status === "published" ? (
               ko ? "비공개로 전환" : "Unpublish"
             ) : ko ? (
-              "게시하기"
+              "즉시 발행"
             ) : (
-              "Publish"
+              "Publish now"
             )}
           </Button>
         </div>
       </div>
 
       {note && <p className="text-sm text-primary">{note}</p>}
+
+      {/* 예약 상태 배너 */}
+      {isScheduled && scheduledAt && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm">
+          <p className="text-foreground">
+            📅{" "}
+            {ko
+              ? `${fmtWhen(scheduledAt)}에 자동 발행 예정입니다.`
+              : `Scheduled to publish on ${fmtWhen(scheduledAt)}.`}
+          </p>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={cancelSchedule}
+            disabled={publishing}
+          >
+            {ko ? "예약 취소" : "Cancel schedule"}
+          </Button>
+        </div>
+      )}
+
+      {/* 예약 설정 패널 */}
+      {showSchedule && status !== "published" && (
+        <div className="space-y-3 rounded-xl border border-border bg-surface p-4">
+          <Label htmlFor="schedule-at">
+            {ko ? "예약 발행 시각" : "Publish at"}
+          </Label>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              id="schedule-at"
+              type="datetime-local"
+              min={minLocal}
+              value={scheduleInput}
+              onChange={(e) => setScheduleInput(e.target.value)}
+              className="w-56"
+            />
+            <Button size="sm" onClick={schedulePost} disabled={publishing}>
+              {publishing ? (
+                <Spinner className="h-4 w-4" />
+              ) : ko ? (
+                "예약 발행"
+              ) : (
+                "Schedule"
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowSchedule(false)}
+              disabled={publishing}
+            >
+              {ko ? "닫기" : "Close"}
+            </Button>
+          </div>
+          <p className="text-xs text-muted">
+            {ko
+              ? "선택한 시각이 되면 자동으로 공개됩니다. 그 전까지는 비공개(초안) 상태로 유지돼요. (약 10분 간격으로 처리)"
+              : "The post publishes automatically at the selected time; it stays private until then (checked about every 10 minutes)."}
+          </p>
+        </div>
+      )}
       {status === "published" && !sitePublished && (
         <div className="space-y-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-warning">
           <p>

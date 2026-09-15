@@ -185,7 +185,7 @@ export default async function PublicBlogListPage({
                     )}
                     {fmtDate(post.published_at, ko)}
                   </p>
-                  <h2 className="mt-1 text-xl font-semibold group-hover:text-primary">
+                  <h2 className="break-keep-kr mt-1 text-xl font-semibold group-hover:text-primary">
                     {post.title}
                   </h2>
                   {post.summary && (

@@ -634,14 +634,27 @@ export async function publishBlogAction(
     .eq("business_id", businessId)
     .maybeSingle();
 
-  const { error } = await supabase
+  // 즉시 발행/비공개 전환 시 예약(scheduled_at)은 항상 해제한다.
+  const patch = {
+    status: (publish ? "published" : "draft") as "published" | "draft",
+    published_at: publish ? new Date().toISOString() : null,
+    scheduled_at: null as string | null,
+  };
+  let { error } = await supabase
     .from("blog_posts")
-    .update({
-      status: publish ? "published" : "draft",
-      published_at: publish ? new Date().toISOString() : null,
-    })
+    .update(patch)
     .eq("id", postId)
     .eq("business_id", businessId);
+  // scheduled_at 컬럼(0024) 이전 DB에서는 컬럼 없이 저장한다.
+  if (error && error.code === "PGRST204") {
+    const { scheduled_at: _omit, ...base } = patch;
+    void _omit;
+    ({ error } = await supabase
+      .from("blog_posts")
+      .update(base)
+      .eq("id", postId)
+      .eq("business_id", businessId));
+  }
   if (error)
     return { error: ko ? "처리에 실패했습니다." : "Something went wrong." };
 
@@ -666,6 +679,68 @@ export async function publishBlogAction(
       : ko
         ? "비공개로 전환되었습니다."
         : "Blog post set to private.",
+  };
+}
+
+/**
+ * 블로그 예약 발행 — scheduledAt(미래)이면 status=draft로 두고 예약 시각만 기록한다.
+ * 크론(/api/cron/publish)이 시각 도래 시 published로 전환. null이면 예약 취소.
+ */
+export async function scheduleBlogAction(
+  businessId: string,
+  postId: string,
+  scheduledAtIso: string | null,
+): Promise<ActionState> {
+  const ko = (await getLocale()) === "ko";
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
+
+  let when: string | null = null;
+  if (scheduledAtIso) {
+    const t = new Date(scheduledAtIso);
+    if (Number.isNaN(t.getTime()))
+      return { error: ko ? "예약 시각이 올바르지 않습니다." : "Invalid date." };
+    if (t.getTime() < Date.now() + 60_000)
+      return {
+        error: ko
+          ? "예약 시각은 현재보다 최소 1분 이후여야 합니다."
+          : "Scheduled time must be at least 1 minute in the future.",
+      };
+    when = t.toISOString();
+  }
+
+  // 예약 = 아직 비공개(draft) 유지 + 예약 시각 기록 (도래 시 크론이 공개로 전환)
+  const { error } = await supabase
+    .from("blog_posts")
+    .update({ status: "draft", published_at: null, scheduled_at: when })
+    .eq("id", postId)
+    .eq("business_id", businessId);
+  if (error) {
+    if (error.code === "PGRST204")
+      return {
+        error: ko
+          ? "예약 기능이 아직 활성화되지 않았습니다. (0024 마이그레이션 필요)"
+          : "Scheduling is not enabled yet (migration 0024 required).",
+      };
+    return { error: ko ? "예약에 실패했습니다." : "Failed to schedule." };
+  }
+
+  revalidatePath(`/business/${businessId}/blog`);
+  revalidatePath(`/business/${businessId}/blog/${postId}`);
+  if (!when)
+    return {
+      ok: true,
+      message: ko ? "예약이 취소되었습니다." : "Schedule canceled.",
+    };
+  const label = new Date(when).toLocaleString(ko ? "ko-KR" : "en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+  return {
+    ok: true,
+    message: ko
+      ? `${label}에 발행 예약되었습니다.`
+      : `Scheduled to publish on ${label}.`,
   };
 }
 

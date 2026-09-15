@@ -154,6 +154,8 @@ export interface Database {
           view_count: number;
           status: PublishStatus;
           published_at: string | null;
+          /** 예약 발행 시각 (0024 마이그레이션 이전 DB에서는 없을 수 있음). draft + 미래값 = 예약 대기 */
+          scheduled_at: string | null;
         } & Timestamps;
         Insert: {
           id?: string;
@@ -171,6 +173,7 @@ export interface Database {
           view_count?: number;
           status?: PublishStatus;
           published_at?: string | null;
+          scheduled_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
