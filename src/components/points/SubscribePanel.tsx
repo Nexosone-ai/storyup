@@ -240,11 +240,6 @@ export function SubscribePanel({
               <ul className="space-y-1 text-sm text-muted">
                 <li>
                   {ko
-                    ? `매월 ${plan.monthlyPoints?.toLocaleString()} UP 지급`
-                    : `${plan.monthlyPoints?.toLocaleString()} UP every month`}
-                </li>
-                <li>
-                  {ko
                     ? `랜딩페이지 ${plan.limits.sites}개 · 블로그 ${plan.limits.blogPosts}건/월`
                     : `${plan.limits.sites} landing pages · ${plan.limits.blogPosts} blog posts/mo`}
                 </li>

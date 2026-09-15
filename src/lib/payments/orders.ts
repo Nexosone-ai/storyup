@@ -44,6 +44,18 @@ export async function getActiveProductBySlug(
   return data ?? null;
 }
 
+/** 공개 스토어용 — 판매중(활성) 상품 목록. */
+export async function listActiveProducts(): Promise<ProductRow[]> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("products")
+    .select("*")
+    .eq("active", true)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false });
+  return data ?? [];
+}
+
 /**
  * 주문 생성 — 결제창을 열기 직전에 서버가 PENDING 주문을 만든다.
  * 금액/상품명은 DB의 활성 상품에서 가져와 스냅샷으로 고정한다.

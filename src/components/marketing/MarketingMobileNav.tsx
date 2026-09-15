@@ -3,12 +3,16 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui/icons";
+import { LanguageToggle } from "@/components/marketing/LanguageToggle";
+import type { Locale } from "@/lib/i18n";
 
-/** 모바일 전용 햄버거 메뉴 — 데스크톱에서 숨겨진 마케팅 링크를 노출한다. */
+/** 모바일 전용 햄버거 메뉴 — 데스크톱에서 숨겨진 마케팅 링크 + 언어 토글을 노출한다. */
 export function MarketingMobileNav({
   links,
+  locale,
 }: {
   links: { href: string; label: string }[];
+  locale: Locale;
 }) {
   const [open, setOpen] = useState(false);
   const Glyph = open ? Icon.x : Icon.menu;
@@ -47,6 +51,11 @@ export function MarketingMobileNav({
                   {l.label}
                 </Link>
               ))}
+              {/* 언어 선택 — 모바일에서는 메뉴 안에 배치 */}
+              <div className="mt-1 flex items-center gap-2 border-t border-border px-2 pb-2 pt-3">
+                <span className="text-xs text-muted">Language</span>
+                <LanguageToggle locale={locale} />
+              </div>
             </nav>
           </div>
         </>

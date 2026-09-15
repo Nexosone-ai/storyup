@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Card, Badge } from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { PLANS, CARD_NEWS_PAGES, type Plan, type PlanId } from "@/lib/plans";
 import { COMPANY } from "@/lib/company";
@@ -24,13 +24,6 @@ function planFeatures(plan: Plan, ko: boolean): string[] {
   const per = ko ? "건/월" : "/mo";
   const talk = ko ? "협의" : "Custom";
   return [
-    plan.monthlyPoints === null
-      ? ko
-        ? "포인트 대량 제공"
-        : "Bulk points included"
-      : ko
-        ? `매월 ${fmt(plan.monthlyPoints)} UP 제공`
-        : `${fmt(plan.monthlyPoints)} UP every month`,
     ko ? "브랜드 스토리 생성" : "Brand story generation",
     l.sites === null
       ? ko
@@ -98,8 +91,8 @@ export function PlansView({
         </h1>
         <p className="mt-2 text-muted">
           {ko
-            ? "필요한 만큼 골라 쓰세요. 월 제공량을 넘으면 UP으로 추가 생성할 수 있습니다."
-            : "Pick the plan that fits. Past your monthly quota, keep creating with UP."}
+            ? "필요한 만큼 골라 쓰세요. 사업이 커지면 상위 플랜으로 업그레이드하세요."
+            : "Pick the plan that fits. Upgrade as your business grows."}
         </p>
       </div>
 

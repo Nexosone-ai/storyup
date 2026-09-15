@@ -14,14 +14,7 @@ export async function MarketingNav() {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-xl">
       <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-4 sm:px-8">
-        <div className="flex items-center gap-2 md:gap-8">
-          <MarketingMobileNav
-            links={[
-              { href: "/showcase", label: t.nav.portfolio },
-              { href: "/community", label: t.nav.community },
-              { href: "/pricing", label: t.nav.pricing },
-            ]}
-          />
+        <div className="flex items-center gap-8">
           <Logo />
           <nav className="hidden items-center gap-6 md:flex">
             <Link
@@ -42,10 +35,19 @@ export async function MarketingNav() {
             >
               {t.nav.pricing}
             </Link>
+            <Link
+              href="/store"
+              className="text-sm font-medium text-muted transition-colors hover:text-foreground"
+            >
+              {t.nav.store}
+            </Link>
           </nav>
         </div>
         <nav className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-          <LanguageToggle locale={locale} />
+          {/* KO/EN은 데스크톱에서만 상단바에 노출 — 모바일은 햄버거 메뉴 안으로 */}
+          <div className="hidden md:block">
+            <LanguageToggle locale={locale} />
+          </div>
           {user ? (
             <>
               <span
@@ -85,6 +87,15 @@ export async function MarketingNav() {
               </Link>
             </>
           )}
+          <MarketingMobileNav
+            locale={locale}
+            links={[
+              { href: "/showcase", label: t.nav.portfolio },
+              { href: "/community", label: t.nav.community },
+              { href: "/pricing", label: t.nav.pricing },
+              { href: "/store", label: t.nav.store },
+            ]}
+          />
         </nav>
       </div>
     </header>
