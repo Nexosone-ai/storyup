@@ -90,6 +90,19 @@ export default async function PayPage({
           ₩{product.price.toLocaleString()}
         </p>
 
+        {/* 상품 상세 이미지 — 이용권 내용·가격 다음, 결제 폼 위에 노출 */}
+        {product.detail_image_url && (
+          <div className="mt-5">
+            <p className="mb-2 text-sm font-semibold text-foreground">상품 상세</p>
+            {/* eslint-disable-next-line @next/next/no-img-element -- 원격 스토리지 URL */}
+            <img
+              src={product.detail_image_url}
+              alt={`${product.name} 상세 이미지`}
+              className="w-full rounded-xl border border-border"
+            />
+          </div>
+        )}
+
         <div className="my-5 h-px bg-border" />
 
         <CheckoutForm
@@ -104,19 +117,6 @@ export default async function PayPage({
           안전한 카드 결제 · PortOne(KG이니시스) 제공
         </p>
       </div>
-
-      {/* 상품 상세 이미지 — 상품을 정확히 소개하는 긴 이미지 */}
-      {product.detail_image_url && (
-        <div className="mt-8">
-          <p className="mb-3 text-sm font-semibold text-foreground">상품 상세</p>
-          {/* eslint-disable-next-line @next/next/no-img-element -- 원격 스토리지 URL */}
-          <img
-            src={product.detail_image_url}
-            alt={`${product.name} 상세 이미지`}
-            className="w-full rounded-2xl border border-border"
-          />
-        </div>
-      )}
     </main>
   );
 }
