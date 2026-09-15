@@ -105,6 +105,7 @@ export default async function AdminPage() {
             description: p.description ?? "",
             price: p.price,
             imageUrl: p.image_url ?? "",
+            detailImageUrl: p.detail_image_url ?? "",
             active: p.active,
             sortOrder: p.sort_order,
             grantsPlan: p.grants_plan ?? "",

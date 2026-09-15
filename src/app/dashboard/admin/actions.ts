@@ -204,6 +204,7 @@ export interface AdminProductInput {
   description: string;
   price: number;
   imageUrl: string;
+  detailImageUrl: string;
   active: boolean;
   sortOrder: number;
   /** 결제 시 자동 지급할 구독 플랜 ("" = 지급 없음, "basic", "pro") */
@@ -250,6 +251,7 @@ export async function createProductAction(
       description: input.description.trim() || null,
       price: input.price,
       image_url: input.imageUrl.trim() || null,
+      detail_image_url: input.detailImageUrl.trim() || null,
       active: input.active,
       sort_order: input.sortOrder,
       grants_plan: input.grantsPlan || null,
@@ -288,6 +290,7 @@ export async function updateProductAction(
       description: input.description.trim() || null,
       price: input.price,
       image_url: input.imageUrl.trim() || null,
+      detail_image_url: input.detailImageUrl.trim() || null,
       active: input.active,
       sort_order: input.sortOrder,
       grants_plan: input.grantsPlan || null,

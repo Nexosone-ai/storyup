@@ -61,17 +61,31 @@ export default async function StorePage() {
                     <h2 className="break-keep-kr text-lg font-bold tracking-tight">
                       {p.name}
                     </h2>
-                    {p.description && (
-                      <p className="mt-2 line-clamp-3 whitespace-pre-line text-sm leading-relaxed text-muted">
-                        {p.description}
-                      </p>
-                    )}
-                    <p className="tnum mt-4 text-2xl font-bold">
+                    {p.description &&
+                      (p.description.includes(" · ") ? (
+                        <ul className="mt-2 space-y-1 text-sm text-muted">
+                          {p.description
+                            .split(" · ")
+                            .map((s) => s.trim())
+                            .filter(Boolean)
+                            .map((f, i) => (
+                              <li key={i} className="flex gap-1.5">
+                                <span className="mt-0.5 shrink-0 text-primary">✓</span>
+                                <span className="break-keep-kr">{f}</span>
+                              </li>
+                            ))}
+                        </ul>
+                      ) : (
+                        <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted">
+                          {p.description}
+                        </p>
+                      ))}
+                    <p className="tnum mt-auto pt-4 text-2xl font-bold">
                       ₩{p.price.toLocaleString()}
                     </p>
                     <Link
                       href={`/pay/${p.slug}`}
-                      className="neon-glow mt-4 inline-flex w-full items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary-hover"
+                      className="neon-glow mt-3 inline-flex w-full items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary-hover"
                     >
                       {ko ? "결제하기" : "Buy now"}
                     </Link>

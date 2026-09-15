@@ -20,6 +20,7 @@ export interface AdminProductItem {
   description: string;
   price: number;
   imageUrl: string;
+  detailImageUrl: string;
   active: boolean;
   sortOrder: number;
   grantsPlan: string;
@@ -31,6 +32,7 @@ const EMPTY: AdminProductInput = {
   description: "",
   price: 0,
   imageUrl: "",
+  detailImageUrl: "",
   active: true,
   sortOrder: 0,
   grantsPlan: "",
@@ -109,12 +111,21 @@ function ProductForm({
         </div>
       </div>
       <div>
-        <Label htmlFor="p-img">이미지 URL (선택)</Label>
+        <Label htmlFor="p-img">카드 이미지 URL (선택)</Label>
         <Input
           id="p-img"
           value={form.imageUrl}
           onChange={(e) => set("imageUrl", e.target.value)}
-          placeholder="https://…"
+          placeholder="https://… (스토어 카드 썸네일)"
+        />
+      </div>
+      <div>
+        <Label htmlFor="p-detail-img">상세 이미지 URL (선택)</Label>
+        <Input
+          id="p-detail-img"
+          value={form.detailImageUrl}
+          onChange={(e) => set("detailImageUrl", e.target.value)}
+          placeholder="https://… (결제 페이지 하단 전체 폭 상세 이미지)"
         />
       </div>
       {/* 결제 시 자동 지급할 구독 플랜 — 결제 완료 후 구매자 계정(이메일 일치)에 자동 부여 */}
@@ -267,6 +278,7 @@ export function AdminProducts({
                     description: p.description,
                     price: p.price,
                     imageUrl: p.imageUrl,
+                    detailImageUrl: p.detailImageUrl,
                     active: p.active,
                     sortOrder: p.sortOrder,
                     grantsPlan: p.grantsPlan,

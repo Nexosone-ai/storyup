@@ -48,8 +48,14 @@ export default async function PayPage({
     defaultEmail = profile?.email ?? user.email ?? "";
   }
 
+  // 설명이 " · "로 나열된 형태면 항목별 체크리스트로 정확히 표시
+  const features =
+    product.description && product.description.includes(" · ")
+      ? product.description.split(" · ").map((s) => s.trim()).filter(Boolean)
+      : null;
+
   return (
-    <main className="mx-auto flex min-h-full max-w-md flex-col justify-center px-5 py-10">
+    <main className="mx-auto w-full max-w-md px-5 py-10">
       <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
         {product.image_url && (
           // 상품 이미지는 외부 스토리지 URL — next/image 원격 설정 회피 위해 img 사용
@@ -63,12 +69,23 @@ export default async function PayPage({
         <p className="text-xs font-medium uppercase tracking-[0.15em] text-muted">
           STORYUP
         </p>
-        <h1 className="mt-1 text-xl font-bold tracking-tight">{product.name}</h1>
-        {product.description && (
-          <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted">
+        <h1 className="break-keep-kr mt-1 text-xl font-bold tracking-tight">
+          {product.name}
+        </h1>
+        {features ? (
+          <ul className="mt-3 space-y-1.5 text-sm text-muted">
+            {features.map((f, i) => (
+              <li key={i} className="flex gap-2">
+                <span className="mt-0.5 shrink-0 text-primary">✓</span>
+                <span className="break-keep-kr">{f}</span>
+              </li>
+            ))}
+          </ul>
+        ) : product.description ? (
+          <p className="break-keep-kr mt-2 whitespace-pre-line text-sm leading-relaxed text-muted">
             {product.description}
           </p>
-        )}
+        ) : null}
         <p className="tnum mt-4 text-3xl font-bold">
           ₩{product.price.toLocaleString()}
         </p>
@@ -87,6 +104,19 @@ export default async function PayPage({
           안전한 카드 결제 · PortOne(KG이니시스) 제공
         </p>
       </div>
+
+      {/* 상품 상세 이미지 — 상품을 정확히 소개하는 긴 이미지 */}
+      {product.detail_image_url && (
+        <div className="mt-8">
+          <p className="mb-3 text-sm font-semibold text-foreground">상품 상세</p>
+          {/* eslint-disable-next-line @next/next/no-img-element -- 원격 스토리지 URL */}
+          <img
+            src={product.detail_image_url}
+            alt={`${product.name} 상세 이미지`}
+            className="w-full rounded-2xl border border-border"
+          />
+        </div>
+      )}
     </main>
   );
 }

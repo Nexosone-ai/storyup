@@ -590,6 +590,8 @@ export interface Database {
           description: string | null;
           price: number;
           image_url: string | null;
+          /** 상세(긴) 소개 이미지 (0026). null = 없음 */
+          detail_image_url: string | null;
           active: boolean;
           sort_order: number;
           /** 결제 시 자동 지급할 구독 플랜 id (0025). null = 지급 없음 */
@@ -606,6 +608,7 @@ export interface Database {
           description?: string | null;
           price: number;
           image_url?: string | null;
+          detail_image_url?: string | null;
           active?: boolean;
           sort_order?: number;
           grants_plan?: string | null;
