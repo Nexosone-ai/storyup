@@ -96,7 +96,15 @@ export default async function PayPage({
         {product.grants_plan ? (
           <div className="mt-6">
             <p className="mb-3 text-sm font-semibold text-foreground">상품 상세</p>
-            <ServiceExamples />
+            <ServiceExamples
+              planName={
+                product.grants_plan === "pro"
+                  ? "Pro"
+                  : product.grants_plan === "basic"
+                    ? "Basic"
+                    : ""
+              }
+            />
           </div>
         ) : product.detail_image_url ? (
           <div className="mt-5">
