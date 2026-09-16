@@ -1,5 +1,5 @@
 import { getAIProvider } from "@/lib/ai";
-import { getImageProvider } from "@/lib/ai/image";
+import { generateImageResilient } from "@/lib/ai/image";
 import { buildBlogCoverPrompt } from "@/lib/ai/image/prompt";
 import { storeGeneratedImage } from "@/lib/ai/imageStore";
 
@@ -23,7 +23,7 @@ export async function generateAndStoreBlogBodyImage(opts: {
       .catch(() => opts.paragraph.replace(/\s+/g, " ").trim().slice(0, 120));
     const prompt = buildBlogCoverPrompt(opts.category, scene);
 
-    const image = await getImageProvider().generateImage(prompt, "4:3");
+    const image = await generateImageResilient(prompt, "4:3");
     if (!image) return null;
 
     return await storeGeneratedImage(opts.businessId, "blog-body", image);

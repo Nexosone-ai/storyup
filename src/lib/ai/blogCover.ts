@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { getAIProvider } from "@/lib/ai";
-import { getImageProvider } from "@/lib/ai/image";
+import { generateImageResilient } from "@/lib/ai/image";
 import { buildBlogCoverPrompt } from "@/lib/ai/image/prompt";
 
 const IMAGE_BUCKET = "site-images";
@@ -30,7 +30,7 @@ export async function generateAndStoreBlogCover(opts: {
         .catch(() => opts.keywords.join(", ") || opts.title));
     const prompt = buildBlogCoverPrompt(opts.category, scene);
 
-    const generate = getImageProvider().generateImage(prompt, "16:9");
+    const generate = generateImageResilient(prompt, "16:9");
     const image = opts.timeoutMs
       ? await Promise.race([
           generate,

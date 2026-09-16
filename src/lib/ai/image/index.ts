@@ -1,4 +1,4 @@
-import type { ImageProvider } from "./provider";
+import type { ImageProvider, GeneratedImage, ImageAspect } from "./provider";
 import { GeminiImageProvider } from "./gemini";
 import { FalImageProvider } from "./fal";
 import { PollinationsImageProvider } from "./pollinations";
@@ -30,4 +30,28 @@ export function getImageProvider(): ImageProvider {
 /** Image generation is always available (Pollinations needs no key). */
 export function isImageGenConfigured(): boolean {
   return true;
+}
+
+/**
+ * 이미지 생성 — 설정된 프로바이더로 시도하되 실패하면 무키 Pollinations로 폴백한다.
+ * (Gemini/Fal 키 만료·쿼터·오류로 이미지가 아예 안 나오는 상황을 방지.)
+ */
+export async function generateImageResilient(
+  prompt: string,
+  aspect?: ImageAspect,
+): Promise<GeneratedImage> {
+  let primary: ImageProvider | null = null;
+  try {
+    primary = getImageProvider();
+    return await primary.generateImage(prompt, aspect);
+  } catch (err) {
+    // 이미 폴백 프로바이더였다면 그대로 실패를 던진다.
+    if (primary instanceof PollinationsImageProvider) throw err;
+    // 프로바이더 생성 실패(키 누락) 또는 생성 오류(쿼터·만료) → 무키 Pollinations로 폴백.
+    console.error(
+      "[image] 기본 프로바이더 실패 → Pollinations로 폴백",
+      err instanceof Error ? err.message : err,
+    );
+    return await new PollinationsImageProvider().generateImage(prompt, aspect);
+  }
 }
