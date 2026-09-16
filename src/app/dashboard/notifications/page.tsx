@@ -31,6 +31,12 @@ function label(n: NotificationRow, ko: boolean): string {
     return ko
       ? `${who}님이 랜딩페이지로 문의를 남겼어요`
       : `${who} sent an inquiry from your landing page`;
+  if (n.type === "coupon_claim") {
+    const t = n.post_title ? `"${n.post_title}"` : ko ? "이벤트" : "your event";
+    return ko
+      ? `${who}님이 ${t} 글의 쿠폰을 받았어요`
+      : `${who} claimed a coupon on ${t}`;
+  }
   const title = n.post_title ? `"${n.post_title}"` : ko ? "내 글" : "your post";
   if (n.type === "blog_like")
     return ko
@@ -75,20 +81,28 @@ export default async function NotificationsPage() {
             const href =
               n.type === "site_inquiry"
                 ? "/dashboard/inquiries"
-                : n.site_slug && n.post_slug
-                  ? `/site/${n.site_slug}/blog/${n.post_slug}`
-                  : null;
+                : n.type === "coupon_claim"
+                  ? n.business_id && n.post_id
+                    ? `/business/${n.business_id}/blog/${n.post_id}/coupons`
+                    : null
+                  : n.site_slug && n.post_slug
+                    ? `/site/${n.site_slug}/blog/${n.post_slug}`
+                    : null;
             const body = (
               <div className="flex min-w-0 flex-1 items-start gap-3">
                 <span
                   className={`mt-0.5 grid size-9 shrink-0 place-items-center rounded-full ${
-                    n.type === "blog_like" || n.type === "site_inquiry"
+                    n.type === "blog_like" ||
+                    n.type === "site_inquiry" ||
+                    n.type === "coupon_claim"
                       ? "bg-primary-soft text-primary"
                       : "bg-surface-muted text-muted"
                   }`}
                 >
                   {n.type === "blog_like" ? (
                     <Icon.heart width={18} height={18} />
+                  ) : n.type === "coupon_claim" ? (
+                    <span className="text-base leading-none">🎟</span>
                   ) : n.type === "site_inquiry" ? (
                     <Icon.bell width={18} height={18} />
                   ) : (

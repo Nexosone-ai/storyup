@@ -232,6 +232,8 @@ export interface Database {
           contact: string;
           kakao: string | null;
           message: string;
+          // 0027: 블로그 이벤트 연락문의면 출처 글 id, 랜딩페이지 문의면 null
+          blog_post_id: string | null;
           read_at: string | null;
           created_at: string;
         };
@@ -242,6 +244,7 @@ export interface Database {
           contact: string;
           kakao?: string | null;
           message: string;
+          blog_post_id?: string | null;
           read_at?: string | null;
           created_at?: string;
         };
@@ -250,12 +253,72 @@ export interface Database {
         >;
         Relationships: [];
       };
+      blog_events: {
+        Row: {
+          id: string;
+          post_id: string;
+          business_id: string;
+          coupon_enabled: boolean;
+          coupon_benefit: string | null;
+          coupon_issued_on: string | null;
+          coupon_limit: number | null;
+          coupon_valid_from: string | null;
+          coupon_valid_until: string | null;
+          contact_enabled: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          post_id: string;
+          business_id: string;
+          coupon_enabled?: boolean;
+          coupon_benefit?: string | null;
+          coupon_issued_on?: string | null;
+          coupon_limit?: number | null;
+          coupon_valid_from?: string | null;
+          coupon_valid_until?: string | null;
+          contact_enabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["blog_events"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      coupon_claims: {
+        Row: {
+          id: string;
+          event_id: string;
+          business_id: string;
+          name: string;
+          phone: string;
+          code: string;
+          used_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          event_id: string;
+          business_id: string;
+          name: string;
+          phone: string;
+          code: string;
+          used_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["coupon_claims"]["Insert"]
+        >;
+        Relationships: [];
+      };
       notifications: {
         Row: {
           id: string;
           user_id: string;
           business_id: string | null;
-          type: "blog_comment" | "blog_like" | "site_inquiry";
+          type: "blog_comment" | "blog_like" | "site_inquiry" | "coupon_claim";
           post_id: string | null;
           post_title: string | null;
           site_slug: string | null;
@@ -270,7 +333,7 @@ export interface Database {
           id?: string;
           user_id: string;
           business_id?: string | null;
-          type: "blog_comment" | "blog_like" | "site_inquiry";
+          type: "blog_comment" | "blog_like" | "site_inquiry" | "coupon_claim";
           post_id?: string | null;
           post_title?: string | null;
           site_slug?: string | null;
@@ -1265,6 +1328,9 @@ export type BlogCommentRow =
 export type BlogLikeRow = Database["public"]["Tables"]["blog_likes"]["Row"];
 export type SiteInquiryRow =
   Database["public"]["Tables"]["site_inquiries"]["Row"];
+export type BlogEventRow = Database["public"]["Tables"]["blog_events"]["Row"];
+export type CouponClaimRow =
+  Database["public"]["Tables"]["coupon_claims"]["Row"];
 export type NotificationRow =
   Database["public"]["Tables"]["notifications"]["Row"];
 export type MarketingContentRow =

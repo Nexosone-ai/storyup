@@ -20,7 +20,9 @@ import { BlogCover } from "@/components/blog/BlogCover";
 import { ShareBar } from "@/components/site/ShareBar";
 import { BlogComments } from "@/components/site/BlogComments";
 import { BlogLikeButton } from "@/components/site/BlogLikeButton";
+import { BlogEventModules } from "@/components/site/BlogEventModules";
 import { TrackPageView } from "@/components/site/TrackPageView";
+import { getPublicBlogEvent } from "@/lib/events";
 import { buildSeo, siteUrl } from "@/utils/seo";
 
 export async function generateMetadata({
@@ -108,6 +110,9 @@ export default async function PublicArticlePage({
   // 좋아요 수/여부 + 댓글 수 (글 상단·하단 참여 바에 표시)
   const likeState = await getPostLikeState(post.id);
   const commentCount = comments?.length ?? 0;
+
+  // 이벤트 모듈(쿠폰발행 + 연락문의) — 활성 모듈이 있을 때만 렌더 (0027 이전 DB면 null)
+  const blogEvent = await getPublicBlogEvent(post.id);
 
   // 검색·AI 답변엔진(AEO)용 구조화 데이터 — Google 리치 결과 권장 필드 포함
   const siteHome = `${siteUrl}/site/${slug}`;
@@ -275,6 +280,14 @@ export default async function PublicArticlePage({
           className="prose mt-8 max-w-none"
           dangerouslySetInnerHTML={{ __html: html }}
         />
+
+        {blogEvent && (
+          <BlogEventModules
+            postId={post.id}
+            event={blogEvent}
+            lang={ko ? "ko" : "en"}
+          />
+        )}
 
         {post.keywords.length > 0 && (
           <div className="mt-10 flex flex-wrap gap-2 border-t border-border pt-6">
