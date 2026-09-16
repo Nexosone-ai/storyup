@@ -41,6 +41,8 @@ export function EventEditor({
   const [contactEnabled, setContactEnabled] = useState(
     event?.contact_enabled ?? false,
   );
+  const [contactTitle, setContactTitle] = useState(event?.contact_title ?? "");
+  const [contactDesc, setContactDesc] = useState(event?.contact_desc ?? "");
   const [note, setNote] = useState<string | null>(null);
   const [saving, startSave] = useTransition();
 
@@ -55,6 +57,8 @@ export function EventEditor({
         couponValidFrom: validFrom || null,
         couponValidUntil: validUntil || null,
         contactEnabled,
+        contactTitle,
+        contactDesc,
       });
       setNote(res.error ?? res.message ?? (ko ? "저장되었습니다." : "Saved."));
     });
@@ -237,6 +241,44 @@ export function EventEditor({
               </span>
             </span>
           </label>
+
+          {contactEnabled && (
+            <div className="mt-4 space-y-4 border-t border-border pt-4">
+              <div>
+                <Label htmlFor="contact-title">
+                  {ko ? "제목 문구" : "Title"}
+                </Label>
+                <Input
+                  id="contact-title"
+                  value={contactTitle}
+                  onChange={(e) => setContactTitle(e.target.value)}
+                  maxLength={40}
+                  placeholder={ko ? "연락 문의" : "Contact inquiry"}
+                />
+              </div>
+              <div>
+                <Label htmlFor="contact-desc">
+                  {ko ? "안내 문구" : "Description"}
+                </Label>
+                <Input
+                  id="contact-desc"
+                  value={contactDesc}
+                  onChange={(e) => setContactDesc(e.target.value)}
+                  maxLength={120}
+                  placeholder={
+                    ko
+                      ? "궁금한 점을 남겨주시면 사장님이 직접 연락드려요."
+                      : "Leave your question and we'll contact you directly."
+                  }
+                />
+              </div>
+              <p className="text-xs text-muted">
+                {ko
+                  ? "비워두면 기본 문구가 표시돼요."
+                  : "Leave empty to use the default text."}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

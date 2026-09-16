@@ -31,6 +31,8 @@ export interface PublicBlogEvent {
   couponClaimed: number;
   couponRemaining: number | null; // null = 무제한
   contactEnabled: boolean;
+  contactTitle: string | null;
+  contactDesc: string | null;
 }
 
 /**
@@ -72,6 +74,8 @@ export async function getPublicBlogEvent(
     couponClaimed,
     couponRemaining,
     contactEnabled: event.contact_enabled,
+    contactTitle: event.contact_title,
+    contactDesc: event.contact_desc,
   };
 }
 

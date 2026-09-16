@@ -265,6 +265,8 @@ export interface Database {
           coupon_valid_from: string | null;
           coupon_valid_until: string | null;
           contact_enabled: boolean;
+          contact_title: string | null;
+          contact_desc: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -279,6 +281,8 @@ export interface Database {
           coupon_valid_from?: string | null;
           coupon_valid_until?: string | null;
           contact_enabled?: boolean;
+          contact_title?: string | null;
+          contact_desc?: string | null;
           created_at?: string;
           updated_at?: string;
         };

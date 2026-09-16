@@ -31,6 +31,8 @@ export interface BlogEventConfig {
   couponValidFrom: string | null;
   couponValidUntil: string | null;
   contactEnabled: boolean;
+  contactTitle: string;
+  contactDesc: string;
 }
 
 /** 공개 페이지 캐시 갱신 — 공개된 글일 때만 랜딩/글 경로를 무효화. */
@@ -98,6 +100,8 @@ export async function saveBlogEventAction(
       coupon_valid_from: emptyToNull(config.couponValidFrom),
       coupon_valid_until: emptyToNull(config.couponValidUntil),
       contact_enabled: config.contactEnabled,
+      contact_title: config.contactTitle.trim() || null,
+      contact_desc: config.contactDesc.trim() || null,
     },
     { onConflict: "post_id" },
   );

@@ -25,7 +25,14 @@ export function BlogEventModules({
       {event.couponEnabled && event.couponBenefit && (
         <CouponCard postId={postId} event={event} lang={lang} />
       )}
-      {event.contactEnabled && <ContactCard postId={postId} lang={lang} />}
+      {event.contactEnabled && (
+        <ContactCard
+          postId={postId}
+          lang={lang}
+          title={event.contactTitle}
+          desc={event.contactDesc}
+        />
+      )}
     </section>
   );
 }
@@ -188,9 +195,13 @@ function CouponCard({
 function ContactCard({
   postId,
   lang,
+  title,
+  desc,
 }: {
   postId: string;
   lang: "ko" | "en";
+  title: string | null;
+  desc: string | null;
 }) {
   const ko = lang === "ko";
   const [name, setName] = useState("");
@@ -229,12 +240,13 @@ function ContactCard({
   return (
     <div className="rounded-2xl border border-border bg-white p-5">
       <p className="text-sm font-semibold">
-        {ko ? "📞 연락 문의" : "📞 Contact inquiry"}
+        📞 {title?.trim() || (ko ? "연락 문의" : "Contact inquiry")}
       </p>
       <p className="mt-0.5 text-xs text-muted">
-        {ko
-          ? "궁금한 점을 남겨주시면 사장님이 직접 연락드려요."
-          : "Leave your question and the owner will contact you directly."}
+        {desc?.trim() ||
+          (ko
+            ? "궁금한 점을 남겨주시면 사장님이 직접 연락드려요."
+            : "Leave your question and the owner will contact you directly.")}
       </p>
       <div className="mt-3 space-y-2.5">
         <div className="grid gap-2.5 sm:grid-cols-2">
