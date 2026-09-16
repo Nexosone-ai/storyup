@@ -9,6 +9,7 @@ import type {
 import type {
   BlogPromptInput,
   BlogTranscriptPromptInput,
+  BlogExpandPromptInput,
 } from "./prompts/blog";
 import type { MarketingPromptInput } from "./prompts/marketing";
 import type { CardNewsPromptInput } from "./prompts/card-news";
@@ -37,6 +38,11 @@ export interface AIProvider {
   generateBlogFromTranscript(
     input: BlogTranscriptPromptInput,
   ): Promise<BlogArticleResult>;
+
+  /** 초안 본문의 한 단락을 이어서 더 작성한다 (에디터 단락 보강용). */
+  expandBlogParagraph(
+    input: BlogExpandPromptInput,
+  ): Promise<{ text: string }>;
 
   generateMarketing(
     input: MarketingPromptInput,

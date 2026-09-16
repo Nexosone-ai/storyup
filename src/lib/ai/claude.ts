@@ -21,8 +21,10 @@ import { websitePrompt } from "./prompts/website";
 import {
   blogPrompt,
   blogFromTranscriptPrompt,
+  blogExpandPrompt,
   type BlogPromptInput,
   type BlogTranscriptPromptInput,
+  type BlogExpandPromptInput,
 } from "./prompts/blog";
 import {
   marketingPrompt,
@@ -96,6 +98,16 @@ export class ClaudeProvider implements AIProvider {
       blogFromTranscriptPrompt(input),
       3000,
     );
+  }
+
+  async expandBlogParagraph(
+    input: BlogExpandPromptInput,
+  ): Promise<{ text: string }> {
+    const res = await this.complete<{ text: string }>(
+      blogExpandPrompt(input),
+      800,
+    );
+    return { text: (res.text ?? "").trim() };
   }
 
   generateMarketing(input: MarketingPromptInput) {

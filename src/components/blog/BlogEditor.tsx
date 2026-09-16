@@ -27,6 +27,19 @@ marked.setOptions({ gfm: true, breaks: true });
 
 type Tab = "write" | "preview";
 
+/** 커서가 놓인 단락(빈 줄로 구분)의 범위와 텍스트를 찾는다. */
+function paragraphAt(
+  text: string,
+  caret: number,
+): { start: number; end: number; text: string } {
+  const c = Math.max(0, Math.min(caret, text.length));
+  const prev = text.lastIndexOf("\n\n", Math.max(0, c - 1));
+  const start = prev === -1 ? 0 : prev + 2;
+  const nextIdx = text.indexOf("\n\n", c);
+  const end = nextIdx === -1 ? text.length : nextIdx;
+  return { start, end, text: text.slice(start, end).trim() };
+}
+
 export function BlogEditor({
   businessId,
   post,
@@ -63,6 +76,9 @@ export function BlogEditor({
   const [publishing, startPublish] = useTransition();
   const [coverPending, startCover] = useTransition();
   const [mediaBusy, setMediaBusy] = useState(false);
+  // 단락 AI 보강(이어쓰기·이미지) 진행 상태 + 마지막 커서 위치
+  const [aiBusy, setAiBusy] = useState<null | "expand" | "image">(null);
+  const caretRef = useRef(0);
   const ref = useRef<HTMLTextAreaElement>(null);
   const coverFileRef = useRef<HTMLInputElement>(null);
   const bodyImageRef = useRef<HTMLInputElement>(null);
@@ -205,6 +221,99 @@ export function BlogEditor({
     );
     if (!url?.trim()) return;
     insertBlock(url.trim());
+  };
+
+  /** 커서가 놓인 단락을 AI가 이어서 더 작성해 같은 단락에 붙인다. */
+  const expandParagraph = () => {
+    if (aiBusy) return;
+    const { end, text: para } = paragraphAt(content, caretRef.current);
+    setTab("write");
+    if (!para) {
+      setNote(
+        ko
+          ? "이어쓸 단락에 커서를 두고 눌러주세요."
+          : "Place the cursor in a paragraph first.",
+      );
+      return;
+    }
+    setAiBusy("expand");
+    setNote(ko ? "이어서 작성하고 있어요..." : "Writing more...");
+    void (async () => {
+      try {
+        const res = await fetch("/api/ai/blog-expand", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            businessId,
+            postId: post.id,
+            paragraph: para,
+          }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json.text) {
+          setNote(
+            json.error ?? (ko ? "이어쓰기에 실패했습니다." : "Failed."),
+          );
+          return;
+        }
+        // 같은 단락 끝에 자연스럽게 이어 붙인다.
+        setContent(
+          content.slice(0, end) + " " + json.text.trim() + content.slice(end),
+        );
+        setNote(ko ? "단락을 이어서 작성했어요." : "Expanded the paragraph.");
+      } catch {
+        setNote(
+          ko
+            ? "이어쓰기에 실패했습니다. 다시 시도해주세요."
+            : "Failed. Please try again.",
+        );
+      } finally {
+        setAiBusy(null);
+      }
+    })();
+  };
+
+  /** 커서가 놓인 단락에 어울리는 AI 이미지를 생성해 단락 뒤에 넣는다. */
+  const addParagraphImage = () => {
+    if (aiBusy) return;
+    const { end, text: para } = paragraphAt(content, caretRef.current);
+    setTab("write");
+    setAiBusy("image");
+    setNote(ko ? "이미지를 생성하고 있어요..." : "Generating an image...");
+    void (async () => {
+      try {
+        const res = await fetch("/api/ai/blog-body-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            businessId,
+            postId: post.id,
+            paragraph: para,
+          }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json.url) {
+          setNote(
+            json.error ?? (ko ? "이미지 생성에 실패했습니다." : "Failed."),
+          );
+          return;
+        }
+        setContent(
+          content.slice(0, end) +
+            `\n\n![${ko ? "사진" : "image"}](${json.url})` +
+            content.slice(end),
+        );
+        setNote(ko ? "본문에 이미지를 추가했어요." : "Added an image.");
+      } catch {
+        setNote(
+          ko
+            ? "이미지 생성에 실패했습니다. 다시 시도해주세요."
+            : "Failed. Please try again.",
+        );
+      } finally {
+        setAiBusy(null);
+      }
+    })();
   };
 
   const save = () =>
@@ -687,6 +796,45 @@ export function BlogEditor({
             >
               <Icon.video width={16} height={16} />
             </ToolbarBtn>
+
+            {/* 단락 AI 보강 — 커서가 놓인 단락을 이어쓰거나 이미지를 넣는다 */}
+            <span className="mx-1 self-center text-border">|</span>
+            <button
+              type="button"
+              onClick={expandParagraph}
+              disabled={!!aiBusy}
+              title={
+                ko
+                  ? "커서를 둔 단락을 AI가 이어서 더 써줘요"
+                  : "AI writes more for the paragraph at the cursor"
+              }
+              className="flex h-8 items-center gap-1 rounded-md px-2 text-xs font-semibold text-primary hover:bg-primary-soft disabled:opacity-50"
+            >
+              {aiBusy === "expand" ? (
+                <Spinner className="size-3.5" />
+              ) : (
+                <Icon.sparkles width={14} height={14} />
+              )}
+              {ko ? "이어쓰기" : "Expand"}
+            </button>
+            <button
+              type="button"
+              onClick={addParagraphImage}
+              disabled={!!aiBusy}
+              title={
+                ko
+                  ? "커서를 둔 단락에 어울리는 AI 이미지를 넣어요"
+                  : "Add an AI image that fits the paragraph at the cursor"
+              }
+              className="flex h-8 items-center gap-1 rounded-md px-2 text-xs font-semibold text-primary hover:bg-primary-soft disabled:opacity-50"
+            >
+              {aiBusy === "image" ? (
+                <Spinner className="size-3.5" />
+              ) : (
+                <Icon.sparkles width={14} height={14} />
+              )}
+              {ko ? "이미지" : "Image"}
+            </button>
           </div>
           <div className="flex gap-1 rounded-lg bg-surface-muted p-1">
             {(["write", "preview"] as Tab[]).map((t) => (
@@ -716,7 +864,12 @@ export function BlogEditor({
           <textarea
             ref={ref}
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(e) => {
+              setContent(e.target.value);
+              caretRef.current = e.target.selectionStart;
+            }}
+            onSelect={(e) => (caretRef.current = e.currentTarget.selectionStart)}
+            onClick={(e) => (caretRef.current = e.currentTarget.selectionStart)}
             className="min-h-[420px] w-full resize-y rounded-b-2xl bg-surface p-4 font-mono text-sm leading-relaxed focus:outline-none"
             placeholder={
               ko ? "마크다운으로 작성하세요..." : "Write in Markdown..."
@@ -729,6 +882,12 @@ export function BlogEditor({
           />
         )}
       </div>
+
+      <p className="-mt-2 text-xs text-muted">
+        {ko
+          ? "💡 본문 단락을 클릭해 커서를 둔 뒤 툴바의 ‘이어쓰기’·‘이미지’를 누르면, 그 단락을 AI가 이어 쓰거나 어울리는 이미지를 넣어줘요."
+          : "💡 Click into a paragraph, then use ‘Expand’ or ‘Image’ in the toolbar to have AI write more or add a fitting image."}
+      </p>
 
       {/* 실시간 SEO 자가진단 */}
       <SeoScorePanel

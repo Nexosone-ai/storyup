@@ -78,6 +78,45 @@ ${input.transcript.slice(0, 8000)}
   return { system, user };
 }
 
+export interface BlogExpandPromptInput {
+  businessName: string;
+  category: string;
+  title: string;
+  /** 보강할 단락 원문 */
+  paragraph: string;
+  /** 글 전체(또는 요약) — 흐름 유지를 위한 참고 맥락 */
+  fullContext?: string;
+  language?: PromptLanguage;
+}
+
+/** 초안 본문의 한 단락을 자연스럽게 이어 2~4문장 더 작성한다 (앞 문장 반복 금지). */
+export function blogExpandPrompt(input: BlogExpandPromptInput): PromptSpec {
+  const language = input.language ?? "ko";
+  const system = `당신은 소상공인의 블로그 글을 더 풍부하게 다듬어주는 전문 카피라이터입니다.
+${languageRule(language)}
+규칙:
+- 주어진 "단락"의 흐름과 톤을 유지하며 자연스럽게 이어지는 2~4문장을 새로 씁니다.
+- 단락에 이미 있는 문장을 반복하지 않고, 구체적 예시·부연·실질적 정보를 더합니다.
+- 없는 사실(가격·수치·효능·날짜 등)을 지어내지 않습니다.
+- Markdown 본문 문장만 작성하고, 소제목(##)·목록·이미지는 넣지 않습니다.
+반드시 {"text": "..."} 형태의 순수 JSON만 반환하세요.`;
+
+  const user = `사업: ${input.businessName} (${input.category})
+글 제목: ${input.title}
+${
+  input.fullContext
+    ? `글 전체 맥락(참고용):\n"""\n${input.fullContext.slice(0, 1500)}\n"""\n`
+    : ""
+}보강할 단락:
+"""
+${input.paragraph.slice(0, 1500)}
+"""
+
+이 단락 뒤에 자연스럽게 이어질 2~4문장을 작성해 {"text": "..."} JSON으로만 응답하세요.`;
+
+  return { system, user };
+}
+
 export function blogPrompt(input: BlogPromptInput): PromptSpec {
   const language = input.language ?? "ko";
   const lengthGuide =
