@@ -201,7 +201,7 @@ export function EventEditor({
 
               <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3">
                 <ButtonLink
-                  href={`/business/${businessId}/blog/${postId}/coupons`}
+                  href={`/dashboard/inquiries/coupons?post=${postId}`}
                   variant="outline"
                   size="sm"
                 >

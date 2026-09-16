@@ -1,5 +1,5 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import type { BlogEventRow, CouponClaimRow } from "@/types/database";
+import type { BlogEventRow } from "@/types/database";
 
 /**
  * 블로그 이벤트(쿠폰발행 + 연락문의) 서버 조회 헬퍼.
@@ -85,22 +85,73 @@ export async function getCouponClaimCount(eventId: string): Promise<number> {
   return count ?? 0;
 }
 
-/** 관리 페이지용 — 글 주인이 쿠폰 수령자 목록을 읽는다. */
-export async function getCouponClaimsForOwner(
-  postId: string,
-): Promise<{ event: BlogEventRow | null; claims: CouponClaimRow[] }> {
-  const supabase = await createClient();
-  const { data: event } = await supabase
-    .from("blog_events")
-    .select("*")
-    .eq("post_id", postId)
-    .maybeSingle();
-  if (!event) return { event: null, claims: [] };
+export interface UserCouponClaim {
+  id: string;
+  name: string;
+  phone: string;
+  code: string;
+  used_at: string | null;
+  created_at: string;
+  businessId: string;
+  businessName: string;
+  postId: string | null;
+  postTitle: string;
+  benefit: string;
+}
 
-  const { data: claims } = await supabase
+/**
+ * 대시보드 '문의/쿠폰관리'용 — 로그인 사용자의 모든 비즈니스에 걸친 쿠폰 수령자.
+ * RLS(coupon_claims owner_read)가 본인 소유 건으로 한정한다.
+ * 각 수령에 어느 글·어떤 혜택인지 맥락(글 제목·혜택)을 붙여 돌려준다.
+ */
+export async function getUserCouponClaims(): Promise<UserCouponClaim[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data: bizList } = await supabase
+    .from("businesses")
+    .select("id, name")
+    .eq("user_id", user.id);
+  const nameMap = new Map((bizList ?? []).map((b) => [b.id, b.name]));
+
+  const { data: claims, error } = await supabase
     .from("coupon_claims")
     .select("*")
-    .eq("event_id", event.id)
     .order("created_at", { ascending: false });
-  return { event, claims: claims ?? [] };
+  // 0027 마이그레이션 이전 DB에서는 테이블이 없어 오류 → 빈 목록.
+  if (error || !claims?.length) return [];
+
+  const eventIds = [...new Set(claims.map((c) => c.event_id))];
+  const { data: events } = await supabase
+    .from("blog_events")
+    .select("id, post_id, coupon_benefit")
+    .in("id", eventIds);
+  const eventMap = new Map((events ?? []).map((e) => [e.id, e]));
+
+  const postIds = [...new Set((events ?? []).map((e) => e.post_id))];
+  const { data: posts } = await supabase
+    .from("blog_posts")
+    .select("id, title")
+    .in("id", postIds);
+  const postMap = new Map((posts ?? []).map((p) => [p.id, p.title]));
+
+  return claims.map((c) => {
+    const ev = eventMap.get(c.event_id);
+    return {
+      id: c.id,
+      name: c.name,
+      phone: c.phone,
+      code: c.code,
+      used_at: c.used_at,
+      created_at: c.created_at,
+      businessId: c.business_id,
+      businessName: nameMap.get(c.business_id) ?? "",
+      postId: ev?.post_id ?? null,
+      postTitle: ev ? (postMap.get(ev.post_id) ?? "") : "",
+      benefit: ev?.coupon_benefit ?? "",
+    };
+  });
 }

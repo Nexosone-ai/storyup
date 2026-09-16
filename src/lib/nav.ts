@@ -22,7 +22,7 @@ export function dashboardNav(
       icon: "briefcase",
     },
     {
-      label: ko ? "문의" : "Inquiries",
+      label: ko ? "문의/쿠폰관리" : "Inquiries & coupons",
       href: "/dashboard/inquiries",
       icon: "chat",
       badge: unreadInquiries > 0 ? String(unreadInquiries) : undefined,

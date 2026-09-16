@@ -82,9 +82,9 @@ export default async function NotificationsPage() {
               n.type === "site_inquiry"
                 ? "/dashboard/inquiries"
                 : n.type === "coupon_claim"
-                  ? n.business_id && n.post_id
-                    ? `/business/${n.business_id}/blog/${n.post_id}/coupons`
-                    : null
+                  ? n.post_id
+                    ? `/dashboard/inquiries/coupons?post=${n.post_id}`
+                    : "/dashboard/inquiries/coupons"
                   : n.site_slug && n.post_slug
                     ? `/site/${n.site_slug}/blog/${n.post_slug}`
                     : null;

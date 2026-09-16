@@ -26,20 +26,15 @@ export default async function InquiriesPage() {
   const hasUnread = items.some((i) => !i.read_at);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* 목록을 열면 안읽음 배지를 지운다. */}
       <MarkInquiriesRead hasUnread={hasUnread} />
 
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {ko ? "문의" : "Inquiries"}
-        </h1>
-        <p className="mt-1 text-muted">
-          {ko
-            ? "랜딩페이지 방문자가 남긴 문의예요. 남겨진 연락처로 답변해보세요."
-            : "Inquiries left by visitors on your landing pages. Reply via the contact they left."}
-        </p>
-      </div>
+      <p className="text-muted">
+        {ko
+          ? "랜딩페이지·블로그 이벤트 방문자가 남긴 문의예요. 남겨진 연락처로 답변해보세요."
+          : "Inquiries left by visitors on your landing pages and blog events. Reply via the contact they left."}
+      </p>
 
       {items.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-surface p-12 text-center">
