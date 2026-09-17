@@ -1061,6 +1061,38 @@ export interface Database {
         >;
         Relationships: [];
       };
+      bank_transfer_requests: {
+        Row: {
+          id: string;
+          user_id: string;
+          plan: string;
+          amount: number;
+          depositor_name: string;
+          status: string;
+          admin_note: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          plan: string;
+          amount: number;
+          depositor_name: string;
+          status?: string;
+          admin_note?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["bank_transfer_requests"]["Insert"]
+        >;
+        Relationships: [];
+      };
       usage_events: {
         Row: {
           id: string;

@@ -10,6 +10,8 @@ import {
   refundPaymentAction,
   lookupUserPointsAction,
   saveServicePriceAction,
+  approveBankTransferAction,
+  rejectBankTransferAction,
   type UserPointLookup,
 } from "@/app/dashboard/admin/actions";
 
@@ -171,6 +173,159 @@ export function AdminPayments({ payments }: { payments: AdminPaymentItem[] }) {
                       >
                         환불
                       </Button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ---------------- 계좌이체 입금 대기 ----------------
+
+const PLAN_LABEL: Record<string, string> = {
+  basic: "Basic",
+  pro: "Pro",
+};
+
+const BTR_STATUS: Record<
+  string,
+  { label: string; tone: "success" | "muted" | "warning" | "danger" }
+> = {
+  PENDING: { label: "대기 중", tone: "warning" },
+  APPROVED: { label: "승인됨", tone: "success" },
+  REJECTED: { label: "거절됨", tone: "danger" },
+};
+
+export interface AdminBankTransferItem {
+  id: string;
+  userName: string;
+  userEmail: string;
+  plan: string;
+  amount: number;
+  depositorName: string;
+  status: string;
+  adminNote: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+}
+
+export function AdminBankTransfers({
+  requests,
+}: {
+  requests: AdminBankTransferItem[];
+}) {
+  const router = useRouter();
+  const [busy, start] = useTransition();
+  const [note, setNote] = useState<string | null>(null);
+
+  const approve = (r: AdminBankTransferItem) => {
+    if (
+      !window.confirm(
+        `${r.depositorName}님(${r.userEmail})의 ${PLAN_LABEL[r.plan] ?? r.plan} 플랜 입금을 확인하고 1개월 활성화할까요?`,
+      )
+    )
+      return;
+    start(async () => {
+      setNote(null);
+      const res = await approveBankTransferAction(r.id);
+      setNote(res.error ?? res.message ?? null);
+      if (!res.error) router.refresh();
+    });
+  };
+
+  const reject = (r: AdminBankTransferItem) => {
+    const reason = window.prompt("거절 사유를 입력하세요 (선택)");
+    if (reason === null) return;
+    start(async () => {
+      setNote(null);
+      const res = await rejectBankTransferAction(r.id, reason);
+      setNote(res.error ?? res.message ?? null);
+      if (!res.error) router.refresh();
+    });
+  };
+
+  const pendingCount = requests.filter((r) => r.status === "PENDING").length;
+
+  return (
+    <section className="space-y-3">
+      <h2 className="text-lg font-semibold tracking-tight">
+        계좌이체 입금 대기
+        {pendingCount > 0 && (
+          <span className="ml-2 rounded-full bg-warning/15 px-2 py-0.5 text-xs font-bold text-warning">
+            {pendingCount}
+          </span>
+        )}
+      </h2>
+      <p className="text-xs text-muted">
+        입금을 확인한 뒤 승인하면 해당 사용자의 구독이 1개월 활성화됩니다. (계좌이체는
+        자동 갱신되지 않아 매월 재신청·재승인이 필요합니다.)
+      </p>
+      {note && <p className="text-sm text-primary">{note}</p>}
+      {requests.length === 0 ? (
+        <p className="rounded-2xl border border-dashed border-border bg-surface p-8 text-center text-muted">
+          계좌이체 신청이 없습니다.
+        </p>
+      ) : (
+        <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs text-muted">
+                <th className="p-3">일시</th>
+                <th className="p-3">사용자</th>
+                <th className="p-3">플랜</th>
+                <th className="p-3 text-right">금액</th>
+                <th className="p-3">입금자명</th>
+                <th className="p-3">상태</th>
+                <th className="p-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {requests.map((r) => (
+                <tr key={r.id} className="border-b border-border/60 last:border-0">
+                  <td className="p-3 whitespace-nowrap">{fmtDateTime(r.createdAt)}</td>
+                  <td className="p-3">
+                    <p className="font-medium">{r.userName}</p>
+                    <p className="text-xs text-muted">{r.userEmail}</p>
+                  </td>
+                  <td className="p-3">{PLAN_LABEL[r.plan] ?? r.plan}</td>
+                  <td className="tnum p-3 text-right">
+                    ₩{r.amount.toLocaleString()}
+                  </td>
+                  <td className="p-3 font-medium">{r.depositorName}</td>
+                  <td className="p-3">
+                    <Badge tone={BTR_STATUS[r.status]?.tone ?? "muted"}>
+                      {BTR_STATUS[r.status]?.label ?? r.status}
+                    </Badge>
+                    {r.adminNote && (
+                      <p className="mt-1 max-w-40 truncate text-xs text-muted">
+                        {r.adminNote}
+                      </p>
+                    )}
+                  </td>
+                  <td className="p-3">
+                    {r.status === "PENDING" && (
+                      <div className="flex gap-1.5">
+                        <Button
+                          size="sm"
+                          onClick={() => approve(r)}
+                          disabled={busy}
+                        >
+                          승인
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => reject(r)}
+                          disabled={busy}
+                        >
+                          거절
+                        </Button>
+                      </div>
                     )}
                   </td>
                 </tr>

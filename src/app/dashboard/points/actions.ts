@@ -7,6 +7,7 @@ import {
   cancelAtPeriodEnd,
   resumeSubscription,
 } from "@/lib/payments/billing";
+import { createBankTransferRequest } from "@/lib/payments/bankTransfer";
 import type { PlanId } from "@/lib/plans";
 
 interface ActionResult {
@@ -39,6 +40,32 @@ export async function startSubscriptionAction(
   if (res.error) return { error: res.error };
   revalidatePath("/dashboard/points");
   return { ok: true, message: "구독이 시작되었습니다." };
+}
+
+/** 계좌이체 결제 신청 — 관리자가 입금 확인 후 활성화한다. 금액은 서버가 결정. */
+export async function requestBankTransferAction(
+  planId: string,
+  depositorName: string,
+): Promise<ActionResult> {
+  const user = await requireUser();
+  if (!user) return { error: "로그인이 필요합니다." };
+  if (planId !== "basic" && planId !== "pro")
+    return { error: "구독할 수 없는 플랜입니다." };
+  if (!depositorName || typeof depositorName !== "string" || depositorName.length > 60)
+    return { error: "입금자명을 정확히 입력해주세요." };
+
+  const res = await createBankTransferRequest(
+    user.id,
+    planId as PlanId,
+    depositorName,
+  );
+  if (res.error) return { error: res.error };
+  revalidatePath("/dashboard/points");
+  revalidatePath("/dashboard/plans");
+  return {
+    ok: true,
+    message: "신청이 접수되었습니다. 입금 확인 후 관리자가 활성화해 드립니다.",
+  };
 }
 
 /** 해지 예약 — 남은 기간은 그대로 이용 가능. */

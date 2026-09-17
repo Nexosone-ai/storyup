@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { getUser, getProfileName } from "@/lib/queries";
 import { getPlanId } from "@/lib/subscription";
 import { getSubscriptionRow } from "@/lib/payments/billing";
+import { getPendingBankTransfer } from "@/lib/payments/bankTransfer";
 import { isBillingConfigured } from "@/lib/payments/portone";
 import { PlansView } from "@/components/plans/PlansView";
 
@@ -12,9 +13,10 @@ export default async function PlansPage() {
   const user = await getUser();
   if (!user) redirect("/login");
 
-  const [planId, subRow, profileName] = await Promise.all([
+  const [planId, subRow, pendingBankTransfer, profileName] = await Promise.all([
     getPlanId(user.id),
     getSubscriptionRow(user.id),
+    getPendingBankTransfer(user.id),
     getProfileName(),
   ]);
 
@@ -29,6 +31,13 @@ export default async function PlansPage() {
         // 0017 이전 DB에서는 컬럼이 없어 undefined — 안전 기본값으로
         cancelAtPeriodEnd: !!subRow?.cancel_at_period_end,
         hasBillingKey: !!subRow?.billing_key,
+        pendingBankTransfer: pendingBankTransfer
+          ? {
+              plan: pendingBankTransfer.plan,
+              amount: pendingBankTransfer.amount,
+              depositorName: pendingBankTransfer.depositorName,
+            }
+          : null,
       }}
       customerName={profileName}
       customerEmail={user.email ?? ""}

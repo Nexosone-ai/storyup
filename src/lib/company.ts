@@ -13,6 +13,19 @@ export const COMPANY = {
   supportPhone: "070-5100-4329",
 } as const;
 
+/**
+ * 계좌이체 입금 계좌 — PG 정식 오픈 전 수동 결제 안내에 표시된다.
+ * 사업자 계좌 정보와 정확히 일치해야 하며, 값을 채우면 즉시 반영된다.
+ */
+export const BANK_ACCOUNT = {
+  bank: "IBK기업은행",
+  number: "092-124380-04-015",
+  holder: "주식회사 넥서스원",
+} as const;
+
+export const bankAccountConfigured = () =>
+  !!BANK_ACCOUNT.bank && !!BANK_ACCOUNT.number && !!BANK_ACCOUNT.holder;
+
 export const companyInfoRows = () =>
   [
     ["", COMPANY.name],

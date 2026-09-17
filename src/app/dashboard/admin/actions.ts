@@ -8,6 +8,10 @@ import {
   getPointBreakdown,
 } from "@/lib/payments/service";
 import { PLANS, type PlanId } from "@/lib/plans";
+import {
+  approveBankTransfer,
+  rejectBankTransfer,
+} from "@/lib/payments/bankTransfer";
 import { markReferralPaidConversion } from "@/lib/gamification/referral";
 import {
   SETTING_KEYS,
@@ -173,6 +177,33 @@ export async function lookupUserPointsAction(
     purchasedRemaining: breakdown.purchasedRemaining,
     recent: recent ?? [],
   };
+}
+
+// ---------------- 계좌이체 결제 승인 ----------------
+
+/** 계좌이체 신청 승인 — 입금 확인 후 구독을 1개월 활성화한다. */
+export async function approveBankTransferAction(
+  requestId: string,
+): Promise<AdminState> {
+  const { user, admin } = await requireAdmin();
+  if (!admin || !user) return { error: "권한이 없습니다." };
+  const res = await approveBankTransfer(requestId, user.id);
+  if (res.error) return { error: res.error };
+  revalidatePath("/dashboard/admin/billing");
+  return { ok: true, message: "구독을 활성화했습니다." };
+}
+
+/** 계좌이체 신청 거절 — 사유(선택)를 기록한다. */
+export async function rejectBankTransferAction(
+  requestId: string,
+  note: string,
+): Promise<AdminState> {
+  const { user, admin } = await requireAdmin();
+  if (!admin || !user) return { error: "권한이 없습니다." };
+  const res = await rejectBankTransfer(requestId, user.id, note ?? "");
+  if (res.error) return { error: res.error };
+  revalidatePath("/dashboard/admin/billing");
+  return { ok: true, message: "신청을 거절했습니다." };
 }
 
 /** AI 서비스 가격 저장. 0원 = 무료. */

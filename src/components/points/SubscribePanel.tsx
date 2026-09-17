@@ -10,10 +10,12 @@ import { Spinner } from "@/components/ui/Spinner";
 import { Icon } from "@/components/ui/icons";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { PLANS, getPlanById, type PlanId } from "@/lib/plans";
+import { BANK_ACCOUNT, bankAccountConfigured } from "@/lib/company";
 import {
   startSubscriptionAction,
   cancelSubscriptionAction,
   resumeSubscriptionAction,
+  requestBankTransferAction,
 } from "@/app/dashboard/points/actions";
 
 export interface BillingState {
@@ -24,7 +26,15 @@ export interface BillingState {
   cancelAtPeriodEnd: boolean;
   /** 결제 수단이 등록된 유료 구독인지 (false + active = 체험) */
   hasBillingKey: boolean;
+  /** 입금 확인 대기 중인 계좌이체 신청 (없으면 null) */
+  pendingBankTransfer?: {
+    plan: PlanId;
+    amount: number;
+    depositorName: string;
+  } | null;
 }
+
+type PayMethod = "card" | "bank";
 
 function fmtDate(iso: string, ko: boolean) {
   return new Date(iso).toLocaleDateString(ko ? "ko-KR" : "en-US", {
@@ -59,6 +69,10 @@ export function SubscribePanel({
   const [buyerPhone, setBuyerPhone] = useState("");
   // 구독하기 클릭 시 뜨는 결제 창(모달)에서 어떤 플랜을 구독할지
   const [modalPlan, setModalPlan] = useState<PlanId | null>(null);
+  // 결제 수단 선택 — 카드결제(PortOne) / 계좌이체(관리자 수동 승인)
+  const [method, setMethod] = useState<PayMethod>("card");
+  const [depositor, setDepositor] = useState(customerName);
+  const bankReady = bankAccountConfigured();
 
   const paidPlans = PLANS.filter((p) => p.id === "basic" || p.id === "pro");
   // 기간이 지난 active 행(크론 처리 전)은 만료로 취급 — 기준 시각은 마운트 시점 고정
@@ -135,6 +149,36 @@ export function SubscribePanel({
       }
     });
 
+  // 계좌이체 신청 — 입금자명만 받아 접수하고, 관리자 승인 후 활성화된다.
+  const requestBank = (planId: PlanId) =>
+    start(async () => {
+      setNote(null);
+      const name = depositor.trim();
+      if (!name) {
+        setNote({
+          text: ko ? "입금자명을 입력해주세요." : "Please enter the depositor's name.",
+          error: true,
+        });
+        return;
+      }
+      const res = await requestBankTransferAction(planId, name);
+      setNote({
+        text: res.error ?? res.message ?? (ko ? "신청되었습니다." : "Requested."),
+        error: !!res.error,
+      });
+      if (!res.error) {
+        setModalPlan(null);
+        router.refresh();
+      }
+    });
+
+  const openModal = (planId: PlanId) => {
+    setNote(null);
+    // 카드 설정이 안 됐으면 계좌이체를 기본 선택
+    setMethod(billing.configured ? "card" : "bank");
+    setModalPlan(planId);
+  };
+
   const runSimple = (fn: () => Promise<{ error?: string; message?: string }>) =>
     start(async () => {
       setNote(null);
@@ -160,6 +204,20 @@ export function SubscribePanel({
               {ko
                 ? `${fmtDate(billing.periodEnd, ko)}까지 Pro 혜택이 유지됩니다. 이후 자동으로 Free 플랜으로 전환돼요 (결제 없음).`
                 : `Pro benefits until ${fmtDate(billing.periodEnd, ko)}. Then you'll move to Free automatically (no charge).`}
+            </p>
+          </div>
+        </Card>
+      )}
+      {billing.pendingBankTransfer && (
+        <Card className="flex flex-wrap items-center justify-between gap-3 border-primary/30 bg-primary-soft/30">
+          <div>
+            <p className="text-sm font-medium">
+              {ko ? "🏦 입금 확인 대기 중" : "🏦 Awaiting deposit confirmation"}
+            </p>
+            <p className="mt-0.5 text-xs text-muted">
+              {ko
+                ? `${getPlanById(billing.pendingBankTransfer.plan).name.ko} 플랜 · ₩${billing.pendingBankTransfer.amount.toLocaleString()} · 입금자명 ${billing.pendingBankTransfer.depositorName} — 입금이 확인되면 관리자가 활성화해 드립니다.`
+                : `${getPlanById(billing.pendingBankTransfer.plan).name.en} · ₩${billing.pendingBankTransfer.amount.toLocaleString()} · depositor ${billing.pendingBankTransfer.depositorName} — activated once your deposit is confirmed.`}
             </p>
           </div>
         </Card>
@@ -251,15 +309,16 @@ export function SubscribePanel({
               </ul>
               <Button
                 className="mt-auto"
-                disabled={busy || !billing.configured || isCurrent}
-                onClick={() => {
-                  setNote(null);
-                  setModalPlan(plan.id);
-                }}
+                disabled={
+                  busy ||
+                  isCurrent ||
+                  (!billing.configured && !bankReady)
+                }
+                onClick={() => openModal(plan.id)}
               >
                 {busy ? (
                   <Spinner className="size-4" />
-                ) : !billing.configured ? (
+                ) : !billing.configured && !bankReady ? (
                   ko ? "결제 오픈 준비 중" : "Payments coming soon"
                 ) : isCurrent ? (
                   ko ? "이용 중" : "Current plan"
@@ -334,50 +393,137 @@ export function SubscribePanel({
                   </button>
                 </div>
 
-                <p className="mt-2 text-xs leading-relaxed text-muted">
-                  {ko
-                    ? "즉시 1개월분이 결제되고 매월 같은 날 자동 갱신됩니다. 카드 등록을 위해 결제자 정보가 필요합니다."
-                    : "One month is charged now and renews monthly. Your details are needed to register the card."}
-                </p>
+                {/* 결제 수단 선택 — 카드결제 / 계좌이체 (둘 다 가능할 때만 노출) */}
+                {billing.configured && bankReady && (
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    {(["card", "bank"] as PayMethod[]).map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => {
+                          setMethod(m);
+                          setNote(null);
+                        }}
+                        disabled={busy}
+                        className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors ${
+                          method === m
+                            ? "border-primary bg-primary-soft text-primary"
+                            : "border-border text-muted hover:border-primary/50"
+                        }`}
+                      >
+                        {m === "card"
+                          ? ko
+                            ? "카드 결제"
+                            : "Card"
+                          : ko
+                            ? "계좌이체"
+                            : "Bank transfer"}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
-                {/* 결제자 정보 — 카드사 빌링키 발급 필수 항목 */}
-                <div className="mt-4 space-y-3">
-                  <div>
-                    <Label htmlFor="buyer-name">{ko ? "이름" : "Name"}</Label>
-                    <Input
-                      id="buyer-name"
-                      value={buyerName}
-                      onChange={(e) => setBuyerName(e.target.value)}
-                      placeholder={ko ? "홍길동" : "Full name"}
-                      autoComplete="name"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="buyer-email">{ko ? "이메일" : "Email"}</Label>
-                    <Input
-                      id="buyer-email"
-                      type="email"
-                      value={buyerEmail}
-                      onChange={(e) => setBuyerEmail(e.target.value)}
-                      placeholder="you@example.com"
-                      autoComplete="email"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="buyer-phone">
-                      {ko ? "휴대폰 번호" : "Phone"}
-                    </Label>
-                    <Input
-                      id="buyer-phone"
-                      type="tel"
-                      inputMode="numeric"
-                      value={buyerPhone}
-                      onChange={(e) => setBuyerPhone(e.target.value)}
-                      placeholder="010-1234-5678"
-                      autoComplete="tel"
-                    />
-                  </div>
-                </div>
+                {method === "card" ? (
+                  <>
+                    <p className="mt-4 text-xs leading-relaxed text-muted">
+                      {ko
+                        ? "즉시 1개월분이 결제되고 매월 같은 날 자동 갱신됩니다. 카드 등록을 위해 결제자 정보가 필요합니다."
+                        : "One month is charged now and renews monthly. Your details are needed to register the card."}
+                    </p>
+
+                    {/* 결제자 정보 — 카드사 빌링키 발급 필수 항목 */}
+                    <div className="mt-4 space-y-3">
+                      <div>
+                        <Label htmlFor="buyer-name">{ko ? "이름" : "Name"}</Label>
+                        <Input
+                          id="buyer-name"
+                          value={buyerName}
+                          onChange={(e) => setBuyerName(e.target.value)}
+                          placeholder={ko ? "홍길동" : "Full name"}
+                          autoComplete="name"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="buyer-email">
+                          {ko ? "이메일" : "Email"}
+                        </Label>
+                        <Input
+                          id="buyer-email"
+                          type="email"
+                          value={buyerEmail}
+                          onChange={(e) => setBuyerEmail(e.target.value)}
+                          placeholder="you@example.com"
+                          autoComplete="email"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="buyer-phone">
+                          {ko ? "휴대폰 번호" : "Phone"}
+                        </Label>
+                        <Input
+                          id="buyer-phone"
+                          type="tel"
+                          inputMode="numeric"
+                          value={buyerPhone}
+                          onChange={(e) => setBuyerPhone(e.target.value)}
+                          placeholder="010-1234-5678"
+                          autoComplete="tel"
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-4 text-xs leading-relaxed text-muted">
+                      {ko
+                        ? "아래 계좌로 1개월 이용료를 입금해주세요. 입금이 확인되면 관리자가 1개월 이용을 활성화해 드립니다. (계좌이체는 자동 갱신되지 않아 매월 신청이 필요합니다.)"
+                        : "Transfer one month's fee to the account below. Once confirmed, an admin activates your 1-month access. (Bank transfer does not auto-renew.)"}
+                    </p>
+
+                    {/* 입금 계좌 안내 */}
+                    <div className="mt-4 space-y-1.5 rounded-xl border border-border bg-surface-muted p-4 text-sm">
+                      <div className="flex justify-between gap-3">
+                        <span className="text-muted">{ko ? "입금 금액" : "Amount"}</span>
+                        <span className="tnum font-bold">
+                          ₩{(plan.priceKrw ?? 0).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <span className="text-muted">{ko ? "은행" : "Bank"}</span>
+                        <span className="font-medium">{BANK_ACCOUNT.bank}</span>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <span className="text-muted">{ko ? "계좌번호" : "Account"}</span>
+                        <span className="select-all font-mono font-medium">
+                          {BANK_ACCOUNT.number}
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <span className="text-muted">{ko ? "예금주" : "Holder"}</span>
+                        <span className="font-medium">{BANK_ACCOUNT.holder}</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-4">
+                      <Label htmlFor="depositor">
+                        {ko ? "입금자명" : "Depositor name"}
+                      </Label>
+                      <Input
+                        id="depositor"
+                        value={depositor}
+                        onChange={(e) => setDepositor(e.target.value)}
+                        placeholder={ko ? "실제 입금하실 이름" : "Name on the transfer"}
+                        maxLength={60}
+                        autoComplete="name"
+                      />
+                      <p className="mt-1.5 text-xs text-muted">
+                        {ko
+                          ? "입금내역 대조를 위해 실제 입금자명을 정확히 입력해주세요."
+                          : "Enter the exact depositor name so we can match your transfer."}
+                      </p>
+                    </div>
+                  </>
+                )}
 
                 {note && (
                   <p
@@ -396,19 +542,35 @@ export function SubscribePanel({
                   >
                     {ko ? "취소" : "Cancel"}
                   </Button>
-                  <Button
-                    className="flex-1"
-                    onClick={() => subscribe(modalPlan)}
-                    disabled={busy}
-                  >
-                    {busy ? (
-                      <Spinner className="size-4" />
-                    ) : ko ? (
-                      "카드 등록하고 결제"
-                    ) : (
-                      "Register card & pay"
-                    )}
-                  </Button>
+                  {method === "card" ? (
+                    <Button
+                      className="flex-1"
+                      onClick={() => subscribe(modalPlan)}
+                      disabled={busy}
+                    >
+                      {busy ? (
+                        <Spinner className="size-4" />
+                      ) : ko ? (
+                        "카드 등록하고 결제"
+                      ) : (
+                        "Register card & pay"
+                      )}
+                    </Button>
+                  ) : (
+                    <Button
+                      className="flex-1"
+                      onClick={() => requestBank(modalPlan)}
+                      disabled={busy}
+                    >
+                      {busy ? (
+                        <Spinner className="size-4" />
+                      ) : ko ? (
+                        "입금 완료 · 신청하기"
+                      ) : (
+                        "I've paid · Request"
+                      )}
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

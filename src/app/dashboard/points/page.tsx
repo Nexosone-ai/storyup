@@ -4,6 +4,7 @@ import { getMyTransactions, getMyPayments } from "@/lib/points";
 import { getPointBreakdown } from "@/lib/payments/service";
 import { getSubscriptionOverview } from "@/lib/subscription";
 import { getSubscriptionRow } from "@/lib/payments/billing";
+import { getPendingBankTransfer } from "@/lib/payments/bankTransfer";
 import { isBillingConfigured } from "@/lib/payments/portone";
 import { PointsView } from "@/components/points/PointsView";
 
@@ -13,15 +14,23 @@ export default async function PointsPage() {
   const user = await getUser();
   if (!user) redirect("/login");
 
-  const [breakdown, transactions, payments, overview, subRow, profileName] =
-    await Promise.all([
-      getPointBreakdown(user.id),
-      getMyTransactions(user.id),
-      getMyPayments(user.id),
-      getSubscriptionOverview(user.id),
-      getSubscriptionRow(user.id),
-      getProfileName(),
-    ]);
+  const [
+    breakdown,
+    transactions,
+    payments,
+    overview,
+    subRow,
+    pendingBankTransfer,
+    profileName,
+  ] = await Promise.all([
+    getPointBreakdown(user.id),
+    getMyTransactions(user.id),
+    getMyPayments(user.id),
+    getSubscriptionOverview(user.id),
+    getSubscriptionRow(user.id),
+    getPendingBankTransfer(user.id),
+    getProfileName(),
+  ]);
 
   return (
     <PointsView
@@ -39,6 +48,13 @@ export default async function PointsPage() {
         // 0017 이전 DB에서는 컬럼이 없어 undefined — 안전 기본값으로
         cancelAtPeriodEnd: !!subRow?.cancel_at_period_end,
         hasBillingKey: !!subRow?.billing_key,
+        pendingBankTransfer: pendingBankTransfer
+          ? {
+              plan: pendingBankTransfer.plan,
+              amount: pendingBankTransfer.amount,
+              depositorName: pendingBankTransfer.depositorName,
+            }
+          : null,
       }}
       transactions={transactions}
       payments={payments.map((p) => ({
