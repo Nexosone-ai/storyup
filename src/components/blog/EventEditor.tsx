@@ -5,7 +5,10 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Field";
 import { Spinner } from "@/components/ui/Spinner";
 import { useLocale } from "@/components/i18n/LocaleProvider";
-import { saveBlogEventAction } from "@/app/business/event-actions";
+import {
+  saveBlogEventAction,
+  applyBlogModulesToAllAction,
+} from "@/app/business/event-actions";
 import type { BlogEventRow } from "@/types/database";
 
 /**
@@ -53,6 +56,31 @@ export function EventEditor({
   const [mapEnabled, setMapEnabled] = useState(event?.map_enabled ?? false);
   const [note, setNote] = useState<string | null>(null);
   const [saving, startSave] = useTransition();
+  const [applying, startApply] = useTransition();
+
+  // 하단 모듈(댓글·주소·정보·지도·연락문의)을 모든 글에 일괄 적용 (쿠폰 제외).
+  const applyAll = () => {
+    if (
+      !window.confirm(
+        ko
+          ? "댓글·주소·정보·지도·연락문의 설정을 이 사업체의 모든 글에 동일하게 적용할까요? (쿠폰은 글마다 달라 제외되며, 각 글의 기존 쿠폰 설정은 유지됩니다.)"
+          : "Apply comments, address, map, and contact settings to all posts of this business? (Coupons are excluded and each post's existing coupon settings are kept.)",
+      )
+    )
+      return;
+    startApply(async () => {
+      setNote(null);
+      const res = await applyBlogModulesToAllAction(businessId, {
+        commentEnabled,
+        addressEnabled,
+        mapEnabled,
+        contactEnabled,
+        contactTitle,
+        contactDesc,
+      });
+      setNote(res.error ?? res.message ?? (ko ? "적용되었습니다." : "Applied."));
+    });
+  };
 
   const save = () =>
     startSave(async () => {
@@ -87,19 +115,40 @@ export function EventEditor({
             </h2>
             <p className="mt-0.5 text-xs text-muted">
               {ko
-                ? "이 글 하단에 쿠폰·연락문의·댓글·주소·지도 모듈을 붙일 수 있어요."
-                : "Attach coupon, contact, comments, address, and map modules below this post."}
+                ? "이 글 하단에 쿠폰·연락문의·댓글·주소·지도 모듈을 붙일 수 있어요. '모든 글에 동일 적용'으로 한 번에 반영할 수도 있어요(쿠폰 제외)."
+                : "Attach coupon, contact, comments, address, and map modules below this post. Use 'Apply to all posts' to set them across every post at once (coupon excluded)."}
             </p>
           </div>
-          <Button size="sm" onClick={save} disabled={saving}>
-            {saving ? (
-              <Spinner className="h-4 w-4" />
-            ) : ko ? (
-              "이벤트 저장"
-            ) : (
-              "Save event"
-            )}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={applyAll}
+              disabled={saving || applying}
+              title={
+                ko
+                  ? "현재 하단 모듈 설정을 모든 글에 동일하게 적용"
+                  : "Apply current bottom modules to all posts"
+              }
+            >
+              {applying ? (
+                <Spinner className="h-4 w-4" />
+              ) : ko ? (
+                "모든 글에 동일 적용"
+              ) : (
+                "Apply to all posts"
+              )}
+            </Button>
+            <Button size="sm" onClick={save} disabled={saving || applying}>
+              {saving ? (
+                <Spinner className="h-4 w-4" />
+              ) : ko ? (
+                "이벤트 저장"
+              ) : (
+                "Save event"
+              )}
+            </Button>
+          </div>
         </div>
 
         {note && <p className="mt-3 text-sm text-primary">{note}</p>}
