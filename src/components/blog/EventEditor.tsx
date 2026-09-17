@@ -43,6 +43,14 @@ export function EventEditor({
   );
   const [contactTitle, setContactTitle] = useState(event?.contact_title ?? "");
   const [contactDesc, setContactDesc] = useState(event?.contact_desc ?? "");
+  // 0030 모듈 — 댓글은 기존에 항상 노출됐으므로 기본값 true(끄면 숨김).
+  const [commentEnabled, setCommentEnabled] = useState(
+    event?.comment_enabled ?? true,
+  );
+  const [addressEnabled, setAddressEnabled] = useState(
+    event?.address_enabled ?? false,
+  );
+  const [mapEnabled, setMapEnabled] = useState(event?.map_enabled ?? false);
   const [note, setNote] = useState<string | null>(null);
   const [saving, startSave] = useTransition();
 
@@ -59,11 +67,14 @@ export function EventEditor({
         contactEnabled,
         contactTitle,
         contactDesc,
+        commentEnabled,
+        addressEnabled,
+        mapEnabled,
       });
       setNote(res.error ?? res.message ?? (ko ? "저장되었습니다." : "Saved."));
     });
 
-  const anyOn = couponEnabled || contactEnabled;
+  const anyOn = couponEnabled || contactEnabled || addressEnabled || mapEnabled;
   const fieldCls = "w-40";
 
   return (
@@ -76,8 +87,8 @@ export function EventEditor({
             </h2>
             <p className="mt-0.5 text-xs text-muted">
               {ko
-                ? "이 글 하단에 쿠폰·연락문의 모듈을 붙일 수 있어요."
-                : "Attach coupon and contact modules below this post."}
+                ? "이 글 하단에 쿠폰·연락문의·댓글·주소·지도 모듈을 붙일 수 있어요."
+                : "Attach coupon, contact, comments, address, and map modules below this post."}
             </p>
           </div>
           <Button size="sm" onClick={save} disabled={saving}>
@@ -279,6 +290,72 @@ export function EventEditor({
               </p>
             </div>
           )}
+        </div>
+
+        {/* ---------- 댓글 ---------- */}
+        <div className="mt-4 rounded-xl border border-border bg-white p-4">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={commentEnabled}
+              onChange={(e) => setCommentEnabled(e.target.checked)}
+              className="mt-0.5 size-4 accent-primary"
+            />
+            <span>
+              <span className="block text-sm font-semibold">
+                {ko ? "댓글" : "Comments"}
+              </span>
+              <span className="block text-xs text-muted">
+                {ko
+                  ? "방문자가 글 하단에 댓글을 남길 수 있어요. 끄면 댓글 영역이 숨겨져요."
+                  : "Let visitors leave comments below the post. Turn off to hide the comment area."}
+              </span>
+            </span>
+          </label>
+        </div>
+
+        {/* ---------- 주소 및 정보 ---------- */}
+        <div className="mt-4 rounded-xl border border-border bg-white p-4">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={addressEnabled}
+              onChange={(e) => setAddressEnabled(e.target.checked)}
+              className="mt-0.5 size-4 accent-primary"
+            />
+            <span>
+              <span className="block text-sm font-semibold">
+                {ko ? "주소 및 정보" : "Address & info"}
+              </span>
+              <span className="block text-xs text-muted">
+                {ko
+                  ? "홈페이지의 연락처(주소·전화·이메일·SNS)를 글 하단에 카드로 보여줘요."
+                  : "Shows your homepage contact info (address, phone, email, socials) as a card."}
+              </span>
+            </span>
+          </label>
+        </div>
+
+        {/* ---------- 지도 ---------- */}
+        <div className="mt-4 rounded-xl border border-border bg-white p-4">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={mapEnabled}
+              onChange={(e) => setMapEnabled(e.target.checked)}
+              className="mt-0.5 size-4 accent-primary"
+            />
+            <span>
+              <span className="block text-sm font-semibold">
+                {ko ? "지도" : "Map"}
+              </span>
+              <span className="block text-xs text-muted">
+                {ko
+                  ? "홈페이지 주소를 기준으로 구글지도를 글 하단에 임베드해요. (주소가 없으면 표시되지 않아요.)"
+                  : "Embeds a Google Map based on your homepage address. (Hidden if no address is set.)"}
+              </span>
+            </span>
+          </label>
         </div>
       </div>
     </div>

@@ -33,6 +33,9 @@ export interface PublicBlogEvent {
   contactEnabled: boolean;
   contactTitle: string | null;
   contactDesc: string | null;
+  commentEnabled: boolean;
+  addressEnabled: boolean;
+  mapEnabled: boolean;
 }
 
 /**
@@ -48,8 +51,8 @@ export async function getPublicBlogEvent(
     .select("*")
     .eq("post_id", postId)
     .maybeSingle();
+  // 행이 있으면 모든 모듈 플래그를 반환한다(댓글 등은 페이지에서 개별 게이팅).
   if (!event) return null;
-  if (!event.coupon_enabled && !event.contact_enabled) return null;
 
   let couponClaimed = 0;
   if (event.coupon_enabled) {
@@ -76,6 +79,10 @@ export async function getPublicBlogEvent(
     contactEnabled: event.contact_enabled,
     contactTitle: event.contact_title,
     contactDesc: event.contact_desc,
+    // 0030 이전 DB에서는 컬럼이 없어 undefined — 댓글은 기본 노출, 나머지는 숨김.
+    commentEnabled: event.comment_enabled ?? true,
+    addressEnabled: event.address_enabled ?? false,
+    mapEnabled: event.map_enabled ?? false,
   };
 }
 

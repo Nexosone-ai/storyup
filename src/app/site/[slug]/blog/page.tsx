@@ -12,6 +12,7 @@ import {
   SiteLogo,
   PoweredByStoryup,
 } from "@/components/website/templates/shared";
+import { RelativeTime } from "@/components/ui/RelativeTime";
 import { BlogCover } from "@/components/blog/BlogCover";
 import { TrackPageView } from "@/components/site/TrackPageView";
 import { buildSeo } from "@/utils/seo";
@@ -25,15 +26,6 @@ export async function generateMetadata({
   const site = await getPublishedSite(slug);
   const name = site?.website.content.hero?.businessName ?? "블로그";
   return buildSeo({ title: `${name} 블로그`, path: `/site/${slug}/blog` });
-}
-
-function fmtDate(iso: string | null, ko: boolean): string {
-  if (!iso) return "";
-  return new Date(iso).toLocaleDateString(ko ? "ko-KR" : "en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
 }
 
 export default async function PublicBlogListPage({
@@ -183,7 +175,9 @@ export default async function PublicBlogListPage({
                         {post.category}
                       </span>
                     )}
-                    {fmtDate(post.published_at, ko)}
+                    {post.published_at && (
+                      <RelativeTime iso={post.published_at} ko={ko} />
+                    )}
                   </p>
                   <h2 className="break-keep-kr mt-1 text-xl font-semibold group-hover:text-primary">
                     {post.title}

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/utils/cn";
+import { storageThumb } from "@/utils/storageImage";
 import { Icon } from "@/components/ui/icons";
 import { CardNewsSlider } from "@/components/marketing/CardNewsSlider";
 import type {
@@ -87,7 +88,7 @@ function SitePreview({
         >
           {/* eslint-disable-next-line @next/next/no-img-element -- 사용자 업로드/AI 원격 이미지 */}
           <img
-            src={s.src}
+            src={storageThumb(s.src, 800)}
             alt={k === 0 ? name : ""}
             loading="lazy"
             className="h-full w-full object-cover"
@@ -172,8 +173,9 @@ export function SiteCard({ item }: { item: ShowcaseSiteItem }) {
         {item.logo && (
           // eslint-disable-next-line @next/next/no-img-element -- 사용자 업로드 로고
           <img
-            src={item.logo}
+            src={storageThumb(item.logo, 200)}
             alt=""
+            loading="lazy"
             className="h-5 w-auto max-w-20 object-contain"
           />
         )}
@@ -206,7 +208,7 @@ export function PostCard({ item }: { item: ShowcasePostItem }) {
       {item.cover ? (
         // eslint-disable-next-line @next/next/no-img-element -- AI 생성 원격 이미지
         <img
-          src={item.cover}
+          src={storageThumb(item.cover, 800)}
           alt={item.title}
           loading="lazy"
           className="aspect-[16/9] w-full object-cover"

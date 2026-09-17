@@ -267,6 +267,9 @@ export interface Database {
           contact_enabled: boolean;
           contact_title: string | null;
           contact_desc: string | null;
+          comment_enabled: boolean;
+          address_enabled: boolean;
+          map_enabled: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -283,6 +286,9 @@ export interface Database {
           contact_enabled?: boolean;
           contact_title?: string | null;
           contact_desc?: string | null;
+          comment_enabled?: boolean;
+          address_enabled?: boolean;
+          map_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
         };

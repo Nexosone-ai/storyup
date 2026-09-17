@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BlogCover } from "@/components/blog/BlogCover";
+import { RelativeTime } from "@/components/ui/RelativeTime";
 import type { SiteLang } from "./shared";
 
 /** 랜딩페이지의 최신 블로그 글 카드에 필요한 최소 필드. */
@@ -10,15 +11,6 @@ export interface SitePostPreview {
   coverImageUrl: string | null;
   publishedAt: string | null;
   keyword?: string;
-}
-
-function fmtDate(iso: string | null, ko: boolean): string {
-  if (!iso) return "";
-  return new Date(iso).toLocaleDateString(ko ? "ko-KR" : "en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
 }
 
 /**
@@ -63,7 +55,9 @@ export function BlogPreviewCards({
           )}
           <div className="p-5">
             <p className="text-xs text-muted">
-              {fmtDate(post.publishedAt, ko)}
+              {post.publishedAt && (
+                <RelativeTime iso={post.publishedAt} ko={ko} />
+              )}
             </p>
             <h3 className="mt-1 font-semibold leading-snug group-hover:text-primary">
               {post.title}

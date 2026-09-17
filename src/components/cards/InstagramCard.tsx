@@ -265,9 +265,20 @@ export const InstagramCard = forwardRef<
                 : "Swipe →"}
             </span>
           ) : (
-            <span style={{ fontFamily: CARD.mono, letterSpacing: "0.1em" }}>
+            <a
+              href="https://storyup.me"
+              target="_blank"
+              rel="noopener noreferrer"
+              // 색·밑줄을 상속시켜 PNG 내보내기(html-to-image)에서도 텍스트와 동일하게 보이게 한다.
+              style={{
+                fontFamily: CARD.mono,
+                letterSpacing: "0.1em",
+                color: "inherit",
+                textDecoration: "none",
+              }}
+            >
               STORYUP
-            </span>
+            </a>
           )}
         </div>
       </div>

@@ -33,6 +33,9 @@ export interface BlogEventConfig {
   contactEnabled: boolean;
   contactTitle: string;
   contactDesc: string;
+  commentEnabled: boolean;
+  addressEnabled: boolean;
+  mapEnabled: boolean;
 }
 
 /** 공개 페이지 캐시 갱신 — 공개된 글일 때만 랜딩/글 경로를 무효화. */
@@ -102,6 +105,9 @@ export async function saveBlogEventAction(
       contact_enabled: config.contactEnabled,
       contact_title: config.contactTitle.trim() || null,
       contact_desc: config.contactDesc.trim() || null,
+      comment_enabled: config.commentEnabled,
+      address_enabled: config.addressEnabled,
+      map_enabled: config.mapEnabled,
     },
     { onConflict: "post_id" },
   );

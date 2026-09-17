@@ -17,10 +17,12 @@ import {
 } from "@/components/website/templates/shared";
 import { renderMarkdown } from "@/utils/markdown";
 import { BlogCover } from "@/components/blog/BlogCover";
+import { RelativeTime } from "@/components/ui/RelativeTime";
 import { ShareBar } from "@/components/site/ShareBar";
 import { BlogComments } from "@/components/site/BlogComments";
 import { BlogLikeButton } from "@/components/site/BlogLikeButton";
 import { BlogEventModules } from "@/components/site/BlogEventModules";
+import { BlogInfoModules } from "@/components/site/BlogInfoModules";
 import { TrackPageView } from "@/components/site/TrackPageView";
 import { getPublicBlogEvent } from "@/lib/events";
 import { buildSeo, siteUrl } from "@/utils/seo";
@@ -210,9 +212,7 @@ export default async function PublicArticlePage({
         </nav>
         <p className="mt-3 text-sm text-muted">
           {post.published_at && (
-            <time dateTime={post.published_at}>
-              {fmtDate(post.published_at, ko)}
-            </time>
+            <RelativeTime iso={post.published_at} ko={ko} />
           )}
         </p>
         <h1 className="break-keep-kr mt-2 text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
@@ -281,10 +281,19 @@ export default async function PublicArticlePage({
           dangerouslySetInnerHTML={{ __html: html }}
         />
 
-        {blogEvent && (
+        {blogEvent && (blogEvent.couponEnabled || blogEvent.contactEnabled) && (
           <BlogEventModules
             postId={post.id}
             event={blogEvent}
+            lang={ko ? "ko" : "en"}
+          />
+        )}
+
+        {blogEvent && (blogEvent.addressEnabled || blogEvent.mapEnabled) && (
+          <BlogInfoModules
+            contact={site.website.content.contact}
+            showAddress={blogEvent.addressEnabled}
+            showMap={blogEvent.mapEnabled}
             lang={ko ? "ko" : "en"}
           />
         )}
@@ -361,7 +370,7 @@ export default async function PublicArticlePage({
           </Link>
         </div>
 
-        {comments && (
+        {comments && blogEvent?.commentEnabled !== false && (
           <BlogComments
             postId={post.id}
             comments={comments}
