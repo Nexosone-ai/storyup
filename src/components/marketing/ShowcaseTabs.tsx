@@ -206,7 +206,13 @@ export function SiteCard({
   );
 }
 
-export function PostCard({ item }: { item: ShowcasePostItem }) {
+export function PostCard({
+  item,
+  ko = true,
+}: {
+  item: ShowcasePostItem;
+  ko?: boolean;
+}) {
   return (
     <Link
       href={item.href}
@@ -256,9 +262,18 @@ export function PostCard({ item }: { item: ShowcasePostItem }) {
             )}
           </div>
         </div>
-        <p className="mt-1 line-clamp-1 font-semibold group-hover:text-primary">
-          {item.title}
-        </p>
+        <div className="mt-1 flex items-center gap-3">
+          <p className="min-w-0 flex-1 truncate font-semibold group-hover:text-primary">
+            {item.title}
+          </p>
+          {item.publishedAt && (
+            <RelativeTime
+              iso={item.publishedAt}
+              ko={ko}
+              className="shrink-0 text-xs font-normal text-muted"
+            />
+          )}
+        </div>
         <p className="mt-1 line-clamp-2 text-sm text-muted">{item.summary}</p>
       </div>
     </Link>
@@ -333,7 +348,7 @@ export function ShowcaseTabs({
           {tab === "site"
             ? sites.map((s) => <SiteCard key={s.href} item={s} ko={ko} />)
             : tab === "blog"
-              ? posts.map((p) => <PostCard key={p.href} item={p} />)
+              ? posts.map((p) => <PostCard key={p.href} item={p} ko={ko} />)
               : cards.map((c) => <CardNewsCard key={c.id} item={c} />)}
         </div>
       )}

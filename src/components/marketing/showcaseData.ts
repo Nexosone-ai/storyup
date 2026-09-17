@@ -27,6 +27,8 @@ export interface ShowcasePostItem {
   summary: string;
   cover: string | null;
   businessName: string;
+  /** 글 게시(발행) 일시 — 카드에 상대시간으로 표시. 미발행이면 null. */
+  publishedAt: string | null;
   /** 누적 조회수 (0015 마이그레이션 이전 데이터는 0) */
   views: number;
   /** 좋아요 수 (0018 마이그레이션 이전 데이터는 0) */
@@ -82,6 +84,7 @@ export function toPostItem(
     summary: item.post.summary ?? "",
     cover: item.post.cover_image_url ?? null,
     businessName: item.businessName,
+    publishedAt: item.post.published_at ?? null,
     views: item.post.view_count ?? 0,
     likes: e?.likes ?? 0,
     comments: e?.comments ?? 0,

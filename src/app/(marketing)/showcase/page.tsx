@@ -154,7 +154,7 @@ export default async function ShowcasePage({
                 </h2>
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {recentPosts.map((item) => (
-                    <PostCard key={item.href} item={item} />
+                    <PostCard key={item.href} item={item} ko={ko} />
                   ))}
                 </div>
               </section>
@@ -165,7 +165,7 @@ export default async function ShowcasePage({
                   </h2>
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {restPosts.map((item) => (
-                      <PostCard key={item.href} item={item} />
+                      <PostCard key={item.href} item={item} ko={ko} />
                     ))}
                   </div>
                 </section>
