@@ -242,6 +242,13 @@ export function PostCard({
             {item.businessName}
           </p>
           <div className="tnum flex shrink-0 items-center gap-2 text-xs text-muted">
+            {item.publishedAt && (
+              <RelativeTime
+                iso={item.publishedAt}
+                ko={ko}
+                className="font-normal whitespace-nowrap"
+              />
+            )}
             {item.views > 0 && (
               <span className="inline-flex items-center gap-1">
                 <Icon.eye width={14} height={14} />
@@ -262,18 +269,9 @@ export function PostCard({
             )}
           </div>
         </div>
-        <div className="mt-1 flex items-center gap-3">
-          <p className="min-w-0 flex-1 truncate font-semibold group-hover:text-primary">
-            {item.title}
-          </p>
-          {item.publishedAt && (
-            <RelativeTime
-              iso={item.publishedAt}
-              ko={ko}
-              className="shrink-0 text-xs font-normal text-muted"
-            />
-          )}
-        </div>
+        <p className="mt-1 line-clamp-1 font-semibold group-hover:text-primary">
+          {item.title}
+        </p>
         <p className="mt-1 line-clamp-2 text-sm text-muted">{item.summary}</p>
       </div>
     </Link>
