@@ -7,7 +7,7 @@ export const COMPANY = {
   name: "주식회사 넥서스원",
   representative: "김동혁",
   businessNumber: "645-81-03885",
-  mailOrderNumber: "", // 통신판매업 신고번호 (발급 후 기재)
+  mailOrderNumber: "2026-부산중구-0161", // 통신판매업 신고번호 (2026-09-16 발급)
   address: "부산광역시 중구 해관로 64, 403-제이2호(중앙동4가)",
   supportEmail: "", // 고객 지원 이메일 (확정 후 기재)
   supportPhone: "070-5100-4329",
