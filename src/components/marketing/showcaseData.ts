@@ -15,6 +15,8 @@ export interface ShowcaseSiteItem {
   name: string;
   headline: string;
   logo: string | null;
+  /** 사이트 게시(발행) 일시 — 카드에 상대시간으로 표시. 미발행이면 null. */
+  publishedAt: string | null;
   /** 카드 슬라이드 미리보기 — 히어로 → 서비스 → 특장점 → 갤러리 순, 최대 6장. */
   slides: ShowcaseSlide[];
 }
@@ -64,6 +66,7 @@ export function toSiteItem(site: WebsiteRow): ShowcaseSiteItem {
     name: content.hero?.businessName ?? "",
     headline: stripHtml(content.hero?.headline ?? ""),
     logo: content.hero?.logo ?? null,
+    publishedAt: site.published_at ?? null,
     slides,
   };
 }

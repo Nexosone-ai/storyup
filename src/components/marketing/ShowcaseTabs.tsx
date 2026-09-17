@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/utils/cn";
 import { storageThumb } from "@/utils/storageImage";
+import { RelativeTime } from "@/components/ui/RelativeTime";
 import { Icon } from "@/components/ui/icons";
 import { CardNewsSlider } from "@/components/marketing/CardNewsSlider";
 import type {
@@ -124,7 +125,13 @@ function SitePreview({
  * 랜딩페이지 카드 — 사이트 화면들을 '브라우저 창' 목업 안에서 슬라이드로 미리보기해
  * 한눈에 웹사이트로 읽히게 하고(블로그 썸네일과 구분), 아래에 상호명·헤드라인을 적는다.
  */
-export function SiteCard({ item }: { item: ShowcaseSiteItem }) {
+export function SiteCard({
+  item,
+  ko = true,
+}: {
+  item: ShowcaseSiteItem;
+  ko?: boolean;
+}) {
   // 주소창에 표시할 도메인+경로 (예: storyup.me/site/slug)
   const displayUrl = `storyup.me${item.href}`;
   // 구버전 캐시 데이터(slides 없음)에도 안전하게 대응
@@ -182,6 +189,13 @@ export function SiteCard({ item }: { item: ShowcaseSiteItem }) {
         <p className="truncate font-bold tracking-tight group-hover:text-primary">
           {item.name}
         </p>
+        {item.publishedAt && (
+          <RelativeTime
+            iso={item.publishedAt}
+            ko={ko}
+            className="ml-auto shrink-0 text-xs font-normal text-muted"
+          />
+        )}
       </div>
       {item.headline && (
         <p className="mt-0.5 line-clamp-1 px-1 text-sm text-muted">
@@ -276,11 +290,13 @@ export function ShowcaseTabs({
   posts,
   cards = [],
   t,
+  ko = true,
 }: {
   sites: ShowcaseSiteItem[];
   posts: ShowcasePostItem[];
   cards?: ShowcaseCardItem[];
   t: ShowcaseDict;
+  ko?: boolean;
 }) {
   const [tab, setTab] = useState<"site" | "blog" | "cards">("site");
   const items = tab === "site" ? sites : tab === "blog" ? posts : cards;
@@ -315,7 +331,7 @@ export function ShowcaseTabs({
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {tab === "site"
-            ? sites.map((s) => <SiteCard key={s.href} item={s} />)
+            ? sites.map((s) => <SiteCard key={s.href} item={s} ko={ko} />)
             : tab === "blog"
               ? posts.map((p) => <PostCard key={p.href} item={p} />)
               : cards.map((c) => <CardNewsCard key={c.id} item={c} />)}

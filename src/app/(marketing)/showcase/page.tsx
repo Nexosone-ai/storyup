@@ -176,7 +176,7 @@ export default async function ShowcasePage({
               {tab === "site"
                 ? sites.map((s) => {
                     const item = toSiteItem(s);
-                    return <SiteCard key={item.href} item={item} />;
+                    return <SiteCard key={item.href} item={item} ko={ko} />;
                   })
                 : cards.map((c) => {
                     const item = toCardItem(c);

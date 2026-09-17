@@ -9,7 +9,7 @@ import {
   markHotPost,
 } from "@/components/marketing/showcaseData";
 import Link from "next/link";
-import { getDict } from "@/lib/i18n";
+import { getDict, getLocale } from "@/lib/i18n";
 import {
   getShowcaseSites,
   getShowcasePosts,
@@ -22,6 +22,7 @@ export const metadata = { alternates: { canonical: "/" } };
 
 export default async function LandingPage() {
   const { t } = await getDict();
+  const ko = (await getLocale()) === "ko";
   const L = t.landing;
   const [sites, posts, cards] = await Promise.all([
     getShowcaseSites(6),
@@ -172,6 +173,7 @@ export default async function LandingPage() {
             posts={postItems}
             cards={cardItems}
             t={L.showcase}
+            ko={ko}
           />
         </div>
       </section>
