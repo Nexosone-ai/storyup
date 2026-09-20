@@ -39,6 +39,11 @@ export function dashboardNav(
       icon: "coin",
     },
     {
+      label: ko ? "UP 적립" : "Earn UP",
+      href: "/dashboard/rewards",
+      icon: "sparkles",
+    },
+    {
       label: ko ? "구독 플랜" : "Plans",
       href: "/dashboard/plans",
       icon: "tag",

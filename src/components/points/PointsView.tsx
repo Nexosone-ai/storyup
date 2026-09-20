@@ -138,7 +138,7 @@ export function PointsView({
             : "UP is earned through activity rewards, and can only be spent inside STORYUP (no cash-out or transfer)"}
         </p>
         <Link
-          href="/rewards"
+          href="/dashboard/rewards"
           className="mt-3 inline-block text-xs font-semibold text-primary-foreground underline underline-offset-4 opacity-90 hover:opacity-100"
         >
           {ko ? "UP 적립 방법 보기 →" : "How to earn UP →"}
