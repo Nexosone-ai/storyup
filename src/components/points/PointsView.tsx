@@ -131,6 +131,15 @@ export function PointsView({
       {/* 내 플랜 · 이번 달 사용량 */}
       {(() => {
         const plan = getPlanById(subscription.planId);
+        // 무료 플랜의 블로그·카드뉴스는 월 갱신이 아닌 누적 총량 기준.
+        const lifetime = subscription.planId === "free";
+        const blogPeriod = lifetime
+          ? ko
+            ? "누적"
+            : "total"
+          : ko
+            ? "이번 달"
+            : "this month";
         return (
           <section className="space-y-3">
             <h2 className="text-lg font-semibold tracking-tight">
@@ -169,7 +178,11 @@ export function PointsView({
                   ko={ko}
                 />
                 <UsageRow
-                  label={ko ? "블로그 생성 (이번 달)" : "Blog posts (this month)"}
+                  label={
+                    ko
+                      ? `블로그 생성 (${blogPeriod})`
+                      : `Blog posts (${blogPeriod})`
+                  }
                   used={subscription.usage.blogPosts}
                   limit={plan.limits.blogPosts}
                   ko={ko}
@@ -177,8 +190,8 @@ export function PointsView({
                 <UsageRow
                   label={
                     ko
-                      ? `SNS 카드뉴스 ${CARD_NEWS_PAGES}매 (이번 달)`
-                      : `Card news, ${CARD_NEWS_PAGES} pages (this month)`
+                      ? `SNS 카드뉴스 ${CARD_NEWS_PAGES}매 (${blogPeriod})`
+                      : `Card news, ${CARD_NEWS_PAGES} pages (${blogPeriod})`
                   }
                   used={subscription.usage.cardNews}
                   limit={plan.limits.cardNews}

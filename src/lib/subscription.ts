@@ -81,6 +81,40 @@ export async function countMonthlyUsage(
   return count ?? 0;
 }
 
+/** 전체 기간 kind별 누적 사용 건수 (무료 플랜의 평생 총량 제한용). 조회 실패 시 null. */
+export async function countTotalUsage(
+  userId: string,
+  kind: UsageKind,
+): Promise<number | null> {
+  const admin = createAdminClient();
+  const { count, error } = await admin
+    .from("usage_events")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("kind", kind);
+  if (error) return null;
+  return count ?? 0;
+}
+
+/**
+ * 무료 플랜의 블로그·카드뉴스는 월 갱신이 아닌 평생 총량으로 제한한다.
+ * (표기도 "/월" 없이 총 제공량으로 노출 — src/lib/plans.ts)
+ */
+export function isLifetimeQuota(planId: PlanId, kind: UsageKind): boolean {
+  return planId === "free" && (kind === "blog_post" || kind === "card_news");
+}
+
+/** 플랜·kind에 맞는 사용 건수(무료 블로그·카드뉴스는 누적, 그 외 월간). */
+export function countPlanUsage(
+  userId: string,
+  planId: PlanId,
+  kind: UsageKind,
+): Promise<number | null> {
+  return isLifetimeQuota(planId, kind)
+    ? countTotalUsage(userId, kind)
+    : countMonthlyUsage(userId, kind);
+}
+
 export interface QuotaCharge {
   /** 차감된 포인트 (0 = 월 제공량 내). */
   charged: number;
@@ -145,13 +179,14 @@ export async function consumeQuota(
   await ensureMonthlyGrant(userId, planId);
 
   // usage_events 조회는 가용성 프로브를 겸한다 — 실패(마이그레이션 전)면 레거시 폴백.
-  const monthly = await countMonthlyUsage(userId, kind);
-  if (monthly === null) return null;
+  // 무료 플랜의 블로그·카드뉴스는 누적, 그 외는 월간 기준으로 카운트한다.
+  const consumed = await countPlanUsage(userId, planId, kind);
+  if (consumed === null) return null;
 
   const limit = KIND_LIMIT[kind](plan);
   let cost = 0;
   if (limit !== null) {
-    const used = usedOverride ?? monthly;
+    const used = usedOverride ?? consumed;
     if (used >= limit) cost = OVERAGE_BY_KIND[kind];
   }
 
@@ -225,9 +260,9 @@ export async function getSubscriptionOverview(
   const planId = await getPlanId(userId);
   await ensureMonthlyGrant(userId, planId);
   const [blogPosts, cardNews, aiImages, sites] = await Promise.all([
-    countMonthlyUsage(userId, "blog_post"),
-    countMonthlyUsage(userId, "card_news"),
-    countMonthlyUsage(userId, "ai_image"),
+    countPlanUsage(userId, planId, "blog_post"),
+    countPlanUsage(userId, planId, "card_news"),
+    countPlanUsage(userId, planId, "ai_image"),
     countUserWebsites(userId),
   ]);
   return {

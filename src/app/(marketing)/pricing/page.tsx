@@ -53,8 +53,8 @@ export default async function PricingPage() {
             ? "협의"
             : "Custom"
           : ko
-            ? `${p.limits.blogPosts}건/월`
-            : `${p.limits.blogPosts}/mo`,
+            ? `${p.limits.blogPosts}건${p.priceKrw === 0 ? "" : "/월"}`
+            : `${p.limits.blogPosts}${p.priceKrw === 0 ? "" : "/mo"}`,
     ],
     [
       ko
@@ -66,8 +66,8 @@ export default async function PricingPage() {
             ? "협의"
             : "Custom"
           : ko
-            ? `${p.limits.cardNews}건/월`
-            : `${p.limits.cardNews}/mo`,
+            ? `${p.limits.cardNews}건${p.priceKrw === 0 ? "" : "/월"}`
+            : `${p.limits.cardNews}${p.priceKrw === 0 ? "" : "/mo"}`,
     ],
     [
       ko ? "AI 이미지" : "AI images",

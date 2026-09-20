@@ -105,7 +105,9 @@ export const CARD_NEWS_PAGES = 6;
  */
 export function planFeatureList(plan: Plan, ko: boolean): string[] {
   const l = plan.limits;
-  const per = ko ? "건/월" : "/mo";
+  // 무료 플랜의 블로그·카드뉴스는 월 갱신이 아닌 총 제공량이라 "/월"을 붙이지 않는다.
+  const oneTime = plan.priceKrw === 0;
+  const per = oneTime ? (ko ? "건" : "") : ko ? "건/월" : "/mo";
   const talk = ko ? "협의" : "Custom";
   const out: string[] = [ko ? "브랜드 스토리 생성" : "Brand story generation"];
 
