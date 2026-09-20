@@ -3,7 +3,12 @@ import { MarketingNav } from "@/components/marketing/MarketingNav";
 import { Footer } from "@/components/marketing/Footer";
 import { getLocale } from "@/lib/i18n";
 import { getUser } from "@/lib/queries";
-import { PLANS, CARD_NEWS_PAGES, type Plan } from "@/lib/plans";
+import {
+  PLANS,
+  CARD_NEWS_PAGES,
+  planFeatureList,
+  type Plan,
+} from "@/lib/plans";
 import { COMPANY } from "@/lib/company";
 import { cn } from "@/utils/cn";
 
@@ -20,53 +25,6 @@ function planPrice(plan: Plan, ko: boolean) {
   return `₩${fmt(plan.priceKrw)}`;
 }
 
-function planFeatures(plan: Plan, ko: boolean): string[] {
-  const l = plan.limits;
-  const per = ko ? "건/월" : "/mo";
-  const talk = ko ? "협의" : "Custom";
-  return [
-    ko ? "브랜드 스토리 생성" : "Brand story generation",
-    l.sites === null
-      ? ko
-        ? `AI 랜딩페이지 ${talk}`
-        : `AI landing pages: ${talk}`
-      : ko
-        ? `AI 랜딩페이지 ${l.sites}개`
-        : `${l.sites} AI landing page${l.sites > 1 ? "s" : ""}`,
-    l.blogPosts === null
-      ? ko
-        ? `블로그 생성 ${talk}`
-        : `Blog posts: ${talk}`
-      : ko
-        ? `블로그 생성 ${l.blogPosts}${per}`
-        : `${l.blogPosts} blog posts${per}`,
-    l.cardNews === null
-      ? ko
-        ? `SNS 카드뉴스 ${talk}`
-        : `Card news: ${talk}`
-      : ko
-        ? `SNS 카드뉴스(${CARD_NEWS_PAGES}매) ${l.cardNews}${per}`
-        : `${l.cardNews} card news (${CARD_NEWS_PAGES} pages)${per}`,
-    l.aiImages === null
-      ? ko
-        ? `AI 이미지 ${talk}`
-        : `AI images: ${talk}`
-      : l.aiImages === 0
-        ? ko
-          ? "무료 이미지 모델 제공"
-          : "Free image model included"
-        : ko
-          ? `AI 이미지 ${l.aiImages}개/월`
-          : `${l.aiImages} AI images/mo`,
-    ...(plan.customDomain
-      ? [ko ? "자체 도메인 연결" : "Custom domain"]
-      : []),
-    ...(plan.watermarkRemoved
-      ? [ko ? "STORYUP 워터마크 제거" : "No STORYUP watermark"]
-      : []),
-  ];
-}
-
 export default async function PricingPage() {
   const ko = (await getLocale()) === "ko";
   const tel = `tel:${COMPANY.supportPhone.replace(/-/g, "")}`;
@@ -78,14 +36,14 @@ export default async function PricingPage() {
     [ko ? "브랜드 스토리 생성" : "Brand story", () => "✓"],
     [
       ko ? "AI 랜딩페이지" : "AI landing pages",
-      (p) =>
-        p.limits.sites === null
-          ? ko
-            ? "협의"
-            : "Custom"
-          : ko
-            ? `${p.limits.sites}개`
-            : String(p.limits.sites),
+      (p) => {
+        if (p.limits.sites === null) return ko ? "협의" : "Custom";
+        const count = ko ? `${p.limits.sites}개` : String(p.limits.sites);
+        if (p.siteLayouts == null) return count;
+        return ko
+          ? `${count} · 레이아웃 ${p.siteLayouts}`
+          : `${count} · ${p.siteLayouts} layouts`;
+      },
     ],
     [
       ko ? "블로그 생성" : "Blog posts",
@@ -128,11 +86,32 @@ export default async function PricingPage() {
     ],
     [
       ko ? "자체 도메인" : "Custom domain",
-      (p) => (p.customDomain ? "✓" : "–"),
+      (p) =>
+        p.domain === "custom"
+          ? ko
+            ? "외부 연결"
+            : "Custom"
+          : p.domain === "subdomain"
+            ? ko
+              ? "STORYUP 서브"
+              : "Subdomain"
+            : "–",
     ],
     [
       ko ? "워터마크 제거" : "Watermark removed",
       (p) => (p.watermarkRemoved ? "✓" : "–"),
+    ],
+    [
+      ko ? "블로그 쿠폰 발행" : "Blog coupon block",
+      (p) => (p.couponBlock ? "✓" : "–"),
+    ],
+    [
+      ko ? "AI 전략 수립" : "AI strategy",
+      (p) => (p.aiStrategy ? "✓" : "–"),
+    ],
+    [
+      ko ? "SEO 최적화" : "SEO optimization",
+      (p) => (p.seoTools ? "✓" : "–"),
     ],
   ];
 
@@ -185,7 +164,7 @@ export default async function PricingPage() {
                     ) : null}
                   </p>
                   <ul className="mt-5 flex-1 space-y-2.5 text-sm">
-                    {planFeatures(plan, ko).map((f) => (
+                    {planFeatureList(plan, ko).map((f) => (
                       <li key={f} className="flex gap-2">
                         <span className="text-primary">✓</span>
                         <span>{f}</span>
