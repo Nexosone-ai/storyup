@@ -1,6 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { getPlanById, type PlanId } from "@/lib/plans";
-import { ensureMonthlyGrant } from "@/lib/subscription";
 import { markReferralPaidConversion } from "@/lib/gamification/referral";
 
 /**
@@ -202,8 +201,7 @@ export async function approveBankTransfer(
     })
     .eq("id", requestId);
 
-  // 이번 달 플랜 포인트 지급 (월 멱등) + 추천인 유료 전환 보상 (1회 멱등)
-  await ensureMonthlyGrant(userId, planId);
+  // 추천인 유료 전환 보상 (1회 멱등, 실패 무시)
   try {
     await markReferralPaidConversion(userId);
   } catch {

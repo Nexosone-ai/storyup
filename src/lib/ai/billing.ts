@@ -6,6 +6,7 @@ import {
   InsufficientPointsError,
   type UsageKind,
 } from "@/lib/subscription";
+import { getServicePrice } from "@/lib/payments/prices";
 
 /**
  * AI 서비스 과금 — 모든 AI 라우트가 공용으로 사용한다.
@@ -75,7 +76,7 @@ export async function chargeWebsiteGeneration(
   return chargeLegacy(userId, "AI_WEBSITE", description, ko);
 }
 
-/** 기존 service_prices 기반 과금. 가격 0원/비활성/미설정 = 무료. */
+/** service_prices(관리자 화면) 기반 과금. 가격 0원/비활성/미설정 = 무료. */
 async function chargeLegacy(
   userId: string,
   service: string,
@@ -83,17 +84,10 @@ async function chargeLegacy(
   ko: boolean,
 ): Promise<AiBilling> {
   const admin = createAdminClient();
-  const { data: priceRow, error: priceErr } = await admin
-    .from("service_prices")
-    .select("price, active")
-    .eq("service", service)
-    .maybeSingle();
+  // 단가는 service_prices 단일 소스에서 조회 — 0이면 무료.
+  const price = await getServicePrice(service);
+  if (price <= 0) return noop;
 
-  // 가격 테이블이 아직 없거나(마이그레이션 전) 미설정/비활성/0원 → 무료
-  if (priceErr || !priceRow || !priceRow.active || priceRow.price <= 0)
-    return noop;
-
-  const price = priceRow.price;
   const { error } = await admin.rpc("spend_points", {
     p_user: userId,
     p_amount: price,

@@ -89,7 +89,7 @@ export async function syncPayment(orderId: string): Promise<SyncResult> {
       .in("status", ["PENDING", "FAILED"]);
 
     // 멱등 적립: 이미 있으면 duplicate key → 무시.
-    // 구독 결제(credits=0)는 포인트 적립 대상이 아니다 — grant_plan_points가 담당.
+    // 구독 결제(credits=0)는 포인트 적립 대상이 아니다.
     const credited = payment.credits > 0 ? await creditOnce(payment) : 0;
     const balance = await getBalanceAdmin(payment.user_id);
     return { status: "PAID", credited, balance };

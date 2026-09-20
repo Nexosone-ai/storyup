@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Card, Badge } from "@/components/ui/Card";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { CARD_NEWS_PAGES, getPlanById, type PlanId } from "@/lib/plans";
@@ -86,6 +87,14 @@ function UsageRow({
   );
 }
 
+/** 제공량 초과 시 건당 차감 포인트 — 관리자 화면(service_prices) 단가. */
+export interface OveragePrices {
+  site: number;
+  blogPost: number;
+  cardNews: number;
+  aiImage: number;
+}
+
 export function PointsView({
   userId,
   balance,
@@ -93,6 +102,7 @@ export function PointsView({
   billing,
   transactions,
   payments,
+  overage,
   customerName,
   customerEmail,
 }: {
@@ -102,6 +112,7 @@ export function PointsView({
   billing: BillingState;
   transactions: PointTx[];
   payments: PaymentItem[];
+  overage: OveragePrices;
   customerName: string;
   customerEmail: string;
 }) {
@@ -123,9 +134,15 @@ export function PointsView({
         </p>
         <p className="mt-2 text-xs opacity-75">
           {ko
-            ? "UP은 플랜 구독과 활동 보상으로 쌓이며, STORYUP 서비스 이용 전용입니다 (현금·양도 불가)"
-            : "UP is earned through your plan and activity rewards, and can only be spent inside STORYUP (no cash-out or transfer)"}
+            ? "UP은 활동 보상으로 쌓이며, STORYUP 서비스 이용 전용입니다 (현금·양도 불가)"
+            : "UP is earned through activity rewards, and can only be spent inside STORYUP (no cash-out or transfer)"}
         </p>
+        <Link
+          href="/rewards"
+          className="mt-3 inline-block text-xs font-semibold text-primary-foreground underline underline-offset-4 opacity-90 hover:opacity-100"
+        >
+          {ko ? "UP 적립 방법 보기 →" : "How to earn UP →"}
+        </Link>
       </div>
 
       {/* 내 플랜 · 이번 달 사용량 */}
@@ -160,14 +177,6 @@ export function PointsView({
                         ? "무료"
                         : "Free"
                       : `₩${plan.priceKrw.toLocaleString()}${ko ? "/월" : "/mo"}`}
-                  {plan.monthlyPoints !== null && (
-                    <>
-                      {" · "}
-                      {ko
-                        ? `매월 ${plan.monthlyPoints.toLocaleString()} UP`
-                        : `${plan.monthlyPoints.toLocaleString()} UP/mo`}
-                    </>
-                  )}
                 </p>
               </div>
               <div className="space-y-3">
@@ -205,11 +214,27 @@ export function PointsView({
                   unlimitedLabel={ko ? "협의" : "Custom"}
                 />
               </div>
-              <p className="text-xs text-muted">
-                {ko
-                  ? "제공량을 초과하면 건당 UP이 자동 차감됩니다. (랜딩페이지 3,000 UP · 블로그 1,000 UP · 카드뉴스 1,000 UP · 이미지 100 UP)"
-                  : "Past your quota, UP is deducted per item. (Landing page 3,000 UP · Blog 1,000 UP · Card news 1,000 UP · Image 100 UP)"}
-              </p>
+              {(() => {
+                const amt = (n: number) =>
+                  n > 0
+                    ? `${n.toLocaleString()} UP`
+                    : ko
+                      ? "무료"
+                      : "Free";
+                const items = [
+                  `${ko ? "랜딩페이지" : "Landing page"} ${amt(overage.site)}`,
+                  `${ko ? "블로그" : "Blog"} ${amt(overage.blogPost)}`,
+                  `${ko ? "카드뉴스" : "Card news"} ${amt(overage.cardNews)}`,
+                  `${ko ? "이미지" : "Image"} ${amt(overage.aiImage)}`,
+                ].join(" · ");
+                return (
+                  <p className="text-xs text-muted">
+                    {ko
+                      ? `제공량을 초과하면 건당 UP이 자동 차감됩니다. (${items})`
+                      : `Past your quota, UP is deducted per item. (${items})`}
+                  </p>
+                );
+              })()}
             </Card>
           </section>
         );

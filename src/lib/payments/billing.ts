@@ -7,7 +7,6 @@ import {
   PaymentProviderError,
 } from "@/lib/payments/portone";
 import { getPlanById, type PlanId } from "@/lib/plans";
-import { ensureMonthlyGrant } from "@/lib/subscription";
 import { markReferralPaidConversion } from "@/lib/gamification/referral";
 import { accrueSubscriptionCommission } from "@/lib/marketers";
 
@@ -15,7 +14,7 @@ import { accrueSubscriptionCommission } from "@/lib/marketers";
  * 정기결제(빌링키) 구독 서비스.
  * - 가격은 항상 서버(plans.ts)가 결정한다. 클라이언트 금액은 신뢰하지 않는다.
  * - 매 청구는 payments에 kind='subscription' 행으로 감사 기록.
- * - 포인트 적립은 기존 grant_plan_points(월 1회 멱등)만 사용 — 이중 지급 없음.
+ * - 구독 결제로 UP 포인트를 자동 지급하지 않는다. (월 UP 지급 정책 폐지)
  * - 갱신은 /api/cron/billing이 매일 실행: 기간 만료 구독을 청구하거나 종료.
  */
 
@@ -54,8 +53,6 @@ export async function ensureTrialSubscription(userId: string): Promise<void> {
       { ignoreDuplicates: true },
     );
     if (insErr) return;
-    // 체험 시작 즉시 이번 달 플랜 포인트 지급 (월 멱등)
-    await ensureMonthlyGrant(userId, TRIAL_PLAN);
   } catch (err) {
     console.error("[billing] ensureTrialSubscription failed", userId, err);
   }
@@ -229,8 +226,6 @@ export async function startSubscription(
     };
   }
 
-  // 이번 달 플랜 포인트 즉시 지급 (월 멱등)
-  await ensureMonthlyGrant(userId, planId);
   // 추천인 유료 전환 보상 (1회 멱등, 실패 무시)
   try {
     await markReferralPaidConversion(userId);
@@ -339,7 +334,6 @@ export async function runBillingCycle(): Promise<{
             updated_at: new Date().toISOString(),
           })
           .eq("user_id", userId);
-        await ensureMonthlyGrant(userId, sub.plan as PlanId);
         renewed++;
       } else {
         const failures = (sub.billing_failures ?? 0) + 1;

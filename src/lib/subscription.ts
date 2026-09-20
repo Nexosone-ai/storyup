@@ -1,11 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/server";
-import {
-  PLANS,
-  OVERAGE_COST,
-  getPlanById,
-  type Plan,
-  type PlanId,
-} from "@/lib/plans";
+import { PLANS, getPlanById, type Plan, type PlanId } from "@/lib/plans";
+import { getServicePrice } from "@/lib/payments/prices";
 
 /**
  * 구독/월 제공량 조회·소비 — 플랜 정의는 src/lib/plans.ts가 단일 소스.
@@ -45,24 +40,6 @@ export async function getPlanId(userId: string): Promise<PlanId> {
     return "free";
   const plan = data.plan as PlanId;
   return PLAN_IDS.has(plan) ? plan : "free";
-}
-
-/** 이번 달 플랜 포인트를 아직 안 받았으면 지급 (멱등, 실패 무시). */
-export async function ensureMonthlyGrant(
-  userId: string,
-  planId: PlanId,
-): Promise<void> {
-  const plan = getPlanById(planId);
-  if (plan.monthlyPoints === null || plan.monthlyPoints <= 0) return;
-  const admin = createAdminClient();
-  const { error } = await admin.rpc("grant_plan_points", {
-    p_user: userId,
-    p_plan: planId,
-    p_period: currentPeriod().key,
-    p_amount: plan.monthlyPoints,
-  });
-  // 마이그레이션 전(함수 없음)이거나 일시 오류 — 서비스는 계속.
-  if (error) console.error("[subscription] grant_plan_points", error.message);
 }
 
 /** 이번 달(서울 기준) kind별 사용 건수. 조회 실패 시 null. */
@@ -146,11 +123,15 @@ export class InsufficientPointsError extends Error {
   }
 }
 
-const OVERAGE_BY_KIND: Record<UsageKind, number> = {
-  site: OVERAGE_COST.site,
-  blog_post: OVERAGE_COST.blogPost,
-  card_news: OVERAGE_COST.cardNews,
-  ai_image: OVERAGE_COST.aiImage,
+/**
+ * 제공량 초과분 과금은 관리자 화면(service_prices)을 단일 소스로 쓴다.
+ * kind → service_prices.service 키 매핑. (billing.ts QUOTA_KIND의 역방향)
+ */
+export const SERVICE_BY_KIND: Record<UsageKind, string> = {
+  site: "AI_WEBSITE",
+  blog_post: "AI_BLOG",
+  card_news: "CARD_NEWS",
+  ai_image: "IMAGE_GENERATION",
 };
 
 const KIND_LIMIT: Record<UsageKind, (p: Plan) => number | null> = {
@@ -176,7 +157,6 @@ export async function consumeQuota(
   const admin = createAdminClient();
   const planId = await getPlanId(userId);
   const plan = getPlanById(planId);
-  await ensureMonthlyGrant(userId, planId);
 
   // usage_events 조회는 가용성 프로브를 겸한다 — 실패(마이그레이션 전)면 레거시 폴백.
   // 무료 플랜의 블로그·카드뉴스는 누적, 그 외는 월간 기준으로 카운트한다.
@@ -187,7 +167,8 @@ export async function consumeQuota(
   let cost = 0;
   if (limit !== null) {
     const used = usedOverride ?? consumed;
-    if (used >= limit) cost = OVERAGE_BY_KIND[kind];
+    // 초과분 단가는 관리자 화면(service_prices)에서 조회 — 0이면 무료.
+    if (used >= limit) cost = await getServicePrice(SERVICE_BY_KIND[kind]);
   }
 
   if (cost > 0) {
@@ -258,7 +239,6 @@ export async function getSubscriptionOverview(
   userId: string,
 ): Promise<SubscriptionOverview> {
   const planId = await getPlanId(userId);
-  await ensureMonthlyGrant(userId, planId);
   const [blogPosts, cardNews, aiImages, sites] = await Promise.all([
     countPlanUsage(userId, planId, "blog_post"),
     countPlanUsage(userId, planId, "card_news"),

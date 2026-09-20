@@ -1,6 +1,7 @@
 /**
  * 요금제 정의 — 단일 소스(2026-09-20 스펙).
- * 월 제공량은 구독에 기본 포함되며, 초과 생성 시 OVERAGE_COST 포인트가 차감된다.
+ * 월 제공량은 구독에 기본 포함되며, 초과 생성 시 관리자 화면(service_prices)의
+ * 서비스 단가가 포인트로 차감된다. (초과 단가 = AI 서비스 가격 단일 소스)
  * 1P = ₩1, 미사용 포인트는 이월, 구독은 자동 갱신.
  */
 
@@ -11,8 +12,6 @@ export interface Plan {
   name: { ko: string; en: string };
   /** 월 가격(원). null = 별도 협의 */
   priceKrw: number | null;
-  /** 월 제공 포인트. null = 대량 제공(협의) */
-  monthlyPoints: number | null;
   limits: {
     /** AI 랜딩페이지 (누적 보유 개수). null = 협의 */
     sites: number | null;
@@ -41,7 +40,6 @@ export const PLANS: Plan[] = [
     id: "free",
     name: { ko: "Free", en: "Free" },
     priceKrw: 0,
-    monthlyPoints: 100,
     limits: { sites: 1, blogPosts: 10, cardNews: 1, aiImages: 0 },
     watermarkRemoved: false,
   },
@@ -49,7 +47,6 @@ export const PLANS: Plan[] = [
     id: "basic",
     name: { ko: "Basic", en: "Basic" },
     priceKrw: 29000,
-    monthlyPoints: 1000,
     limits: { sites: 3, blogPosts: 30, cardNews: 3, aiImages: 50 },
     siteLayouts: 3,
     domain: "subdomain",
@@ -59,7 +56,6 @@ export const PLANS: Plan[] = [
     id: "pro",
     name: { ko: "Pro", en: "Pro" },
     priceKrw: 49000,
-    monthlyPoints: 5000,
     limits: { sites: 5, blogPosts: 90, cardNews: 9, aiImages: 90 },
     siteLayouts: 9,
     domain: "custom",
@@ -72,7 +68,6 @@ export const PLANS: Plan[] = [
     id: "partner",
     name: { ko: "Partner", en: "Partner" },
     priceKrw: null,
-    monthlyPoints: null,
     limits: { sites: null, blogPosts: null, cardNews: null, aiImages: null },
     domain: "custom",
     watermarkRemoved: true,
@@ -87,14 +82,6 @@ const PLAN_BY_ID = new Map(PLANS.map((p) => [p.id, p]));
 export function getPlanById(id: PlanId): Plan {
   return PLAN_BY_ID.get(id) ?? PLANS[0];
 }
-
-/** 월 제공량 초과 시 건당 차감 포인트 (1P = ₩1). */
-export const OVERAGE_COST = {
-  site: 3000,
-  blogPost: 1000,
-  cardNews: 1000,
-  aiImage: 100,
-} as const;
 
 /** 카드뉴스 1건당 이미지 매수. */
 export const CARD_NEWS_PAGES = 6;

@@ -5,7 +5,6 @@ import {
   resolveActiveMarketerByCode,
   accrueProductCommission,
 } from "@/lib/marketers";
-import { ensureMonthlyGrant } from "@/lib/subscription";
 import type { PlanId } from "@/lib/plans";
 import type { ProductRow, ProductOrderRow } from "@/types/database";
 
@@ -312,8 +311,6 @@ export async function fulfillProductOrder(orderId: string): Promise<void> {
           },
           { onConflict: "user_id" },
         );
-        // 이번 달 플랜 사용량 지급 (월 멱등)
-        await ensureMonthlyGrant(profile.user_id, plan);
         result = `granted:${plan}`;
       }
     }
