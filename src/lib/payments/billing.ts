@@ -22,14 +22,15 @@ const PAID_PLANS: PlanId[] = ["basic", "pro"];
 const MAX_BILLING_FAILURES = 3;
 
 /**
- * 베타 기간 신규 가입 자동 체험 — 카드 결제 정식 오픈 시 false로 바꾼다.
- * 구독 행이 전혀 없는 사용자에게 1개월 Pro 체험을 만들어준다 (결제 없음).
+ * 베타 기간 신규 가입 자동 Pro 체험 — 2026-09-22 00:00(KST)부터 종료.
+ * 이후 신규 가입은 구독 행 없이 시작하므로 getPlanId가 기본 Free를 반환한다.
+ * 컷오프 전 가입자만 1개월 Pro 체험을 받는다 (결제 없음).
  */
-export const AUTO_TRIAL_ENABLED = true;
+const AUTO_TRIAL_UNTIL = Date.parse("2026-09-22T00:00:00+09:00");
 const TRIAL_PLAN: PlanId = "pro";
 
 export async function ensureTrialSubscription(userId: string): Promise<void> {
-  if (!AUTO_TRIAL_ENABLED) return;
+  if (Date.now() >= AUTO_TRIAL_UNTIL) return; // 컷오프 이후 신규 가입은 Free
   try {
     const admin = createAdminClient();
     const { data, error } = await admin
