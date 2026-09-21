@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useState,
+  useTransition,
+} from "react";
 import { useRouter } from "next/navigation";
 import PortOne from "@portone/browser-sdk/v2";
 import { Card, Badge } from "@/components/ui/Card";
@@ -44,21 +50,37 @@ function fmtDate(iso: string, ko: boolean) {
   });
 }
 
-/** 유료 플랜 구독 시작/변경/해지 — 금액 결정과 검증은 전부 서버에서. */
-export function SubscribePanel({
-  userId,
-  currentPlanId,
-  billing,
-  customerName,
-  customerEmail,
-}: {
+export interface SubscribePanelHandle {
+  /** 외부(요금제 카드 등)에서 결제 모달을 여는 트리거. */
+  openModal: (planId: PlanId) => void;
+}
+
+interface SubscribePanelProps {
   userId: string;
   currentPlanId: PlanId;
   billing: BillingState;
   /** 결제자 정보 초기값 — PG(카드사)가 빌링키 발급 시 이름·이메일·휴대폰을 요구한다. */
   customerName: string;
   customerEmail: string;
-}) {
+  /** 플랜 선택 그리드 노출 여부. 상위에서 별도 카드로 구독을 트리거할 땐 false. */
+  showPlanGrid?: boolean;
+}
+
+/** 유료 플랜 구독 시작/변경/해지 — 금액 결정과 검증은 전부 서버에서. */
+export const SubscribePanel = forwardRef<
+  SubscribePanelHandle,
+  SubscribePanelProps
+>(function SubscribePanel(
+  {
+    userId,
+    currentPlanId,
+    billing,
+    customerName,
+    customerEmail,
+    showPlanGrid = true,
+  },
+  ref,
+) {
   const ko = useLocale() === "ko";
   const router = useRouter();
   const [note, setNote] = useState<{ text: string; error: boolean } | null>(null);
@@ -118,11 +140,19 @@ export function SubscribePanel({
           },
         });
         if (!issue || issue.code || !issue.billingKey) {
-          // 사용자가 창을 닫은 경우 등 — 결제 시도 전이므로 조용히 안내만
+          // 사용자가 창을 닫은 경우 등 — 결제 시도 전이므로 조용히 안내만.
+          // PG 원본 메시지("빌링키 발급 취소")는 사용자에게 낯설어, 취소는 우리 문구로 바꾼다.
+          const raw = issue?.message ?? "";
+          const cancelled = !raw || /취소|cancel/i.test(raw);
           setNote({
-            text:
-              issue?.message ??
-              (ko ? "카드 등록이 완료되지 않았습니다." : "Card registration was not completed."),
+            text: cancelled
+              ? ko
+                ? "사용자가 정기결제를 취소하였습니다."
+                : "You cancelled the subscription registration."
+              : raw ||
+                (ko
+                  ? "카드 등록이 완료되지 않았습니다."
+                  : "Card registration was not completed."),
             error: true,
           });
           return;
@@ -172,12 +202,18 @@ export function SubscribePanel({
       }
     });
 
-  const openModal = (planId: PlanId) => {
-    setNote(null);
-    // 카드 설정이 안 됐으면 계좌이체를 기본 선택
-    setMethod(billing.configured ? "card" : "bank");
-    setModalPlan(planId);
-  };
+  const openModal = useCallback(
+    (planId: PlanId) => {
+      setNote(null);
+      // 카드 설정이 안 됐으면 계좌이체를 기본 선택
+      setMethod(billing.configured ? "card" : "bank");
+      setModalPlan(planId);
+    },
+    [billing.configured],
+  );
+
+  // 상위(요금제 카드)에서 결제 모달을 직접 열 수 있도록 노출
+  useImperativeHandle(ref, () => ({ openModal }), [openModal]);
 
   const runSimple = (fn: () => Promise<{ error?: string; message?: string }>) =>
     start(async () => {
@@ -275,7 +311,8 @@ export function SubscribePanel({
         </Card>
       )}
 
-      {/* 플랜 선택 */}
+      {/* 플랜 선택 — 요금제 페이지처럼 상위 카드가 구독을 트리거하면 숨긴다. */}
+      {showPlanGrid && (
       <div className="grid gap-3 sm:grid-cols-2">
         {paidPlans.map((plan) => {
           const isCurrent = subscribedPaid && currentPlanId === plan.id;
@@ -332,6 +369,7 @@ export function SubscribePanel({
           );
         })}
       </div>
+      )}
 
       <p className="text-xs leading-relaxed text-muted">
         {ko
@@ -578,4 +616,4 @@ export function SubscribePanel({
         })()}
     </section>
   );
-}
+});

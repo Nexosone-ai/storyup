@@ -1,13 +1,15 @@
 "use client";
 
+import { useRef } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { PLANS, planFeatureList, type Plan, type PlanId } from "@/lib/plans";
-import { COMPANY } from "@/lib/company";
+import { COMPANY, bankAccountConfigured } from "@/lib/company";
 import {
   SubscribePanel,
   type BillingState,
+  type SubscribePanelHandle,
 } from "@/components/points/SubscribePanel";
 import { cn } from "@/utils/cn";
 
@@ -36,6 +38,10 @@ export function PlansView({
   const ko = useLocale() === "ko";
   const tel = `tel:${COMPANY.supportPhone.replace(/-/g, "")}`;
   const currentPlan = PLANS.find((p) => p.id === currentPlanId) ?? PLANS[0];
+  const panelRef = useRef<SubscribePanelHandle>(null);
+  // 결제 수단(카드 or 계좌이체) 중 하나라도 준비돼야 구독 가능
+  const canPay = billing.configured || bankAccountConfigured();
+  const subscribedPaid = billing.status === "active" && billing.hasBillingKey;
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
@@ -143,13 +149,24 @@ export function PlansView({
                   >
                     {ko ? "문의하기" : "Contact us"}
                   </a>
+                ) : !canPay ? (
+                  <span className="inline-flex w-full cursor-default items-center justify-center rounded-xl border border-dashed border-border px-4 py-2.5 text-sm font-medium text-muted">
+                    {ko ? "결제 오픈 준비 중" : "Coming soon"}
+                  </span>
                 ) : (
-                  <a
-                    href="#manage"
+                  <button
+                    type="button"
+                    onClick={() => panelRef.current?.openModal(plan.id)}
                     className="neon-glow inline-flex w-full items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary-hover"
                   >
-                    {ko ? "구독하기" : "Subscribe"}
-                  </a>
+                    {subscribedPaid
+                      ? ko
+                        ? "이 플랜으로 변경"
+                        : "Switch plan"
+                      : ko
+                        ? "구독하기"
+                        : "Subscribe"}
+                  </button>
                 )}
               </div>
             </div>
@@ -157,16 +174,16 @@ export function PlansView({
         })}
       </div>
 
-      {/* 구독 시작/변경/해지 */}
-      <div id="manage" className="scroll-mt-6">
-        <SubscribePanel
-          userId={userId}
-          currentPlanId={currentPlanId}
-          billing={billing}
-          customerName={customerName}
-          customerEmail={customerEmail}
-        />
-      </div>
+      {/* 구독 관리(상태·해지) — 플랜 선택은 위 카드가 담당하므로 그리드는 숨긴다 */}
+      <SubscribePanel
+        ref={panelRef}
+        userId={userId}
+        currentPlanId={currentPlanId}
+        billing={billing}
+        customerName={customerName}
+        customerEmail={customerEmail}
+        showPlanGrid={false}
+      />
     </div>
   );
 }
