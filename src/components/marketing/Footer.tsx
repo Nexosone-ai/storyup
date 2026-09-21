@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getDict } from "@/lib/i18n";
 import { companyInfoRows } from "@/lib/company";
+import { InicisMark } from "@/components/marketing/InicisMark";
 
 export async function Footer() {
   const { t } = await getDict();
@@ -61,17 +62,22 @@ export async function Footer() {
           ))}
         </nav>
       </div>
-      {company.length > 0 && (
-        <div className="border-t border-white/10 px-6 py-5 sm:px-8">
-          <p className="mx-auto max-w-6xl text-xs leading-relaxed text-white/40">
-            {company.map(([k, v]) => (
-              <span key={k} className="mr-4 inline-block">
-                <span className="font-medium">{k}</span> {v}
-              </span>
-            ))}
-          </p>
+      <div className="border-t border-white/10 px-6 py-5 sm:px-8">
+        <div className="mx-auto max-w-6xl">
+          {company.length > 0 && (
+            <p className="text-xs leading-relaxed text-white/40">
+              {company.map(([k, v]) => (
+                <span key={k} className="mr-4 inline-block">
+                  <span className="font-medium">{k}</span> {v}
+                </span>
+              ))}
+            </p>
+          )}
+          <div className="mt-4">
+            <InicisMark />
+          </div>
         </div>
-      )}
+      </div>
     </footer>
   );
 }
