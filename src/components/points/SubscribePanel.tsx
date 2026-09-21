@@ -238,8 +238,8 @@ export const SubscribePanel = forwardRef<
             </p>
             <p className="mt-0.5 text-xs text-muted">
               {ko
-                ? `${fmtDate(billing.periodEnd, ko)}까지 Pro 혜택이 유지됩니다. 이후 자동으로 Free 플랜으로 전환돼요 (결제 없음).`
-                : `Pro benefits until ${fmtDate(billing.periodEnd, ko)}. Then you'll move to Free automatically (no charge).`}
+                ? `${fmtDate(billing.periodEnd, ko)}까지 ${getPlanById(currentPlanId).name.ko} 혜택이 유지됩니다. 이후 자동으로 Free 플랜으로 전환돼요 (결제 없음).`
+                : `${getPlanById(currentPlanId).name.en} benefits until ${fmtDate(billing.periodEnd, ko)}. Then you'll move to Free automatically (no charge).`}
             </p>
           </div>
         </Card>
