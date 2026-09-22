@@ -69,7 +69,14 @@ export default async function PayResultPage({
         )}
         <p className="mt-3 text-sm leading-relaxed text-muted">{detail}</p>
 
-        {!ok && (
+        {ok ? (
+          <Link
+            href="/dashboard"
+            className="mt-6 inline-flex w-full items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary-hover"
+          >
+            대시보드로 돌아가기
+          </Link>
+        ) : (
           <Link
             href={retryHref}
             className="mt-6 inline-flex w-full items-center justify-center rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-medium transition hover:bg-surface-muted"

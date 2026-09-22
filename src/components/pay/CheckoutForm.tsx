@@ -6,6 +6,7 @@ import PortOne from "@portone/browser-sdk/v2";
 import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Field";
 import { Spinner } from "@/components/ui/Spinner";
+import { formatPhone } from "@/utils/phone";
 import { createProductOrderAction } from "@/app/pay/actions";
 
 /** 공개 결제 — 로그인 없이 이름·연락처만 입력 후 카드 결제. 금액 결정·검증은 서버에서. */
@@ -98,9 +99,10 @@ export function CheckoutForm({
           type="tel"
           inputMode="numeric"
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={(e) => setPhone(formatPhone(e.target.value))}
           placeholder="010-1234-5678"
           autoComplete="tel"
+          maxLength={13}
         />
       </div>
       <div>

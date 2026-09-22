@@ -16,6 +16,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { Icon } from "@/components/ui/icons";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { PLANS, getPlanById, type PlanId } from "@/lib/plans";
+import { formatPhone } from "@/utils/phone";
 import { BANK_ACCOUNT, bankAccountConfigured } from "@/lib/company";
 import {
   startSubscriptionAction,
@@ -503,9 +504,10 @@ export const SubscribePanel = forwardRef<
                           type="tel"
                           inputMode="numeric"
                           value={buyerPhone}
-                          onChange={(e) => setBuyerPhone(e.target.value)}
+                          onChange={(e) => setBuyerPhone(formatPhone(e.target.value))}
                           placeholder="010-1234-5678"
                           autoComplete="tel"
+                          maxLength={13}
                         />
                       </div>
                     </div>
