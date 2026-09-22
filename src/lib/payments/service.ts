@@ -4,6 +4,7 @@ import {
   cancelPortonePayment,
   PaymentProviderError,
 } from "@/lib/payments/portone";
+import { activateTransferSubscription } from "@/lib/payments/billing";
 import type { PaymentRow } from "@/types/database";
 
 /**
@@ -91,6 +92,13 @@ export async function syncPayment(orderId: string): Promise<SyncResult> {
     // 멱등 적립: 이미 있으면 duplicate key → 무시.
     // 구독 결제(credits=0)는 포인트 적립 대상이 아니다.
     const credited = payment.credits > 0 ? await creditOnce(payment) : 0;
+
+    // 실시간 계좌이체 구독 결제 — PAID 확정 시 구독을 1개월 활성화(멱등).
+    const meta = (payment.metadata as Record<string, unknown> | null) ?? {};
+    if (meta.kind === "subscription" && meta.method === "transfer") {
+      await activateTransferSubscription(payment.order_id);
+    }
+
     const balance = await getBalanceAdmin(payment.user_id);
     return { status: "PAID", credited, balance };
   }

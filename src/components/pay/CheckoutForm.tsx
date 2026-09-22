@@ -30,6 +30,8 @@ export function CheckoutForm({
   const [phone, setPhone] = useState("");
   const [note, setNote] = useState<string | null>(null);
   const [busy, start] = useTransition();
+  // 결제 수단 — 카드 / 간편결제(카카오페이·네이버페이·페이코 등, PG 채널 계약분 노출)
+  const [method, setMethod] = useState<"card" | "easy">("card");
 
   const pay = () =>
     start(async () => {
@@ -54,7 +56,7 @@ export function CheckoutForm({
           orderName: order.orderName,
           totalAmount: order.amount,
           currency: "KRW",
-          payMethod: "CARD",
+          payMethod: method === "easy" ? "EASY_PAY" : "CARD",
           // 모바일 등 리다이렉트 결제수단은 이 URL로 복귀해 서버에서 최종 검증한다.
           redirectUrl: `${window.location.origin}/pay/${slug}/result${
             refCode ? `?ref=${encodeURIComponent(refCode)}` : ""
@@ -82,6 +84,24 @@ export function CheckoutForm({
 
   return (
     <div className="space-y-3">
+      {/* 결제 수단 선택 — 카드 / 간편결제 */}
+      <div className="grid grid-cols-2 gap-2">
+        {(["card", "easy"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMethod(m)}
+            disabled={busy}
+            className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors ${
+              method === m
+                ? "border-primary bg-primary-soft text-primary"
+                : "border-border text-muted hover:border-primary/50"
+            }`}
+          >
+            {m === "card" ? "카드" : "간편결제"}
+          </button>
+        ))}
+      </div>
       <div>
         <Label htmlFor="buyer-name">이름</Label>
         <Input
@@ -119,7 +139,13 @@ export function CheckoutForm({
       </div>
       {note && <p className="text-sm text-danger">{note}</p>}
       <Button className="w-full" onClick={pay} disabled={busy}>
-        {busy ? <Spinner className="size-4" /> : "카드로 결제하기"}
+        {busy ? (
+          <Spinner className="size-4" />
+        ) : method === "easy" ? (
+          "간편결제로 결제하기"
+        ) : (
+          "카드로 결제하기"
+        )}
       </Button>
     </div>
   );

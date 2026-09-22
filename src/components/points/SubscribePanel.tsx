@@ -3,7 +3,9 @@
 import {
   forwardRef,
   useCallback,
+  useEffect,
   useImperativeHandle,
+  useMemo,
   useState,
   useTransition,
 } from "react";
@@ -23,11 +25,15 @@ import {
   cancelSubscriptionAction,
   resumeSubscriptionAction,
   requestBankTransferAction,
+  startTransferSubscriptionAction,
+  confirmTransferSubscriptionAction,
 } from "@/app/dashboard/points/actions";
 
 export interface BillingState {
-  /** 서버에 PortOne 키가 모두 설정됐는지 (미설정이면 버튼 비활성) */
+  /** 서버에 PortOne 빌링(정기결제) 키가 모두 설정됐는지 — 카드 정기결제 가능 여부 */
   configured: boolean;
+  /** 일반결제 채널 설정 여부 — 실시간 계좌이체 가능 여부 */
+  payConfigured?: boolean;
   status: string | null;
   periodEnd: string | null;
   cancelAtPeriodEnd: boolean;
@@ -41,7 +47,7 @@ export interface BillingState {
   } | null;
 }
 
-type PayMethod = "card" | "bank";
+type PayMethod = "card" | "transfer" | "bank";
 
 function fmtDate(iso: string, ko: boolean) {
   return new Date(iso).toLocaleDateString(ko ? "ko-KR" : "en-US", {
@@ -92,10 +98,22 @@ export const SubscribePanel = forwardRef<
   const [buyerPhone, setBuyerPhone] = useState("");
   // 구독하기 클릭 시 뜨는 결제 창(모달)에서 어떤 플랜을 구독할지
   const [modalPlan, setModalPlan] = useState<PlanId | null>(null);
-  // 결제 수단 선택 — 카드결제(PortOne) / 계좌이체(관리자 수동 승인)
+  // 결제 수단 선택 — 카드(정기) / 실시간 계좌이체(즉시 확정) / 계좌이체(수동 승인)
   const [method, setMethod] = useState<PayMethod>("card");
   const [depositor, setDepositor] = useState(customerName);
   const bankReady = bankAccountConfigured();
+  const transferReady = !!billing.payConfigured;
+
+  // 사용 가능한 결제수단 (표시 순서: 카드 → 실시간 계좌이체 → 계좌이체)
+  const availableMethods = useMemo<PayMethod[]>(
+    () => [
+      ...(billing.configured ? (["card"] as const) : []),
+      ...(transferReady ? (["transfer"] as const) : []),
+      ...(bankReady ? (["bank"] as const) : []),
+    ],
+    [billing.configured, transferReady, bankReady],
+  );
+  const noMethod = availableMethods.length === 0;
 
   const paidPlans = PLANS.filter((p) => p.id === "basic" || p.id === "pro");
   // 기간이 지난 active 행(크론 처리 전)은 만료로 취급 — 기준 시각은 마운트 시점 고정
@@ -105,6 +123,25 @@ export const SubscribePanel = forwardRef<
   const active = billing.status === "active" && notExpired;
   const trialing = active && !billing.hasBillingKey;
   const subscribedPaid = active && billing.hasBillingKey;
+
+  // 실시간 계좌이체 리다이렉트 복귀 처리 — ?sub_transfer=<orderId>가 있으면 결제 확정.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const orderId = url.searchParams.get("sub_transfer");
+    if (!orderId) return;
+    url.searchParams.delete("sub_transfer");
+    window.history.replaceState({}, "", url.toString());
+    start(async () => {
+      const res = await confirmTransferSubscriptionAction(orderId);
+      setNote({
+        text: res.error ?? res.message ?? (ko ? "구독이 시작되었습니다." : "Subscription started."),
+        error: !!res.error,
+      });
+      if (!res.error) router.refresh();
+    });
+    // 마운트 시 1회만 — 의존성 불필요
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const subscribe = (planId: PlanId) =>
     start(async () => {
@@ -203,14 +240,81 @@ export const SubscribePanel = forwardRef<
       }
     });
 
+  // 실시간 계좌이체 — PG 결제창에서 즉시 이체하고, 확정 시 구독이 바로 활성화된다.
+  const payTransfer = (planId: PlanId) =>
+    start(async () => {
+      setNote(null);
+      const name = buyerName.trim();
+      const email = buyerEmail.trim();
+      const phone = buyerPhone.replace(/[^0-9]/g, "");
+      if (!name || !email || phone.length < 10) {
+        setNote({
+          text: ko
+            ? "결제자 이름·이메일·휴대폰 번호를 정확히 입력해주세요."
+            : "Please enter the payer's name, email, and phone number.",
+          error: true,
+        });
+        return;
+      }
+      const { order, error } = await startTransferSubscriptionAction(planId);
+      if (error || !order) {
+        setNote({ text: error ?? (ko ? "주문 생성에 실패했습니다." : "Failed to create order."), error: true });
+        return;
+      }
+      try {
+        const res = await PortOne.requestPayment({
+          storeId: order.storeId,
+          channelKey: order.channelKey,
+          paymentId: order.orderId,
+          orderName: order.orderName,
+          totalAmount: order.amount,
+          currency: "KRW",
+          payMethod: "TRANSFER",
+          // 모바일 등 리다이렉트 결제는 이 URL로 복귀해 확정한다(현재 페이지 유지).
+          redirectUrl: `${window.location.origin}${window.location.pathname}?sub_transfer=${encodeURIComponent(order.orderId)}`,
+          customer: {
+            customerId: userId,
+            fullName: name,
+            phoneNumber: phone,
+            email,
+          },
+        });
+        // 팝업(데스크톱) 흐름: 여기서 resolve. code가 있으면 실패/취소.
+        if (res?.code) {
+          setNote({
+            text: res.message ?? (ko ? "결제가 완료되지 않았습니다." : "Payment was not completed."),
+            error: true,
+          });
+          return;
+        }
+        // 서버가 PortOne API로 최종 검증 후 구독 활성화
+        const conf = await confirmTransferSubscriptionAction(order.orderId);
+        setNote({
+          text: conf.error ?? conf.message ?? (ko ? "구독이 시작되었습니다." : "Subscription started."),
+          error: !!conf.error,
+        });
+        if (!conf.error) {
+          setModalPlan(null);
+          router.refresh();
+        }
+      } catch {
+        setNote({
+          text: ko
+            ? "결제 모듈을 불러오지 못했습니다. 잠시 후 다시 시도해주세요."
+            : "Failed to load the payment module. Please try again.",
+          error: true,
+        });
+      }
+    });
+
   const openModal = useCallback(
     (planId: PlanId) => {
       setNote(null);
-      // 카드 설정이 안 됐으면 계좌이체를 기본 선택
-      setMethod(billing.configured ? "card" : "bank");
+      // 사용 가능한 첫 결제수단을 기본 선택 (카드 → 실시간 계좌이체 → 계좌이체)
+      setMethod(availableMethods[0] ?? "bank");
       setModalPlan(planId);
     },
-    [billing.configured],
+    [availableMethods],
   );
 
   // 상위(요금제 카드)에서 결제 모달을 직접 열 수 있도록 노출
@@ -347,16 +451,12 @@ export const SubscribePanel = forwardRef<
               </ul>
               <Button
                 className="mt-auto"
-                disabled={
-                  busy ||
-                  isCurrent ||
-                  (!billing.configured && !bankReady)
-                }
+                disabled={busy || isCurrent || noMethod}
                 onClick={() => openModal(plan.id)}
               >
                 {busy ? (
                   <Spinner className="size-4" />
-                ) : !billing.configured && !bankReady ? (
+                ) : noMethod ? (
                   ko ? "결제 오픈 준비 중" : "Payments coming soon"
                 ) : isCurrent ? (
                   ko ? "이용 중" : "Current plan"
@@ -432,10 +532,15 @@ export const SubscribePanel = forwardRef<
                   </button>
                 </div>
 
-                {/* 결제 수단 선택 — 카드결제 / 계좌이체 (둘 다 가능할 때만 노출) */}
-                {billing.configured && bankReady && (
-                  <div className="mt-4 grid grid-cols-2 gap-2">
-                    {(["card", "bank"] as PayMethod[]).map((m) => (
+                {/* 결제 수단 선택 — 사용 가능한 수단이 2개 이상일 때만 노출 */}
+                {availableMethods.length > 1 && (
+                  <div
+                    className="mt-4 grid gap-2"
+                    style={{
+                      gridTemplateColumns: `repeat(${availableMethods.length}, minmax(0, 1fr))`,
+                    }}
+                  >
+                    {availableMethods.map((m) => (
                       <button
                         key={m}
                         type="button"
@@ -444,7 +549,7 @@ export const SubscribePanel = forwardRef<
                           setNote(null);
                         }}
                         disabled={busy}
-                        className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors ${
+                        className={`rounded-xl border px-2 py-2.5 text-xs font-semibold transition-colors sm:text-sm ${
                           method === m
                             ? "border-primary bg-primary-soft text-primary"
                             : "border-border text-muted hover:border-primary/50"
@@ -454,23 +559,31 @@ export const SubscribePanel = forwardRef<
                           ? ko
                             ? "카드 결제"
                             : "Card"
-                          : ko
-                            ? "계좌이체"
-                            : "Bank transfer"}
+                          : m === "transfer"
+                            ? ko
+                              ? "실시간 계좌이체"
+                              : "Bank (instant)"
+                            : ko
+                              ? "계좌이체"
+                              : "Bank transfer"}
                       </button>
                     ))}
                   </div>
                 )}
 
-                {method === "card" ? (
+                {method !== "bank" ? (
                   <>
                     <p className="mt-4 text-xs leading-relaxed text-muted">
-                      {ko
-                        ? "즉시 1개월분이 결제되고 매월 같은 날 자동 갱신됩니다. 카드 등록을 위해 결제자 정보가 필요합니다."
-                        : "One month is charged now and renews monthly. Your details are needed to register the card."}
+                      {method === "card"
+                        ? ko
+                          ? "즉시 1개월분이 결제되고 매월 같은 날 자동 갱신됩니다. 카드 등록을 위해 결제자 정보가 필요합니다."
+                          : "One month is charged now and renews monthly. Your details are needed to register the card."
+                        : ko
+                          ? "실시간 계좌이체 창에서 은행 인증 후 즉시 1개월분이 결제됩니다. 입금이 확인되면 바로 이용이 시작돼요. (자동 갱신은 되지 않아 매월 다시 결제해야 합니다.)"
+                          : "You'll pay one month instantly via the bank-transfer window. Access starts as soon as it's confirmed. (Does not auto-renew — pay again each month.)"}
                     </p>
 
-                    {/* 결제자 정보 — 카드사 빌링키 발급 필수 항목 */}
+                    {/* 결제자 정보 — PG 결제창 필수 항목 (카드·실시간 계좌이체 공통) */}
                     <div className="mt-4 space-y-3">
                       <div>
                         <Label htmlFor="buyer-name">{ko ? "이름" : "Name"}</Label>
@@ -594,6 +707,20 @@ export const SubscribePanel = forwardRef<
                         "카드 등록하고 결제"
                       ) : (
                         "Register card & pay"
+                      )}
+                    </Button>
+                  ) : method === "transfer" ? (
+                    <Button
+                      className="flex-1"
+                      onClick={() => payTransfer(modalPlan)}
+                      disabled={busy}
+                    >
+                      {busy ? (
+                        <Spinner className="size-4" />
+                      ) : ko ? (
+                        "계좌이체로 결제"
+                      ) : (
+                        "Pay by transfer"
                       )}
                     </Button>
                   ) : (

@@ -6,7 +6,7 @@ import { getSubscriptionOverview, SERVICE_BY_KIND } from "@/lib/subscription";
 import { getServicePrices } from "@/lib/payments/prices";
 import { getSubscriptionRow } from "@/lib/payments/billing";
 import { getPendingBankTransfer } from "@/lib/payments/bankTransfer";
-import { isBillingConfigured } from "@/lib/payments/portone";
+import { isBillingConfigured, isPaymentsConfigured } from "@/lib/payments/portone";
 import { PointsView } from "@/components/points/PointsView";
 
 export const metadata = { title: "포인트" };
@@ -51,6 +51,7 @@ export default async function PointsPage() {
       }}
       billing={{
         configured: isBillingConfigured(),
+        payConfigured: isPaymentsConfigured(),
         status: subRow?.status ?? null,
         periodEnd: subRow?.current_period_end ?? null,
         // 0017 이전 DB에서는 컬럼이 없어 undefined — 안전 기본값으로

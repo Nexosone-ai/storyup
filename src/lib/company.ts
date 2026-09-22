@@ -10,7 +10,7 @@ export const COMPANY = {
   mailOrderNumber: "2026-부산중구-0161", // 통신판매업 신고번호 (2026-09-16 발급)
   address: "부산광역시 중구 해관로 64, 403-제이2호(중앙동4가)",
   supportEmail: "", // 고객 지원 이메일 (확정 후 기재)
-  supportPhone: "070-5100-4329",
+  supportPhone: "010-7106-0015",
 } as const;
 
 /**

@@ -236,6 +236,146 @@ export async function startSubscription(
   return { ok: true };
 }
 
+// ---------------- 실시간 계좌이체 구독 (PG 즉시 확정, 자동갱신 없음) ----------------
+
+export interface TransferOrder {
+  orderId: string; // = PortOne paymentId (sub_…)
+  orderName: string;
+  amount: number;
+  storeId: string;
+  channelKey: string;
+}
+
+/**
+ * 실시간 계좌이체 구독 주문 생성 — 결제창을 열기 직전 PENDING payments 행을 만든다.
+ * 금액은 항상 서버(plans.ts)가 정한다. 결제 확정(PAID) 시 activateTransferSubscription이
+ * 구독을 1개월 활성화한다(빌링키 없음 → 만기 시 크론이 종료, 매월 수동 재결제).
+ */
+export async function createTransferSubscriptionOrder(
+  userId: string,
+  planId: PlanId,
+): Promise<{ order?: TransferOrder; error?: string }> {
+  if (!PAID_PLANS.includes(planId))
+    return { error: "구독할 수 없는 플랜입니다." };
+
+  const storeId = process.env.NEXT_PUBLIC_PORTONE_STORE_ID;
+  // 실시간 계좌이체는 '일반결제' 채널을 쓴다 (빌링/정기결제 채널과 별개).
+  const channelKey = process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY;
+  if (!storeId || !channelKey || !process.env.PORTONE_API_SECRET)
+    return { error: "결제 설정이 완료되지 않았습니다. 잠시 후 다시 시도해주세요." };
+
+  const plan = getPlanById(planId);
+  if (plan.priceKrw === null || plan.priceKrw <= 0)
+    return { error: "결제형 플랜이 아닙니다." };
+
+  const orderId = `sub_${randomUUID()}`;
+  const orderName = `STORYUP ${plan.name.ko} 플랜 (월)`;
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("payments").insert({
+    user_id: userId,
+    order_id: orderId,
+    amount: plan.priceKrw,
+    currency: "KRW",
+    credits: 0,
+    bonus_credits: 0,
+    status: "PENDING",
+    metadata: {
+      kind: "subscription",
+      plan: planId,
+      reason: "transfer_subscribe",
+      method: "transfer",
+    },
+  });
+  if (error) {
+    console.error("[billing] transfer order insert failed", userId, error);
+    return { error: "주문 생성에 실패했습니다. 잠시 후 다시 시도해주세요." };
+  }
+
+  return {
+    order: { orderId, orderName, amount: plan.priceKrw, storeId, channelKey },
+  };
+}
+
+/**
+ * 실시간 계좌이체 구독 활성화 — 결제가 PAID로 확정됐을 때만 호출된다(웹훅·결과확인 공용).
+ * 멱등: payments.metadata.sub_activated 플래그로 중복 활성화를 막는다.
+ * 카드 구독과 달리 billing_key가 없으므로 만기 시 크론이 자동 종료한다.
+ */
+export async function activateTransferSubscription(
+  orderId: string,
+): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: payment } = await admin
+      .from("payments")
+      .select("id, user_id, status, metadata")
+      .eq("order_id", orderId)
+      .maybeSingle();
+    if (!payment || payment.status !== "PAID") return;
+
+    const meta = (payment.metadata as Record<string, unknown> | null) ?? {};
+    if (meta.kind !== "subscription" || meta.method !== "transfer") return;
+    if (meta.sub_activated) return; // 이미 활성화됨
+
+    const planId = meta.plan as PlanId;
+    if (!PAID_PLANS.includes(planId)) return;
+    const userId = payment.user_id as string;
+
+    const { data: sub } = await admin
+      .from("subscriptions")
+      .select("current_period_end")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    const { error: subErr } = await admin.from("subscriptions").upsert(
+      {
+        user_id: userId,
+        plan: planId,
+        status: "active",
+        // 기존 기간이 남아 있으면 이어서 +1개월, 없으면 지금부터 1개월
+        current_period_end: addOneMonth(sub?.current_period_end ?? null),
+        billing_key: null, // 계좌이체는 정기결제가 아님 — 만기 시 크론이 종료
+        cancel_at_period_end: false,
+        billing_failures: 0,
+        trial: false,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
+    if (subErr) {
+      console.error("[billing] transfer sub upsert failed AFTER paid", userId, subErr);
+      return; // 플래그 미기록 → 웹훅 재시도 시 다시 시도
+    }
+
+    // 활성화 완료 표시 (멱등 가드)
+    await admin
+      .from("payments")
+      .update({
+        metadata: { ...meta, sub_activated: true, activated_at: new Date().toISOString() },
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", payment.id);
+
+    // 마케터 수당 + 추천인 전환 보상 (각자 멱등, 실패 무시).
+    // 월 UP 지급 정책 폐지로 구독 결제는 포인트를 자동 지급하지 않는다(카드 구독과 동일).
+    const plan = getPlanById(planId);
+    await accrueSubscriptionCommission({
+      paymentId: payment.id as string,
+      clientUserId: userId,
+      planId,
+      amount: plan.priceKrw ?? 0,
+    });
+    try {
+      await markReferralPaidConversion(userId);
+    } catch {
+      /* 보상 실패는 활성화에 영향 없음 */
+    }
+  } catch (err) {
+    console.error("[billing] activateTransferSubscription error", orderId, err);
+  }
+}
+
 /** 해지 예약 — 남은 기간은 유지, 다음 결제만 중단. */
 export async function cancelAtPeriodEnd(userId: string): Promise<BillingResult> {
   const admin = createAdminClient();

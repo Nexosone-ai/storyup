@@ -4,7 +4,7 @@ import { getUser, getProfileName } from "@/lib/queries";
 import { getPlanId } from "@/lib/subscription";
 import { getSubscriptionRow } from "@/lib/payments/billing";
 import { getPendingBankTransfer } from "@/lib/payments/bankTransfer";
-import { isBillingConfigured } from "@/lib/payments/portone";
+import { isBillingConfigured, isPaymentsConfigured } from "@/lib/payments/portone";
 import { PlansView } from "@/components/plans/PlansView";
 
 export const metadata: Metadata = { title: "구독 플랜" };
@@ -26,6 +26,7 @@ export default async function PlansPage() {
       currentPlanId={planId}
       billing={{
         configured: isBillingConfigured(),
+        payConfigured: isPaymentsConfigured(),
         status: subRow?.status ?? null,
         periodEnd: subRow?.current_period_end ?? null,
         // 0017 이전 DB에서는 컬럼이 없어 undefined — 안전 기본값으로

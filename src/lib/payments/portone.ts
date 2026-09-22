@@ -77,6 +77,18 @@ export function isBillingConfigured(): boolean {
   );
 }
 
+/**
+ * 일반결제(1회성) 준비 여부 — 실시간 계좌이체·간편결제 등 결제창 호출 가능 여부.
+ * 빌링(정기)과 달리 '일반결제 채널키'가 필요하다.
+ */
+export function isPaymentsConfigured(): boolean {
+  return !!(
+    process.env.PORTONE_API_SECRET &&
+    process.env.NEXT_PUBLIC_PORTONE_STORE_ID &&
+    process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY
+  );
+}
+
 /** 빌링키로 결제 요청 (정기결제 1회분 청구). paymentId = 우리 order_id. */
 export async function payWithBillingKey(args: {
   paymentId: string;
