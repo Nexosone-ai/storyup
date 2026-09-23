@@ -12,7 +12,7 @@ export function InicisMark() {
       className="inline-flex cursor-pointer border-0 bg-transparent p-0"
       onClick={() =>
         window.open(
-          "https://mark.inicis.com/mark/popup_v3.php?mid=MOI6751306",
+          "https://mark.inicis.com/mark/popup_v3.php?mid=MOI7471820",
           "mark",
           "scrollbars=no,resizable=no,width=565,height=683",
         )
@@ -20,7 +20,7 @@ export function InicisMark() {
     >
       {/* eslint-disable-next-line @next/next/no-img-element -- 이니시스 제공 외부 인증 마크 */}
       <img
-        src="https://image.inicis.com/mkt/certmark/inipay/inipay_43x43_gray.png"
+        src="https://image.inicis.com/mkt/certmark/inipay/inipay_43x43_color.png"
         width={43}
         height={43}
         alt="클릭하시면 이니시스 결제시스템의 유효성을 확인하실 수 있습니다."

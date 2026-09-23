@@ -63,9 +63,9 @@ export async function Footer() {
         </nav>
       </div>
       <div className="border-t border-white/10 px-6 py-5 sm:px-8">
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
           {company.length > 0 && (
-            <p className="text-xs leading-relaxed text-white/40">
+            <p className="min-w-0 flex-1 text-xs leading-relaxed text-white/40">
               {company.map(([k, v]) => (
                 <span key={k} className="mr-4 inline-block">
                   <span className="font-medium">{k}</span> {v}
@@ -73,7 +73,7 @@ export async function Footer() {
               ))}
             </p>
           )}
-          <div className="mt-4">
+          <div className="shrink-0">
             <InicisMark />
           </div>
         </div>
