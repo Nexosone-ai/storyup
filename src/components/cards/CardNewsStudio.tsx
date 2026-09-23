@@ -95,6 +95,8 @@ export function CardNewsStudio({
   const [imgBusy, setImgBusy] = useState(false);
   const [imgProgress, setImgProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  // 공유 후 안내(PC에서 이미지 다운로드·작성창 안내, 링크 복사 완료 등)
+  const [shareMsg, setShareMsg] = useState<string | null>(null);
 
   const igRefs = useRef<Array<HTMLDivElement | null>>([]);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -246,72 +248,91 @@ export function CardNewsStudio({
   // 빠진 채 올라가는 실수를 막기 위해 저장 전에 확인한다.
   const missingCount = cards.filter((_, i) => !images[i]).length;
 
-  const downloadAll = () => {
+  const guardMissing = () =>
+    missingCount === 0 ||
+    confirm(
+      ko
+        ? `배경 사진이 없는 카드가 ${missingCount}장 있어요.\n'AI 이미지로 배경 채우기'를 누르거나 카드마다 '사진 올리기'로 채우는 걸 추천해요.\n\n그래도 지금 그대로 진행할까요?`
+        : `${missingCount} card(s) have no background image.\nWe recommend pressing 'Fill backgrounds with AI' or uploading a photo per card first.\n\nProceed anyway?`,
+    );
+
+  /** 모든 카드를 실제 크기(1080×1350) PNG 파일로 렌더한다. */
+  const renderCardFiles = async (): Promise<File[]> => {
+    const files: File[] = [];
+    for (let i = 0; i < igRefs.current.length; i++) {
+      const blob = await nodeToBlob(igRefs.current[i]);
+      if (blob) {
+        files.push(
+          new File(
+            [blob],
+            `${slugName()}-card-${String(i + 1).padStart(2, "0")}.png`,
+            { type: "image/png" },
+          ),
+        );
+      }
+      // 렌더 사이 짧은 양보 — 무거운 캔버스 작업으로 UI가 얼지 않게
+      await new Promise((r) => setTimeout(r, 30));
+    }
+    return files;
+  };
+
+  /** PC: 전체를 ZIP 한 파일로 묶어 단일 다운로드 (다중 다운로드 차단 회피). */
+  const downloadZip = async (files: File[]) => {
+    const JSZip = (await import("jszip")).default;
+    const zip = new JSZip();
+    for (const f of files) zip.file(f.name, f);
+    const zipBlob = await zip.generateAsync({ type: "blob" });
+    saveBlob(zipBlob, `${slugName()}-cardnews.zip`);
+  };
+
+  /**
+   * 휴대폰·태블릿: 카드 이미지 파일을 네이티브 공유 시트로 넘긴다.
+   * 로그인돼 있는 앱(인스타그램·X·페이스북·카톡 등)을 골라 이미지가 첨부된 채 올린다.
+   * 공유했거나(사용자 취소 포함) 처리됐으면 true, 네이티브 공유 미지원이면 false.
+   */
+  const tryNativeShare = async (
+    files: File[],
+    text?: string,
+  ): Promise<boolean> => {
+    const nav = navigator as Navigator & {
+      canShare?: (data?: ShareData) => boolean;
+    };
+    const isTouch =
+      typeof navigator !== "undefined" &&
+      (navigator.maxTouchPoints > 0 ||
+        /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
     if (
-      missingCount > 0 &&
-      !confirm(
-        ko
-          ? `배경 사진이 없는 카드가 ${missingCount}장 있어요.\n'AI 이미지로 배경 채우기'를 누르거나 카드마다 '사진 올리기'로 채우는 걸 추천해요.\n\n그래도 지금 그대로 다운로드할까요?`
-          : `${missingCount} card(s) have no background image.\nWe recommend pressing 'Fill backgrounds with AI' or uploading a photo per card first.\n\nDownload as-is anyway?`,
-      )
+      !isTouch ||
+      typeof nav.share !== "function" ||
+      !nav.canShare?.({ files })
     )
-      return;
+      return false;
+    try {
+      await nav.share({
+        files,
+        title: ko ? "카드뉴스" : "Card news",
+        ...(text ? { text } : {}),
+      });
+      return true;
+    } catch (e) {
+      // 사용자가 취소하면 처리된 것으로 간주(중복 다운로드 방지)
+      if (e instanceof DOMException && e.name === "AbortError") return true;
+      return false;
+    }
+  };
+
+  const downloadAll = () => {
+    if (!guardMissing()) return;
     void withBusy(async () => {
-      // 1) 모든 카드를 실제 크기 PNG 파일로 렌더
-      const files: File[] = [];
-      for (let i = 0; i < igRefs.current.length; i++) {
-        const blob = await nodeToBlob(igRefs.current[i]);
-        if (blob) {
-          files.push(
-            new File(
-              [blob],
-              `${slugName()}-card-${String(i + 1).padStart(2, "0")}.png`,
-              { type: "image/png" },
-            ),
-          );
-        }
-        // 렌더 사이 짧은 양보 — 무거운 캔버스 작업으로 UI가 얼지 않게
-        await new Promise((r) => setTimeout(r, 30));
-      }
-      if (files.length === 0) {
-        throw new Error("no cards");
-      }
-
-      // 2) 휴대폰·태블릿: 네이티브 공유로 한 번에 → '사진(갤러리)에 저장' 가능
-      const nav = navigator as Navigator & {
-        canShare?: (data?: ShareData) => boolean;
-      };
-      const isTouch =
-        typeof navigator !== "undefined" &&
-        (navigator.maxTouchPoints > 0 ||
-          /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
-      if (
-        isTouch &&
-        typeof nav.share === "function" &&
-        nav.canShare?.({ files })
-      ) {
-        try {
-          await nav.share({
-            files,
-            title: ko ? "카드뉴스" : "Card news",
-          });
-          return;
-        } catch (e) {
-          // 사용자가 취소하면 그대로 종료, 그 외 오류는 ZIP으로 폴백
-          if (e instanceof DOMException && e.name === "AbortError") return;
-        }
-      }
-
-      // 3) PC 등: 전체를 ZIP 한 파일로 묶어 단일 다운로드 (다중 다운로드 차단 회피)
-      const JSZip = (await import("jszip")).default;
-      const zip = new JSZip();
-      for (const f of files) zip.file(f.name, f);
-      const zipBlob = await zip.generateAsync({ type: "blob" });
-      saveBlob(zipBlob, `${slugName()}-cardnews.zip`);
+      const files = await renderCardFiles();
+      if (files.length === 0) throw new Error("no cards");
+      // 휴대폰: 네이티브 공유(→ '사진(갤러리)에 저장' 가능), 아니면 ZIP 다운로드
+      if (await tryNativeShare(files)) return;
+      await downloadZip(files);
     });
   };
 
-  // 공유 대상: 선택한 글이 공개됐으면 그 글, 아니면 공개된 랜딩페이지.
+  // 공유 대상 링크: 선택한 글이 공개됐으면 그 글, 아니면 공개된 랜딩페이지.
   const selectedPost = posts.find((p) => p.id === postId);
   const sharePath = !siteSlug
     ? null
@@ -319,26 +340,70 @@ export function CardNewsStudio({
       ? `/site/${siteSlug}/blog/${selectedPost.slug}`
       : `/site/${siteSlug}`;
 
-  const openShare = (channel: "x" | "facebook") => {
-    if (!sharePath || !data) return;
-    trackEvent({ slug: siteSlug!, event: "share", path: sharePath, channel });
-    // 성장 보상 — 서버에서 본인 확인 후 기록 (실패 무시)
-    void recordShareAction(channel);
+  /**
+   * 카드 이미지를 SNS로 공유한다 (블로그 링크가 아니라 카드 이미지 자체를).
+   * - 휴대폰: 네이티브 공유 시트 → 로그인된 인스타/X/페북 앱 선택해 바로 게시.
+   * - PC: 카드 이미지를 ZIP로 내려받고 해당 플랫폼 작성창을 연다(사용자가 첨부).
+   *   인스타그램은 웹 게시 API가 없어 다운로드 + 휴대폰 앱 안내만 한다.
+   */
+  const shareCards = (channel: "instagram" | "x" | "facebook") => {
+    if (!guardMissing()) return;
+    setShareMsg(null);
+    void withBusy(async () => {
+      const files = await renderCardFiles();
+      if (files.length === 0) throw new Error("no cards");
+      // 성장 보상 + (가능하면) 공유 이벤트 트래킹 — 실패는 무시
+      void recordShareAction(channel);
+      if (siteSlug)
+        trackEvent({
+          slug: siteSlug,
+          event: "share",
+          path: sharePath ?? `/site/${siteSlug}`,
+          channel: `card_${channel}`,
+        });
+      // 1) 휴대폰: 네이티브 공유로 카드 이미지 첨부 (로그인된 앱 선택)
+      if (await tryNativeShare(files, data?.cover.title)) return;
+      // 2) PC: 이미지 다운로드 + 작성창 열기
+      await downloadZip(files);
+      if (channel === "instagram") {
+        setShareMsg(
+          ko
+            ? "카드 이미지를 내려받았어요. 인스타그램은 웹 게시가 안 돼서, 휴대폰 인스타그램 앱에서 이미지를 올려주세요."
+            : "Cards downloaded. Instagram has no web posting — upload the images from the Instagram mobile app.",
+        );
+        return;
+      }
+      const target =
+        channel === "x"
+          ? `https://twitter.com/intent/tweet?text=${encodeURIComponent(data?.cover.title ?? "")}`
+          : "https://www.facebook.com/";
+      window.open(target, "_blank", "noopener");
+      setShareMsg(
+        ko
+          ? "카드 이미지를 내려받았어요. 열린 창에서 내려받은 이미지를 첨부해 올려주세요."
+          : "Cards downloaded. Attach the downloaded images in the window that opened.",
+      );
+    });
+  };
+
+  /** 링크 공유(별도 유지) — 블로그/랜딩 링크를 복사한다. */
+  const copyLink = async () => {
+    if (!sharePath) return;
     const url = `${window.location.origin}${sharePath}`;
-    const target =
-      channel === "x"
-        ? (() => {
-            const u = new URL("https://twitter.com/intent/tweet");
-            u.searchParams.set("url", url);
-            u.searchParams.set("text", data.cover.title);
-            return u.toString();
-          })()
-        : (() => {
-            const u = new URL("https://www.facebook.com/sharer/sharer.php");
-            u.searchParams.set("u", url);
-            return u.toString();
-          })();
-    window.open(target, "_blank", "noopener,width=600,height=500");
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareMsg(ko ? "링크를 복사했어요." : "Link copied.");
+    } catch {
+      setShareMsg(url);
+    }
+    void recordShareAction("link");
+    if (siteSlug)
+      trackEvent({
+        slug: siteSlug,
+        event: "share",
+        path: sharePath,
+        channel: "link",
+      });
   };
 
   if (posts.length === 0) {
@@ -454,36 +519,59 @@ export function CardNewsStudio({
                   )}
                   {ko ? "전체 PNG 다운로드" : "Download all PNGs"}
                 </Button>
-                {sharePath ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => openShare("x")}
-                      aria-label={ko ? "X에 공유" : "Share on X"}
-                      title={ko ? "X에 공유" : "Share on X"}
-                      className="grid size-8 place-items-center rounded-full border border-border text-foreground transition-colors hover:border-primary/50 hover:text-primary"
-                    >
-                      <Icon.xBrand width={15} height={15} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => openShare("facebook")}
-                      aria-label={ko ? "Facebook에 공유" : "Share on Facebook"}
-                      title={ko ? "Facebook에 공유" : "Share on Facebook"}
-                      className="grid size-8 place-items-center rounded-full border border-border text-foreground transition-colors hover:border-primary/50 hover:text-primary"
-                    >
-                      <Icon.facebookBrand width={16} height={16} />
-                    </button>
-                  </>
-                ) : (
-                  <span className="text-xs text-muted">
-                    {ko
-                      ? "랜딩페이지를 공개하면 X·Facebook으로 바로 공유할 수 있어요."
-                      : "Publish your landing page to share straight to X and Facebook."}
-                  </span>
+                {/* 카드 이미지를 SNS로 공유 — 블로그 링크가 아니라 카드 이미지 자체. */}
+                <button
+                  type="button"
+                  onClick={() => shareCards("instagram")}
+                  disabled={busy}
+                  aria-label={ko ? "인스타그램에 카드 공유" : "Share cards to Instagram"}
+                  title={ko ? "인스타그램에 카드 공유" : "Share cards to Instagram"}
+                  className="grid size-8 place-items-center rounded-full border border-border text-foreground transition-colors hover:border-primary/50 hover:text-primary disabled:opacity-50"
+                >
+                  <Icon.instagramBrand width={16} height={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => shareCards("x")}
+                  disabled={busy}
+                  aria-label={ko ? "X에 카드 공유" : "Share cards to X"}
+                  title={ko ? "X에 카드 공유" : "Share cards to X"}
+                  className="grid size-8 place-items-center rounded-full border border-border text-foreground transition-colors hover:border-primary/50 hover:text-primary disabled:opacity-50"
+                >
+                  <Icon.xBrand width={15} height={15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => shareCards("facebook")}
+                  disabled={busy}
+                  aria-label={ko ? "Facebook에 카드 공유" : "Share cards to Facebook"}
+                  title={ko ? "Facebook에 카드 공유" : "Share cards to Facebook"}
+                  className="grid size-8 place-items-center rounded-full border border-border text-foreground transition-colors hover:border-primary/50 hover:text-primary disabled:opacity-50"
+                >
+                  <Icon.facebookBrand width={16} height={16} />
+                </button>
+                {sharePath && (
+                  <button
+                    type="button"
+                    onClick={copyLink}
+                    aria-label={ko ? "글 링크 복사" : "Copy post link"}
+                    title={ko ? "글 링크 복사" : "Copy post link"}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border px-3 text-xs font-medium text-muted transition-colors hover:border-primary/50 hover:text-primary"
+                  >
+                    <Icon.link width={14} height={14} />
+                    {ko ? "링크 복사" : "Copy link"}
+                  </button>
                 )}
               </div>
             </div>
+            <p className="text-xs leading-relaxed text-muted">
+              {ko
+                ? "SNS 아이콘을 누르면 블로그 글이 아니라 카드 이미지가 공유돼요. 휴대폰에서는 공유 창에서 로그인된 앱(인스타그램·X·페북)을 골라 바로 올리고, PC에서는 이미지가 내려받아지며 작성창이 열립니다. (인스타그램 게시는 휴대폰 앱에서만 가능)"
+                : "The SNS icons share the card images (not the blog link). On phones, pick a logged-in app (Instagram/X/Facebook) in the share sheet; on desktop the images download and the composer opens. (Instagram posting works from the mobile app only.)"}
+            </p>
+            {shareMsg && (
+              <p className="text-xs font-medium text-primary">{shareMsg}</p>
+            )}
 
             {missingCount > 0 && (
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3">
