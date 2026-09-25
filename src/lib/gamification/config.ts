@@ -8,50 +8,33 @@ import { createAdminClient } from "@/lib/supabase/server";
 export interface RewardRule {
   /** 지급 UP (기존 포인트 원장과 동일 화폐) */
   up: number;
-  /** 지급 XP (소비 불가 누적치) */
-  xp: number;
   /** 하루 최대 지급 횟수 (삭제 후 재생성 등 반복 악용 방지). 없으면 무제한 */
   dailyCap?: number;
 }
 
 /** 행동별 보상 규칙 기본값 */
 export const DEFAULT_RULES: Record<string, RewardRule> = {
-  signup: { up: 300, xp: 100 },
-  brand_profile: { up: 100, xp: 100, dailyCap: 2 },
-  site_created: { up: 200, xp: 200, dailyCap: 2 },
-  site_updated: { up: 20, xp: 30, dailyCap: 1 },
-  blog_created: { up: 30, xp: 50, dailyCap: 3 },
-  blog_published: { up: 50, xp: 80, dailyCap: 3 },
-  card_created: { up: 20, xp: 30, dailyCap: 3 },
-  share: { up: 30, xp: 20, dailyCap: 2 },
-  ref_invite: { up: 100, xp: 50 }, // 초대 링크 최초 복사 1회 (발송 검증 불가 → 1회 한정)
-  ref_signup: { up: 300, xp: 300 },
-  ref_paid: { up: 1000, xp: 500 },
-  daily_clear: { up: 100, xp: 100 },
-  weekly_quest: { up: 500, xp: 500 },
-  streak_3: { up: 50, xp: 50 },
-  streak_7: { up: 100, xp: 100 },
-  streak_14: { up: 200, xp: 200 },
-  streak_30: { up: 500, xp: 500 },
-  streak_100: { up: 1000, xp: 1000 },
-  achievement: { up: 0, xp: 100 }, // 업적 공통 기본 (개별 업적이 오버라이드)
-  surprise: { up: 300, xp: 0 },
+  signup: { up: 300 },
+  brand_profile: { up: 100, dailyCap: 2 },
+  site_created: { up: 200, dailyCap: 2 },
+  site_updated: { up: 20, dailyCap: 1 },
+  blog_created: { up: 30, dailyCap: 3 },
+  blog_published: { up: 50, dailyCap: 3 },
+  card_created: { up: 20, dailyCap: 3 },
+  share: { up: 30, dailyCap: 2 },
+  ref_invite: { up: 100 }, // 초대 링크 최초 복사 1회 (발송 검증 불가 → 1회 한정)
+  ref_signup: { up: 300 },
+  ref_paid: { up: 1000 },
+  daily_clear: { up: 100 },
+  weekly_quest: { up: 500 },
+  streak_3: { up: 50 },
+  streak_7: { up: 100 },
+  streak_14: { up: 200 },
+  streak_30: { up: 500 },
+  streak_100: { up: 1000 },
+  achievement: { up: 0 }, // 업적 공통 기본 (개별 업적이 오버라이드)
+  surprise: { up: 300 },
 };
-
-export interface LevelDef {
-  xp: number;
-  name: string;
-}
-
-/** XP 레벨 기준 (오름차순) */
-export const DEFAULT_LEVELS: LevelDef[] = [
-  { xp: 0, name: "Starter" },
-  { xp: 1000, name: "Creator" },
-  { xp: 3000, name: "Storyteller" },
-  { xp: 10000, name: "Builder" },
-  { xp: 30000, name: "Influencer" },
-  { xp: 100000, name: "Story Master" },
-];
 
 export interface MissionDef {
   code: string;
@@ -103,7 +86,6 @@ export const DEFAULT_SURPRISE = {
   /** 활동 1건당 당첨 확률 (0~1) */
   chance: 0.03,
   up: 300,
-  xp: 0,
   /** 1인당 하루 최대 당첨 횟수 */
   dailyMax: 1,
 };
@@ -112,7 +94,6 @@ export const STREAK_MILESTONES = [3, 7, 14, 30, 100] as const;
 
 export interface GamificationSettings {
   rules: Record<string, RewardRule>;
-  levels: LevelDef[];
   missions: MissionDef[];
   weeklyQuest: QuestItemDef[];
   scoreWeights: typeof DEFAULT_SCORE_WEIGHTS;
@@ -121,7 +102,6 @@ export interface GamificationSettings {
 
 export const DEFAULT_SETTINGS: GamificationSettings = {
   rules: DEFAULT_RULES,
-  levels: DEFAULT_LEVELS,
   missions: DEFAULT_MISSIONS,
   weeklyQuest: DEFAULT_WEEKLY_QUEST,
   scoreWeights: DEFAULT_SCORE_WEIGHTS,
@@ -131,7 +111,6 @@ export const DEFAULT_SETTINGS: GamificationSettings = {
 /** reward_settings의 key ↔ 설정 필드 매핑 */
 export const SETTING_KEYS = {
   rules: "rules",
-  levels: "levels",
   missions: "missions",
   weeklyQuest: "weekly_quest",
   scoreWeights: "score_weights",
@@ -155,9 +134,6 @@ export async function loadSettings(): Promise<GamificationSettings> {
         case SETTING_KEYS.rules:
           // 규칙은 코드 기본값 위에 키 단위 병합 (새 규칙이 코드에 추가돼도 유지)
           merged.rules = { ...merged.rules, ...(v as Record<string, RewardRule>) };
-          break;
-        case SETTING_KEYS.levels:
-          if (Array.isArray(v) && v.length) merged.levels = v as LevelDef[];
           break;
         case SETTING_KEYS.missions:
           if (Array.isArray(v) && v.length) merged.missions = v as MissionDef[];
@@ -183,38 +159,4 @@ export async function loadSettings(): Promise<GamificationSettings> {
 /** Admin 저장 직후 등 캐시 무효화 */
 export function invalidateSettingsCache() {
   cache = null;
-}
-
-// ---------- 레벨 계산 ----------
-
-export interface LevelInfo {
-  level: number; // 1부터
-  name: string;
-  xp: number;
-  currentFloor: number;
-  /** 다음 레벨 기준 XP. null = 최고 레벨 */
-  nextAt: number | null;
-  nextName: string | null;
-  /** 현재 구간 진행률 0~100 */
-  progress: number;
-}
-
-export function levelForXp(xp: number, levels: LevelDef[]): LevelInfo {
-  const sorted = [...levels].sort((a, b) => a.xp - b.xp);
-  let idx = 0;
-  for (let i = 0; i < sorted.length; i++) if (xp >= sorted[i].xp) idx = i;
-  const cur = sorted[idx];
-  const next = sorted[idx + 1] ?? null;
-  const progress = next
-    ? Math.min(100, Math.round(((xp - cur.xp) / (next.xp - cur.xp)) * 100))
-    : 100;
-  return {
-    level: idx + 1,
-    name: cur.name,
-    xp,
-    currentFloor: cur.xp,
-    nextAt: next?.xp ?? null,
-    nextName: next?.name ?? null,
-    progress,
-  };
 }

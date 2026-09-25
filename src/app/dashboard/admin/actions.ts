@@ -461,11 +461,10 @@ export interface UserGrowthLookup {
   name?: string;
   email?: string;
   balance?: number;
-  xp?: number;
   streak?: number;
   achievements?: number;
   referrals?: number;
-  recentRewards?: { rule: string; up: number; xp: number; created_at: string }[];
+  recentRewards?: { rule: string; up: number; created_at: string }[];
 }
 
 /** 사용자 성장 상태 조회 (UP·XP·스트릭·업적·추천). */
@@ -483,10 +482,9 @@ export async function lookupUserGrowthAction(
     .maybeSingle();
   if (!profile) return { error: "해당 이메일의 사용자를 찾을 수 없습니다." };
 
-  const [breakdown, xpRow, streakRow, achCount, refCount, recent] =
+  const [breakdown, streakRow, achCount, refCount, recent] =
     await Promise.all([
       getPointBreakdown(profile.user_id),
-      adminc.from("user_xp").select("xp").eq("user_id", profile.user_id).maybeSingle(),
       adminc
         .from("user_streaks")
         .select("current")
@@ -502,7 +500,7 @@ export async function lookupUserGrowthAction(
         .eq("referrer_user_id", profile.user_id),
       adminc
         .from("reward_events")
-        .select("rule,up,xp,created_at")
+        .select("rule,up,created_at")
         .eq("user_id", profile.user_id)
         .order("created_at", { ascending: false })
         .limit(10),
@@ -512,7 +510,6 @@ export async function lookupUserGrowthAction(
     name: profile.name ?? "이름 없음",
     email: profile.email ?? email,
     balance: breakdown.balance,
-    xp: xpRow.data?.xp ?? 0,
     streak: streakRow.data?.current ?? 0,
     achievements: achCount.count ?? 0,
     referrals: refCount.count ?? 0,

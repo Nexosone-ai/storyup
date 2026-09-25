@@ -1133,6 +1133,28 @@ export interface Database {
         >;
         Relationships: [];
       };
+      integrity_reports: {
+        Row: {
+          id: string;
+          created_at: string;
+          source: string;
+          ok: boolean;
+          issues: number;
+          report: Json;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          source?: string;
+          ok: boolean;
+          issues?: number;
+          report: Json;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["integrity_reports"]["Insert"]
+        >;
+        Relationships: [];
+      };
       usage_events: {
         Row: {
           id: string;
@@ -1176,7 +1198,6 @@ export interface Database {
           reward_key: string;
           rule: string;
           up: number;
-          xp: number;
           meta: Json | null;
           created_at: string;
         };
@@ -1186,25 +1207,10 @@ export interface Database {
           reward_key: string;
           rule: string;
           up?: number;
-          xp?: number;
           meta?: Json | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["reward_events"]["Insert"]>;
-        Relationships: [];
-      };
-      user_xp: {
-        Row: {
-          user_id: string;
-          xp: number;
-          updated_at: string;
-        };
-        Insert: {
-          user_id: string;
-          xp?: number;
-          updated_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["user_xp"]["Insert"]>;
         Relationships: [];
       };
       activity_events: {
@@ -1371,6 +1377,10 @@ export interface Database {
           p_reason: string;
         };
         Returns: boolean;
+      };
+      integrity_report: {
+        Args: Record<string, never>;
+        Returns: Json;
       };
     };
     Enums: Record<string, never>;

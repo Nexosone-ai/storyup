@@ -64,7 +64,7 @@ export function GrowthSection({
   return (
     <div className="space-y-6">
       {/* ---- 상단 상태 스트립 ---- */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Card className="space-y-1">
           <p className="eyebrow">Story Streak</p>
           <p className="text-2xl font-bold tracking-tight">
@@ -102,22 +102,6 @@ export function GrowthSection({
           >
             {ko ? "UP 지갑 보기 →" : "Open UP wallet →"}
           </Link>
-        </Card>
-        <Card className="space-y-1">
-          <p className="eyebrow">Level</p>
-          <p className="text-2xl font-bold tracking-tight">
-            ⭐ {g.level.name}
-          </p>
-          <Bar pct={g.level.progress} />
-          <p className="tnum text-xs text-muted">
-            {g.level.nextAt === null
-              ? ko
-                ? `${g.xp.toLocaleString()} XP · 최고 레벨`
-                : `${g.xp.toLocaleString()} XP · Max level`
-              : ko
-                ? `${g.xp.toLocaleString()} XP · ${g.level.nextName}까지 ${(g.level.nextAt - g.xp).toLocaleString()} XP`
-                : `${g.xp.toLocaleString()} XP · ${(g.level.nextAt - g.xp).toLocaleString()} XP to ${g.level.nextName}`}
-          </p>
         </Card>
       </div>
 
@@ -170,7 +154,7 @@ export function GrowthSection({
                   </span>
                 </span>
                 <span className="tnum shrink-0 text-xs font-medium text-primary">
-                  +{m.reward.up} UP / +{m.reward.xp} XP
+                  +{m.reward.up} UP
                 </span>
               </li>
             ))}
@@ -228,9 +212,9 @@ export function GrowthSection({
             🎁{" "}
             {g.weeklyCleared
               ? ko
-                ? `WEEKLY BONUS +${g.weeklyReward.up} UP / +${g.weeklyReward.xp} XP 지급 완료`
-                : `WEEKLY BONUS +${g.weeklyReward.up} UP / +${g.weeklyReward.xp} XP granted`
-              : `WEEKLY BONUS +${g.weeklyReward.up} UP / +${g.weeklyReward.xp} XP`}
+                ? `WEEKLY BONUS +${g.weeklyReward.up} UP 지급 완료`
+                : `WEEKLY BONUS +${g.weeklyReward.up} UP granted`
+              : `WEEKLY BONUS +${g.weeklyReward.up} UP`}
           </div>
         </Card>
 
@@ -331,8 +315,6 @@ export function GrowthSection({
                   </div>
                   <p className="tnum shrink-0 text-sm font-semibold text-primary">
                     {r.up > 0 && `+${r.up.toLocaleString()} UP`}
-                    {r.up > 0 && r.xp > 0 && " · "}
-                    {r.xp > 0 && `+${r.xp.toLocaleString()} XP`}
                   </p>
                 </li>
               ))}

@@ -72,7 +72,6 @@ export async function getGrowthSettingsAdmin(): Promise<GrowthSettingEntry[]> {
   }
   const entries: Array<[string, unknown]> = [
     [SETTING_KEYS.rules, settings.rules],
-    [SETTING_KEYS.levels, settings.levels],
     [SETTING_KEYS.missions, settings.missions],
     [SETTING_KEYS.weeklyQuest, settings.weeklyQuest],
     [SETTING_KEYS.scoreWeights, settings.scoreWeights],

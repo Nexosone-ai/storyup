@@ -20,12 +20,7 @@ import type {
 // config.ts는 서버 전용(supabase admin client)이라 클라이언트에서 타입만 재정의한다.
 interface RewardRule {
   up: number;
-  xp: number;
   dailyCap?: number;
-}
-interface LevelDef {
-  xp: number;
-  name: string;
 }
 interface MissionDef {
   code: string;
@@ -105,7 +100,7 @@ export function AdminGrowthView({
   return (
     <section className="space-y-6">
       <h2 className="text-lg font-semibold tracking-tight">
-        성장 시스템 (UP · XP · 미션)
+        성장 시스템 (UP · 미션)
       </h2>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
@@ -136,8 +131,6 @@ function SettingEditor({ entry }: { entry: GrowthSettingEntry }) {
   switch (entry.key) {
     case "rules":
       return <RulesEditor entry={entry} />;
-    case "levels":
-      return <LevelsEditor entry={entry} />;
     case "missions":
       return <MissionsEditor entry={entry} />;
     case "weekly_quest":
@@ -277,7 +270,6 @@ function TextInput({
 interface RuleRow {
   key: string;
   up: number | "";
-  xp: number | "";
   dailyCap: number | "";
 }
 
@@ -287,7 +279,6 @@ function RulesEditor({ entry }: { entry: GrowthSettingEntry }) {
     return Object.entries(parsed).map(([key, r]) => ({
       key,
       up: r.up,
-      xp: r.xp,
       dailyCap: r.dailyCap ?? "",
     }));
   });
@@ -298,13 +289,13 @@ function RulesEditor({ entry }: { entry: GrowthSettingEntry }) {
   return (
     <SettingCard
       entry={entry}
-      title="행동별 보상 (UP · XP · 일일 상한)"
+      title="행동별 보상 (UP · 일일 상한)"
       description="1 UP = ₩1 가치입니다. 일일 상한을 비워두면 무제한으로 지급됩니다."
       validate={() =>
-        rows.some((r) => r.up === "" || r.xp === "")
-          ? "UP/XP 값을 모두 입력해주세요."
-          : rows.some((r) => Number(r.up) < 0 || Number(r.xp) < 0)
-            ? "UP/XP는 0 이상이어야 합니다."
+        rows.some((r) => r.up === "")
+          ? "UP 값을 모두 입력해주세요."
+          : rows.some((r) => Number(r.up) < 0)
+            ? "UP은 0 이상이어야 합니다."
             : null
       }
       buildValue={() =>
@@ -313,7 +304,6 @@ function RulesEditor({ entry }: { entry: GrowthSettingEntry }) {
             r.key,
             {
               up: Number(r.up),
-              xp: Number(r.xp),
               ...(r.dailyCap === "" ? {} : { dailyCap: Number(r.dailyCap) }),
             },
           ]),
@@ -326,7 +316,6 @@ function RulesEditor({ entry }: { entry: GrowthSettingEntry }) {
             <tr className="text-left text-xs text-muted">
               <th className="py-1.5 pr-3 font-medium">행동</th>
               <th className="w-28 py-1.5 pr-3 font-medium">UP</th>
-              <th className="w-28 py-1.5 pr-3 font-medium">XP</th>
               <th className="w-32 py-1.5 font-medium">일일 상한</th>
             </tr>
           </thead>
@@ -340,9 +329,6 @@ function RulesEditor({ entry }: { entry: GrowthSettingEntry }) {
                 <td className="py-1.5 pr-3">
                   <NumInput value={r.up} onChange={(v) => set(i, { up: v })} />
                 </td>
-                <td className="py-1.5 pr-3">
-                  <NumInput value={r.xp} onChange={(v) => set(i, { xp: v })} />
-                </td>
                 <td className="py-1.5">
                   <NumInput
                     value={r.dailyCap}
@@ -354,74 +340,6 @@ function RulesEditor({ entry }: { entry: GrowthSettingEntry }) {
             ))}
           </tbody>
         </table>
-      </div>
-    </SettingCard>
-  );
-}
-
-// ---------- levels ----------
-
-function LevelsEditor({ entry }: { entry: GrowthSettingEntry }) {
-  const [rows, setRows] = useState<Array<{ name: string; xp: number | "" }>>(
-    () => JSON.parse(entry.json) as LevelDef[],
-  );
-
-  const set = (i: number, patch: Partial<{ name: string; xp: number | "" }>) =>
-    setRows((prev) => prev.map((r, j) => (j === i ? { ...r, ...patch } : r)));
-
-  return (
-    <SettingCard
-      entry={entry}
-      title="레벨 기준"
-      description="누적 XP가 기준값 이상이면 해당 레벨이 됩니다. 첫 레벨은 XP 0부터 시작해야 합니다."
-      validate={() => {
-        if (rows.length === 0) return "레벨이 최소 1개 필요합니다.";
-        if (rows.some((r) => !r.name.trim() || r.xp === ""))
-          return "레벨 이름과 XP 기준을 모두 입력해주세요.";
-        if (Number(rows[0].xp) !== 0) return "첫 레벨의 XP 기준은 0이어야 합니다.";
-        for (let i = 1; i < rows.length; i++)
-          if (Number(rows[i].xp) <= Number(rows[i - 1].xp))
-            return "XP 기준은 위에서 아래로 커져야 합니다.";
-        return null;
-      }}
-      buildValue={() =>
-        rows.map((r) => ({ name: r.name.trim(), xp: Number(r.xp) }))
-      }
-    >
-      <div className="space-y-2">
-        {rows.map((r, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <span className="w-14 text-xs text-muted">Lv.{i + 1}</span>
-            <TextInput
-              value={r.name}
-              onChange={(v) => set(i, { name: v })}
-              className="flex-1"
-              placeholder="레벨 이름"
-            />
-            <NumInput value={r.xp} onChange={(v) => set(i, { xp: v })} />
-            <span className="text-xs text-muted">XP부터</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={rows.length <= 1}
-              onClick={() => setRows((p) => p.filter((_, j) => j !== i))}
-            >
-              삭제
-            </Button>
-          </div>
-        ))}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() =>
-            setRows((p) => [
-              ...p,
-              { name: "", xp: p.length ? Number(p[p.length - 1].xp || 0) * 2 || 1000 : 0 },
-            ])
-          }
-        >
-          + 레벨 추가
-        </Button>
       </div>
     </SettingCard>
   );
@@ -673,7 +591,6 @@ function SurpriseEditor({ entry }: { entry: GrowthSettingEntry }) {
     enabled: boolean;
     chance: number;
     up: number;
-    xp: number;
     dailyMax: number;
   };
   const [enabled, setEnabled] = useState(parsed.enabled);
@@ -682,7 +599,6 @@ function SurpriseEditor({ entry }: { entry: GrowthSettingEntry }) {
     Math.round(parsed.chance * 1000) / 10,
   );
   const [up, setUp] = useState<number | "">(parsed.up);
-  const [xp, setXp] = useState<number | "">(parsed.xp);
   const [dailyMax, setDailyMax] = useState<number | "">(parsed.dailyMax);
 
   return (
@@ -691,7 +607,7 @@ function SurpriseEditor({ entry }: { entry: GrowthSettingEntry }) {
       title="서프라이즈 보너스"
       description="활동 1건마다 설정된 확률로 깜짝 보너스가 지급됩니다 (구매 불가, 무료 활동 대상)."
       validate={() =>
-        chancePct === "" || up === "" || xp === "" || dailyMax === ""
+        chancePct === "" || up === "" || dailyMax === ""
           ? "모든 값을 입력해주세요."
           : Number(chancePct) < 0 || Number(chancePct) > 100
             ? "당첨 확률은 0~100% 사이여야 합니다."
@@ -701,7 +617,6 @@ function SurpriseEditor({ entry }: { entry: GrowthSettingEntry }) {
         enabled,
         chance: Number(chancePct) / 100,
         up: Number(up),
-        xp: Number(xp),
         dailyMax: Number(dailyMax),
       })}
     >
@@ -722,10 +637,6 @@ function SurpriseEditor({ entry }: { entry: GrowthSettingEntry }) {
         <label className="space-y-1">
           <span className="block text-xs text-muted">지급 UP</span>
           <NumInput value={up} onChange={setUp} className="w-24" />
-        </label>
-        <label className="space-y-1">
-          <span className="block text-xs text-muted">지급 XP</span>
-          <NumInput value={xp} onChange={setXp} className="w-24" />
         </label>
         <label className="space-y-1">
           <span className="block text-xs text-muted">1인 하루 최대</span>
@@ -796,8 +707,7 @@ function GrowthLookup() {
             {result.name} <span className="text-muted">({result.email})</span>
           </p>
           <p className="tnum">
-            🪙 {result.balance?.toLocaleString()} UP · ⭐{" "}
-            {result.xp?.toLocaleString()} XP · 🔥 {result.streak}일 · 🏆{" "}
+            🪙 {result.balance?.toLocaleString()} UP · 🔥 {result.streak}일 · 🏆{" "}
             {result.achievements}개 · 추천 {result.referrals}명
           </p>
           {!!result.recentRewards?.length && (
@@ -806,7 +716,7 @@ function GrowthLookup() {
                 <li key={i} className="flex justify-between px-3 py-2 text-xs">
                   <span>{r.rule}</span>
                   <span className="tnum text-muted">
-                    +{r.up} UP / +{r.xp} XP ·{" "}
+                    +{r.up} UP ·{" "}
                     {new Date(r.created_at).toLocaleDateString("ko-KR")}
                   </span>
                 </li>

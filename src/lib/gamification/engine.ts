@@ -86,12 +86,11 @@ export function kstWeekStartIso(dateStr = kstDate()): string {
 export interface AwardResult {
   granted: boolean;
   up: number;
-  xp: number;
   rule: string;
 }
 
 /**
- * 규칙 코드에 따라 UP/XP를 지급한다.
+ * 규칙 코드에 따라 UP을 지급한다.
  * - key: 멱등키 (같은 키는 평생 1회) — 콘텐츠 ID·날짜 기반으로 만들 것
  * - dailyCap: 규칙에 있으면 오늘(KST) 지급 횟수 초과 시 지급하지 않음
  */
@@ -99,16 +98,15 @@ export async function award(
   userId: string,
   rule: string,
   key: string,
-  opts?: { upOverride?: number; xpOverride?: number; reason?: string },
+  opts?: { upOverride?: number; reason?: string },
 ): Promise<AwardResult> {
-  const none: AwardResult = { granted: false, up: 0, xp: 0, rule };
+  const none: AwardResult = { granted: false, up: 0, rule };
   try {
     const settings = await loadSettings();
     const def = settings.rules[rule];
     if (!def) return none;
     const up = opts?.upOverride ?? def.up;
-    const xp = opts?.xpOverride ?? def.xp;
-    if (up <= 0 && xp <= 0) return none;
+    if (up <= 0) return none;
 
     const admin = createAdminClient();
 
@@ -123,16 +121,17 @@ export async function award(
       if ((count ?? 0) >= def.dailyCap) return none;
     }
 
+    // p_xp는 폐지된 XP의 하위호환용 파라미터 — 항상 0 (RPC가 무시).
     const { data, error } = await admin.rpc("grant_reward", {
       p_user: userId,
       p_key: key,
       p_rule: rule,
       p_up: up,
-      p_xp: xp,
+      p_xp: 0,
       p_reason: opts?.reason ?? REASON_KO[rule] ?? rule,
     });
     if (error || !data) return none;
-    return { granted: true, up, xp, rule };
+    return { granted: true, up, rule };
   } catch {
     return none;
   }
@@ -219,7 +218,7 @@ async function rollSurprise(
     userId,
     "surprise",
     `surprise:${kstDate()}:${crypto.randomUUID().slice(0, 8)}`,
-    { upOverride: s.up, xpOverride: s.xp },
+    { upOverride: s.up },
   );
   return res.granted ? res : null;
 }

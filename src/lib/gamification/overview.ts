@@ -2,8 +2,6 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { getPointBreakdown } from "@/lib/payments/service";
 import {
   loadSettings,
-  levelForXp,
-  type LevelInfo,
   type MissionDef,
   type QuestItemDef,
   type RewardRule,
@@ -35,8 +33,6 @@ import {
 /** 대시보드 성장 패널에 필요한 모든 데이터 (직렬화 가능). */
 export interface GrowthOverview {
   balance: number; // UP
-  xp: number;
-  level: LevelInfo;
   streak: StreakState;
   missions: Array<MissionDef & { done: boolean; reward: RewardRule }>;
   dailyCleared: boolean;
@@ -47,7 +43,7 @@ export interface GrowthOverview {
   score: StoryScore;
   nextAction: NextAction;
   achievements: Array<AchievementDef & { achieved: boolean; achievedAt: string | null }>;
-  recentRewards: Array<{ id: string; rule: string; up: number; xp: number; created_at: string }>;
+  recentRewards: Array<{ id: string; rule: string; up: number; created_at: string }>;
   referral: ReferralStats & { inviteRewarded: boolean };
   primaryBusinessId: string | null;
   /** Google Search Console 성과 (미연동/데이터 없음이면 null) */
@@ -75,7 +71,6 @@ export async function getGrowthOverview(
   // error와 함께 data가 비므로 아래 ?? 기본값으로 안전하게 렌더링된다.
   const [
     breakdown,
-    xpRow,
     streakRow,
     todayActs,
     weekActs,
@@ -95,7 +90,6 @@ export async function getGrowthOverview(
       refunded: 0,
       purchasedRemaining: 0,
     })),
-    admin.from("user_xp").select("xp").eq("user_id", userId).maybeSingle(),
     admin
       .from("user_streaks")
       .select("current, longest, last_date, started")
@@ -117,7 +111,7 @@ export async function getGrowthOverview(
       .eq("user_id", userId),
     admin
       .from("reward_events")
-      .select("id, rule, up, xp, created_at")
+      .select("id, rule, up, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(8),
@@ -150,7 +144,6 @@ export async function getGrowthOverview(
       .maybeSingle(),
   ]);
 
-  const xp = xpRow.data?.xp ?? 0;
   const streak: StreakState = {
     current:
       streakRow.data &&
@@ -167,7 +160,7 @@ export async function getGrowthOverview(
   const missions = pickDailyMissions(settings, userId, contentState).map((m) => ({
     ...m,
     done: doneToday.has(m.action),
-    reward: settings.rules[m.rewardRule] ?? { up: 0, xp: 0 },
+    reward: settings.rules[m.rewardRule] ?? { up: 0 },
   }));
 
   const weekCounts = new Map<string, number>();
@@ -192,15 +185,13 @@ export async function getGrowthOverview(
 
   return {
     balance: breakdown.balance,
-    xp,
-    level: levelForXp(xp, settings.levels),
     streak,
     missions,
     dailyCleared: !!dailyClearRow.data,
     weekly,
     weeklyCleared: !!weeklyRow.data,
-    weeklyReward: settings.rules.weekly_quest ?? { up: 500, xp: 500 },
-    dailyClearReward: settings.rules.daily_clear ?? { up: 100, xp: 100 },
+    weeklyReward: settings.rules.weekly_quest ?? { up: 500 },
+    dailyClearReward: settings.rules.daily_clear ?? { up: 100 },
     score,
     nextAction: nextActionFor(score, business.data?.id ?? null),
     achievements,

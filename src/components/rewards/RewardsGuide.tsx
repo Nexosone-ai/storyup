@@ -232,8 +232,8 @@ export async function RewardsGuide() {
           </h2>
           <p className="mt-1 text-sm text-muted">
             {ko
-              ? "특정 목표를 처음 달성하면 배지와 함께 UP·XP를 1회 지급합니다."
-              : "Unlock a badge and a one-time UP·XP reward for each milestone."}
+              ? "특정 목표를 처음 달성하면 배지와 함께 UP을 1회 지급합니다."
+              : "Unlock a badge and a one-time UP reward for each milestone."}
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -251,7 +251,6 @@ export async function RewardsGuide() {
               </div>
               <div className="tnum shrink-0 text-right text-xs font-semibold">
                 {a.up > 0 && <p className="text-primary">+{fmt(a.up)} UP</p>}
-                <p className="text-muted">+{fmt(a.xp)} XP</p>
               </div>
             </div>
           ))}
@@ -272,10 +271,10 @@ export async function RewardsGuide() {
         </section>
       )}
 
-      {/* XP 안내 */}
+      {/* UP 안내 */}
       <section className="rounded-2xl border border-border bg-surface p-6">
         <h2 className="text-lg font-semibold tracking-tight">
-          {ko ? "UP과 XP는 어떻게 다른가요?" : "UP vs XP"}
+          {ko ? "UP은 어떻게 쓰나요?" : "How to use UP"}
         </h2>
         <ul className="mt-3 space-y-2 text-sm text-muted">
           <li className="flex gap-2">
@@ -290,8 +289,8 @@ export async function RewardsGuide() {
             <span className="text-primary">•</span>
             <span>
               {ko
-                ? "XP — 레벨을 올리는 누적 경험치로, 사용·차감되지 않습니다."
-                : "XP — cumulative experience that raises your level; it is never spent."}
+                ? "월 제공량을 초과한 AI 생성에 UP이 사용되며, 미사용 UP은 이월됩니다."
+                : "UP is spent on AI generation beyond your monthly quota; unused UP carries over."}
             </span>
           </li>
         </ul>

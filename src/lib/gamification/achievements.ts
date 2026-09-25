@@ -20,24 +20,23 @@ export interface AchievementDef {
   descKo: string;
   descEn: string;
   up: number;
-  xp: number;
 }
 
 export const ACHIEVEMENTS: AchievementDef[] = [
-  { code: "first_story", emoji: "🏆", labelKo: "First Story", labelEn: "First Story", descKo: "첫 블로그 발행", descEn: "Publish your first blog post", up: 50, xp: 100 },
-  { code: "website_builder", emoji: "🏗️", labelKo: "Website Builder", labelEn: "Website Builder", descKo: "첫 홈페이지 완성", descEn: "Create your first landing page", up: 50, xp: 100 },
-  { code: "streak_7", emoji: "🔥", labelKo: "Story Streak 7", labelEn: "Story Streak 7", descKo: "7일 연속 활동", descEn: "7-day activity streak", up: 0, xp: 200 },
-  { code: "streak_30", emoji: "🔥", labelKo: "Story Streak 30", labelEn: "Story Streak 30", descKo: "30일 연속 활동", descEn: "30-day activity streak", up: 0, xp: 500 },
-  { code: "streak_100", emoji: "💯", labelKo: "Story Streak 100", labelEn: "Story Streak 100", descKo: "100일 연속 활동", descEn: "100-day activity streak", up: 0, xp: 2000 },
-  { code: "content_10", emoji: "✍️", labelKo: "Content Creator", labelEn: "Content Creator", descKo: "콘텐츠 10개 발행", descEn: "Publish 10 pieces of content", up: 100, xp: 300 },
-  { code: "content_100", emoji: "🚀", labelKo: "Pro Creator", labelEn: "Pro Creator", descKo: "콘텐츠 100개 발행", descEn: "Publish 100 pieces of content", up: 500, xp: 1000 },
-  { code: "views_100", emoji: "👀", labelKo: "Views 100", labelEn: "Views 100", descKo: "내 사이트 조회 100회 달성", descEn: "Reach 100 site views", up: 100, xp: 300 },
-  { code: "google_debut", emoji: "🌐", labelKo: "Google Debut", labelEn: "Google Debut", descKo: "첫 Google 검색 노출", descEn: "First Google search impression", up: 100, xp: 200 },
-  { code: "search_100", emoji: "🔍", labelKo: "Search 100", labelEn: "Search 100", descKo: "Google 검색 노출 100회", descEn: "100 Google search impressions", up: 100, xp: 300 },
-  { code: "traffic_100", emoji: "📈", labelKo: "Traffic 100", labelEn: "Traffic 100", descKo: "Google 검색 유입 100명", descEn: "100 visitors from Google search", up: 200, xp: 500 },
-  { code: "ambassador", emoji: "🤝", labelKo: "Ambassador", labelEn: "Ambassador", descKo: "친구 5명 초대 성공", descEn: "Refer 5 friends", up: 200, xp: 500 },
-  { code: "story_partner", emoji: "🌟", labelKo: "Story Partner", labelEn: "Story Partner", descKo: "친구 20명 초대 성공", descEn: "Refer 20 friends", up: 500, xp: 1000 },
-  { code: "story_leader", emoji: "👑", labelKo: "Story Leader", labelEn: "Story Leader", descKo: "친구 100명 초대 성공", descEn: "Refer 100 friends", up: 2000, xp: 5000 },
+  { code: "first_story", emoji: "🏆", labelKo: "First Story", labelEn: "First Story", descKo: "첫 블로그 발행", descEn: "Publish your first blog post", up: 50 },
+  { code: "website_builder", emoji: "🏗️", labelKo: "Website Builder", labelEn: "Website Builder", descKo: "첫 홈페이지 완성", descEn: "Create your first landing page", up: 50 },
+  { code: "streak_7", emoji: "🔥", labelKo: "Story Streak 7", labelEn: "Story Streak 7", descKo: "7일 연속 활동", descEn: "7-day activity streak", up: 200 },
+  { code: "streak_30", emoji: "🔥", labelKo: "Story Streak 30", labelEn: "Story Streak 30", descKo: "30일 연속 활동", descEn: "30-day activity streak", up: 500 },
+  { code: "streak_100", emoji: "💯", labelKo: "Story Streak 100", labelEn: "Story Streak 100", descKo: "100일 연속 활동", descEn: "100-day activity streak", up: 2000 },
+  { code: "content_10", emoji: "✍️", labelKo: "Content Creator", labelEn: "Content Creator", descKo: "콘텐츠 10개 발행", descEn: "Publish 10 pieces of content", up: 100 },
+  { code: "content_100", emoji: "🚀", labelKo: "Pro Creator", labelEn: "Pro Creator", descKo: "콘텐츠 100개 발행", descEn: "Publish 100 pieces of content", up: 500 },
+  { code: "views_100", emoji: "👀", labelKo: "Views 100", labelEn: "Views 100", descKo: "내 사이트 조회 100회 달성", descEn: "Reach 100 site views", up: 100 },
+  { code: "google_debut", emoji: "🌐", labelKo: "Google Debut", labelEn: "Google Debut", descKo: "첫 Google 검색 노출", descEn: "First Google search impression", up: 100 },
+  { code: "search_100", emoji: "🔍", labelKo: "Search 100", labelEn: "Search 100", descKo: "Google 검색 노출 100회", descEn: "100 Google search impressions", up: 100 },
+  { code: "traffic_100", emoji: "📈", labelKo: "Traffic 100", labelEn: "Traffic 100", descKo: "Google 검색 유입 100명", descEn: "100 visitors from Google search", up: 200 },
+  { code: "ambassador", emoji: "🤝", labelKo: "Ambassador", labelEn: "Ambassador", descKo: "친구 5명 초대 성공", descEn: "Refer 5 friends", up: 200 },
+  { code: "story_partner", emoji: "🌟", labelKo: "Story Partner", labelEn: "Story Partner", descKo: "친구 20명 초대 성공", descEn: "Refer 20 friends", up: 500 },
+  { code: "story_leader", emoji: "👑", labelKo: "Story Leader", labelEn: "Story Leader", descKo: "친구 100명 초대 성공", descEn: "Refer 100 friends", up: 2000 },
 ];
 
 const BY_CODE = new Map(ACHIEVEMENTS.map((a) => [a.code, a]));
@@ -58,7 +57,6 @@ export async function grantAchievement(
     if ((count ?? 0) === 0) return null;
     const res = await award(userId, "achievement", `achievement:${code}`, {
       upOverride: def.up,
-      xpOverride: def.xp,
       reason: `업적 달성 — ${def.labelKo}`,
     });
     return res.granted ? res : null;
