@@ -1099,6 +1099,40 @@ export interface Database {
         >;
         Relationships: [];
       };
+      announcements: {
+        Row: {
+          id: string;
+          title: string;
+          body: string;
+          image_url: string | null;
+          link_url: string | null;
+          link_label: string | null;
+          starts_at: string;
+          ends_at: string;
+          active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          body: string;
+          image_url?: string | null;
+          link_url?: string | null;
+          link_label?: string | null;
+          starts_at: string;
+          ends_at: string;
+          active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["announcements"]["Insert"]
+        >;
+        Relationships: [];
+      };
       usage_events: {
         Row: {
           id: string;
@@ -1351,6 +1385,8 @@ export type PointPackageRow =
 export type ServicePriceRow =
   Database["public"]["Tables"]["service_prices"]["Row"];
 export type ProductRow = Database["public"]["Tables"]["products"]["Row"];
+export type AnnouncementRow =
+  Database["public"]["Tables"]["announcements"]["Row"];
 export type ProductOrderRow =
   Database["public"]["Tables"]["product_orders"]["Row"];
 export type MarketerRow = Database["public"]["Tables"]["marketers"]["Row"];

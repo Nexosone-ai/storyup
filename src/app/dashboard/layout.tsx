@@ -13,6 +13,8 @@ import { isCurrentUserMarketer } from "@/lib/marketers";
 import { dashboardNav, workspaceNav } from "@/lib/nav";
 import { getLocale } from "@/lib/i18n";
 import { getUnreadNotificationCount } from "@/lib/notifications";
+import { getActiveAnnouncement } from "@/lib/admin/announcements";
+import { AnnouncementPopup } from "@/components/announcements/AnnouncementPopup";
 
 // robots.txt 차단만으로는 링크된 URL이 색인될 수 있어 meta로도 명시한다.
 export const metadata: Metadata = {
@@ -26,16 +28,25 @@ export default async function DashboardLayout({
 }) {
   const user = await getUser();
   if (!user) redirect("/login");
-  const [name, admin, marketer, locale, business, unreadCount, unreadInquiries] =
-    await Promise.all([
-      getProfileName(),
-      isCurrentUserAdmin(),
-      isCurrentUserMarketer(),
-      getLocale(),
-      getPrimaryBusiness(),
-      getUnreadNotificationCount(),
-      getUnreadInquiryCount(),
-    ]);
+  const [
+    name,
+    admin,
+    marketer,
+    locale,
+    business,
+    unreadCount,
+    unreadInquiries,
+    announcement,
+  ] = await Promise.all([
+    getProfileName(),
+    isCurrentUserAdmin(),
+    isCurrentUserMarketer(),
+    getLocale(),
+    getPrimaryBusiness(),
+    getUnreadNotificationCount(),
+    getUnreadInquiryCount(),
+    getActiveAnnouncement(),
+  ]);
 
   return (
     <LocaleProvider locale={locale}>
@@ -52,6 +63,7 @@ export default async function DashboardLayout({
       >
         {children}
       </DashboardShell>
+      {announcement && <AnnouncementPopup announcement={announcement} />}
     </LocaleProvider>
   );
 }
