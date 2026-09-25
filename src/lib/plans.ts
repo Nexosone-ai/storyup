@@ -40,7 +40,7 @@ export const PLANS: Plan[] = [
     id: "free",
     name: { ko: "Free", en: "Free" },
     priceKrw: 0,
-    limits: { sites: 1, blogPosts: 10, cardNews: 1, aiImages: 0 },
+    limits: { sites: 1, blogPosts: 10, cardNews: 1, aiImages: 10 },
     watermarkRemoved: false,
   },
   {
