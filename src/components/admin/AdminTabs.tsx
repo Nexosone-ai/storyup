@@ -14,6 +14,7 @@ const TABS: { href: string; label: string }[] = [
   { href: "/dashboard/admin/marketers", label: "마케터·정산" },
   { href: "/dashboard/admin/billing", label: "결제·가격" },
   { href: "/dashboard/admin/announcements", label: "공지팝업" },
+  { href: "/dashboard/admin/integrity", label: "정합성" },
 ];
 
 export function AdminTabs() {
