@@ -5,6 +5,7 @@ import { getNotifications } from "@/lib/notifications";
 import { getLocale } from "@/lib/i18n";
 import { Icon } from "@/components/ui/icons";
 import { MarkNotificationsRead } from "@/components/dashboard/MarkNotificationsRead";
+import { EnablePushButton } from "@/components/dashboard/EnablePushButton";
 import { deleteNotificationAction } from "./actions";
 import type { NotificationRow } from "@/types/database";
 
@@ -26,6 +27,8 @@ function timeAgo(iso: string, ko: boolean): string {
 }
 
 function label(n: NotificationRow, ko: boolean): string {
+  if (n.type === "sub_expiring")
+    return n.post_title || (ko ? "구독 만료 안내" : "Subscription expiring");
   const who = n.actor_name || (ko ? "방문자" : "A visitor");
   if (n.type === "site_inquiry")
     return ko
@@ -61,6 +64,8 @@ export default async function NotificationsPage() {
         {ko ? "알림" : "Notifications"}
       </h1>
 
+      <EnablePushButton ko={ko} />
+
       {items.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-surface p-12 text-center">
           <div className="mx-auto grid size-12 place-items-center rounded-full bg-surface-muted text-muted">
@@ -79,22 +84,25 @@ export default async function NotificationsPage() {
         <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">
           {items.map((n) => {
             const href =
-              n.type === "site_inquiry"
-                ? "/dashboard/inquiries"
-                : n.type === "coupon_claim"
-                  ? n.post_id
-                    ? `/dashboard/inquiries/coupons?post=${n.post_id}`
-                    : "/dashboard/inquiries/coupons"
-                  : n.site_slug && n.post_slug
-                    ? `/site/${n.site_slug}/blog/${n.post_slug}`
-                    : null;
+              n.type === "sub_expiring"
+                ? "/dashboard/points"
+                : n.type === "site_inquiry"
+                  ? "/dashboard/inquiries"
+                  : n.type === "coupon_claim"
+                    ? n.post_id
+                      ? `/dashboard/inquiries/coupons?post=${n.post_id}`
+                      : "/dashboard/inquiries/coupons"
+                    : n.site_slug && n.post_slug
+                      ? `/site/${n.site_slug}/blog/${n.post_slug}`
+                      : null;
             const body = (
               <div className="flex min-w-0 flex-1 items-start gap-3">
                 <span
                   className={`mt-0.5 grid size-9 shrink-0 place-items-center rounded-full ${
                     n.type === "blog_like" ||
                     n.type === "site_inquiry" ||
-                    n.type === "coupon_claim"
+                    n.type === "coupon_claim" ||
+                    n.type === "sub_expiring"
                       ? "bg-primary-soft text-primary"
                       : "bg-surface-muted text-muted"
                   }`}
@@ -103,6 +111,8 @@ export default async function NotificationsPage() {
                     <Icon.heart width={18} height={18} />
                   ) : n.type === "coupon_claim" ? (
                     <span className="text-base leading-none">🎟</span>
+                  ) : n.type === "sub_expiring" ? (
+                    <Icon.coin width={18} height={18} />
                   ) : n.type === "site_inquiry" ? (
                     <Icon.bell width={18} height={18} />
                   ) : (
@@ -113,7 +123,7 @@ export default async function NotificationsPage() {
                   <p className="text-sm">{label(n, ko)}</p>
                   {n.preview && (
                     <p className="mt-0.5 truncate text-sm text-muted">
-                      “{n.preview}”
+                      {n.type === "sub_expiring" ? n.preview : `“${n.preview}”`}
                     </p>
                   )}
                   <p className="mt-1 text-xs text-muted">

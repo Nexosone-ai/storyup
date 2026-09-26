@@ -31,6 +31,8 @@ export interface Database {
           is_admin: boolean;
           /** 추천 코드 (0016 마이그레이션 이전 DB에서는 없을 수 있음) */
           referral_code: string | null;
+          /** 환영 가이드 확인 시각 (0036). null = 아직 안 봄 */
+          onboarded_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -40,6 +42,7 @@ export interface Database {
           email?: string | null;
           is_admin?: boolean;
           referral_code?: string | null;
+          onboarded_at?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
@@ -328,7 +331,12 @@ export interface Database {
           id: string;
           user_id: string;
           business_id: string | null;
-          type: "blog_comment" | "blog_like" | "site_inquiry" | "coupon_claim";
+          type:
+            | "blog_comment"
+            | "blog_like"
+            | "site_inquiry"
+            | "coupon_claim"
+            | "sub_expiring";
           post_id: string | null;
           post_title: string | null;
           site_slug: string | null;
@@ -343,7 +351,12 @@ export interface Database {
           id?: string;
           user_id: string;
           business_id?: string | null;
-          type: "blog_comment" | "blog_like" | "site_inquiry" | "coupon_claim";
+          type:
+            | "blog_comment"
+            | "blog_like"
+            | "site_inquiry"
+            | "coupon_claim"
+            | "sub_expiring";
           post_id?: string | null;
           post_title?: string | null;
           site_slug?: string | null;
@@ -1152,6 +1165,50 @@ export interface Database {
         };
         Update: Partial<
           Database["public"]["Tables"]["integrity_reports"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      push_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["push_subscriptions"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      reminder_log: {
+        Row: {
+          id: string;
+          user_id: string;
+          channel: string;
+          dedup_key: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          channel: string;
+          dedup_key: string;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["reminder_log"]["Insert"]
         >;
         Relationships: [];
       };

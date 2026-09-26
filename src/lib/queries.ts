@@ -18,6 +18,22 @@ export async function getUser() {
   return user;
 }
 
+/** 첫 대시보드 진입 여부 — profiles.onboarded_at 이 아직 없으면 환영 가이드 대상. */
+export async function needsOnboarding(): Promise<boolean> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("onboarded_at")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (error) return false; // 0036 이전 DB 등 — 가이드 생략
+  return !data?.onboarded_at;
+}
+
 export async function getProfileName(): Promise<string> {
   const supabase = await createClient();
   const {

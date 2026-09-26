@@ -70,6 +70,33 @@ export async function notifyBlogEngagement(
   }
 }
 
+/**
+ * 시스템 알림(블로그 참여 외) 1건을 앱 내 알림으로 남긴다.
+ * 제목은 post_title, 본문은 preview 컬럼을 재사용한다(범용 컬럼이 없어서).
+ */
+export async function createSystemNotification(
+  admin: Admin,
+  opts: {
+    userId: string;
+    type: NotificationRow["type"];
+    title: string;
+    message?: string | null;
+    dedupKey?: string | null;
+  },
+): Promise<void> {
+  try {
+    await admin.from("notifications").insert({
+      user_id: opts.userId,
+      type: opts.type,
+      post_title: opts.title,
+      preview: opts.message ?? null,
+      dedup_key: opts.dedupKey ?? null,
+    });
+  } catch {
+    /* 알림 실패는 원 동작을 방해하지 않는다 */
+  }
+}
+
 /** 로그인 사용자의 안 읽은 알림 개수 (헤더 배지용). */
 export async function getUnreadNotificationCount(): Promise<number> {
   const supabase = await createClient();
