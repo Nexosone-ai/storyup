@@ -87,8 +87,8 @@ export async function runExpiryReminders(): Promise<ExpiryResult> {
       day: "numeric",
     });
 
-    // --- 매일: 인앱 + 웹 푸시 (하루 1회) ---
-    const dailyKey = `expiry:${endDay}:${todayKst}`;
+    // --- 매일: 인앱 + 웹 푸시 (사용자별 하루 1회) ---
+    const dailyKey = `expiry:${userId}:${endDay}:${todayKst}`;
     if (await claim(admin, userId, "daily", dailyKey)) {
       const title =
         left <= 0
@@ -110,9 +110,9 @@ export async function runExpiryReminders(): Promise<ExpiryResult> {
       if (n > 0) pushed++;
     }
 
-    // --- 만기 3일 전(이하)부터: 이메일 1회 ---
+    // --- 만기 3일 전(이하)부터: 이메일 1회 (사용자별·기간당 1회) ---
     if (left <= 3) {
-      const emailKey = `expiry_email:${endDay}`;
+      const emailKey = `expiry_email:${userId}:${endDay}`;
       if (await claim(admin, userId, "email", emailKey)) {
         const { data: profile } = await admin
           .from("profiles")
