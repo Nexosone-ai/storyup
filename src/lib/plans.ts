@@ -40,7 +40,10 @@ export const PLANS: Plan[] = [
     id: "free",
     name: { ko: "Free", en: "Free" },
     priceKrw: 0,
-    limits: { sites: 1, blogPosts: 10, cardNews: 1, aiImages: 10 },
+    // aiImages: 무료 딜리버리(랜딩 1개 + 카드뉴스 1세트 6장 + 블로그)의 이미지를
+    // 포인트 없이 커버하는 월 제공량. 10은 카드뉴스 1세트(6장)+랜딩 이미지에 곧
+    // 소진돼 온보딩 중 '포인트 부족'이 재발 → 30으로 상향. 초과분만 200P 과금.
+    limits: { sites: 1, blogPosts: 10, cardNews: 1, aiImages: 30 },
     watermarkRemoved: false,
   },
   {
