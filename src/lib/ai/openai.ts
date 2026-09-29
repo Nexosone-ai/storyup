@@ -1,0 +1,294 @@
+import type { AIProvider } from "./provider";
+import { AIGenerationError } from "./provider";
+import type {
+  BrandStoryResult,
+  BlogArticleResult,
+  MarketingContentResult,
+  CardNewsResult,
+  WebsiteContent,
+  BusinessInterviewInput,
+} from "@/types/domain";
+import {
+  brandStoryPrompt,
+  type PromptLanguage,
+  type PromptSpec,
+} from "./prompts/brand-story";
+import { websitePrompt } from "./prompts/website";
+import {
+  blogPrompt,
+  blogFromTranscriptPrompt,
+  blogExpandPrompt,
+  type BlogPromptInput,
+  type BlogTranscriptPromptInput,
+  type BlogExpandPromptInput,
+} from "./prompts/blog";
+import {
+  marketingPrompt,
+  type MarketingPromptInput,
+} from "./prompts/marketing";
+import { cardNewsPrompt, type CardNewsPromptInput } from "./prompts/card-news";
+import type { PdfLandingExtract } from "@/lib/pdfImport";
+
+/**
+ * OpenAI(ChatGPT) 프로바이더 — Claude와 동일한 AIProvider 계약을 구현한다.
+ * 프롬프트(src/lib/ai/prompts/*)는 { system, user } 순수 텍스트 + JSON 응답이라
+ * 그대로 재사용하고, Chat Completions의 JSON 모드로 안정적으로 파싱한다.
+ * Server-only — OPENAI_API_KEY를 읽으므로 Client Component에서 import 금지.
+ */
+
+const ENDPOINT = "https://api.openai.com/v1/chat/completions";
+const DEFAULT_MODEL = process.env.OPENAI_MODEL || "gpt-4.1";
+
+/** OpenAI content part — 텍스트 또는 파일(PDF base64). */
+type ContentPart =
+  | { type: "text"; text: string }
+  | {
+      type: "file";
+      file: { filename: string; file_data: string };
+    };
+
+interface ChatMessage {
+  role: "system" | "user";
+  content: string | ContentPart[];
+}
+
+export class OpenAIProvider implements AIProvider {
+  private apiKey: string;
+  private model: string;
+
+  constructor(apiKey = process.env.OPENAI_API_KEY, model = DEFAULT_MODEL) {
+    if (!apiKey) {
+      throw new AIGenerationError(
+        "AI 서비스가 설정되지 않았습니다. (OPENAI_API_KEY 누락)",
+      );
+    }
+    this.apiKey = apiKey;
+    this.model = model;
+  }
+
+  /** Chat Completions 호출 → 응답 본문 텍스트 반환. JSON 모드 강제. */
+  private async chat(messages: ChatMessage[], maxTokens: number): Promise<string> {
+    let json: {
+      choices?: Array<{ message?: { content?: string } }>;
+      error?: { message?: string };
+    };
+    try {
+      const res = await fetch(ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: this.model,
+          max_tokens: maxTokens,
+          response_format: { type: "json_object" },
+          messages,
+        }),
+      });
+      json = await res.json();
+      if (!res.ok) {
+        console.error("[openai]", res.status, json?.error?.message);
+        throw new AIGenerationError(
+          res.status === 429 || res.status >= 500
+            ? "AI 서버가 혼잡합니다. 잠시 후 다시 시도해주세요."
+            : "AI 응답을 받지 못했습니다.",
+        );
+      }
+    } catch (err) {
+      if (err instanceof AIGenerationError) throw err;
+      throw new AIGenerationError("AI 응답을 받지 못했습니다.", err);
+    }
+    return json.choices?.[0]?.message?.content ?? "";
+  }
+
+  private async complete<T>(spec: PromptSpec, maxTokens = 2000): Promise<T> {
+    const raw = await this.chat(
+      [
+        { role: "system", content: spec.system },
+        { role: "user", content: spec.user },
+      ],
+      maxTokens,
+    );
+    return parseJson<T>(raw);
+  }
+
+  generateBrandStory(
+    input: BusinessInterviewInput,
+    language: PromptLanguage = "ko",
+  ) {
+    return this.complete<BrandStoryResult>(
+      brandStoryPrompt(input, language),
+      2500,
+    );
+  }
+
+  async generateWebsite(
+    business: BusinessInterviewInput,
+    brand: BrandStoryResult,
+    language: PromptLanguage = "ko",
+  ): Promise<WebsiteContent> {
+    return this.complete<WebsiteContent>(
+      websitePrompt(business, brand, language),
+      2500,
+    );
+  }
+
+  generateBlog(input: BlogPromptInput) {
+    return this.complete<BlogArticleResult>(blogPrompt(input), 3000);
+  }
+
+  generateBlogFromTranscript(input: BlogTranscriptPromptInput) {
+    return this.complete<BlogArticleResult>(
+      blogFromTranscriptPrompt(input),
+      3000,
+    );
+  }
+
+  async expandBlogParagraph(
+    input: BlogExpandPromptInput,
+  ): Promise<{ text: string }> {
+    const res = await this.complete<{ text: string }>(
+      blogExpandPrompt(input),
+      800,
+    );
+    return { text: (res.text ?? "").trim() };
+  }
+
+  generateMarketing(input: MarketingPromptInput) {
+    return this.complete<MarketingContentResult>(marketingPrompt(input), 1500);
+  }
+
+  generateCardNews(input: CardNewsPromptInput) {
+    return this.complete<CardNewsResult>(cardNewsPrompt(input), 1500);
+  }
+
+  async generateImageSubject(input: {
+    category: string;
+    text: string;
+    kind?: "still-life" | "scene";
+  }): Promise<string> {
+    const scene = input.kind === "scene";
+    const spec: PromptSpec = {
+      system:
+        '당신은 사진 촬영 지시문을 쓰는 아트 디렉터입니다. 반드시 {"subject": "..."} 형태의 순수 JSON만 반환하세요.',
+      user: `업종: ${input.category}
+내용: ${input.text.slice(0, 300)}
+
+${
+  scene
+    ? `위 내용이 말하는 바를 시각적으로 보여주는 사진 장면(공간·현장·사물)을 영어 한 문장으로 묘사하세요.
+- 반드시 "내용"이 전달하려는 메시지와 업종에 맞는 장소/사물/분위기여야 함 (일반적인 사무실·책상 금지)
+- 사람, 손, 신체, 글자는 절대 포함 금지 (비어 있는 공간으로 묘사)
+- 예: "a bright airy fitness studio with rolled yoga mats, kettlebells and large sunlit windows"`
+    : `위 내용을 대표하는 정물 사진의 피사체를 영어 한 문장으로 묘사하세요.
+- 구체적인 사물·음식·공간 디테일만 포함
+- 사람, 손, 신체, 글자는 절대 포함 금지
+- 예: "freshly baked sourdough bread loaves and wheat stalks on a rustic wooden table"`
+}
+
+{"subject": "..."} JSON으로만 응답하세요.`,
+    };
+    const res = await this.complete<{ subject: string }>(spec, 300);
+    return res.subject;
+  }
+
+  /** PDF(회사 소개서·브로슈어·메뉴판 등)에서 랜딩페이지 콘텐츠를 추출한다. */
+  async extractLandingContent(
+    pdfBase64: string,
+    language: PromptLanguage = "ko",
+  ): Promise<PdfLandingExtract> {
+    const ko = language === "ko";
+    const system = ko
+      ? "당신은 사업체 소개 자료를 랜딩페이지 콘텐츠로 옮기는 카피라이터입니다. 반드시 순수 JSON만 반환하세요."
+      : "You turn business brochures into landing page copy. Return pure JSON only.";
+    const instruction = `이 PDF는 한 사업체의 소개 자료입니다. 랜딩페이지에 넣을 콘텐츠를 추출해 아래 JSON으로만 응답하세요.
+
+규칙:
+- 모든 텍스트는 ${ko ? "한국어" : "영어(English)"}로 작성 (원문이 다른 언어면 번역)
+- PDF에 없는 항목은 빈 문자열 "" / 빈 배열
+- 전화번호·이메일·주소·URL은 원문 그대로
+- headline은 고객을 끌어당기는 한 문장(30자 내외), shortDescription은 1~2문장
+- storyBody는 사업 소개·철학을 2~4문장으로
+- offers는 대표 상품/서비스 최대 3개
+
+{
+  "name": "사업체 이름",
+  "headline": "",
+  "shortDescription": "",
+  "storyTitle": "",
+  "storyBody": "",
+  "offers": [{ "title": "", "description": "" }],
+  "phone": "",
+  "email": "",
+  "address": "",
+  "website": "",
+  "instagram": "",
+  "facebook": "",
+  "x": ""
+}`;
+
+    const raw = await this.chat(
+      [
+        { role: "system", content: system },
+        {
+          role: "user",
+          content: [
+            {
+              type: "file",
+              file: {
+                filename: "brochure.pdf",
+                file_data: `data:application/pdf;base64,${pdfBase64}`,
+              },
+            },
+            { type: "text", text: instruction },
+          ],
+        },
+      ],
+      2500,
+    );
+
+    const parsed = parseJson<Partial<PdfLandingExtract>>(raw);
+    // 누락 필드를 빈 값으로 정규화해 호출부가 안심하고 쓰게 한다.
+    const s = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+    return {
+      name: s(parsed.name),
+      headline: s(parsed.headline),
+      shortDescription: s(parsed.shortDescription),
+      storyTitle: s(parsed.storyTitle),
+      storyBody: s(parsed.storyBody),
+      offers: Array.isArray(parsed.offers)
+        ? parsed.offers
+            .slice(0, 3)
+            .map((o) => ({ title: s(o?.title), description: s(o?.description) }))
+            .filter((o) => o.title || o.description)
+        : [],
+      phone: s(parsed.phone),
+      email: s(parsed.email),
+      address: s(parsed.address),
+      website: s(parsed.website),
+      instagram: s(parsed.instagram),
+      facebook: s(parsed.facebook),
+      x: s(parsed.x),
+    };
+  }
+}
+
+/** Tolerant JSON extraction — strips code fences / prose around the object. */
+function parseJson<T>(raw: string): T {
+  const cleaned = raw
+    .replace(/^```(?:json)?/gim, "")
+    .replace(/```$/gim, "")
+    .trim();
+
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  const candidate =
+    start !== -1 && end !== -1 ? cleaned.slice(start, end + 1) : cleaned;
+
+  try {
+    return JSON.parse(candidate) as T;
+  } catch (err) {
+    throw new AIGenerationError("AI 응답 형식을 해석하지 못했습니다.", err);
+  }
+}
