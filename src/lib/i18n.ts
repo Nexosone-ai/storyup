@@ -174,6 +174,7 @@ export const translations = {
         { label: "스토리들", href: "/showcase" },
         { label: "커뮤니티", href: "/community" },
         { label: "요금제", href: "/pricing" },
+        { label: "스토어", href: "/store" },
         { label: "UP 적립 안내", href: "/rewards" },
       ],
       links: [
@@ -446,6 +447,7 @@ export const translations = {
         { label: "Stories", href: "/showcase" },
         { label: "Community", href: "/community" },
         { label: "Pricing", href: "/pricing" },
+        { label: "Store", href: "/store" },
         { label: "UP Rewards", href: "/rewards" },
       ],
       links: [

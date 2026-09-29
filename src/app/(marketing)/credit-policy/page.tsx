@@ -4,7 +4,7 @@ export const metadata = { title: "UP 포인트 정책" };
 
 export default function CreditPolicyPage() {
   return (
-    <LegalPage title="STORYUP UP 포인트 정책" updated="2026년 9월 7일">
+    <LegalPage title="STORYUP UP 포인트 정책" updated="2026년 9월 29일">
       <h2>1. UP 포인트의 성격</h2>
       <p>
         UP 포인트(이하 &ldquo;UP&rdquo;)는 STORYUP 서비스 내에서 AI 콘텐츠 생성
@@ -55,7 +55,25 @@ export default function CreditPolicyPage() {
         을 따릅니다.
       </p>
 
-      <h2>5. 활동 보상 UP의 성격</h2>
+      <h2>5. UP 사용과 환불의 관계</h2>
+      <ul>
+        <li>
+          UP은 현금으로 구매·충전할 수 없는 무상 지급분이므로, UP 자체는
+          환불·현금 전환·출금의 대상이 아닙니다.
+        </li>
+        <li>
+          <b>UP을 사용하더라도 구독 결제의 환불 금액에는 영향을 주지
+          않습니다.</b>{" "}
+          구독 결제를 환불하는 경우, 그 기간에 UP을 사용했더라도 사용분을 결제
+          금액에서 차감하지 않고 실제 결제한 금액을 기준으로 환불합니다.
+        </li>
+        <li>
+          이미 지급·사용된 UP은 환불 대상이 아니며, 환불 후에도 계정에 남은 UP은
+          계속 사용할 수 있습니다.
+        </li>
+      </ul>
+
+      <h2>6. 활동 보상 UP의 성격</h2>
       <p>
         활동 보상으로 지급된 UP은 구매한 재화가 아닌 무상 지급분으로, 환불
         대상이 아니며 부정 이용(중복 계정, 자기 추천 등)이 확인되면 회수될 수
