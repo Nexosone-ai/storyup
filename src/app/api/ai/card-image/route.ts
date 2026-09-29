@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     );
 
   // 같은 슬롯 재생성 남용만 막는다(이미지는 무과금·딜리버리 포함).
-  if (!(await reserveImageSlot(supabase, businessId, slotKey)))
+  if (!(await reserveImageSlot(supabase, user.id, businessId, slotKey)))
     return NextResponse.json(
       {
         error: ko

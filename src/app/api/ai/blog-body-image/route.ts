@@ -60,7 +60,7 @@ export async function POST(request: Request) {
 
   // 같은 슬롯 재생성 남용만 막는다(이미지는 무과금·딜리버리 포함). 글별로 슬롯을 구분.
   const bodySlot = `${postId}:${slotKey || "default"}`;
-  if (!(await reserveImageSlot(supabase, businessId, bodySlot)))
+  if (!(await reserveImageSlot(supabase, user.id, businessId, bodySlot)))
     return NextResponse.json(
       {
         error: ko
