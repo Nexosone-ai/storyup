@@ -30,7 +30,6 @@ const noop: AiBilling = { charged: 0, refund: async () => {} };
 const QUOTA_KIND: Record<string, UsageKind> = {
   AI_BLOG: "blog_post",
   CARD_NEWS: "card_news",
-  IMAGE_GENERATION: "ai_image",
 };
 
 export async function chargeAiUsage(
@@ -39,6 +38,11 @@ export async function chargeAiUsage(
   description: string,
 ): Promise<AiBilling> {
   const ko = (await getLocale()) === "ko";
+
+  // 이미지는 랜딩·블로그·카드뉴스 딜리버리에 포함된 구성요소다. 별도 제공량/과금
+  // 없이 항상 무료 — 딜리버리 개수(사이트·블로그·카드뉴스)로 이미 제한된다.
+  // (관리자 단가가 바뀌어도 이미지가 막히지 않도록 코드에서 못박는다.)
+  if (service === "IMAGE_GENERATION") return noop;
 
   const kind = QUOTA_KIND[service];
   if (kind) {

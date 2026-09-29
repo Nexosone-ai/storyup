@@ -76,13 +76,9 @@ export default async function PricingPage() {
           ? ko
             ? "협의"
             : "Custom"
-          : p.limits.aiImages === 0
-            ? ko
-              ? "무료 모델"
-              : "Free model"
-            : ko
-              ? `${p.limits.aiImages}개/월`
-              : `${p.limits.aiImages}/mo`,
+          : ko
+            ? "포함"
+            : "Included",
     ],
     [
       ko ? "자체 도메인" : "Custom domain",

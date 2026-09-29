@@ -206,13 +206,7 @@ export function PointsView({
                   limit={plan.limits.cardNews}
                   ko={ko}
                 />
-                <UsageRow
-                  label={ko ? "AI 이미지 (이번 달)" : "AI images (this month)"}
-                  used={subscription.usage.aiImages}
-                  limit={plan.limits.aiImages}
-                  ko={ko}
-                  unlimitedLabel={ko ? "협의" : "Custom"}
-                />
+                {/* 이미지는 딜리버리에 포함(무과금)이라 별도 사용량 미터를 표시하지 않는다. */}
               </div>
               {(() => {
                 const amt = (n: number) =>
@@ -225,7 +219,6 @@ export function PointsView({
                   `${ko ? "랜딩페이지" : "Landing page"} ${amt(overage.site)}`,
                   `${ko ? "블로그" : "Blog"} ${amt(overage.blogPost)}`,
                   `${ko ? "카드뉴스" : "Card news"} ${amt(overage.cardNews)}`,
-                  `${ko ? "이미지" : "Image"} ${amt(overage.aiImage)}`,
                 ].join(" · ");
                 return (
                   <p className="text-xs text-muted">

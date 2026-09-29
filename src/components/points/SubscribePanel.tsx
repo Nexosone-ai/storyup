@@ -445,8 +445,8 @@ export const SubscribePanel = forwardRef<
                 </li>
                 <li>
                   {ko
-                    ? `카드뉴스 ${plan.limits.cardNews}건 · AI 이미지 ${plan.limits.aiImages}개/월`
-                    : `${plan.limits.cardNews} card news · ${plan.limits.aiImages} AI images/mo`}
+                    ? `카드뉴스 ${plan.limits.cardNews}건 · AI 이미지 생성 포함`
+                    : `${plan.limits.cardNews} card news · AI images included`}
                 </li>
               </ul>
               <Button

@@ -19,7 +19,10 @@ export interface Plan {
     blogPosts: number | null;
     /** SNS 카드뉴스(6매) 건/월. null = 협의 */
     cardNews: number | null;
-    /** AI 이미지 개/월. null = 협의, 0 = 무료 모델만(비-Gemini) */
+    /**
+     * (레거시) 과거 월 이미지 제공량. 이미지는 이제 딜리버리(랜딩·블로그·카드뉴스)에
+     * 포함되어 무과금이라 이 값은 청구/표기에 쓰지 않는다. null = 협의(Partner) 구분용으로만 유지.
+     */
     aiImages: number | null;
   };
   /** 랜딩페이지에서 선택 가능한 레이아웃 수. 미지정 시 카드에 표기하지 않는다. */
@@ -40,10 +43,7 @@ export const PLANS: Plan[] = [
     id: "free",
     name: { ko: "Free", en: "Free" },
     priceKrw: 0,
-    // aiImages: 무료 딜리버리(랜딩 1개 + 카드뉴스 1세트 6장 + 블로그)의 이미지를
-    // 포인트 없이 커버하는 월 제공량. 10은 카드뉴스 1세트(6장)+랜딩 이미지에 곧
-    // 소진돼 온보딩 중 '포인트 부족'이 재발 → 30으로 상향. 초과분만 200P 과금.
-    limits: { sites: 1, blogPosts: 10, cardNews: 1, aiImages: 30 },
+    limits: { sites: 1, blogPosts: 10, cardNews: 1, aiImages: 30 }, // aiImages: 미사용(이미지 무과금·딜리버리 포함)
     watermarkRemoved: false,
   },
   {
@@ -140,19 +140,15 @@ export function planFeatureList(plan: Plan, ko: boolean): string[] {
         : `${l.cardNews} card news (${CARD_NEWS_PAGES} pages)${per}`,
   );
 
-  // AI 이미지
+  // AI 이미지 — 딜리버리(랜딩·블로그·카드뉴스)에 포함되어 별도 제공량/과금 없음.
   out.push(
     l.aiImages === null
       ? ko
         ? `AI 이미지 ${talk}`
         : `AI images: ${talk}`
-      : l.aiImages === 0
-        ? ko
-          ? "무료 이미지 모델 제공"
-          : "Free image model included"
-        : ko
-          ? `AI 이미지 ${l.aiImages}개/월`
-          : `${l.aiImages} AI images/mo`,
+      : ko
+        ? "AI 이미지 생성 포함"
+        : "AI image generation included",
   );
 
   // 도메인
