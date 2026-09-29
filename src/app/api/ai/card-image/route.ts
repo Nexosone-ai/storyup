@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import sharp from "sharp";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getAIProvider } from "@/lib/ai";
-import { chargeAiUsage, InsufficientPointsError } from "@/lib/ai/billing";
+import { reserveImageSlot, releaseImageSlot } from "@/lib/ai/imageSlot";
 import { getImageProvider, ImageGenerationError } from "@/lib/ai/image";
 import type { ImageAspect } from "@/lib/ai/image";
 import { buildCardImagePrompt } from "@/lib/ai/image/prompt";
@@ -26,11 +26,13 @@ export async function POST(request: Request) {
 
   let businessId = "";
   let subject = "";
+  let slotKey = "";
   let aspect: ImageAspect = "3:4";
   try {
     const body = await request.json();
     businessId = String(body.businessId);
     subject = String(body.subject ?? "").slice(0, 300);
+    slotKey = String(body.slotKey ?? "");
     if (ASPECTS.includes(body.aspect)) aspect = body.aspect;
   } catch {
     return NextResponse.json(
@@ -51,14 +53,16 @@ export async function POST(request: Request) {
       { status: 404 },
     );
 
-  let billing;
-  try {
-    billing = await chargeAiUsage(user.id, "IMAGE_GENERATION", "AI 이미지 생성");
-  } catch (err) {
-    if (err instanceof InsufficientPointsError)
-      return NextResponse.json({ error: err.message }, { status: 402 });
-    throw err;
-  }
+  // 같은 슬롯 재생성 남용만 막는다(이미지는 무과금·딜리버리 포함).
+  if (!(await reserveImageSlot(supabase, businessId, slotKey)))
+    return NextResponse.json(
+      {
+        error: ko
+          ? "이 이미지는 재생성 횟수 한도에 도달했습니다. 잠시 후 다시 시도해주세요."
+          : "This image slot has reached its regeneration limit.",
+      },
+      { status: 429 },
+    );
 
   try {
     // 한글 카드 문구를 영문 피사체 묘사로 변환 (이미지 모델은 한글을 이해하지 못함)
@@ -117,7 +121,7 @@ export async function POST(request: Request) {
       image: `data:${outMime};base64,${outBuf.toString("base64")}`,
     });
   } catch (err) {
-    await billing.refund();
+    await releaseImageSlot(supabase, businessId, slotKey);
     const message =
       err instanceof ImageGenerationError
         ? err.message

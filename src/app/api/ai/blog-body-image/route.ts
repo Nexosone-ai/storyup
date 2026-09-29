@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { chargeAiUsage, InsufficientPointsError } from "@/lib/ai/billing";
+import { reserveImageSlot, releaseImageSlot } from "@/lib/ai/imageSlot";
 import { getLocale } from "@/lib/i18n";
 import { generateAndStoreBlogBodyImage } from "@/lib/ai/blogBodyImage";
 
@@ -22,11 +22,13 @@ export async function POST(request: Request) {
   let businessId = "";
   let postId = "";
   let paragraph = "";
+  let slotKey = "";
   try {
     const body = await request.json();
     businessId = String(body.businessId);
     postId = String(body.postId);
     paragraph = String(body.paragraph ?? "").trim();
+    slotKey = String(body.slotKey ?? "");
   } catch {
     return NextResponse.json(
       { error: ko ? "잘못된 요청입니다." : "Invalid request." },
@@ -56,14 +58,17 @@ export async function POST(request: Request) {
     paragraph.slice(0, 2000) ||
     [post.title, ...(post.keywords ?? [])].filter(Boolean).join(", ");
 
-  let billing;
-  try {
-    billing = await chargeAiUsage(user.id, "IMAGE_GENERATION", "AI 본문 이미지");
-  } catch (err) {
-    if (err instanceof InsufficientPointsError)
-      return NextResponse.json({ error: err.message }, { status: 402 });
-    throw err;
-  }
+  // 같은 슬롯 재생성 남용만 막는다(이미지는 무과금·딜리버리 포함). 글별로 슬롯을 구분.
+  const bodySlot = `${postId}:${slotKey || "default"}`;
+  if (!(await reserveImageSlot(supabase, businessId, bodySlot)))
+    return NextResponse.json(
+      {
+        error: ko
+          ? "이 이미지는 재생성 횟수 한도에 도달했습니다. 잠시 후 다시 시도해주세요."
+          : "This image slot has reached its regeneration limit.",
+      },
+      { status: 429 },
+    );
 
   const url = await generateAndStoreBlogBodyImage({
     businessId,
@@ -71,7 +76,7 @@ export async function POST(request: Request) {
     paragraph: subject,
   });
   if (!url) {
-    await billing.refund();
+    await releaseImageSlot(supabase, businessId, bodySlot);
     return NextResponse.json(
       {
         error: ko

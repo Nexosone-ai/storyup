@@ -32,6 +32,7 @@ function ImageSlot({
   kind = "cover",
   aspect,
   subject,
+  slotKey,
 }: {
   value?: string;
   onChange: (url: string) => void;
@@ -42,6 +43,8 @@ function ImageSlot({
   aspect?: GenAspect;
   /** AI 생성 프롬프트에 쓰일 피사체 설명 (예: 메뉴명, 상호+헤드라인) */
   subject?: string;
+  /** 슬롯 식별자(콘텐츠 경로) — 동일 슬롯 재생성 횟수 제한에 사용. */
+  slotKey?: string;
 }) {
   const ko = useLocale() === "ko";
   const inputRef = useRef<HTMLInputElement>(null);
@@ -83,6 +86,7 @@ function ImageSlot({
         body: JSON.stringify({
           businessId,
           subject: subject ?? "",
+          slotKey: slotKey ?? "",
           // 표시 박스 비율(aspect)로 생성해 여백/잘림을 없앤다. 없으면 kind로 추정.
           aspect: aspect ?? (kind === "hero" ? "16:9" : "4:3"),
         }),
@@ -229,6 +233,7 @@ export function makeEditableImageRenderer(
         kind={kind}
         aspect={aspect}
         subject={subjectFor?.(path)}
+        slotKey={path}
       />
     );
   };

@@ -155,7 +155,7 @@ export function CardNewsStudio({
     // 순차 생성 — 동시에 여러 장을 요청하면 이미지 서버 제한으로 일부만 성공한다.
     const results: Array<string | undefined> = [];
     let fatal: string | null = null;
-    for (const card of cards) {
+    for (const [i, card] of cards.entries()) {
       try {
         const res = await fetch("/api/ai/card-image", {
           method: "POST",
@@ -164,6 +164,7 @@ export function CardNewsStudio({
             businessId,
             subject: cardImageSubject(card),
             aspect: "3:4",
+            slotKey: `card:${dataPostId ?? "x"}:${i}`,
           }),
         });
         const json = await res.json().catch(() => ({}) as { error?: string });

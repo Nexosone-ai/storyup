@@ -1439,6 +1439,21 @@ export interface Database {
         Args: Record<string, never>;
         Returns: Json;
       };
+      try_reserve_image_slot: {
+        Args: {
+          p_business: string;
+          p_slot: string;
+          p_limit: number;
+        };
+        Returns: boolean;
+      };
+      release_image_slot: {
+        Args: {
+          p_business: string;
+          p_slot: string;
+        };
+        Returns: undefined;
+      };
     };
     Enums: Record<string, never>;
   };

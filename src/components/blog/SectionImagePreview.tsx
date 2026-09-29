@@ -119,6 +119,7 @@ export function SectionImagePreview({
           businessId,
           postId,
           paragraph: `${s.heading}\n${s.bodyMd.slice(0, 400)}`,
+          slotKey: `body:${s.headingIdx}`,
         }),
       });
       const json = await res.json();
