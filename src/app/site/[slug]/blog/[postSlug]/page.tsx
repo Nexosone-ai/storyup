@@ -25,7 +25,7 @@ import { BlogEventModules } from "@/components/site/BlogEventModules";
 import { BlogInfoModules } from "@/components/site/BlogInfoModules";
 import { TrackPageView } from "@/components/site/TrackPageView";
 import { getPublicBlogEvent } from "@/lib/events";
-import { buildSeo, siteUrl } from "@/utils/seo";
+import { buildSeo, siteUrl, siteBaseUrl } from "@/utils/seo";
 
 export async function generateMetadata({
   params,
@@ -43,6 +43,7 @@ export async function generateMetadata({
     description: post.seo_description || post.summary,
     keywords: post.keywords,
     path: `/site/${slug}/blog/${postSlug}`,
+    url: `${siteBaseUrl(site.primaryDomain, slug)}/blog/${postSlug}`,
     image: post.cover_image_url ?? undefined,
     type: "article",
     publishedTime: post.published_at ?? undefined,
@@ -116,9 +117,12 @@ export default async function PublicArticlePage({
   // 이벤트 모듈(쿠폰발행 + 연락문의) — 활성 모듈이 있을 때만 렌더 (0027 이전 DB면 null)
   const blogEvent = await getPublicBlogEvent(post.id);
 
-  // 검색·AI 답변엔진(AEO)용 구조화 데이터 — Google 리치 결과 권장 필드 포함
-  const siteHome = `${siteUrl}/site/${slug}`;
-  const blogHome = `${siteUrl}/site/${slug}/blog`;
+  // 검색·AI 답변엔진(AEO)용 구조화 데이터 — Google 리치 결과 권장 필드 포함.
+  // 커스텀 도메인이 연결돼 있으면 canonical/JSON-LD도 그 도메인 기준으로.
+  const base = siteBaseUrl(site.primaryDomain, slug);
+  const siteHome = base;
+  const blogHome = `${base}/blog`;
+  const postUrl = `${base}/blog/${postSlug}`;
   const logo = site.website.content.hero?.logo;
   const jsonLd = {
     "@context": "https://schema.org",
@@ -130,8 +134,8 @@ export default async function PublicArticlePage({
     datePublished: post.published_at || undefined,
     dateModified: post.updated_at,
     inLanguage: ko ? "ko" : "en",
-    url: `${siteUrl}${path}`,
-    mainEntityOfPage: `${siteUrl}${path}`,
+    url: postUrl,
+    mainEntityOfPage: postUrl,
     author: { "@type": "Organization", name, url: siteHome },
     publisher: {
       "@type": "Organization",
@@ -160,7 +164,7 @@ export default async function PublicArticlePage({
         "@type": "ListItem",
         position: 4,
         name: post.title,
-        item: `${siteUrl}${path}`,
+        item: postUrl,
       },
     ],
   };

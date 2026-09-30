@@ -4,7 +4,7 @@ import { getPublishedSite, getPublishedPosts, getUser } from "@/lib/queries";
 import { SiteRenderer } from "@/components/website/SiteRenderer";
 import { TrackPageView } from "@/components/site/TrackPageView";
 import { contactHref } from "@/components/website/templates/shared";
-import { buildSeo, siteUrl } from "@/utils/seo";
+import { buildSeo, siteBaseUrl } from "@/utils/seo";
 import { stripHtml } from "@/utils/richtext";
 
 export async function generateMetadata({
@@ -23,6 +23,7 @@ export async function generateMetadata({
       stripHtml(c.hero?.shortDescription ?? site.business.description ?? "") ||
       undefined,
     path: `/site/${slug}`,
+    url: siteBaseUrl(site.primaryDomain, slug),
     image: c.hero?.image,
   });
 }
@@ -55,6 +56,7 @@ export default async function PublicSitePage({
   }));
 
   const c = site.website.content;
+  const baseUrl = siteBaseUrl(site.primaryDomain, slug);
   // 검색·AI 답변엔진(AEO)용 구조화 데이터
   const jsonLd = {
     "@context": "https://schema.org",
@@ -63,7 +65,7 @@ export default async function PublicSitePage({
     description:
       stripHtml(c.hero?.shortDescription || site.business.description || "") ||
       undefined,
-    url: `${siteUrl}/site/${slug}`,
+    url: baseUrl,
     image: c.hero?.image || undefined,
     telephone: c.contact?.phone || undefined,
     email: c.contact?.email || undefined,

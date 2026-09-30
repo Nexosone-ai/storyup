@@ -15,7 +15,7 @@ import {
 import { RelativeTime } from "@/components/ui/RelativeTime";
 import { BlogCover } from "@/components/blog/BlogCover";
 import { TrackPageView } from "@/components/site/TrackPageView";
-import { buildSeo } from "@/utils/seo";
+import { buildSeo, siteBaseUrl } from "@/utils/seo";
 
 export async function generateMetadata({
   params,
@@ -25,7 +25,11 @@ export async function generateMetadata({
   const { slug } = await params;
   const site = await getPublishedSite(slug);
   const name = site?.website.content.hero?.businessName ?? "블로그";
-  return buildSeo({ title: `${name} 블로그`, path: `/site/${slug}/blog` });
+  return buildSeo({
+    title: `${name} 블로그`,
+    path: `/site/${slug}/blog`,
+    url: site ? `${siteBaseUrl(site.primaryDomain, slug)}/blog` : undefined,
+  });
 }
 
 export default async function PublicBlogListPage({
@@ -61,9 +65,30 @@ export default async function PublicBlogListPage({
       ? `/business/${site.business.id}/blog/new`
       : null;
 
+  // 검색·AI 답변엔진용 구조화 데이터 — 블로그 + 글 목록(ItemList).
+  const base = siteBaseUrl(site.primaryDomain, slug);
+  const blogLd = {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    name: `${name} ${ko ? "블로그" : "Blog"}`,
+    url: `${base}/blog`,
+    inLanguage: ko ? "ko" : "en",
+    blogPost: allPosts.slice(0, 20).map((p) => ({
+      "@type": "BlogPosting",
+      headline: p.title,
+      url: `${base}/blog/${p.slug}`,
+      datePublished: p.published_at || undefined,
+      image: p.cover_image_url || undefined,
+    })),
+  };
+
   return (
     <div className="min-h-dvh bg-white">
       <TrackPageView slug={slug} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogLd) }}
+      />
       <header className="border-b border-border">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-5">
           <Link

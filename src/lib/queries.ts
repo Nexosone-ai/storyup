@@ -362,6 +362,8 @@ const supabaseConfigured = () =>
 export interface PublishedSite {
   business: BusinessRow;
   website: WebsiteRow;
+  /** 연결된 활성 커스텀 도메인(있으면). SEO canonical/OG용. */
+  primaryDomain: string | null;
 }
 
 /** A published website + its business, by public slug. RLS allows anon read.
@@ -386,7 +388,16 @@ export const getPublishedSite = cache(async function getPublishedSite(
     .maybeSingle();
   if (!business) return null;
 
-  return { business, website };
+  // 활성 커스텀 도메인(있으면) — SECURITY DEFINER RPC(0042), 익명도 조회 가능.
+  const { data: domain } = await supabase.rpc("active_custom_domain_for", {
+    p_business_id: business.id,
+  });
+
+  return {
+    business,
+    website,
+    primaryDomain: typeof domain === "string" && domain ? domain : null,
+  };
 });
 
 export async function getPublishedPosts(

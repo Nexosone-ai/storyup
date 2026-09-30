@@ -1436,6 +1436,10 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      active_custom_domain_for: {
+        Args: { p_business_id: string };
+        Returns: string | null;
+      };
       grant_plan_points: {
         Args: {
           p_user: string;
