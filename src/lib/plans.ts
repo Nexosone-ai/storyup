@@ -46,6 +46,8 @@ export interface Plan {
   analyticsTier: "basic" | "detailed" | "advanced";
   /** AEO/GEO — 답변엔진 최적화(FAQ·FAQPage 구조화 데이터). Pro 이상. */
   aeo?: boolean;
+  /** 관리자/직원 총 계정 수(소유자 포함). null = 협의(무제한). 직원 초대 가능 수 = maxMembers-1. */
+  maxMembers: number | null;
 }
 
 export const PLANS: Plan[] = [
@@ -55,6 +57,7 @@ export const PLANS: Plan[] = [
     priceKrw: 0,
     limits: { sites: 1, blogPosts: 10, cardNews: 1, aiImages: 30 }, // aiImages: 미사용(이미지 무과금·딜리버리 포함)
     maxBusinesses: 1,
+    maxMembers: 1,
     siteLayouts: 1,
     watermarkRemoved: false,
     analyticsTier: "basic",
@@ -65,6 +68,7 @@ export const PLANS: Plan[] = [
     priceKrw: 49000,
     limits: { sites: 5, blogPosts: 50, cardNews: 10, aiImages: 50 },
     maxBusinesses: 1,
+    maxMembers: 1,
     siteLayouts: 3,
     domain: "subdomain",
     watermarkRemoved: true,
@@ -80,6 +84,7 @@ export const PLANS: Plan[] = [
     priceKrw: 99000,
     limits: { sites: 10, blogPosts: 150, cardNews: 30, aiImages: 90 },
     maxBusinesses: 5,
+    maxMembers: 3,
     siteLayouts: 3,
     domain: "custom",
     watermarkRemoved: true,
@@ -97,6 +102,7 @@ export const PLANS: Plan[] = [
     priceKrw: null,
     limits: { sites: null, blogPosts: null, cardNews: null, aiImages: null },
     maxBusinesses: null,
+    maxMembers: null,
     domain: "custom",
     watermarkRemoved: true,
     couponBlock: true,
@@ -231,6 +237,17 @@ export function planFeatureList(plan: Plan, ko: boolean): string[] {
           ? "방문자 분석 (기본)"
           : "Analytics (basic)",
   );
+
+  // 관리자/직원 계정 — 2개 이상(직원 초대 가능) 또는 협의일 때만 카드에 표기.
+  if (plan.maxMembers === null) {
+    out.push(ko ? "관리자/직원 계정 협의" : "Team accounts: Custom");
+  } else if (plan.maxMembers > 1) {
+    out.push(
+      ko
+        ? `관리자/직원 ${plan.maxMembers}계정`
+        : `${plan.maxMembers} team accounts`,
+    );
+  }
 
   // 여러 사업장 관리 — 셀링포인트가 되는 경우(협의 또는 2개 이상)만 카드에 표기.
   if (plan.maxBusinesses === null) {

@@ -18,6 +18,31 @@ export async function getUser() {
   return user;
 }
 
+/**
+ * 현재 사용자가 동작하는 '계정 소유자' id.
+ * 다른 사람의 활성 직원이면 그 소유자 id, 아니면 자기 자신(0044 account_owner_id).
+ * 사업장 목록·플랜 조회를 이 id 기준으로 하면 직원이 소유자 계정으로 동작한다.
+ */
+export async function accountOwnerId(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+): Promise<string> {
+  const { data } = await supabase.rpc("account_owner_id", { p_user: userId });
+  return typeof data === "string" && data ? data : userId;
+}
+
+/** 세션 사용자의 계정 소유자 id (없으면 null). */
+export const getAccountOwnerId = cache(async function getAccountOwnerId(): Promise<
+  string | null
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  return accountOwnerId(supabase, user.id);
+});
+
 /** 첫 대시보드 진입 여부 — profiles.onboarded_at 이 아직 없으면 환영 가이드 대상. */
 export async function needsOnboarding(): Promise<boolean> {
   const supabase = await createClient();
@@ -73,11 +98,13 @@ export interface DashboardData {
 
 export async function getDashboardData(userId: string): Promise<DashboardData> {
   const supabase = await createClient();
+  // 직원이면 소유자 계정의 사업장을 본다.
+  const ownerId = await accountOwnerId(supabase, userId);
 
   const { data: businesses } = await supabase
     .from("businesses")
     .select("*")
-    .eq("user_id", userId)
+    .eq("user_id", ownerId)
     .order("updated_at", { ascending: false });
 
   const list = businesses ?? [];
@@ -140,10 +167,11 @@ export async function getPrimaryBusiness(): Promise<{
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
+  const ownerId = await accountOwnerId(supabase, user.id);
   const { data } = await supabase
     .from("businesses")
     .select("id, name")
-    .eq("user_id", user.id)
+    .eq("user_id", ownerId)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
@@ -160,11 +188,12 @@ export async function getBusiness(id: string): Promise<BusinessRow | null> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
+  const ownerId = await accountOwnerId(supabase, user.id);
   const { data } = await supabase
     .from("businesses")
     .select("*")
     .eq("id", id)
-    .eq("user_id", user.id)
+    .eq("user_id", ownerId)
     .maybeSingle();
   return data ?? null;
 }
@@ -179,10 +208,11 @@ export async function getUserInquiries(): Promise<UserInquiry[]> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return [];
+  const ownerId = await accountOwnerId(supabase, user.id);
   const { data: bizList } = await supabase
     .from("businesses")
     .select("id, name")
-    .eq("user_id", user.id);
+    .eq("user_id", ownerId);
   const nameMap = new Map((bizList ?? []).map((b) => [b.id, b.name]));
 
   const { data, error } = await supabase
@@ -213,10 +243,11 @@ export async function getUserSiteLogos(): Promise<SiteLogoItem[]> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return [];
+  const ownerId = await accountOwnerId(supabase, user.id);
   const { data: bizList } = await supabase
     .from("businesses")
     .select("id, name")
-    .eq("user_id", user.id)
+    .eq("user_id", ownerId)
     .order("updated_at", { ascending: false });
   if (!bizList?.length) return [];
 

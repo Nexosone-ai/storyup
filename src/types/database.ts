@@ -179,6 +179,28 @@ export interface Database {
         >;
         Relationships: [];
       };
+      team_members: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          member_user_id: string | null;
+          invited_email: string;
+          status: "pending" | "active";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          member_user_id?: string | null;
+          invited_email: string;
+          status?: "pending" | "active";
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["team_members"]["Insert"]
+        >;
+        Relationships: [];
+      };
       blog_posts: {
         Row: {
           id: string;
@@ -1443,6 +1465,10 @@ export interface Database {
       active_custom_domain_for: {
         Args: { p_business_id: string };
         Returns: string | null;
+      };
+      account_owner_id: {
+        Args: { p_user: string };
+        Returns: string;
       };
       grant_plan_points: {
         Args: {

@@ -156,6 +156,17 @@ export default async function PricingPage() {
             ? `${p.maxBusinesses}개`
             : String(p.maxBusinesses),
     ],
+    [
+      ko ? "관리자/직원 계정" : "Team accounts",
+      (p) =>
+        p.maxMembers === null
+          ? ko
+            ? "협의"
+            : "Custom"
+          : ko
+            ? `${p.maxMembers}명`
+            : String(p.maxMembers),
+    ],
   ];
 
   return (

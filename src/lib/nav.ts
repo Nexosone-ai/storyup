@@ -54,6 +54,11 @@ export function dashboardNav(
       icon: "globe",
     },
     {
+      label: ko ? "팀 관리" : "Team",
+      href: "/dashboard/team",
+      icon: "users",
+    },
+    {
       label: ko ? "구독 플랜" : "Plans",
       href: "/dashboard/plans",
       icon: "tag",

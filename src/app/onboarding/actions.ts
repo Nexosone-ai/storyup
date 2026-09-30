@@ -33,6 +33,16 @@ export async function createBusinessAction(
   } = await supabase.auth.getUser();
   if (!user) return { error: "로그인이 필요합니다." };
 
+  // 직원 계정은 비즈니스를 생성할 수 없다(소유자만). 0044 account_owner_id.
+  const { data: ownerData } = await supabase.rpc("account_owner_id", {
+    p_user: user.id,
+  });
+  if (typeof ownerData === "string" && ownerData && ownerData !== user.id)
+    return {
+      error:
+        "직원 계정은 새 비즈니스를 만들 수 없어요. 계정 소유자에게 요청해주세요.",
+    };
+
   // 플랜별 사업장 개수 제한 (Free 1 · Basic 1 · Pro 5 · Partner 협의=무제한).
   const plan = getPlanById(await getPlanId(user.id));
   if (plan.maxBusinesses !== null) {
