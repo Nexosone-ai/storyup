@@ -5,6 +5,8 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { trackGrowthActivity } from "@/lib/gamification/engine";
 import { getLocale } from "@/lib/i18n";
 import { slugify } from "@/utils/slug";
+import { getPlanId } from "@/lib/subscription";
+import { getPlanById } from "@/lib/plans";
 import { BUSINESS_CATEGORIES, INDUSTRY_IDS } from "@/types/domain";
 import type { WebsiteContent, IndustryId } from "@/types/domain";
 
@@ -697,6 +699,13 @@ export async function scheduleBlogAction(
 
   let when: string | null = null;
   if (scheduledAtIso) {
+    // 예약 발행은 Pro 이상 전용(취소는 항상 허용).
+    if (!getPlanById(await getPlanId(user.id)).scheduledPublish)
+      return {
+        error: ko
+          ? "콘텐츠 예약 발행은 Pro 플랜에서 사용할 수 있어요. 플랜을 업그레이드해주세요."
+          : "Scheduled publishing is available on the Pro plan. Please upgrade.",
+      };
     const t = new Date(scheduledAtIso);
     if (Number.isNaN(t.getTime()))
       return { error: ko ? "예약 시각이 올바르지 않습니다." : "Invalid date." };

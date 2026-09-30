@@ -35,11 +35,11 @@ export default async function BlogEditorPage({
     ? await getCouponClaimCount(event.id)
     : 0;
 
-  // 쿠폰 발행은 Basic 이상(plan.couponBlock)만 가능 — 문의·댓글 등 다른 모듈은 무관.
+  // 플랜별 기능 게이팅 — 쿠폰 발행(Basic+), 예약 발행(Pro+).
   const user = await getUser();
-  const couponAllowed = user
-    ? getPlanById(await getPlanId(user.id)).couponBlock === true
-    : false;
+  const plan = user ? getPlanById(await getPlanId(user.id)) : null;
+  const couponAllowed = plan?.couponBlock === true;
+  const schedulingAllowed = plan?.scheduledPublish === true;
 
   return (
     <div className="space-y-8">
@@ -49,6 +49,7 @@ export default async function BlogEditorPage({
         siteSlug={website?.slug ?? null}
         sitePublished={website?.status === "published"}
         categories={categories}
+        schedulingAllowed={schedulingAllowed}
       />
       <EventEditor
         businessId={id}

@@ -44,6 +44,7 @@ export function BlogEditor({
   siteSlug,
   sitePublished,
   categories = [],
+  schedulingAllowed = true,
 }: {
   businessId: string;
   post: BlogPostRow;
@@ -51,6 +52,8 @@ export function BlogEditor({
   sitePublished: boolean;
   /** 이 비즈니스의 기존 블로그 메뉴 목록 (자동완성용) */
   categories?: string[];
+  /** 예약 발행 가능 플랜(Pro+)인지. false면 예약 버튼이 업그레이드 안내로 동작. */
+  schedulingAllowed?: boolean;
 }) {
   const ko = useLocale() === "ko";
   const [title, setTitle] = useState(post.title);
@@ -383,18 +386,34 @@ export function BlogEditor({
           <Button variant="outline" size="sm" onClick={save} disabled={saving}>
             {saving ? <Spinner className="h-4 w-4" /> : ko ? "저장" : "Save"}
           </Button>
-          {/* 예약 발행 — 아직 공개 전인 글에만 노출 */}
+          {/* 예약 발행 — 아직 공개 전인 글에만 노출 (Pro 전용) */}
           {status !== "published" && (
             <Button
               variant="outline"
               size="sm"
               onClick={() => {
                 setNote(null);
+                if (!schedulingAllowed) {
+                  setNote(
+                    ko
+                      ? "콘텐츠 예약 발행은 Pro 플랜에서 사용할 수 있어요."
+                      : "Scheduled publishing is available on the Pro plan.",
+                  );
+                  return;
+                }
                 setShowSchedule((v) => !v);
               }}
               disabled={publishing}
+              title={
+                schedulingAllowed
+                  ? undefined
+                  : ko
+                    ? "Pro 플랜 전용"
+                    : "Pro plan only"
+              }
             >
               {ko ? "예약 발행" : "Schedule"}
+              {!schedulingAllowed && " (Pro)"}
             </Button>
           )}
           <Button size="sm" onClick={togglePublish} disabled={publishing}>

@@ -38,6 +38,8 @@ export interface Plan {
   aiStrategy?: boolean;
   /** SEO 최적화 기능 */
   seoTools?: boolean;
+  /** 콘텐츠 예약 발행 (Pro 이상) */
+  scheduledPublish?: boolean;
 }
 
 export const PLANS: Plan[] = [
@@ -75,6 +77,7 @@ export const PLANS: Plan[] = [
     couponBlock: true,
     aiStrategy: true,
     seoTools: true,
+    scheduledPublish: true,
   },
   {
     id: "partner",
@@ -87,6 +90,7 @@ export const PLANS: Plan[] = [
     couponBlock: true,
     aiStrategy: true,
     seoTools: true,
+    scheduledPublish: true,
   },
 ];
 
@@ -185,6 +189,8 @@ export function planFeatureList(plan: Plan, ko: boolean): string[] {
       ko ? "사용 분석 기반 AI 전략 수립" : "AI strategy from usage analytics",
     );
   if (plan.seoTools) out.push(ko ? "SEO 최적화 기능" : "SEO optimization");
+  if (plan.scheduledPublish)
+    out.push(ko ? "콘텐츠 예약 발행" : "Scheduled publishing");
 
   // 여러 사업장 관리 — 셀링포인트가 되는 경우(협의 또는 2개 이상)만 카드에 표기.
   if (plan.maxBusinesses === null) {

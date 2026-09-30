@@ -110,6 +110,10 @@ export default async function PricingPage() {
       (p) => (p.seoTools ? "✓" : "–"),
     ],
     [
+      ko ? "콘텐츠 예약 발행" : "Scheduled publishing",
+      (p) => (p.scheduledPublish ? "✓" : "–"),
+    ],
+    [
       ko ? "브랜드/사업장" : "Businesses",
       (p) =>
         p.maxBusinesses === null
