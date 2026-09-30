@@ -139,6 +139,26 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["websites"]["Insert"]>;
         Relationships: [];
       };
+      custom_domains: {
+        Row: {
+          id: string;
+          business_id: string;
+          domain: string;
+          status: "pending" | "active" | "error";
+          created_at: string;
+          verified_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          domain: string;
+          status?: "pending" | "active" | "error";
+          created_at?: string;
+          verified_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["custom_domains"]["Insert"]>;
+        Relationships: [];
+      };
       blog_posts: {
         Row: {
           id: string;

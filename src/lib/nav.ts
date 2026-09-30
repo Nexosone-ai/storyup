@@ -49,6 +49,11 @@ export function dashboardNav(
       icon: "sparkles",
     },
     {
+      label: ko ? "개인 도메인" : "Custom domain",
+      href: "/dashboard/domain",
+      icon: "globe",
+    },
+    {
       label: ko ? "구독 플랜" : "Plans",
       href: "/dashboard/plans",
       icon: "tag",
