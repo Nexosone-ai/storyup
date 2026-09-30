@@ -42,6 +42,8 @@ export interface Plan {
   scheduledPublish?: boolean;
   /** 성과 리포트 제공 주기. 미지정 = 미제공, "monthly" = 월간, "weekly" = 주간+월간 */
   report?: "monthly" | "weekly";
+  /** 방문자 분석 수준. "basic" = 핵심 지표, "detailed" = +유입·쿠폰·고객, "advanced" = +SEO 진단 */
+  analyticsTier: "basic" | "detailed" | "advanced";
 }
 
 export const PLANS: Plan[] = [
@@ -53,6 +55,7 @@ export const PLANS: Plan[] = [
     maxBusinesses: 1,
     siteLayouts: 1,
     watermarkRemoved: false,
+    analyticsTier: "basic",
   },
   {
     id: "basic",
@@ -67,6 +70,7 @@ export const PLANS: Plan[] = [
     aiStrategy: true,
     seoTools: true,
     report: "monthly",
+    analyticsTier: "detailed",
   },
   {
     id: "pro",
@@ -82,6 +86,7 @@ export const PLANS: Plan[] = [
     seoTools: true,
     scheduledPublish: true,
     report: "weekly",
+    analyticsTier: "advanced",
   },
   {
     id: "partner",
@@ -96,6 +101,7 @@ export const PLANS: Plan[] = [
     seoTools: true,
     scheduledPublish: true,
     report: "weekly",
+    analyticsTier: "advanced",
   },
 ];
 
@@ -206,6 +212,19 @@ export function planFeatureList(plan: Plan, ko: boolean): string[] {
           ? "성과 리포트 (월간)"
           : "Reports (monthly)",
     );
+  out.push(
+    plan.analyticsTier === "advanced"
+      ? ko
+        ? "방문자 분석 (고급)"
+        : "Analytics (advanced)"
+      : plan.analyticsTier === "detailed"
+        ? ko
+          ? "방문자 분석 (상세)"
+          : "Analytics (detailed)"
+        : ko
+          ? "방문자 분석 (기본)"
+          : "Analytics (basic)",
+  );
 
   // 여러 사업장 관리 — 셀링포인트가 되는 경우(협의 또는 2개 이상)만 카드에 표기.
   if (plan.maxBusinesses === null) {

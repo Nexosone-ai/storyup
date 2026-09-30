@@ -127,6 +127,21 @@ export default async function PricingPage() {
             : "–",
     ],
     [
+      ko ? "방문자 분석" : "Visitor analytics",
+      (p) =>
+        p.analyticsTier === "advanced"
+          ? ko
+            ? "고급"
+            : "Advanced"
+          : p.analyticsTier === "detailed"
+            ? ko
+              ? "상세"
+              : "Detailed"
+            : ko
+              ? "기본"
+              : "Basic",
+    ],
+    [
       ko ? "브랜드/사업장" : "Businesses",
       (p) =>
         p.maxBusinesses === null

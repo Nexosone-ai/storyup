@@ -1,10 +1,13 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getBusiness, getWebsite, getBlogPosts } from "@/lib/queries";
+import { getUser, getBusiness, getWebsite, getBlogPosts } from "@/lib/queries";
 import { getAnalytics, getCustomerInsights } from "@/lib/analytics";
 import { getLocale } from "@/lib/i18n";
+import { getPlanId } from "@/lib/subscription";
+import { getPlanById } from "@/lib/plans";
 import { computeSeoReport } from "@/utils/seoScore";
 import { Card } from "@/components/ui/Card";
+import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/icons";
 import { SeoAudit, type SeoAuditItem } from "@/components/blog/SeoAudit";
 import { TrendChart } from "@/components/analytics/TrendChart";
@@ -118,6 +121,14 @@ export default async function AnalyticsPage({
   const slugToTitle = new Map(posts.map((p) => [p.slug, p.title]));
   const published = website?.status === "published";
   const { coupon, leads } = insights;
+
+  // 방문자 분석 수준 (플랜별): basic=핵심지표, detailed=+유입·쿠폰·고객, advanced=+SEO 진단.
+  const user = await getUser();
+  const tier = user
+    ? getPlanById(await getPlanId(user.id)).analyticsTier
+    : "basic";
+  const detailed = tier === "detailed" || tier === "advanced";
+  const advanced = tier === "advanced";
 
   // 글별 SEO 자가진단
   const seoItems: SeoAuditItem[] = posts.map((p) => ({
@@ -283,6 +294,25 @@ export default async function AnalyticsPage({
         <TrendChart data={data.trend} ko={ko} />
       </Card>
 
+      {/* 기본(Free) 티어 — 상세 분석은 Basic 이상 안내 */}
+      {!detailed && (
+        <Card className="flex flex-col items-start gap-3 border-dashed">
+          <p className="font-semibold">
+            {ko ? "더 자세한 분석이 필요하세요?" : "Want deeper analytics?"}
+          </p>
+          <p className="text-sm text-muted">
+            {ko
+              ? "유입 경로·인기 페이지·쿠폰 성과·새로 모인 고객 분석은 Basic 이상 플랜에서 제공돼요. (Pro는 블로그 SEO 진단까지)"
+              : "Referrers, top pages, coupon performance, and customer insights are on Basic and higher. (Pro adds blog SEO audits.)"}
+          </p>
+          <ButtonLink href="/dashboard/plans" size="sm">
+            {ko ? "플랜 업그레이드" : "Upgrade plan"}
+          </ButtonLink>
+        </Card>
+      )}
+
+      {detailed && (
+        <>
       {/* 쿠폰 성과 + 고객 리드 */}
       <div className="grid gap-5 lg:grid-cols-2">
         <Card>
@@ -541,8 +571,11 @@ export default async function AnalyticsPage({
             : "Repeat-visit rate for coupon customers and per-customer journeys need visitor identification and are in the works. Visits are currently counted without identifiers for privacy."}
         </p>
       </Card>
+        </>
+      )}
 
-      {/* 글별 SEO 진단 */}
+      {/* 글별 SEO 진단 — Pro(고급) 전용 */}
+      {advanced && (
       <Card>
         <h2 className="mb-1 font-semibold tracking-tight">
           {ko ? "블로그 SEO 진단" : "Blog SEO audit"}
@@ -554,6 +587,7 @@ export default async function AnalyticsPage({
         </p>
         <SeoAudit items={seoItems} />
       </Card>
+      )}
     </div>
   );
 }
