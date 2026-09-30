@@ -23,12 +23,15 @@ export function EventEditor({
   event,
   couponClaimed = 0,
   published,
+  couponAllowed = true,
 }: {
   businessId: string;
   postId: string;
   event: BlogEventRow | null;
   couponClaimed?: number;
   published: boolean;
+  /** 쿠폰 발행 가능 플랜(Basic+)인지. false면 쿠폰 섹션이 잠김. */
+  couponAllowed?: boolean;
 }) {
   const ko = useLocale() === "ko";
   const [couponEnabled, setCouponEnabled] = useState(
@@ -86,7 +89,7 @@ export function EventEditor({
     startSave(async () => {
       setNote(null);
       const res = await saveBlogEventAction(businessId, postId, {
-        couponEnabled,
+        couponEnabled: couponAllowed && couponEnabled,
         couponBenefit: benefit,
         couponIssuedOn: issuedOn || null,
         couponLimit: limit ? Number(limit) : null,
@@ -161,8 +164,32 @@ export function EventEditor({
           </p>
         )}
 
-        {/* ---------- 쿠폰발행 ---------- */}
+        {/* ---------- 쿠폰발행 (Basic+ 전용) ---------- */}
         <div className="mt-5 rounded-xl border border-border bg-white p-4">
+          {!couponAllowed ? (
+            <div className="flex items-start gap-3">
+              <span aria-hidden className="mt-0.5 text-base">
+                🔒
+              </span>
+              <span>
+                <span className="block text-sm font-semibold">
+                  {ko ? "쿠폰발행" : "Coupon"}
+                </span>
+                <span className="mt-0.5 block text-xs text-muted">
+                  {ko
+                    ? "쿠폰 발행은 Basic 이상 플랜에서 사용할 수 있어요. (문의·댓글·주소·지도 모듈은 무료로 계속 사용 가능)"
+                    : "Coupons are available on Basic and higher. (Contact, comments, address, and map modules stay free.)"}
+                </span>
+                <a
+                  href="/dashboard/plans"
+                  className="mt-1 inline-block text-xs font-semibold text-primary underline"
+                >
+                  {ko ? "플랜 업그레이드 →" : "Upgrade plan →"}
+                </a>
+              </span>
+            </div>
+          ) : (
+            <>
           <label className="flex cursor-pointer items-start gap-3">
             <input
               type="checkbox"
@@ -278,6 +305,8 @@ export function EventEditor({
                 </span>
               </div>
             </div>
+          )}
+            </>
           )}
         </div>
 

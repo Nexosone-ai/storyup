@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n";
+import { getPlanId } from "@/lib/subscription";
+import { getPlanById } from "@/lib/plans";
 
 /**
  * 블로그 이벤트(쿠폰발행 + 연락문의) 소유자 액션.
@@ -78,6 +80,16 @@ export async function saveBlogEventAction(
     .maybeSingle();
   if (!post)
     return { error: ko ? "글을 찾을 수 없습니다." : "Post not found." };
+
+  // 쿠폰 발행은 Basic 이상(plan.couponBlock) 전용 — 클라이언트 우회 방지(서버 강제).
+  const canCoupon =
+    getPlanById(await getPlanId(user.id)).couponBlock === true;
+  if (config.couponEnabled && !canCoupon)
+    return {
+      error: ko
+        ? "쿠폰 발행은 Basic 이상 플랜에서 가능합니다. 쿠폰을 끄고 저장하거나 플랜을 업그레이드해주세요."
+        : "Coupons require the Basic plan or higher. Turn coupons off to save, or upgrade your plan.",
+    };
 
   const benefit = config.couponBenefit.trim();
   if (config.couponEnabled && !benefit)

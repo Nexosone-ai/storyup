@@ -1,11 +1,14 @@
 import { notFound } from "next/navigation";
 import {
+  getUser,
   getBusiness,
   getBlogPost,
   getWebsite,
   getBlogCategories,
 } from "@/lib/queries";
 import { getBlogEventForOwner, getCouponClaimCount } from "@/lib/events";
+import { getPlanId } from "@/lib/subscription";
+import { getPlanById } from "@/lib/plans";
 import { BlogEditor } from "@/components/blog/BlogEditor";
 import { EventEditor } from "@/components/blog/EventEditor";
 
@@ -32,6 +35,12 @@ export default async function BlogEditorPage({
     ? await getCouponClaimCount(event.id)
     : 0;
 
+  // 쿠폰 발행은 Basic 이상(plan.couponBlock)만 가능 — 문의·댓글 등 다른 모듈은 무관.
+  const user = await getUser();
+  const couponAllowed = user
+    ? getPlanById(await getPlanId(user.id)).couponBlock === true
+    : false;
+
   return (
     <div className="space-y-8">
       <BlogEditor
@@ -47,6 +56,7 @@ export default async function BlogEditorPage({
         event={event}
         couponClaimed={couponClaimed}
         published={post.status === "published"}
+        couponAllowed={couponAllowed}
       />
     </div>
   );
