@@ -122,11 +122,19 @@ export async function setUserPlanAction(
     .maybeSingle();
   if (!profile) return { error: "해당 이메일의 사용자를 찾을 수 없습니다." };
 
+  // 관리자 수동 부여는 결제 없이 '무기한 활성'으로 둔다.
+  // current_period_end를 null로 초기화하지 않으면, 과거 체험/전환으로 남은 만료일이
+  // 그대로 유지돼 getPlanId가 만료로 보고 free로 강등한다(=업그레이드 미반영 버그).
   const { error } = await adminc.from("subscriptions").upsert(
     {
       user_id: profile.user_id,
       plan: plan as PlanId,
       status: "active",
+      current_period_end: null, // 무기한 (만기일 없음 = 만료로 취급되지 않음)
+      billing_key: null, // 자동결제 아님
+      cancel_at_period_end: false,
+      trial: false,
+      billing_failures: 0,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" },
