@@ -40,6 +40,8 @@ export interface Plan {
   seoTools?: boolean;
   /** 콘텐츠 예약 발행 (Pro 이상) */
   scheduledPublish?: boolean;
+  /** 성과 리포트 제공 주기. 미지정 = 미제공, "monthly" = 월간, "weekly" = 주간+월간 */
+  report?: "monthly" | "weekly";
 }
 
 export const PLANS: Plan[] = [
@@ -64,6 +66,7 @@ export const PLANS: Plan[] = [
     couponBlock: true,
     aiStrategy: true,
     seoTools: true,
+    report: "monthly",
   },
   {
     id: "pro",
@@ -78,6 +81,7 @@ export const PLANS: Plan[] = [
     aiStrategy: true,
     seoTools: true,
     scheduledPublish: true,
+    report: "weekly",
   },
   {
     id: "partner",
@@ -91,6 +95,7 @@ export const PLANS: Plan[] = [
     aiStrategy: true,
     seoTools: true,
     scheduledPublish: true,
+    report: "weekly",
   },
 ];
 
@@ -191,6 +196,16 @@ export function planFeatureList(plan: Plan, ko: boolean): string[] {
   if (plan.seoTools) out.push(ko ? "SEO 최적화 기능" : "SEO optimization");
   if (plan.scheduledPublish)
     out.push(ko ? "콘텐츠 예약 발행" : "Scheduled publishing");
+  if (plan.report)
+    out.push(
+      plan.report === "weekly"
+        ? ko
+          ? "성과 리포트 (주간·월간)"
+          : "Reports (weekly & monthly)"
+        : ko
+          ? "성과 리포트 (월간)"
+          : "Reports (monthly)",
+    );
 
   // 여러 사업장 관리 — 셀링포인트가 되는 경우(협의 또는 2개 이상)만 카드에 표기.
   if (plan.maxBusinesses === null) {

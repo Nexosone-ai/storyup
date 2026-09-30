@@ -114,6 +114,19 @@ export default async function PricingPage() {
       (p) => (p.scheduledPublish ? "✓" : "–"),
     ],
     [
+      ko ? "성과 리포트" : "Reports",
+      (p) =>
+        p.report === "weekly"
+          ? ko
+            ? "주간·월간"
+            : "Weekly & monthly"
+          : p.report === "monthly"
+            ? ko
+              ? "월간"
+              : "Monthly"
+            : "–",
+    ],
+    [
       ko ? "브랜드/사업장" : "Businesses",
       (p) =>
         p.maxBusinesses === null
