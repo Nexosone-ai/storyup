@@ -110,6 +110,10 @@ export default async function PricingPage() {
       (p) => (p.seoTools ? "✓" : "–"),
     ],
     [
+      ko ? "AEO/GEO (답변엔진)" : "AEO/GEO",
+      (p) => (p.aeo ? "✓" : "–"),
+    ],
+    [
       ko ? "콘텐츠 예약 발행" : "Scheduled publishing",
       (p) => (p.scheduledPublish ? "✓" : "–"),
     ],

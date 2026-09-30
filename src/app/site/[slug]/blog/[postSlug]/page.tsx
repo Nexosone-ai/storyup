@@ -169,6 +169,21 @@ export default async function PublicArticlePage({
     ],
   };
 
+  // AEO — FAQ가 있으면 FAQPage 구조화 데이터(답변엔진이 Q&A로 인용).
+  const faqItems = Array.isArray(post.faq) ? post.faq : [];
+  const faqLd =
+    faqItems.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: faqItems.map((f) => ({
+            "@type": "Question",
+            name: f.q,
+            acceptedAnswer: { "@type": "Answer", text: f.a },
+          })),
+        }
+      : null;
+
   return (
     <div className="min-h-dvh bg-white">
       <TrackPageView slug={slug} />
@@ -180,6 +195,12 @@ export default async function PublicArticlePage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
+      {faqLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
+        />
+      )}
       <header className="border-b border-border">
         <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-5">
           <Link
@@ -284,6 +305,25 @@ export default async function PublicArticlePage({
           className="prose mt-8 max-w-none"
           dangerouslySetInnerHTML={{ __html: html }}
         />
+
+        {faqItems.length > 0 && (
+          <section className="mt-12 border-t border-border pt-8">
+            <h2 className="text-xl font-bold tracking-tight">
+              {ko ? "자주 묻는 질문" : "FAQ"}
+            </h2>
+            <dl className="mt-5 space-y-4">
+              {faqItems.map((f, i) => (
+                <div
+                  key={i}
+                  className="rounded-2xl border border-border bg-white p-5"
+                >
+                  <dt className="font-semibold">{f.q}</dt>
+                  <dd className="mt-1.5 leading-relaxed text-muted">{f.a}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        )}
 
         {blogEvent && (blogEvent.couponEnabled || blogEvent.contactEnabled) && (
           <BlogEventModules

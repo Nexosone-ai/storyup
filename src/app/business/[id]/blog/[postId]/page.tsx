@@ -11,6 +11,7 @@ import { getPlanId } from "@/lib/subscription";
 import { getPlanById } from "@/lib/plans";
 import { BlogEditor } from "@/components/blog/BlogEditor";
 import { EventEditor } from "@/components/blog/EventEditor";
+import { BlogFaqEditor } from "@/components/blog/BlogFaqEditor";
 
 export const metadata = { title: "블로그 편집" };
 
@@ -40,6 +41,7 @@ export default async function BlogEditorPage({
   const plan = user ? getPlanById(await getPlanId(user.id)) : null;
   const couponAllowed = plan?.couponBlock === true;
   const schedulingAllowed = plan?.scheduledPublish === true;
+  const aeoAllowed = plan?.aeo === true;
 
   return (
     <div className="space-y-8">
@@ -58,6 +60,12 @@ export default async function BlogEditorPage({
         couponClaimed={couponClaimed}
         published={post.status === "published"}
         couponAllowed={couponAllowed}
+      />
+      <BlogFaqEditor
+        businessId={id}
+        postId={postId}
+        initialFaq={post.faq ?? []}
+        aeoAllowed={aeoAllowed}
       />
     </div>
   );

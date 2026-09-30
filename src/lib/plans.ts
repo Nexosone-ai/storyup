@@ -44,6 +44,8 @@ export interface Plan {
   report?: "monthly" | "weekly";
   /** 방문자 분석 수준. "basic" = 핵심 지표, "detailed" = +유입·쿠폰·고객, "advanced" = +SEO 진단 */
   analyticsTier: "basic" | "detailed" | "advanced";
+  /** AEO/GEO — 답변엔진 최적화(FAQ·FAQPage 구조화 데이터). Pro 이상. */
+  aeo?: boolean;
 }
 
 export const PLANS: Plan[] = [
@@ -87,6 +89,7 @@ export const PLANS: Plan[] = [
     scheduledPublish: true,
     report: "weekly",
     analyticsTier: "advanced",
+    aeo: true,
   },
   {
     id: "partner",
@@ -102,6 +105,7 @@ export const PLANS: Plan[] = [
     scheduledPublish: true,
     report: "weekly",
     analyticsTier: "advanced",
+    aeo: true,
   },
 ];
 
@@ -200,6 +204,8 @@ export function planFeatureList(plan: Plan, ko: boolean): string[] {
       ko ? "사용 분석 기반 AI 전략 수립" : "AI strategy from usage analytics",
     );
   if (plan.seoTools) out.push(ko ? "SEO 최적화 기능" : "SEO optimization");
+  if (plan.aeo)
+    out.push(ko ? "AEO/GEO 답변엔진 최적화(FAQ)" : "AEO/GEO (FAQ schema)");
   if (plan.scheduledPublish)
     out.push(ko ? "콘텐츠 예약 발행" : "Scheduled publishing");
   if (plan.report)

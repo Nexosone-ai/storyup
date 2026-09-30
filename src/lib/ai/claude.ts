@@ -9,6 +9,7 @@ import type {
   BlogArticleResult,
   MarketingContentResult,
   MarketingStrategyResult,
+  BlogFaqResult,
   CardNewsResult,
   WebsiteContent,
   BusinessInterviewInput,
@@ -35,6 +36,7 @@ import {
   marketingStrategyPrompt,
   type MarketingStrategyPromptInput,
 } from "./prompts/strategy";
+import { blogFaqPrompt, type BlogFaqPromptInput } from "./prompts/faq";
 import { cardNewsPrompt, type CardNewsPromptInput } from "./prompts/card-news";
 import type { PdfLandingExtract } from "@/lib/pdfImport";
 
@@ -127,6 +129,10 @@ export class ClaudeProvider implements AIProvider {
       marketingStrategyPrompt(input),
       1800,
     );
+  }
+
+  generateBlogFaq(input: BlogFaqPromptInput) {
+    return this.complete<BlogFaqResult>(blogFaqPrompt(input), 1200);
   }
 
   generateCardNews(input: CardNewsPromptInput) {

@@ -3,11 +3,13 @@ import type {
   BlogArticleResult,
   MarketingContentResult,
   MarketingStrategyResult,
+  BlogFaqResult,
   CardNewsResult,
   WebsiteContent,
   BusinessInterviewInput,
 } from "@/types/domain";
 import type { MarketingStrategyPromptInput } from "./prompts/strategy";
+import type { BlogFaqPromptInput } from "./prompts/faq";
 import type {
   BlogPromptInput,
   BlogTranscriptPromptInput,
@@ -54,6 +56,9 @@ export interface AIProvider {
   generateMarketingStrategy(
     input: MarketingStrategyPromptInput,
   ): Promise<MarketingStrategyResult>;
+
+  /** 블로그 글에서 답변엔진(AEO)용 FAQ를 생성한다. */
+  generateBlogFaq(input: BlogFaqPromptInput): Promise<BlogFaqResult>;
 
   generateCardNews(input: CardNewsPromptInput): Promise<CardNewsResult>;
 

@@ -2,6 +2,7 @@ import type {
   WebsiteContent,
   PublishStatus,
   MarketingStrategyResult,
+  BlogFaqItem,
 } from "./domain";
 
 // Hand-maintained to match supabase/migrations/0001_init.sql.
@@ -198,6 +199,8 @@ export interface Database {
           published_at: string | null;
           /** 예약 발행 시각 (0024 마이그레이션 이전 DB에서는 없을 수 있음). draft + 미래값 = 예약 대기 */
           scheduled_at: string | null;
+          /** AEO FAQ (0043). Pro 이상에서 생성 — 공개 글에 FAQPage 구조화 데이터로 노출. */
+          faq: BlogFaqItem[];
         } & Timestamps;
         Insert: {
           id?: string;
@@ -216,6 +219,7 @@ export interface Database {
           status?: PublishStatus;
           published_at?: string | null;
           scheduled_at?: string | null;
+          faq?: BlogFaqItem[];
           created_at?: string;
           updated_at?: string;
         };

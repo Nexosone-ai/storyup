@@ -234,6 +234,19 @@ export interface MarketingContentResult {
   facebook: string;
 }
 
+// ---- AEO: 블로그 FAQ (답변엔진 최적화) ----
+
+export interface BlogFaqItem {
+  /** 방문자가 검색·질문할 법한 실제 질문 */
+  q: string;
+  /** 40~60자 내외의 직접적인 답변 */
+  a: string;
+}
+
+export interface BlogFaqResult {
+  faq: BlogFaqItem[];
+}
+
 // ---- AI 마케팅 전략 (사용 분석 기반) ----
 
 export interface MarketingStrategyAction {
