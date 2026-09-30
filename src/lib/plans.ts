@@ -25,6 +25,8 @@ export interface Plan {
      */
     aiImages: number | null;
   };
+  /** 관리 가능한 브랜드/사업장 최대 개수. null = 협의(무제한 취급) */
+  maxBusinesses: number | null;
   /** 랜딩페이지에서 선택 가능한 레이아웃 수. 미지정 시 카드에 표기하지 않는다. */
   siteLayouts?: number;
   /** 도메인 지원 형태. 미지정 = 미지원, "subdomain" = storyup.me 하위 경로, "custom" = 외부 자체 도메인 연결 */
@@ -44,6 +46,7 @@ export const PLANS: Plan[] = [
     name: { ko: "Free", en: "Free" },
     priceKrw: 0,
     limits: { sites: 1, blogPosts: 10, cardNews: 1, aiImages: 30 }, // aiImages: 미사용(이미지 무과금·딜리버리 포함)
+    maxBusinesses: 1,
     siteLayouts: 1,
     watermarkRemoved: false,
   },
@@ -52,6 +55,7 @@ export const PLANS: Plan[] = [
     name: { ko: "Basic", en: "Basic" },
     priceKrw: 49000,
     limits: { sites: 5, blogPosts: 50, cardNews: 10, aiImages: 50 },
+    maxBusinesses: 1,
     siteLayouts: 3,
     domain: "subdomain",
     watermarkRemoved: true,
@@ -64,6 +68,7 @@ export const PLANS: Plan[] = [
     name: { ko: "Pro", en: "Pro" },
     priceKrw: 99000,
     limits: { sites: 10, blogPosts: 150, cardNews: 30, aiImages: 90 },
+    maxBusinesses: 5,
     siteLayouts: 3,
     domain: "custom",
     watermarkRemoved: true,
@@ -76,6 +81,7 @@ export const PLANS: Plan[] = [
     name: { ko: "Partner", en: "Partner" },
     priceKrw: null,
     limits: { sites: null, blogPosts: null, cardNews: null, aiImages: null },
+    maxBusinesses: null,
     domain: "custom",
     watermarkRemoved: true,
     couponBlock: true,
@@ -179,6 +185,17 @@ export function planFeatureList(plan: Plan, ko: boolean): string[] {
       ko ? "사용 분석 기반 AI 전략 수립" : "AI strategy from usage analytics",
     );
   if (plan.seoTools) out.push(ko ? "SEO 최적화 기능" : "SEO optimization");
+
+  // 여러 사업장 관리 — 셀링포인트가 되는 경우(협의 또는 2개 이상)만 카드에 표기.
+  if (plan.maxBusinesses === null) {
+    out.push(ko ? "여러 브랜드/사업장 관리 협의" : "Multi-brand management: Custom");
+  } else if (plan.maxBusinesses > 1) {
+    out.push(
+      ko
+        ? `여러 브랜드/사업장 ${plan.maxBusinesses}개 관리`
+        : `Manage up to ${plan.maxBusinesses} businesses`,
+    );
+  }
 
   return out;
 }

@@ -109,6 +109,17 @@ export default async function PricingPage() {
       ko ? "SEO 최적화" : "SEO optimization",
       (p) => (p.seoTools ? "✓" : "–"),
     ],
+    [
+      ko ? "브랜드/사업장" : "Businesses",
+      (p) =>
+        p.maxBusinesses === null
+          ? ko
+            ? "협의"
+            : "Custom"
+          : ko
+            ? `${p.maxBusinesses}개`
+            : String(p.maxBusinesses),
+    ],
   ];
 
   return (

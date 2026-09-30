@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { slugWithFallback, randomSuffix } from "@/utils/slug";
 import { BUSINESS_CATEGORIES, BRAND_TONES, INDUSTRY_IDS } from "@/types/domain";
 import type { BusinessInterviewInput } from "@/types/domain";
+import { getPlanId } from "@/lib/subscription";
+import { getPlanById } from "@/lib/plans";
 
 export interface CreateBusinessResult {
   businessId?: string;
@@ -30,6 +32,23 @@ export async function createBusinessAction(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "로그인이 필요합니다." };
+
+  // 플랜별 사업장 개수 제한 (Free 1 · Basic 1 · Pro 5 · Partner 협의=무제한).
+  const plan = getPlanById(await getPlanId(user.id));
+  if (plan.maxBusinesses !== null) {
+    const { count } = await supabase
+      .from("businesses")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id);
+    if ((count ?? 0) >= plan.maxBusinesses) {
+      return {
+        error:
+          plan.maxBusinesses === 1
+            ? `현재 ${plan.name.ko} 플랜에서는 사업장을 1개만 만들 수 있어요. 더 추가하려면 상위 플랜으로 업그레이드해주세요.`
+            : `현재 ${plan.name.ko} 플랜의 사업장 한도(${plan.maxBusinesses}개)에 도달했어요. 더 추가하려면 상위 플랜으로 업그레이드해주세요.`,
+      };
+    }
+  }
 
   // Ensure a unique slug.
   let slug = slugWithFallback(name);
