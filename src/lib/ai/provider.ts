@@ -2,10 +2,12 @@ import type {
   BrandStoryResult,
   BlogArticleResult,
   MarketingContentResult,
+  MarketingStrategyResult,
   CardNewsResult,
   WebsiteContent,
   BusinessInterviewInput,
 } from "@/types/domain";
+import type { MarketingStrategyPromptInput } from "./prompts/strategy";
 import type {
   BlogPromptInput,
   BlogTranscriptPromptInput,
@@ -47,6 +49,11 @@ export interface AIProvider {
   generateMarketing(
     input: MarketingPromptInput,
   ): Promise<MarketingContentResult>;
+
+  /** 사용 분석 지표를 바탕으로 실행 가능한 마케팅 전략을 제안한다. */
+  generateMarketingStrategy(
+    input: MarketingStrategyPromptInput,
+  ): Promise<MarketingStrategyResult>;
 
   generateCardNews(input: CardNewsPromptInput): Promise<CardNewsResult>;
 

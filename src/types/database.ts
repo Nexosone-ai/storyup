@@ -1,6 +1,7 @@
 import type {
   WebsiteContent,
   PublishStatus,
+  MarketingStrategyResult,
 } from "./domain";
 
 // Hand-maintained to match supabase/migrations/0001_init.sql.
@@ -157,6 +158,24 @@ export interface Database {
           verified_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["custom_domains"]["Insert"]>;
+        Relationships: [];
+      };
+      marketing_strategies: {
+        Row: {
+          id: string;
+          business_id: string;
+          content: MarketingStrategyResult;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          content: MarketingStrategyResult;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["marketing_strategies"]["Insert"]
+        >;
         Relationships: [];
       };
       blog_posts: {

@@ -4,6 +4,7 @@ import type {
   BrandStoryResult,
   BlogArticleResult,
   MarketingContentResult,
+  MarketingStrategyResult,
   CardNewsResult,
   WebsiteContent,
   BusinessInterviewInput,
@@ -26,6 +27,10 @@ import {
   marketingPrompt,
   type MarketingPromptInput,
 } from "./prompts/marketing";
+import {
+  marketingStrategyPrompt,
+  type MarketingStrategyPromptInput,
+} from "./prompts/strategy";
 import { cardNewsPrompt, type CardNewsPromptInput } from "./prompts/card-news";
 import type { PdfLandingExtract } from "@/lib/pdfImport";
 
@@ -157,6 +162,13 @@ export class OpenAIProvider implements AIProvider {
 
   generateMarketing(input: MarketingPromptInput) {
     return this.complete<MarketingContentResult>(marketingPrompt(input), 1500);
+  }
+
+  generateMarketingStrategy(input: MarketingStrategyPromptInput) {
+    return this.complete<MarketingStrategyResult>(
+      marketingStrategyPrompt(input),
+      1800,
+    );
   }
 
   generateCardNews(input: CardNewsPromptInput) {

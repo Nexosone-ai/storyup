@@ -109,5 +109,10 @@ export function workspaceNav(businessId: string, locale: Locale = "ko"): NavItem
       href: `${base}/analytics`,
       icon: "chart",
     },
+    {
+      label: ko ? "AI 전략" : "AI strategy",
+      href: `${base}/strategy`,
+      icon: "sparkles",
+    },
   ];
 }

@@ -234,6 +234,26 @@ export interface MarketingContentResult {
   facebook: string;
 }
 
+// ---- AI 마케팅 전략 (사용 분석 기반) ----
+
+export interface MarketingStrategyAction {
+  /** 실행 항목 제목 */
+  title: string;
+  /** 왜 필요한지 — 지표 근거 */
+  reason: string;
+  /** 어떻게 실행하는지 — 구체적 방법 */
+  how: string;
+}
+
+export interface MarketingStrategyResult {
+  /** 현재 성과 한줄 요약 */
+  summary: string;
+  /** 이번 기간 핵심 집중 포인트 */
+  focus: string;
+  /** 우선순위 실행 항목 3~5개 */
+  actions: MarketingStrategyAction[];
+}
+
 // ---- Card news (Instagram carousel) ----
 
 export interface CardNewsSlide {
