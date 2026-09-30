@@ -9,7 +9,10 @@ import { Icon } from "@/components/ui/icons";
 import { GeneratingScreen } from "@/components/ai/GeneratingScreen";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { createClient } from "@/lib/supabase/client";
-import { createVoiceUploadUrl } from "@/app/business/actions";
+import {
+  createVoiceUploadUrl,
+  createBlankBlogAction,
+} from "@/app/business/actions";
 import { cn } from "@/utils/cn";
 import {
   BLOG_TONES,
@@ -117,7 +120,7 @@ function fmtTime(sec: number): string {
 export function BlogComposer({ businessId }: { businessId: string }) {
   const router = useRouter();
   const ko = useLocale() === "ko";
-  const [mode, setMode] = useState<"topic" | "voice">("topic");
+  const [mode, setMode] = useState<"topic" | "voice" | "manual">("topic");
   const [topic, setTopic] = useState("");
   const [tone, setTone] = useState<BlogTone>("Friendly");
   const [length, setLength] = useState<BlogLength>("Medium");
@@ -333,7 +336,38 @@ export function BlogComposer({ businessId }: { businessId: string }) {
     }
   };
 
+  // AI 없이 빈 글로 시작 → 에디터로 이동해 직접 작성.
+  const startBlank = async () => {
+    setError(null);
+    setGenerating(true);
+    try {
+      const res = await createBlankBlogAction(businessId);
+      if (res.error || !res.postId)
+        throw new Error(
+          res.error ?? (ko ? "생성에 실패했습니다." : "Failed to create."),
+        );
+      router.push(`/business/${businessId}/blog/${res.postId}`);
+    } catch (e) {
+      setGenerating(false);
+      setError(
+        e instanceof Error
+          ? e.message
+          : ko
+            ? "생성에 실패했습니다."
+            : "Failed to create.",
+      );
+    }
+  };
+
   if (generating && !error) {
+    if (mode === "manual") {
+      return (
+        <GeneratingScreen
+          title={ko ? "새 글을 준비하고 있어요..." : "Preparing your post..."}
+          steps={ko ? ["빈 글을 만드는 중..."] : ["Creating a blank post..."]}
+        />
+      );
+    }
     return (
       <GeneratingScreen
         title={ko ? "블로그 글을 쓰고 있어요..." : "Writing your blog post..."}
@@ -359,18 +393,23 @@ export function BlogComposer({ businessId }: { businessId: string }) {
             : "What story would you like to share?"}
         </h1>
         <p className="mt-1 text-muted">
-          {ko
-            ? "주제를 적거나, 말로 설명하면 AI가 블로그 글로 만들어드립니다."
-            : "Type a topic or just talk — AI will turn it into a blog post."}
+          {mode === "manual"
+            ? ko
+              ? "AI 없이 빈 글에서 시작해 직접 작성할 수 있어요."
+              : "Start from a blank post and write it yourself — no AI."
+            : ko
+              ? "주제를 적거나, 말로 설명하면 AI가 블로그 글로 만들어드립니다."
+              : "Type a topic or just talk — AI will turn it into a blog post."}
         </p>
       </div>
 
       {/* 입력 모드 탭 */}
-      <div className="grid grid-cols-2 gap-2 rounded-xl border border-border bg-surface p-1">
+      <div className="grid grid-cols-3 gap-2 rounded-xl border border-border bg-surface p-1">
         {(
           [
             { key: "topic", label: ko ? "주제로 작성" : "From a topic", icon: Icon.pen },
             { key: "voice", label: ko ? "음성으로 작성" : "From your voice", icon: Icon.mic },
+            { key: "manual", label: ko ? "직접 작성" : "Write it myself", icon: Icon.file },
           ] as const
         ).map((tab) => (
           <button
@@ -409,7 +448,7 @@ export function BlogComposer({ businessId }: { businessId: string }) {
               }
             />
           </div>
-        ) : (
+        ) : mode === "voice" ? (
           <div className="space-y-3">
             <Label>{ko ? "음성 녹음" : "Voice recording"}</Label>
             <p className="text-sm text-muted">
@@ -498,8 +537,17 @@ export function BlogComposer({ businessId }: { businessId: string }) {
               </div>
             )}
           </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-border bg-surface p-6 text-center">
+            <p className="text-sm text-muted">
+              {ko
+                ? "AI 없이 빈 글에서 시작합니다. 아래 버튼을 누르면 에디터가 열려요."
+                : "Start from a blank post. Click below to open the editor."}
+            </p>
+          </div>
         )}
 
+        {mode !== "manual" && (
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="tone">{ko ? "톤" : "Tone"}</Label>
@@ -530,11 +578,19 @@ export function BlogComposer({ businessId }: { businessId: string }) {
             </Select>
           </div>
         </div>
+        )}
         {error && <p className="text-sm text-danger">{error}</p>}
-        <Button onClick={generate} className="w-full" disabled={recording}>
-          <Icon.sparkles width={18} height={18} />
-          {ko ? "글 생성하기" : "Generate post"}
-        </Button>
+        {mode === "manual" ? (
+          <Button onClick={startBlank} className="w-full">
+            <Icon.file width={18} height={18} />
+            {ko ? "직접 작성 시작" : "Start writing"}
+          </Button>
+        ) : (
+          <Button onClick={generate} className="w-full" disabled={recording}>
+            <Icon.sparkles width={18} height={18} />
+            {ko ? "글 생성하기" : "Generate post"}
+          </Button>
+        )}
       </Card>
     </div>
   );

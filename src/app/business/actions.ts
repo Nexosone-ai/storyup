@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { trackGrowthActivity } from "@/lib/gamification/engine";
 import { getLocale } from "@/lib/i18n";
-import { slugify } from "@/utils/slug";
+import { slugify, randomSuffix } from "@/utils/slug";
 import { getPlanId } from "@/lib/subscription";
 import { getPlanById } from "@/lib/plans";
 import { BUSINESS_CATEGORIES, INDUSTRY_IDS } from "@/types/domain";
@@ -147,6 +147,45 @@ async function requireUser() {
     data: { user },
   } = await supabase.auth.getUser();
   return { supabase, user };
+}
+
+/**
+ * AI 없이 빈 초안을 만들어 직접 작성하도록 한다.
+ * AI 호출·커버 이미지·생성 보상 없이 blog_posts draft 1행만 생성(발행 보상은 발행 시 지급).
+ */
+export async function createBlankBlogAction(
+  businessId: string,
+): Promise<{ postId?: string; error?: string }> {
+  const ko = (await getLocale()) === "ko";
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
+
+  // 소유(또는 직원) 사업장인지 확인 — 쓰기는 RLS(owns_business)로도 강제된다.
+  const { data: biz } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("id", businessId)
+    .maybeSingle();
+  if (!biz)
+    return { error: ko ? "사업장을 찾을 수 없습니다." : "Business not found." };
+
+  const { data, error } = await supabase
+    .from("blog_posts")
+    .insert({
+      business_id: businessId,
+      title: ko ? "새 글" : "New post",
+      slug: `post-${randomSuffix()}`,
+      content: "",
+      keywords: [],
+      status: "draft",
+    })
+    .select("id")
+    .single();
+  if (error || !data)
+    return { error: ko ? "글 생성에 실패했습니다." : "Failed to create." };
+
+  revalidatePath(`/business/${businessId}/blog`);
+  return { postId: data.id };
 }
 
 // ---------------- Business ----------------
