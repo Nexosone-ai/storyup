@@ -846,6 +846,53 @@ export async function saveCardImagesAction(
   return { ok: true };
 }
 
+/** 카드뉴스 텍스트/스타일 편집 저장 — cover·slides·cta·cardStyles를 저장 content에 병합(images 보존). */
+export async function saveCardNewsAction(
+  businessId: string,
+  blogPostId: string,
+  patch: {
+    cover?: unknown;
+    slides?: unknown;
+    cta?: unknown;
+    cardStyles?: unknown;
+  },
+): Promise<ActionState> {
+  const ko = (await getLocale()) === "ko";
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
+
+  const { data: row } = await supabase
+    .from("marketing_contents")
+    .select("id, content")
+    .eq("business_id", businessId)
+    .eq("blog_post_id", blogPostId)
+    .eq("platform", "instagram_cards")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!row)
+    return { error: ko ? "카드뉴스를 찾을 수 없습니다." : "Card news not found." };
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(row.content) as Record<string, unknown>;
+  } catch {
+    return { error: ko ? "저장에 실패했습니다." : "Failed to save." };
+  }
+  if (patch.cover !== undefined) parsed.cover = patch.cover;
+  if (patch.slides !== undefined) parsed.slides = patch.slides;
+  if (patch.cta !== undefined) parsed.cta = patch.cta;
+  if (patch.cardStyles !== undefined) parsed.cardStyles = patch.cardStyles;
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("marketing_contents")
+    .update({ content: JSON.stringify(parsed) })
+    .eq("id", row.id);
+  if (error) return { error: ko ? "저장에 실패했습니다." : "Failed to save." };
+  return { ok: true };
+}
+
 export async function deleteBlogAction(
   businessId: string,
   postId: string,

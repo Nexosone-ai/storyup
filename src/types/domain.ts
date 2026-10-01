@@ -284,6 +284,16 @@ export interface CardNewsSlide {
   body: string;
 }
 
+/** 카드 텍스트 사용자 편집 스타일 (기본값 대비 배율·em 단위). */
+export interface CardTextStyle {
+  /** 글자 크기 배율 (기본 1, 0.7~1.4) */
+  scale?: number;
+  /** 자간 em (기본 0, -0.05~0.1) */
+  letterSpacing?: number;
+  /** 줄간격 배율 (기본 1, 0.9~1.8) */
+  lineHeight?: number;
+}
+
 export interface CardNewsResult {
   cover: { title: string; subtitle: string };
   slides: CardNewsSlide[]; // 3–4 content slides
@@ -293,6 +303,8 @@ export interface CardNewsResult {
    * AI 생성/직접 업로드 후 저장되며, 스튜디오 복원과 쇼케이스 표시에 쓰인다.
    */
   images?: (string | null)[];
+  /** 카드별 텍스트 스타일 (toIGCards 순서와 동일한 인덱스). 사용자 편집값. */
+  cardStyles?: CardTextStyle[];
 }
 
 // Input the onboarding wizard collects.

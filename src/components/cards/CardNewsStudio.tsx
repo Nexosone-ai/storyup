@@ -11,13 +11,14 @@ import { InstagramCard, toIGCards, cardImageSubject } from "./InstagramCard";
 import {
   uploadSiteImage,
   saveCardImagesAction,
+  saveCardNewsAction,
 } from "@/app/business/actions";
 import { IG } from "./cardTheme";
 import { resizeImage } from "@/components/website/templates/ImageSlot";
 import { trackEvent } from "@/lib/track";
 import { recordShareAction } from "@/app/dashboard/growth/actions";
 import { useLocale } from "@/components/i18n/LocaleProvider";
-import type { CardNewsResult } from "@/types/domain";
+import type { CardNewsResult, CardTextStyle } from "@/types/domain";
 
 interface PostOption {
   id: string;
@@ -104,6 +105,55 @@ export function CardNewsStudio({
 
   const cards = useMemo(() => (data ? toIGCards(data) : []), [data]);
   const igScale = PREVIEW_W / IG.w;
+
+  // ── 카드 텍스트/스타일 편집 ──
+  const [selectedCard, setSelectedCard] = useState(0);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleCardSave = (next: CardNewsResult) => {
+    if (!dataPostId) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      void saveCardNewsAction(businessId, dataPostId, {
+        cover: next.cover,
+        slides: next.slides,
+        cta: next.cta,
+        cardStyles: next.cardStyles ?? [],
+      });
+    }, 900);
+  };
+  const editCard = (mut: (d: CardNewsResult) => void) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      const next = structuredClone(prev) as CardNewsResult;
+      mut(next);
+      scheduleCardSave(next);
+      return next;
+    });
+  };
+  const setCardText = (
+    idx: number,
+    field: "title" | "subtitle" | "heading" | "body" | "text",
+    value: string,
+  ) =>
+    editCard((d) => {
+      if (idx === 0) {
+        if (field === "title") d.cover.title = value;
+        else if (field === "subtitle") d.cover.subtitle = value;
+      } else if (idx === d.slides.length + 1) {
+        if (field === "text") d.cta.text = value;
+      } else {
+        const s = d.slides[idx - 1];
+        if (s && field === "heading") s.heading = value;
+        else if (s && field === "body") s.body = value;
+      }
+    });
+  const setCardStyle = (idx: number, patch: Partial<CardTextStyle>) =>
+    editCard((d) => {
+      const styles = d.cardStyles ?? [];
+      styles[idx] = { ...(styles[idx] ?? {}), ...patch };
+      d.cardStyles = styles;
+    });
+  const curStyle: CardTextStyle = data?.cardStyles?.[selectedCard] ?? {};
   const slugName = () => handle.replace(/^@/, "") || "storyup";
 
   const generate = async () => {
@@ -650,7 +700,18 @@ export function CardNewsStudio({
                     </button>
                   </div>
                   <div
-                    className="overflow-hidden rounded-xl border border-border shadow-sm"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedCard(i)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") setSelectedCard(i);
+                    }}
+                    title={ko ? "클릭해서 이 카드 편집" : "Click to edit this card"}
+                    className={`cursor-pointer overflow-hidden rounded-xl border shadow-sm transition-colors ${
+                      selectedCard === i
+                        ? "border-primary ring-2 ring-primary/40"
+                        : "border-border hover:border-primary/40"
+                    }`}
                     style={{ width: PREVIEW_W, height: IG.h * igScale }}
                   >
                     <div
@@ -674,6 +735,78 @@ export function CardNewsStudio({
                 </div>
               ))}
             </div>
+
+            {/* 선택한 카드 텍스트·스타일 편집 */}
+            {cards[selectedCard] && (
+              <div className="rounded-2xl border border-border bg-surface p-4">
+                <p className="mb-3 text-sm font-semibold">
+                  {ko
+                    ? `${selectedCard + 1}번 카드 편집`
+                    : `Edit card #${selectedCard + 1}`}
+                  <span className="ml-2 text-xs font-normal text-muted">
+                    {ko
+                      ? "줄바꿈은 Enter로, 변경은 자동 저장돼요."
+                      : "Press Enter for line breaks; changes auto-save."}
+                  </span>
+                </p>
+
+                {/* 텍스트 입력 (카드 종류별) */}
+                <div className="grid gap-3">
+                  {(() => {
+                    const c = cards[selectedCard];
+                    if (c.kind === "cover")
+                      return (
+                        <>
+                          <CardField label={ko ? "제목" : "Title"} value={c.title} rows={2} onChange={(v) => setCardText(selectedCard, "title", v)} />
+                          <CardField label={ko ? "부제" : "Subtitle"} value={c.subtitle} rows={2} onChange={(v) => setCardText(selectedCard, "subtitle", v)} />
+                        </>
+                      );
+                    if (c.kind === "cta")
+                      return (
+                        <CardField label={ko ? "문구" : "Text"} value={c.text} rows={2} onChange={(v) => setCardText(selectedCard, "text", v)} />
+                      );
+                    return (
+                      <>
+                        <CardField label={ko ? "제목" : "Heading"} value={c.heading} rows={2} onChange={(v) => setCardText(selectedCard, "heading", v)} />
+                        <CardField label={ko ? "본문" : "Body"} value={c.body} rows={3} onChange={(v) => setCardText(selectedCard, "body", v)} />
+                      </>
+                    );
+                  })()}
+                </div>
+
+                {/* 스타일 슬라이더 */}
+                <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                  <StyleSlider
+                    label={ko ? "글자 크기" : "Font size"}
+                    min={0.7} max={1.4} step={0.05}
+                    value={curStyle.scale ?? 1}
+                    display={`${Math.round((curStyle.scale ?? 1) * 100)}%`}
+                    onChange={(v) => setCardStyle(selectedCard, { scale: v })}
+                  />
+                  <StyleSlider
+                    label={ko ? "자간" : "Letter spacing"}
+                    min={-0.05} max={0.1} step={0.005}
+                    value={curStyle.letterSpacing ?? 0}
+                    display={`${(curStyle.letterSpacing ?? 0).toFixed(3)}em`}
+                    onChange={(v) => setCardStyle(selectedCard, { letterSpacing: v })}
+                  />
+                  <StyleSlider
+                    label={ko ? "줄간격" : "Line height"}
+                    min={0.9} max={1.8} step={0.05}
+                    value={curStyle.lineHeight ?? 1}
+                    display={`${Math.round((curStyle.lineHeight ?? 1) * 100)}%`}
+                    onChange={(v) => setCardStyle(selectedCard, { lineHeight: v })}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCardStyle(selectedCard, { scale: 1, letterSpacing: 0, lineHeight: 1 })}
+                  className="mt-3 text-xs font-medium text-muted underline hover:text-foreground"
+                >
+                  {ko ? "스타일 초기화" : "Reset style"}
+                </button>
+              </div>
+            )}
             <p className="text-xs text-muted">
               {ko
                 ? "PNG는 실제 크기(1080×1350)로 저장됩니다. 휴대폰은 '전체 PNG 다운로드'를 누르면 공유 창이 떠서 '사진(갤러리)에 저장'을 고르면 되고, PC는 모든 카드가 ZIP 한 파일로 받아집니다. 배경 이미지는 카드뉴스에 자동 저장되어 다음에 와도 유지돼요."
@@ -764,5 +897,67 @@ export function CardNewsStudio({
         </>
       )}
     </div>
+  );
+}
+
+/** 카드 텍스트 입력 — 라벨 + 줄바꿈 가능한 textarea. */
+function CardField({
+  label,
+  value,
+  rows = 2,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  rows?: number;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-medium text-muted">{label}</span>
+      <textarea
+        value={value}
+        rows={rows}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full resize-y rounded-lg border border-border bg-surface px-3 py-2 text-sm leading-relaxed focus:border-primary focus:outline-none"
+      />
+    </label>
+  );
+}
+
+/** 스타일 슬라이더 — 라벨 + 현재값 표시 + range. */
+function StyleSlider({
+  label,
+  min,
+  max,
+  step,
+  value,
+  display,
+  onChange,
+}: {
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  display: string;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 flex items-center justify-between text-xs font-medium text-muted">
+        <span>{label}</span>
+        <span className="tnum text-foreground">{display}</span>
+      </span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="w-full accent-primary"
+      />
+    </label>
   );
 }

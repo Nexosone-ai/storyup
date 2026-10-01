@@ -1,23 +1,26 @@
 import { forwardRef } from "react";
 import { CARD, IG } from "./cardTheme";
-import type { CardNewsResult } from "@/types/domain";
+import type { CardNewsResult, CardTextStyle } from "@/types/domain";
 
-export type IGCardModel =
+export type IGCardModel = (
   | { kind: "cover"; title: string; subtitle: string }
   | { kind: "content"; index: number; heading: string; body: string }
-  | { kind: "cta"; text: string; handle: string };
+  | { kind: "cta"; text: string; handle: string }
+) & { style?: CardTextStyle };
 
 /** Flattens a CardNewsResult into the ordered list of IG cards. */
 export function toIGCards(cn: CardNewsResult): IGCardModel[] {
+  const st = cn.cardStyles ?? [];
   return [
-    { kind: "cover", title: cn.cover.title, subtitle: cn.cover.subtitle },
+    { kind: "cover", title: cn.cover.title, subtitle: cn.cover.subtitle, style: st[0] },
     ...cn.slides.map((s, i) => ({
       kind: "content" as const,
       index: i + 1,
       heading: s.heading,
       body: s.body,
+      style: st[i + 1],
     })),
-    { kind: "cta", text: cn.cta.text, handle: cn.cta.handle },
+    { kind: "cta", text: cn.cta.text, handle: cn.cta.handle, style: st[cn.slides.length + 1] },
   ];
 }
 
@@ -49,6 +52,21 @@ export const InstagramCard = forwardRef<
   const sub = photo ? "rgba(255,255,255,0.82)" : CARD.muted;
   const accent = photo ? "#ffffff" : CARD.primary;
   const line = photo ? "rgba(255,255,255,0.32)" : CARD.border;
+
+  // 사용자 편집 스타일(글자 크기 배율·자간·줄간격) + 수동 줄바꿈(pre-wrap) 적용.
+  const st = card.style ?? {};
+  const scale = st.scale ?? 1;
+  const txt = (
+    fontSize: number,
+    lineHeight: number,
+    letterSpacing?: string,
+  ): React.CSSProperties => ({
+    fontSize: Math.round(fontSize * scale),
+    lineHeight: lineHeight * (st.lineHeight ?? 1),
+    letterSpacing:
+      st.letterSpacing != null ? `${st.letterSpacing}em` : letterSpacing,
+    whiteSpace: "pre-wrap",
+  });
 
   return (
     <div
@@ -164,18 +182,10 @@ export const InstagramCard = forwardRef<
                   marginBottom: 44,
                 }}
               />
-              <h1
-                style={{
-                  fontSize: 92,
-                  lineHeight: 1.08,
-                  fontWeight: 700,
-                  letterSpacing: "-0.03em",
-                  margin: 0,
-                }}
-              >
+              <h1 style={{ ...txt(92, 1.08, "-0.03em"), fontWeight: 700, margin: 0 }}>
                 {card.title}
               </h1>
-              <p style={{ fontSize: 38, lineHeight: 1.5, color: sub, marginTop: 36 }}>
+              <p style={{ ...txt(38, 1.5), color: sub, marginTop: 36 }}>
                 {card.subtitle}
               </p>
             </>
@@ -194,18 +204,10 @@ export const InstagramCard = forwardRef<
               >
                 {String(card.index).padStart(2, "0")}
               </div>
-              <h2
-                style={{
-                  fontSize: 66,
-                  lineHeight: 1.15,
-                  fontWeight: 700,
-                  letterSpacing: "-0.02em",
-                  margin: 0,
-                }}
-              >
+              <h2 style={{ ...txt(66, 1.15, "-0.02em"), fontWeight: 700, margin: 0 }}>
                 {card.heading}
               </h2>
-              <p style={{ fontSize: 40, lineHeight: 1.6, color: sub, marginTop: 32 }}>
+              <p style={{ ...txt(40, 1.6), color: sub, marginTop: 32 }}>
                 {card.body}
               </p>
             </>
@@ -213,15 +215,7 @@ export const InstagramCard = forwardRef<
 
           {card.kind === "cta" && (
             <>
-              <h2
-                style={{
-                  fontSize: 78,
-                  lineHeight: 1.12,
-                  fontWeight: 700,
-                  letterSpacing: "-0.02em",
-                  margin: 0,
-                }}
-              >
+              <h2 style={{ ...txt(78, 1.12, "-0.02em"), fontWeight: 700, margin: 0 }}>
                 {card.text}
               </h2>
               <div
