@@ -39,9 +39,12 @@ type Device = "desktop" | "mobile";
 export function WebsiteEditor({
   businessId,
   website,
+  maxLayouts = 1,
 }: {
   businessId: string;
   website: WebsiteRow;
+  /** 플랜별 사용 가능한 레이아웃 수 (Free 1 · Basic 3 · Pro 9). 그 이후는 잠금. */
+  maxLayouts?: number;
 }) {
   const ko = useLocale() === "ko";
   const [content, setContent] = useState<WebsiteContent>(website.content);
@@ -351,21 +354,45 @@ export function WebsiteEditor({
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-3">
         <div className="flex flex-wrap items-center gap-2">
           <span className="eyebrow mr-1">{ko ? "템플릿" : "Template"}</span>
-          {TEMPLATE_META.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTemplate(t.id)}
-              title={ko ? t.description : t.descriptionEn}
-              className={cn(
-                "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
-                template === t.id
-                  ? "border-primary bg-primary-soft text-primary"
-                  : "border-border-strong text-muted hover:bg-surface-muted hover:text-foreground",
-              )}
-            >
-              {ko ? t.name : t.nameEn}
-            </button>
-          ))}
+          {TEMPLATE_META.map((t, i) => {
+            const locked = i >= maxLayouts;
+            return (
+              <button
+                key={t.id}
+                onClick={() => {
+                  if (locked) {
+                    setNote(
+                      ko
+                        ? "이 레이아웃은 Pro 플랜에서 사용할 수 있어요."
+                        : "This layout is available on the Pro plan.",
+                    );
+                    return;
+                  }
+                  setTemplate(t.id);
+                }}
+                title={
+                  locked
+                    ? ko
+                      ? "Pro 플랜 전용"
+                      : "Pro plan only"
+                    : ko
+                      ? t.description
+                      : t.descriptionEn
+                }
+                className={cn(
+                  "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
+                  locked
+                    ? "cursor-not-allowed border-border bg-surface-muted text-muted/60"
+                    : template === t.id
+                      ? "border-primary bg-primary-soft text-primary"
+                      : "border-border-strong text-muted hover:bg-surface-muted hover:text-foreground",
+                )}
+              >
+                {ko ? t.name : t.nameEn}
+                {locked && " 🔒"}
+              </button>
+            );
+          })}
         </div>
         <div className="flex gap-1 rounded-lg bg-surface-muted p-1">
           {(["desktop", "mobile"] as Device[]).map((d) => (

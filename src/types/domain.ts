@@ -136,7 +136,17 @@ export interface WebsiteCardItem {
   image?: string;
 }
 
-export const WEBSITE_TEMPLATES = ["classic", "split", "minimal"] as const;
+export const WEBSITE_TEMPLATES = [
+  "classic",
+  "split",
+  "minimal",
+  "bold",
+  "elegant",
+  "vibrant",
+  "magazine",
+  "warm",
+  "modern",
+] as const;
 export type WebsiteTemplateId = (typeof WEBSITE_TEMPLATES)[number];
 
 export const WEBSITE_PALETTES = [

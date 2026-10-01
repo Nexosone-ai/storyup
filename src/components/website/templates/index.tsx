@@ -3,6 +3,12 @@ import type { TemplateProps } from "./shared";
 import { ClassicTemplate } from "./Classic";
 import { SplitTemplate } from "./Split";
 import { MinimalTemplate } from "./Minimal";
+import { BoldTemplate } from "./Bold";
+import { ElegantTemplate } from "./Elegant";
+import { VibrantTemplate } from "./Vibrant";
+import { MagazineTemplate } from "./Magazine";
+import { WarmTemplate } from "./Warm";
+import { ModernTemplate } from "./Modern";
 
 export { staticText, staticImage, staticGallery, setPath } from "./shared";
 export type {
@@ -16,6 +22,12 @@ const TEMPLATES: Record<WebsiteTemplateId, (p: TemplateProps) => React.ReactNode
   classic: ClassicTemplate,
   split: SplitTemplate,
   minimal: MinimalTemplate,
+  bold: BoldTemplate,
+  elegant: ElegantTemplate,
+  vibrant: VibrantTemplate,
+  magazine: MagazineTemplate,
+  warm: WarmTemplate,
+  modern: ModernTemplate,
 };
 
 export interface TemplateMeta {
@@ -47,6 +59,48 @@ export const TEMPLATE_META: TemplateMeta[] = [
     description: "타이포 중심, 넉넉한 여백",
     nameEn: "Minimal",
     descriptionEn: "Typography-first, generous whitespace",
+  },
+  {
+    id: "bold",
+    name: "볼드",
+    description: "다크 히어로, 큰 타이포, 강한 대비",
+    nameEn: "Bold",
+    descriptionEn: "Dark hero, big type, high contrast",
+  },
+  {
+    id: "elegant",
+    name: "엘레강트",
+    description: "세리프, 넉넉한 여백, 절제된 고급",
+    nameEn: "Elegant",
+    descriptionEn: "Serif, airy, refined",
+  },
+  {
+    id: "vibrant",
+    name: "바이브런트",
+    description: "그라디언트, 둥근 컬러 카드, 경쾌",
+    nameEn: "Vibrant",
+    descriptionEn: "Gradient, rounded colorful cards",
+  },
+  {
+    id: "magazine",
+    name: "매거진",
+    description: "오버레이 히어로, 좌우 교차 편집",
+    nameEn: "Magazine",
+    descriptionEn: "Overlay hero, editorial rows",
+  },
+  {
+    id: "warm",
+    name: "웜",
+    description: "크림 배경, 부드러운 둥근 카드",
+    nameEn: "Warm",
+    descriptionEn: "Cream tones, soft rounded cards",
+  },
+  {
+    id: "modern",
+    name: "모던",
+    description: "샤프한 그리드, 모노 라벨, 테크",
+    nameEn: "Modern",
+    descriptionEn: "Sharp grid, mono labels, techy",
   },
 ];
 

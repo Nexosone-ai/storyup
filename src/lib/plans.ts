@@ -85,7 +85,7 @@ export const PLANS: Plan[] = [
     limits: { sites: 10, blogPosts: 150, cardNews: 30, aiImages: 90 },
     maxBusinesses: 5,
     maxMembers: 3,
-    siteLayouts: 3,
+    siteLayouts: 9,
     domain: "custom",
     watermarkRemoved: true,
     couponBlock: true,
