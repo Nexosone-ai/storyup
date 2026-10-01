@@ -167,6 +167,9 @@ export const SubscribePanel = forwardRef<
             process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY_BILLING ||
             process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY ||
             "",
+          // 발급창에 표시만 하는 금액(실제 청구는 빌링키 발급 후 별도 결제). 월 구독료 노출.
+          // currency는 넣지 않는다 — 이니시스 CARD 빌링키 발급에 currency를 실으면 500 발생(KRW 채널이라 통화는 자동).
+          displayAmount: getPlanById(planId).priceKrw ?? undefined,
           billingKeyMethod: "CARD",
           issueId: `bk-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           issueName: "STORYUP 정기결제",
