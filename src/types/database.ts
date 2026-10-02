@@ -1537,6 +1537,16 @@ export interface Database {
         Args: Record<string, never>;
         Returns: Json;
       };
+      admin_point_totals: {
+        Args: Record<string, never>;
+        Returns: {
+          type: string;
+          cnt: number;
+          total: number;
+          pos: number;
+          neg: number;
+        }[];
+      };
       try_reserve_image_slot: {
         Args: {
           p_business: string;

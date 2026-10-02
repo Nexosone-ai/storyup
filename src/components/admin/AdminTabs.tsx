@@ -10,6 +10,7 @@ const TABS: { href: string; label: string }[] = [
   { href: "/dashboard/admin/inquiries", label: "문의고객" },
   { href: "/dashboard/admin/traffic", label: "트래픽" },
   { href: "/dashboard/admin/growth", label: "성장" },
+  { href: "/dashboard/admin/points", label: "포인트" },
   { href: "/dashboard/admin/products", label: "상품·주문" },
   { href: "/dashboard/admin/marketers", label: "마케터·정산" },
   { href: "/dashboard/admin/billing", label: "결제·가격" },
