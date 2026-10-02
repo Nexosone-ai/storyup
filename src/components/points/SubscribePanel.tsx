@@ -167,11 +167,10 @@ export const SubscribePanel = forwardRef<
             process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY_BILLING ||
             process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY ||
             "",
-          // 발급창 '상품가격' 표시용 금액(실제 청구 아님 — 청구는 발급 후 서버 payWithBillingKey).
-          // 이니시스는 가격을 표시하려면 제공기간(offerPeriod)이 함께 있어야 한다 — 과거 offerPeriod 없이
-          // displayAmount+currency만 보냈을 때 /pay/card/billing 500이 났고, displayAmount 단독은 SDK가 거부(currency 필수).
-          displayAmount: getPlanById(planId).priceKrw ?? undefined,
-          currency: "KRW",
+          // NOTE: displayAmount(발급창 '상품가격' 표시)는 넣지 않는다. 빌링 채널·offerPeriod가 모두 정상인
+          // 상태에서도 displayAmount+currency를 보내면 이니시스가 /pay/card/billing 500을 반환했고
+          // (2026-10-02 재현), displayAmount 단독은 SDK가 거부(currency 필수). PortOne 로그 확인 전까지 금지.
+          // 금액은 우리 구독 모달(플랜명·₩/월)에서 안내한다.
           billingKeyMethod: "CARD",
           // 서비스 제공 주기(1개월). KG이니시스는 모바일 빌링키 발급 시 offerPeriod가 필수이며,
           // 발급창의 '제공기간' 표시에도 쓰인다. 월 구독이므로 1m 고정.
