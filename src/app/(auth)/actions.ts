@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import { getLocale } from "@/lib/i18n";
 
 export interface AuthState {
@@ -76,12 +76,17 @@ export async function signUpAction(
         : "Password must be at least 6 characters.",
     };
 
+  // 추천 링크(/join?ref=)로 들어온 경우 쿠키의 코드를 가입 시점에 메타데이터로 박아둔다.
+  // 이메일 인증 링크가 다른 브라우저(메일앱 내장 브라우저 등)에서 열려 쿠키가
+  // 사라져도 서버에 남은 ref_code로 귀속할 수 있게 한다.
+  const refCode = (await cookies()).get("su_ref")?.value ?? null;
+
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: { name },
+      data: refCode ? { name, ref_code: refCode } : { name },
       emailRedirectTo: `${siteUrl}/auth/callback`,
     },
   });

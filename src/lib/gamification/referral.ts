@@ -55,20 +55,24 @@ export async function ensureUserSetup(
   // 베타 기간: 구독 행이 없는 신규 가입자에게 1개월 Pro 체험 자동 지급
   await ensureTrialSubscription(userId);
   await ensureReferralCode(userId);
-  if (pendingRefCode) await attributeReferral(userId, pendingRefCode);
+  // 쿠키 코드가 없어도 호출한다 — attributeReferral이 가입 시 저장된
+  // user_metadata.ref_code로 폴백하고, 이미 귀속/기간초과면 즉시 빠져나온다.
+  await attributeReferral(userId, pendingRefCode);
 }
 
-/** ?ref= 코드로 가입한 사용자를 추천인에게 귀속하고 추천인에게 보상한다. */
+/**
+ * ?ref= 코드로 가입한 사용자를 추천인에게 귀속하고 추천인에게 보상한다.
+ * 쿠키의 코드(code)가 없으면 가입 시 저장한 user_metadata.ref_code로 폴백한다 —
+ * 이메일 인증 링크가 다른 브라우저에서 열려 쿠키가 사라진 경우를 구제한다.
+ */
 export async function attributeReferral(
   referredUserId: string,
-  code: string,
+  code?: string | null,
 ): Promise<boolean> {
   try {
-    const cleaned = code.trim().toUpperCase();
-    if (!/^[A-Z0-9]{4,12}$/.test(cleaned)) return false;
     const admin = createAdminClient();
 
-    // 이미 귀속돼 있으면 종료
+    // 이미 귀속돼 있으면 종료 (귀속 후에는 여기서 바로 빠져나간다)
     const { data: existing, error: exErr } = await admin
       .from("referrals")
       .select("referred_user_id")
@@ -76,18 +80,25 @@ export async function attributeReferral(
       .maybeSingle();
     if (exErr || existing) return false;
 
+    // 신규 가입자만 귀속 (가입 3일 이내) — 기존 계정 재귀속 방지
+    const { data: authUser } = await admin.auth.admin.getUserById(referredUserId);
+    const createdAt = authUser?.user?.created_at;
+    if (!createdAt || Date.now() - new Date(createdAt).getTime() > 3 * 86_400_000)
+      return false;
+
+    // 쿠키 코드 우선, 없으면 가입 시점에 박아둔 메타데이터 코드로 폴백
+    const metaRef = authUser?.user?.user_metadata?.ref_code;
+    const cleaned = (code ?? (typeof metaRef === "string" ? metaRef : "") ?? "")
+      .trim()
+      .toUpperCase();
+    if (!/^[A-Z0-9]{4,12}$/.test(cleaned)) return false;
+
     const { data: refProfile } = await admin
       .from("profiles")
       .select("user_id")
       .eq("referral_code", cleaned)
       .maybeSingle();
     if (!refProfile || refProfile.user_id === referredUserId) return false;
-
-    // 신규 가입자만 귀속 (가입 3일 이내) — 기존 계정 재귀속 방지
-    const { data: authUser } = await admin.auth.admin.getUserById(referredUserId);
-    const createdAt = authUser?.user?.created_at;
-    if (!createdAt || Date.now() - new Date(createdAt).getTime() > 3 * 86_400_000)
-      return false;
 
     const { error: insErr } = await admin.from("referrals").insert({
       referred_user_id: referredUserId,
