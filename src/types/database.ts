@@ -179,6 +179,31 @@ export interface Database {
         >;
         Relationships: [];
       };
+      /** 회원탈퇴 대장(0046) — 보존된 결제 기록의 소비자 식별용. service_role 전용. */
+      account_deletions: {
+        Row: {
+          id: string;
+          user_id: string;
+          email: string | null;
+          name: string | null;
+          reason: string | null;
+          had_payments: boolean;
+          deleted_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          email?: string | null;
+          name?: string | null;
+          reason?: string | null;
+          had_payments?: boolean;
+          deleted_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["account_deletions"]["Insert"]
+        >;
+        Relationships: [];
+      };
       team_members: {
         Row: {
           id: string;

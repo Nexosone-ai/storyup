@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/Card";
 import { SettingsForm } from "@/components/dashboard/SettingsForm";
 import { ChangePasswordForm } from "@/components/dashboard/ChangePasswordForm";
 import { SiteLogoManager } from "@/components/dashboard/SiteLogoManager";
+import { DeleteAccountSection } from "@/components/dashboard/DeleteAccountSection";
+import { getPlanById, type PlanId } from "@/lib/plans";
 
 export const metadata = { title: "설정" };
 
@@ -15,14 +17,33 @@ export default async function SettingsPage() {
 
   const ko = (await getLocale()) === "ko";
   const supabase = await createClient();
-  const [{ data: profile }, siteLogos] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("name,email")
-      .eq("user_id", user.id)
-      .maybeSingle(),
-    getUserSiteLogos(),
-  ]);
+  const [{ data: profile }, siteLogos, { count: bizCount }, { count: staffCount }, { data: sub }] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select("name,email")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      getUserSiteLogos(),
+      supabase
+        .from("businesses")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id),
+      supabase
+        .from("team_members")
+        .select("id", { count: "exact", head: true })
+        .eq("owner_user_id", user.id)
+        .eq("status", "active"),
+      supabase
+        .from("subscriptions")
+        .select("plan,status,billing_key")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+    ]);
+  const activePlan =
+    sub?.status === "active" && sub.plan !== "free"
+      ? getPlanById(sub.plan as PlanId)
+      : null;
 
   return (
     <div className="max-w-xl space-y-6">
@@ -61,6 +82,23 @@ export default async function SettingsPage() {
             : "The logo shown in your site header. If you don't upload one, the hero photo is used automatically."}
         </p>
         <SiteLogoManager items={siteLogos} />
+      </Card>
+
+      <Card className="border-danger/30">
+        <h2 className="mb-1 text-lg font-semibold text-danger">
+          {ko ? "계정 삭제" : "Delete account"}
+        </h2>
+        <p className="mb-4 text-sm text-muted">
+          {ko
+            ? "회원탈퇴 시 계정과 개인정보가 즉시 삭제됩니다."
+            : "Deleting your account removes your personal data immediately."}
+        </p>
+        <DeleteAccountSection
+          businessCount={bizCount ?? 0}
+          staffCount={staffCount ?? 0}
+          hasBillingKey={!!sub?.billing_key}
+          planLabel={activePlan ? activePlan.name[ko ? "ko" : "en"] : null}
+        />
       </Card>
     </div>
   );
