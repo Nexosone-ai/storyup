@@ -167,10 +167,13 @@ export const SubscribePanel = forwardRef<
             process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY_BILLING ||
             process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY ||
             "",
-          // NOTE: displayAmount(발급창 표시금액)는 이니시스 CARD 빌링키 발급과 호환되지 않는다.
-          // currency 포함 시 이니시스가 500(/pay/card/billing), currency 없이 displayAmount만 넣으면
-          // SDK가 예외를 던진다. 금액은 우리 구독 모달(플랜명·₩/월)에서 안내한다.
+          // NOTE: displayAmount(발급창 표시금액)는 아직 넣지 않는다 — displayAmount+currency 전달 시
+          // 이니시스가 500(/pay/card/billing)을 반환한 이력이 있어 PortOne에 원인 확인 중.
+          // 금액은 우리 구독 모달(플랜명·₩/월)에서 안내한다.
           billingKeyMethod: "CARD",
+          // 서비스 제공 주기(1개월). KG이니시스는 모바일 빌링키 발급 시 offerPeriod가 필수이며,
+          // 발급창의 '제공기간' 표시에도 쓰인다. 월 구독이므로 1m 고정.
+          offerPeriod: { interval: "1m" },
           issueId: `bk-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           issueName: "STORYUP 정기결제",
           customer: {
