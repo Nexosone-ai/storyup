@@ -210,6 +210,16 @@ export interface WebsiteContent {
   };
   /** Optional photo gallery band (user-uploaded image URLs). */
   gallery?: string[];
+  /**
+   * Google AdSense 자동광고 연결 (선택). 사장님이 본인 퍼블리셔 ID를 넣으면
+   * 발행 사이트 <head>에 자동광고 로더가 삽입되고, 커스텀 도메인 ads.txt에
+   * 해당 퍼블리셔 라인이 노출된다. 수익은 사장님 계정으로 귀속된다.
+   * 미설정이면 광고 없음. (AdSense 승인은 사장님이 소유한 도메인=커스텀 도메인 권장)
+   */
+  adsense?: {
+    /** 정규화된 클라이언트 ID "ca-pub-################" (16자리). */
+    publisherId: string;
+  };
 }
 
 // ---- AI generation payloads ----

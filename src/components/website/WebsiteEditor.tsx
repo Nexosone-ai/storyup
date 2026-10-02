@@ -26,6 +26,7 @@ import { useLocale } from "@/components/i18n/LocaleProvider";
 import type { PlaceImportData } from "@/lib/placeImport";
 import type { PdfImportData } from "@/lib/pdfImport";
 import { SITE_FONTS, SITE_PALETTES, siteStyleVars } from "./siteStyle";
+import { normalizeAdsensePublisherId } from "@/lib/adsense";
 import type {
   WebsiteContent,
   WebsiteFontId,
@@ -62,6 +63,14 @@ export function WebsiteEditor({
   const [slugSaving, startSlug] = useTransition();
   const [logoBusy, setLogoBusy] = useState(false);
   const logoFileRef = useRef<HTMLInputElement | null>(null);
+  const [adsenseInput, setAdsenseInput] = useState(
+    website.content.adsense?.publisherId ?? "",
+  );
+  const [adsenseNote, setAdsenseNote] = useState<{
+    text: string;
+    error: boolean;
+  } | null>(null);
+  const [adsenseSaving, startAdsense] = useTransition();
 
   const template = content.template ?? "classic";
 
@@ -258,6 +267,43 @@ export function WebsiteEditor({
     });
   };
 
+  const saveAdsense = () => {
+    const raw = adsenseInput.trim();
+    const normalized = normalizeAdsensePublisherId(raw);
+    if (raw && !normalized) {
+      setAdsenseNote({
+        text: ko
+          ? "퍼블리셔 ID 형식이 올바르지 않아요. 예: ca-pub-1234567890123456"
+          : "Invalid publisher ID. Example: ca-pub-1234567890123456",
+        error: true,
+      });
+      return;
+    }
+    // content.adsense에 반영 — 메인 저장 경로(saveWebsiteAction)로 함께 영속화.
+    const next: WebsiteContent = {
+      ...content,
+      adsense: normalized ? { publisherId: normalized } : undefined,
+    };
+    setContent(next);
+    setAdsenseInput(normalized ?? "");
+    startAdsense(async () => {
+      setAdsenseNote(null);
+      const res = await saveWebsiteAction(businessId, next);
+      setAdsenseNote({
+        text:
+          res.error ??
+          (normalized
+            ? ko
+              ? "AdSense를 연결했어요. 게시된 사이트에 자동광고가 적용되고, 연결된 도메인의 ads.txt에 반영됩니다."
+              : "AdSense connected. Auto ads apply to your published site and your domain's ads.txt is served."
+            : ko
+              ? "AdSense 연결을 해제했어요."
+              : "AdSense disconnected."),
+        error: !!res.error,
+      });
+    });
+  };
+
   const togglePublish = () =>
     startPublish(async () => {
       setNote(null);
@@ -340,6 +386,57 @@ export function WebsiteEditor({
             className={`w-full text-sm font-medium ${slugNote.error ? "text-danger" : "text-primary"}`}
           >
             {slugNote.text}
+          </p>
+        )}
+      </div>
+
+      {/* Google AdSense (광고 수익화) — 선택. 사장님 본인 퍼블리셔 ID 연결 시 자동광고 노출. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-border bg-surface p-3">
+        <span className="eyebrow mr-1">
+          {ko ? "광고 수익화 (AdSense)" : "Monetize (AdSense)"}
+        </span>
+        <div className="flex items-center gap-1.5">
+          <Input
+            value={adsenseInput}
+            onChange={(e) => setAdsenseInput(e.target.value)}
+            placeholder="ca-pub-1234567890123456"
+            className="h-9 w-60 font-mono text-sm"
+            spellCheck={false}
+          />
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={saveAdsense}
+          disabled={
+            adsenseSaving ||
+            adsenseInput.trim() === (content.adsense?.publisherId ?? "")
+          }
+        >
+          {adsenseSaving ? (
+            <Spinner className="size-4" />
+          ) : adsenseInput.trim() ? (
+            ko ? (
+              "연결"
+            ) : (
+              "Connect"
+            )
+          ) : ko ? (
+            "연결 해제"
+          ) : (
+            "Disconnect"
+          )}
+        </Button>
+        <p className="w-full text-xs text-muted">
+          {ko
+            ? "본인 Google AdSense 퍼블리셔 ID(ca-pub-…)를 넣으면 게시된 사이트와 블로그에 자동광고가 노출되고 수익은 사장님 계정으로 들어갑니다. AdSense 승인은 사장님이 소유한 도메인이 필요하므로 Pro 개인 도메인 연결을 권장해요. 비우면 광고가 꺼집니다."
+            : "Enter your own Google AdSense publisher ID (ca-pub-…) to show Auto ads on your published site and blog; revenue goes to your account. AdSense approval needs a domain you own, so connecting a Pro custom domain is recommended. Leave empty to turn ads off."}
+        </p>
+        {adsenseNote && (
+          <p
+            className={`w-full text-sm font-medium ${adsenseNote.error ? "text-danger" : "text-primary"}`}
+          >
+            {adsenseNote.text}
           </p>
         )}
       </div>
