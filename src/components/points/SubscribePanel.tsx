@@ -592,7 +592,9 @@ export const SubscribePanel = forwardRef<
                     {/* 결제자 정보 — PG 결제창 필수 항목 (카드·실시간 계좌이체 공통) */}
                     <div className="mt-4 space-y-3">
                       <div>
-                        <Label htmlFor="buyer-name">{ko ? "이름" : "Name"}</Label>
+                        <Label htmlFor="buyer-name" required>
+                          {ko ? "이름" : "Name"}
+                        </Label>
                         <Input
                           id="buyer-name"
                           value={buyerName}
@@ -602,7 +604,7 @@ export const SubscribePanel = forwardRef<
                         />
                       </div>
                       <div>
-                        <Label htmlFor="buyer-email">
+                        <Label htmlFor="buyer-email" required>
                           {ko ? "이메일" : "Email"}
                         </Label>
                         <Input
@@ -615,7 +617,7 @@ export const SubscribePanel = forwardRef<
                         />
                       </div>
                       <div>
-                        <Label htmlFor="buyer-phone">
+                        <Label htmlFor="buyer-phone" required>
                           {ko ? "휴대폰 번호" : "Phone"}
                         </Label>
                         <Input
@@ -664,7 +666,7 @@ export const SubscribePanel = forwardRef<
                     </div>
 
                     <div className="mt-4">
-                      <Label htmlFor="depositor">
+                      <Label htmlFor="depositor" required>
                         {ko ? "입금자명" : "Depositor name"}
                       </Label>
                       <Input

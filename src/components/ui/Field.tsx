@@ -13,10 +13,13 @@ export function Label({
   children,
   htmlFor,
   className,
+  required,
 }: {
   children: ReactNode;
   htmlFor?: string;
   className?: string;
+  /** 필수 입력 항목이면 라벨 옆에 빨간 별표(*)를 붙인다. */
+  required?: boolean;
 }) {
   return (
     <label
@@ -27,6 +30,11 @@ export function Label({
       )}
     >
       {children}
+      {required && (
+        <span className="ml-0.5 text-danger" aria-hidden>
+          *
+        </span>
+      )}
     </label>
   );
 }

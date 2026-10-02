@@ -103,7 +103,9 @@ export function CheckoutForm({
         ))}
       </div>
       <div>
-        <Label htmlFor="buyer-name">이름</Label>
+        <Label htmlFor="buyer-name" required>
+          이름
+        </Label>
         <Input
           id="buyer-name"
           value={name}
@@ -113,7 +115,9 @@ export function CheckoutForm({
         />
       </div>
       <div>
-        <Label htmlFor="buyer-phone">휴대폰 번호</Label>
+        <Label htmlFor="buyer-phone" required>
+          휴대폰 번호
+        </Label>
         <Input
           id="buyer-phone"
           type="tel"
@@ -126,7 +130,9 @@ export function CheckoutForm({
         />
       </div>
       <div>
-        <Label htmlFor="buyer-email">이메일</Label>
+        <Label htmlFor="buyer-email" required>
+          이메일
+        </Label>
         <Input
           id="buyer-email"
           type="email"
