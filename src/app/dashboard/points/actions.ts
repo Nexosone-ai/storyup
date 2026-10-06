@@ -31,6 +31,7 @@ async function requireUser() {
 export async function startSubscriptionAction(
   planId: string,
   billingKey: string,
+  buyer: { name?: string; email?: string; phone?: string },
 ): Promise<ActionResult> {
   const user = await requireUser();
   if (!user) return { error: "로그인이 필요합니다." };
@@ -39,7 +40,18 @@ export async function startSubscriptionAction(
   if (!billingKey || typeof billingKey !== "string" || billingKey.length > 200)
     return { error: "카드 등록 정보가 올바르지 않습니다." };
 
-  const res = await startSubscription(user.id, planId as PlanId, billingKey);
+  // KG이니시스 빌링키 결제 필수 결제자 정보 — 카드 등록창에 넣은 값과 동일하게 전달
+  const name = String(buyer?.name ?? "").trim().slice(0, 60);
+  const email = String(buyer?.email ?? "").trim().slice(0, 120);
+  const phone = String(buyer?.phone ?? "").replace(/[^0-9]/g, "");
+  if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || phone.length < 10)
+    return { error: "결제자 이름·이메일·휴대폰 번호를 정확히 입력해주세요." };
+
+  const res = await startSubscription(user.id, planId as PlanId, billingKey, {
+    name,
+    email,
+    phone,
+  });
   if (res.error) return { error: res.error };
   revalidatePath("/dashboard/points");
   return { ok: true, message: "구독이 시작되었습니다." };

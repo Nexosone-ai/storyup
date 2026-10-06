@@ -211,7 +211,12 @@ export const SubscribePanel = forwardRef<
           });
           return;
         }
-        const res = await startSubscriptionAction(planId, issue.billingKey);
+        // 결제자 정보는 서버의 빌링키 결제 요청에도 필요하다(이니시스 필수).
+        const res = await startSubscriptionAction(planId, issue.billingKey, {
+          name,
+          email,
+          phone,
+        });
         setNote({
           text:
             res.error ??

@@ -64,6 +64,17 @@ export interface BillingResult {
   error?: string;
 }
 
+/**
+ * 결제자 정보 — KG이니시스는 빌링키 '결제' 요청에도 이름·이메일·휴대폰을 요구한다(없으면 400).
+ * 첫 결제 때 받은 값을 subscriptions.buyer_*에 보관해 매월 자동갱신에 재사용한다.
+ */
+export interface BuyerInfo {
+  name: string;
+  email: string;
+  /** 숫자만 (하이픈 제거) */
+  phone: string;
+}
+
 function addOneMonth(fromIso?: string | null): string {
   // 기준: 기존 만료일이 아직 미래면 거기서 +1개월(결제일 유지), 지났으면 지금부터.
   const base =
@@ -94,6 +105,7 @@ async function chargeOnce(args: {
   planId: PlanId;
   billingKey: string;
   reason: string;
+  buyer: BuyerInfo;
 }): Promise<BillingResult> {
   const admin = createAdminClient();
   const plan = getPlanById(args.planId);
@@ -129,7 +141,12 @@ async function chargeOnce(args: {
       billingKey: args.billingKey,
       orderName,
       amount: plan.priceKrw,
-      customerId: args.userId,
+      customer: {
+        id: args.userId,
+        fullName: args.buyer.name,
+        email: args.buyer.email,
+        phoneNumber: args.buyer.phone,
+      },
     });
   } catch (err) {
     const detail =
@@ -187,16 +204,20 @@ export async function startSubscription(
   userId: string,
   planId: PlanId,
   billingKey: string,
+  buyer: BuyerInfo,
 ): Promise<BillingResult> {
   if (!PAID_PLANS.includes(planId))
     return { error: "구독할 수 없는 플랜입니다." };
   if (!billingKey) return { error: "카드 등록 정보가 없습니다." };
+  if (!buyer.name || !buyer.email || !buyer.phone)
+    return { error: "결제자 이름·이메일·휴대폰 번호가 필요합니다." };
 
   const charged = await chargeOnce({
     userId,
     planId,
     billingKey,
     reason: "subscribe",
+    buyer,
   });
   if (!charged.ok) return charged;
 
@@ -216,6 +237,10 @@ export async function startSubscription(
     cancel_at_period_end: false,
     billing_failures: 0,
     trial: false,
+    // 자동갱신 청구에 재사용 (이니시스 필수 결제자 정보)
+    buyer_name: buyer.name,
+    buyer_email: buyer.email,
+    buyer_phone: buyer.phone,
     updated_at: now,
   });
   if (error) {
@@ -404,6 +429,28 @@ export async function resumeSubscription(userId: string): Promise<BillingResult>
   return error ? { error: "재개에 실패했습니다." } : { ok: true };
 }
 
+/** 갱신 청구용 결제자 정보 — subscriptions.buyer_* 우선, 이름·이메일은 프로필로 보완. */
+async function resolveRenewalBuyer(
+  userId: string,
+  sub: { buyer_name: string | null; buyer_email: string | null; buyer_phone: string | null },
+): Promise<BuyerInfo | null> {
+  let name = sub.buyer_name ?? "";
+  let email = sub.buyer_email ?? "";
+  const phone = (sub.buyer_phone ?? "").replace(/[^0-9]/g, "");
+  if (!name || !email) {
+    const admin = createAdminClient();
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("name,email")
+      .eq("user_id", userId)
+      .maybeSingle();
+    name = name || profile?.name || "";
+    email = email || profile?.email || "";
+  }
+  if (!name || !email || phone.length < 10) return null;
+  return { name, email, phone };
+}
+
 /**
  * 만기 구독 일괄 처리 (크론 전용).
  * - 해지 예약/빌링키 없음(체험 포함) → 종료
@@ -460,12 +507,19 @@ export async function runBillingCycle(): Promise<{
         continue;
       }
 
-      const res = await chargeOnce({
-        userId,
-        planId: sub.plan as PlanId,
-        billingKey: sub.billing_key,
-        reason: "renewal",
-      });
+      // 결제자 정보: 구독 행 저장값 우선, 없으면 프로필로 보완. 휴대폰까지 없으면 청구 불가.
+      const buyer = await resolveRenewalBuyer(userId, sub);
+      if (!buyer)
+        console.error("[billing] renewal skipped: buyer info missing", userId);
+      const res: BillingResult = buyer
+        ? await chargeOnce({
+            userId,
+            planId: sub.plan as PlanId,
+            billingKey: sub.billing_key,
+            reason: "renewal",
+            buyer,
+          })
+        : { error: "결제자 정보 없음" };
       if (res.ok) {
         await admin
           .from("subscriptions")

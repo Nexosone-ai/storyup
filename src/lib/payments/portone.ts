@@ -95,7 +95,8 @@ export async function payWithBillingKey(args: {
   billingKey: string;
   orderName: string;
   amount: number;
-  customerId: string;
+  /** KG이니시스는 빌링키 결제에도 결제자 이름·이메일·휴대폰이 필수다(없으면 400). */
+  customer: { id: string; fullName: string; email: string; phoneNumber: string };
 }): Promise<PortonePayment> {
   const res = await fetch(
     `${API_BASE}/payments/${encodeURIComponent(args.paymentId)}/billing-key`,
@@ -108,7 +109,12 @@ export async function payWithBillingKey(args: {
       body: JSON.stringify({
         billingKey: args.billingKey,
         orderName: args.orderName,
-        customer: { id: args.customerId },
+        customer: {
+          id: args.customer.id,
+          name: { full: args.customer.fullName },
+          email: args.customer.email,
+          phoneNumber: args.customer.phoneNumber,
+        },
         amount: { total: args.amount },
         currency: "KRW",
       }),

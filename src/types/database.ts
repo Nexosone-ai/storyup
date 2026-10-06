@@ -1150,6 +1150,10 @@ export interface Database {
           cancel_at_period_end: boolean;
           billing_failures: number;
           trial: boolean;
+          /** 자동갱신 청구용 결제자 정보 (0048) — 이니시스 빌링키 결제 필수 */
+          buyer_name: string | null;
+          buyer_email: string | null;
+          buyer_phone: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -1162,6 +1166,9 @@ export interface Database {
           cancel_at_period_end?: boolean;
           billing_failures?: number;
           trial?: boolean;
+          buyer_name?: string | null;
+          buyer_email?: string | null;
+          buyer_phone?: string | null;
           created_at?: string;
           updated_at?: string;
         };
