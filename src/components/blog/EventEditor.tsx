@@ -22,6 +22,7 @@ export function EventEditor({
   postId,
   event,
   couponClaimed = 0,
+  reservationCount = 0,
   published,
   couponAllowed = true,
 }: {
@@ -29,6 +30,7 @@ export function EventEditor({
   postId: string;
   event: BlogEventRow | null;
   couponClaimed?: number;
+  reservationCount?: number;
   published: boolean;
   /** 쿠폰 발행 가능 플랜(Basic+)인지. false면 쿠폰 섹션이 잠김. */
   couponAllowed?: boolean;
@@ -57,6 +59,16 @@ export function EventEditor({
     event?.address_enabled ?? false,
   );
   const [mapEnabled, setMapEnabled] = useState(event?.map_enabled ?? false);
+  // 0050 예약 모듈 — 기본 숨김.
+  const [reservationEnabled, setReservationEnabled] = useState(
+    event?.reservation_enabled ?? false,
+  );
+  const [reservationTitle, setReservationTitle] = useState(
+    event?.reservation_title ?? "",
+  );
+  const [reservationDesc, setReservationDesc] = useState(
+    event?.reservation_desc ?? "",
+  );
   const [note, setNote] = useState<string | null>(null);
   const [saving, startSave] = useTransition();
   const [applying, startApply] = useTransition();
@@ -80,6 +92,9 @@ export function EventEditor({
         contactEnabled,
         contactTitle,
         contactDesc,
+        reservationEnabled,
+        reservationTitle,
+        reservationDesc,
       });
       setNote(res.error ?? res.message ?? (ko ? "적용되었습니다." : "Applied."));
     });
@@ -101,11 +116,19 @@ export function EventEditor({
         commentEnabled,
         addressEnabled,
         mapEnabled,
+        reservationEnabled,
+        reservationTitle,
+        reservationDesc,
       });
       setNote(res.error ?? res.message ?? (ko ? "저장되었습니다." : "Saved."));
     });
 
-  const anyOn = couponEnabled || contactEnabled || addressEnabled || mapEnabled;
+  const anyOn =
+    couponEnabled ||
+    contactEnabled ||
+    addressEnabled ||
+    mapEnabled ||
+    reservationEnabled;
   const fieldCls = "w-40";
 
   return (
@@ -307,6 +330,80 @@ export function EventEditor({
             </div>
           )}
             </>
+          )}
+        </div>
+
+        {/* ---------- 예약 (식당·매장 예약 요청) ---------- */}
+        <div className="mt-4 rounded-xl border border-border bg-white p-4">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={reservationEnabled}
+              onChange={(e) => setReservationEnabled(e.target.checked)}
+              className="mt-0.5 size-4 accent-primary"
+            />
+            <span>
+              <span className="block text-sm font-semibold">
+                {ko ? "예약 받기" : "Reservations"}
+              </span>
+              <span className="block text-xs text-muted">
+                {ko
+                  ? "식당·매장 예약을 받아요. 방문자가 날짜·시간·인원을 남기면 '예약 요청'으로 접수되고, 대시보드에서 확정/취소하세요."
+                  : "Take restaurant/shop reservations. Visitors leave a date, time, and party size as a request; confirm or cancel it in your dashboard."}
+              </span>
+            </span>
+          </label>
+
+          {reservationEnabled && (
+            <div className="mt-4 space-y-4 border-t border-border pt-4">
+              <div>
+                <Label htmlFor="reservation-title">
+                  {ko ? "제목 문구" : "Title"}
+                </Label>
+                <Input
+                  id="reservation-title"
+                  value={reservationTitle}
+                  onChange={(e) => setReservationTitle(e.target.value)}
+                  maxLength={40}
+                  placeholder={ko ? "예약 문의" : "Reservation"}
+                />
+              </div>
+              <div>
+                <Label htmlFor="reservation-desc">
+                  {ko ? "안내 문구" : "Description"}
+                </Label>
+                <Input
+                  id="reservation-desc"
+                  value={reservationDesc}
+                  onChange={(e) => setReservationDesc(e.target.value)}
+                  maxLength={120}
+                  placeholder={
+                    ko
+                      ? "원하시는 날짜·시간·인원을 남겨주시면 사장님이 확정 연락을 드려요."
+                      : "Leave your date, time, and party size and we'll confirm by phone."
+                  }
+                />
+              </div>
+              <p className="text-xs text-muted">
+                {ko
+                  ? "비워두면 기본 문구가 표시돼요. 예약은 접수 후 사장님이 직접 확정해요."
+                  : "Leave empty to use the default text. You confirm each request."}
+              </p>
+              <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3">
+                <ButtonLink
+                  href={`/dashboard/inquiries/reservations?post=${postId}`}
+                  variant="outline"
+                  size="sm"
+                >
+                  {ko ? "예약 관리" : "Manage reservations"}
+                </ButtonLink>
+                <span className="text-xs text-muted">
+                  {ko
+                    ? `지금까지 예약 ${reservationCount}건`
+                    : `${reservationCount} reservations so far`}
+                </span>
+              </div>
+            </div>
           )}
         </div>
 

@@ -38,6 +38,9 @@ export interface BlogEventConfig {
   commentEnabled: boolean;
   addressEnabled: boolean;
   mapEnabled: boolean;
+  reservationEnabled: boolean;
+  reservationTitle: string;
+  reservationDesc: string;
 }
 
 /** 공개 페이지 캐시 갱신 — 공개된 글일 때만 랜딩/글 경로를 무효화. */
@@ -120,6 +123,9 @@ export async function saveBlogEventAction(
       comment_enabled: config.commentEnabled,
       address_enabled: config.addressEnabled,
       map_enabled: config.mapEnabled,
+      reservation_enabled: config.reservationEnabled,
+      reservation_title: config.reservationTitle.trim() || null,
+      reservation_desc: config.reservationDesc.trim() || null,
     },
     { onConflict: "post_id" },
   );
@@ -138,6 +144,9 @@ export interface BlogModuleDefaults {
   contactEnabled: boolean;
   contactTitle: string;
   contactDesc: string;
+  reservationEnabled: boolean;
+  reservationTitle: string;
+  reservationDesc: string;
 }
 
 /**
@@ -165,6 +174,8 @@ export async function applyBlogModulesToAllAction(
 
   const title = config.contactTitle.trim() || null;
   const desc = config.contactDesc.trim() || null;
+  const resTitle = config.reservationTitle.trim() || null;
+  const resDesc = config.reservationDesc.trim() || null;
   const rows = posts.map((p) => ({
     post_id: p.id,
     business_id: businessId,
@@ -174,6 +185,9 @@ export async function applyBlogModulesToAllAction(
     contact_enabled: config.contactEnabled,
     contact_title: title,
     contact_desc: desc,
+    reservation_enabled: config.reservationEnabled,
+    reservation_title: resTitle,
+    reservation_desc: resDesc,
   }));
 
   // onConflict=post_id → 기존 행은 위 모듈 컬럼만 갱신(쿠폰 보존), 없으면 새로 생성.
@@ -226,6 +240,45 @@ export async function deleteCouponClaimAction(
     .from("coupon_claims")
     .delete()
     .eq("id", claimId)
+    .eq("business_id", businessId);
+  if (error)
+    return { error: ko ? "삭제에 실패했습니다." : "Failed to delete." };
+  return { ok: true };
+}
+
+/** 예약 상태 변경 (확정/취소/대기). */
+export async function setReservationStatusAction(
+  businessId: string,
+  reservationId: string,
+  status: "pending" | "confirmed" | "cancelled",
+): Promise<EventActionState> {
+  const ko = (await getLocale()) === "ko";
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
+
+  const { error } = await supabase
+    .from("reservation_requests")
+    .update({ status })
+    .eq("id", reservationId)
+    .eq("business_id", businessId);
+  if (error)
+    return { error: ko ? "처리에 실패했습니다." : "Failed to update." };
+  return { ok: true };
+}
+
+/** 예약 기록 삭제. */
+export async function deleteReservationAction(
+  businessId: string,
+  reservationId: string,
+): Promise<EventActionState> {
+  const ko = (await getLocale()) === "ko";
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
+
+  const { error } = await supabase
+    .from("reservation_requests")
+    .delete()
+    .eq("id", reservationId)
     .eq("business_id", businessId);
   if (error)
     return { error: ko ? "삭제에 실패했습니다." : "Failed to delete." };

@@ -36,6 +36,9 @@ export interface PublicBlogEvent {
   commentEnabled: boolean;
   addressEnabled: boolean;
   mapEnabled: boolean;
+  reservationEnabled: boolean;
+  reservationTitle: string | null;
+  reservationDesc: string | null;
 }
 
 /**
@@ -83,6 +86,10 @@ export async function getPublicBlogEvent(
     commentEnabled: event.comment_enabled ?? true,
     addressEnabled: event.address_enabled ?? false,
     mapEnabled: event.map_enabled ?? false,
+    // 0050 이전 DB에서는 컬럼이 없어 undefined — 예약은 기본 숨김.
+    reservationEnabled: event.reservation_enabled ?? false,
+    reservationTitle: event.reservation_title ?? null,
+    reservationDesc: event.reservation_desc ?? null,
   };
 }
 
@@ -165,4 +172,91 @@ export async function getUserCouponClaims(): Promise<UserCouponClaim[]> {
       benefit: ev?.coupon_benefit ?? "",
     };
   });
+}
+
+export type ReservationStatus = "pending" | "confirmed" | "cancelled";
+
+export interface UserReservation {
+  id: string;
+  name: string;
+  phone: string;
+  partySize: number | null;
+  desiredDate: string | null;
+  desiredTime: string | null;
+  note: string | null;
+  status: ReservationStatus;
+  created_at: string;
+  businessId: string;
+  businessName: string;
+  postId: string | null;
+  postTitle: string;
+}
+
+/**
+ * 대시보드 '예약' 탭용 — 로그인 사용자의 모든 비즈니스에 걸친 예약 요청.
+ * RLS(reservation_requests owner_read)가 본인 소유 건으로 한정한다.
+ * 각 예약에 어느 글에서 왔는지(글 제목) 맥락을 붙여 돌려준다.
+ */
+export async function getUserReservations(): Promise<UserReservation[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data: bizList } = await supabase
+    .from("businesses")
+    .select("id, name")
+    .eq("user_id", user.id);
+  const nameMap = new Map((bizList ?? []).map((b) => [b.id, b.name]));
+
+  const { data: rows, error } = await supabase
+    .from("reservation_requests")
+    .select("*")
+    .order("created_at", { ascending: false });
+  // 0050 마이그레이션 이전 DB에서는 테이블이 없어 오류 → 빈 목록.
+  if (error || !rows?.length) return [];
+
+  const eventIds = [...new Set(rows.map((r) => r.event_id))];
+  const { data: events } = await supabase
+    .from("blog_events")
+    .select("id, post_id")
+    .in("id", eventIds);
+  const eventMap = new Map((events ?? []).map((e) => [e.id, e]));
+
+  const postIds = [...new Set((events ?? []).map((e) => e.post_id))];
+  const { data: posts } = await supabase
+    .from("blog_posts")
+    .select("id, title")
+    .in("id", postIds);
+  const postMap = new Map((posts ?? []).map((p) => [p.id, p.title]));
+
+  return rows.map((r) => {
+    const ev = eventMap.get(r.event_id);
+    return {
+      id: r.id,
+      name: r.name,
+      phone: r.phone,
+      partySize: r.party_size,
+      desiredDate: r.desired_date,
+      desiredTime: r.desired_time,
+      note: r.note,
+      status: r.status,
+      created_at: r.created_at,
+      businessId: r.business_id,
+      businessName: nameMap.get(r.business_id) ?? "",
+      postId: ev?.post_id ?? null,
+      postTitle: ev ? (postMap.get(ev.post_id) ?? "") : "",
+    };
+  });
+}
+
+/** 편집기 배지용 — 이벤트의 예약 요청 수(소유자 RLS). */
+export async function getReservationCount(eventId: string): Promise<number> {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("reservation_requests")
+    .select("id", { count: "exact", head: true })
+    .eq("event_id", eventId);
+  return count ?? 0;
 }

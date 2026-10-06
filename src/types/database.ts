@@ -363,6 +363,9 @@ export interface Database {
           comment_enabled: boolean;
           address_enabled: boolean;
           map_enabled: boolean;
+          reservation_enabled: boolean;
+          reservation_title: string | null;
+          reservation_desc: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -382,6 +385,9 @@ export interface Database {
           comment_enabled?: boolean;
           address_enabled?: boolean;
           map_enabled?: boolean;
+          reservation_enabled?: boolean;
+          reservation_title?: string | null;
+          reservation_desc?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -416,6 +422,38 @@ export interface Database {
         >;
         Relationships: [];
       };
+      reservation_requests: {
+        Row: {
+          id: string;
+          event_id: string;
+          business_id: string;
+          name: string;
+          phone: string;
+          party_size: number | null;
+          desired_date: string | null;
+          desired_time: string | null;
+          note: string | null;
+          status: "pending" | "confirmed" | "cancelled";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          event_id: string;
+          business_id: string;
+          name: string;
+          phone: string;
+          party_size?: number | null;
+          desired_date?: string | null;
+          desired_time?: string | null;
+          note?: string | null;
+          status?: "pending" | "confirmed" | "cancelled";
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["reservation_requests"]["Insert"]
+        >;
+        Relationships: [];
+      };
       notifications: {
         Row: {
           id: string;
@@ -426,7 +464,8 @@ export interface Database {
             | "blog_like"
             | "site_inquiry"
             | "coupon_claim"
-            | "sub_expiring";
+            | "sub_expiring"
+            | "reservation";
           post_id: string | null;
           post_title: string | null;
           site_slug: string | null;
@@ -446,7 +485,8 @@ export interface Database {
             | "blog_like"
             | "site_inquiry"
             | "coupon_claim"
-            | "sub_expiring";
+            | "sub_expiring"
+            | "reservation";
           post_id?: string | null;
           post_title?: string | null;
           site_slug?: string | null;
@@ -1616,6 +1656,8 @@ export type SiteInquiryRow =
 export type BlogEventRow = Database["public"]["Tables"]["blog_events"]["Row"];
 export type CouponClaimRow =
   Database["public"]["Tables"]["coupon_claims"]["Row"];
+export type ReservationRequestRow =
+  Database["public"]["Tables"]["reservation_requests"]["Row"];
 export type NotificationRow =
   Database["public"]["Tables"]["notifications"]["Row"];
 export type MarketingContentRow =

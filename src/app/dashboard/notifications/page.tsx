@@ -40,6 +40,12 @@ function label(n: NotificationRow, ko: boolean): string {
       ? `${who}님이 ${t} 글의 쿠폰을 받았어요`
       : `${who} claimed a coupon on ${t}`;
   }
+  if (n.type === "reservation") {
+    const t = n.post_title ? `"${n.post_title}"` : ko ? "이벤트" : "your event";
+    return ko
+      ? `${who}님이 ${t} 글에서 예약을 요청했어요`
+      : `${who} requested a reservation on ${t}`;
+  }
   const title = n.post_title ? `"${n.post_title}"` : ko ? "내 글" : "your post";
   if (n.type === "blog_like")
     return ko
@@ -92,9 +98,13 @@ export default async function NotificationsPage() {
                     ? n.post_id
                       ? `/dashboard/inquiries/coupons?post=${n.post_id}`
                       : "/dashboard/inquiries/coupons"
-                    : n.site_slug && n.post_slug
-                      ? `/site/${n.site_slug}/blog/${n.post_slug}`
-                      : null;
+                    : n.type === "reservation"
+                      ? n.post_id
+                        ? `/dashboard/inquiries/reservations?post=${n.post_id}`
+                        : "/dashboard/inquiries/reservations"
+                      : n.site_slug && n.post_slug
+                        ? `/site/${n.site_slug}/blog/${n.post_slug}`
+                        : null;
             const body = (
               <div className="flex min-w-0 flex-1 items-start gap-3">
                 <span
@@ -102,6 +112,7 @@ export default async function NotificationsPage() {
                     n.type === "blog_like" ||
                     n.type === "site_inquiry" ||
                     n.type === "coupon_claim" ||
+                    n.type === "reservation" ||
                     n.type === "sub_expiring"
                       ? "bg-primary-soft text-primary"
                       : "bg-surface-muted text-muted"
@@ -111,6 +122,8 @@ export default async function NotificationsPage() {
                     <Icon.heart width={18} height={18} />
                   ) : n.type === "coupon_claim" ? (
                     <span className="text-base leading-none">🎟</span>
+                  ) : n.type === "reservation" ? (
+                    <span className="text-base leading-none">📅</span>
                   ) : n.type === "sub_expiring" ? (
                     <Icon.coin width={18} height={18} />
                   ) : n.type === "site_inquiry" ? (

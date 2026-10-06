@@ -209,3 +209,109 @@ export async function createEventInquiryAction(
 
   return { ok: true };
 }
+
+export interface ReservationState {
+  error?: string;
+  ok?: boolean;
+}
+
+/** 희망 날짜(YYYY-MM-DD) · 시간(HH:MM) 형식을 가볍게 검증·정규화한다. */
+function cleanDate(raw: string): string | null {
+  const v = raw.trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
+}
+function cleanTime(raw: string): string | null {
+  const v = raw.trim().slice(0, 20);
+  return v || null;
+}
+
+/**
+ * 예약 요청 접수 (식당·매장 등). 승인 방식은 '사장님 확정' — 접수 시 status=pending,
+ * 사장님이 대시보드에서 확정/취소한다. 쿠폰과 달리 한 사람이 여러 번 예약할 수 있어
+ * 중복(unique) 제약 없이 그대로 쌓는다.
+ */
+export async function createReservationAction(
+  postId: string,
+  input: {
+    name: string;
+    phone: string;
+    date?: string;
+    time?: string;
+    partySize?: string | number;
+    note?: string;
+  },
+  lang: "ko" | "en" = "ko",
+): Promise<ReservationState> {
+  const ko = lang === "ko";
+  const name = input.name.trim().slice(0, 60);
+  const phone = input.phone.trim().slice(0, 40);
+  const note = (input.note ?? "").trim().slice(0, 2000);
+  const date = cleanDate(String(input.date ?? ""));
+  const time = cleanTime(String(input.time ?? ""));
+  const sizeNum = Math.floor(Number(input.partySize));
+  const partySize =
+    Number.isFinite(sizeNum) && sizeNum > 0 ? Math.min(sizeNum, 9999) : null;
+
+  if (!name)
+    return { error: ko ? "이름을 입력해주세요." : "Please enter your name." };
+  if (normalizePhone(phone).length < 9)
+    return {
+      error: ko
+        ? "휴대폰 번호를 정확히 입력해주세요."
+        : "Please enter a valid phone number.",
+    };
+
+  const admin = createAdminClient();
+  const { data: post } = await admin
+    .from("blog_posts")
+    .select("id, status")
+    .eq("id", postId)
+    .maybeSingle();
+  if (!post || post.status !== "published")
+    return { error: ko ? "글을 찾을 수 없습니다." : "Post not found." };
+
+  const { data: event } = await admin
+    .from("blog_events")
+    .select("id, business_id, reservation_enabled")
+    .eq("post_id", postId)
+    .maybeSingle();
+  if (!event || !event.reservation_enabled)
+    return {
+      error: ko
+        ? "예약을 받고 있지 않아요."
+        : "Reservations are not open.",
+    };
+
+  const { error } = await admin.from("reservation_requests").insert({
+    event_id: event.id,
+    business_id: event.business_id,
+    name,
+    phone,
+    party_size: partySize,
+    desired_date: date,
+    desired_time: time,
+    note: note || null,
+    status: "pending",
+  });
+  if (error)
+    return {
+      error: ko
+        ? "예약 요청에 실패했어요. 잠시 후 다시 시도해주세요."
+        : "Failed to send the reservation. Please try again.",
+    };
+
+  // 글 주인에게 앱 내 알림. 미리보기엔 희망 일시·인원을 요약해 넣는다.
+  const previewParts = [
+    date ? (ko ? `${date}` : date) : "",
+    time ?? "",
+    partySize ? (ko ? `${partySize}명` : `${partySize} ppl`) : "",
+  ].filter(Boolean);
+  await notifyBlogEngagement(admin, {
+    postId,
+    type: "reservation",
+    actorName: name,
+    preview: previewParts.join(" · ") || phone,
+  });
+
+  return { ok: true };
+}

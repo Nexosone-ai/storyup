@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import {
   claimCouponAction,
   createEventInquiryAction,
+  createReservationAction,
 } from "@/app/site/event-actions";
 import type { PublicBlogEvent } from "@/lib/events";
 
@@ -24,6 +25,14 @@ export function BlogEventModules({
     <section className="mt-10 space-y-4 border-t border-border pt-8">
       {event.couponEnabled && event.couponBenefit && (
         <CouponCard postId={postId} event={event} lang={lang} />
+      )}
+      {event.reservationEnabled && (
+        <ReservationCard
+          postId={postId}
+          lang={lang}
+          title={event.reservationTitle}
+          desc={event.reservationDesc}
+        />
       )}
       {event.contactEnabled && (
         <ContactCard
@@ -291,6 +300,155 @@ function ContactCard({
               ? "문의 보내기"
               : "Send inquiry"}
         </button>
+        {error && <p className="text-center text-sm text-danger">{error}</p>}
+      </div>
+    </div>
+  );
+}
+
+function ReservationCard({
+  postId,
+  lang,
+  title,
+  desc,
+}: {
+  postId: string;
+  lang: "ko" | "en";
+  title: string | null;
+  desc: string | null;
+}) {
+  const ko = lang === "ko";
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [partySize, setPartySize] = useState("");
+  const [note, setNote] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+  const [pending, start] = useTransition();
+
+  // 과거 날짜는 못 고르게 오늘 이후로 제한.
+  const today = new Date().toISOString().slice(0, 10);
+
+  const submit = () =>
+    start(async () => {
+      setError(null);
+      const res = await createReservationAction(
+        postId,
+        { name, phone, date, time, partySize, note },
+        lang,
+      );
+      if (res.error) setError(res.error);
+      else setDone(true);
+    });
+
+  if (done)
+    return (
+      <div className="rounded-2xl border border-primary/30 bg-primary-soft/40 p-6 text-center">
+        <p className="font-semibold">
+          {ko ? "예약 요청이 접수되었어요" : "Your reservation request was sent"}
+        </p>
+        <p className="mt-1 text-sm text-muted">
+          {ko
+            ? "남겨주신 연락처로 사장님이 예약 확정 연락을 드릴게요."
+            : "The owner will contact you to confirm your reservation."}
+        </p>
+      </div>
+    );
+
+  return (
+    <div className="rounded-2xl border border-primary/30 bg-primary-soft/40 p-5">
+      <p className="text-sm font-semibold">
+        📅 {title?.trim() || (ko ? "예약 문의" : "Reservation")}
+      </p>
+      <p className="mt-0.5 text-xs text-muted">
+        {desc?.trim() ||
+          (ko
+            ? "원하시는 날짜·시간·인원을 남겨주시면 사장님이 확정 연락을 드려요."
+            : "Leave your date, time, and party size and the owner will confirm by phone.")}
+      </p>
+      <div className="mt-3 space-y-2.5">
+        <div className="grid gap-2.5 sm:grid-cols-2">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={ko ? "이름" : "Name"}
+            maxLength={60}
+            className={inputCls}
+          />
+          <input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder={ko ? "휴대폰 번호" : "Phone number"}
+            inputMode="tel"
+            maxLength={20}
+            className={inputCls}
+          />
+        </div>
+        <div className="grid gap-2.5 sm:grid-cols-3">
+          <label className="flex flex-col gap-1 text-xs text-muted">
+            {ko ? "희망 날짜" : "Date"}
+            <input
+              type="date"
+              value={date}
+              min={today}
+              onChange={(e) => setDate(e.target.value)}
+              className={inputCls}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-muted">
+            {ko ? "희망 시간" : "Time"}
+            <input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className={inputCls}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-muted">
+            {ko ? "인원" : "Party size"}
+            <input
+              type="number"
+              min={1}
+              inputMode="numeric"
+              value={partySize}
+              onChange={(e) => setPartySize(e.target.value)}
+              placeholder={ko ? "명" : "ppl"}
+              className={inputCls}
+            />
+          </label>
+        </div>
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder={
+            ko
+              ? "요청사항을 남겨주세요. 예: 창가 자리, 아기 의자 필요 (선택)"
+              : "Any requests? e.g. window seat, high chair (optional)"
+          }
+          maxLength={2000}
+          className={`${inputCls} min-h-20 resize-y`}
+        />
+        <button
+          type="button"
+          onClick={submit}
+          disabled={pending || !name.trim() || !phone.trim()}
+          className="w-full rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-xs disabled:opacity-50"
+        >
+          {pending
+            ? ko
+              ? "요청 중..."
+              : "Sending..."
+            : ko
+              ? "예약 요청하기"
+              : "Request reservation"}
+        </button>
+        <p className="text-center text-xs text-muted">
+          {ko
+            ? "예약은 요청 후 사장님 확정으로 완료돼요. 연락처는 사장님에게만 전달됩니다."
+            : "Reservations are completed once the owner confirms. Your contact is shared only with the owner."}
+        </p>
         {error && <p className="text-center text-sm text-danger">{error}</p>}
       </div>
     </div>

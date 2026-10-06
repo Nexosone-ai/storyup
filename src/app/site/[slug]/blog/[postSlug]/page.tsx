@@ -325,13 +325,16 @@ export default async function PublicArticlePage({
           </section>
         )}
 
-        {blogEvent && (blogEvent.couponEnabled || blogEvent.contactEnabled) && (
-          <BlogEventModules
-            postId={post.id}
-            event={blogEvent}
-            lang={ko ? "ko" : "en"}
-          />
-        )}
+        {blogEvent &&
+          (blogEvent.couponEnabled ||
+            blogEvent.contactEnabled ||
+            blogEvent.reservationEnabled) && (
+            <BlogEventModules
+              postId={post.id}
+              event={blogEvent}
+              lang={ko ? "ko" : "en"}
+            />
+          )}
 
         {blogEvent && (blogEvent.addressEnabled || blogEvent.mapEnabled) && (
           <BlogInfoModules

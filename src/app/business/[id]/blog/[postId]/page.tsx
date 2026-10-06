@@ -6,7 +6,11 @@ import {
   getWebsite,
   getBlogCategories,
 } from "@/lib/queries";
-import { getBlogEventForOwner, getCouponClaimCount } from "@/lib/events";
+import {
+  getBlogEventForOwner,
+  getCouponClaimCount,
+  getReservationCount,
+} from "@/lib/events";
 import { getPlanId } from "@/lib/subscription";
 import { getPlanById } from "@/lib/plans";
 import { BlogEditor } from "@/components/blog/BlogEditor";
@@ -32,9 +36,12 @@ export default async function BlogEditorPage({
   ]);
   if (!post || post.business_id !== id) notFound();
 
-  const couponClaimed = event?.coupon_enabled
-    ? await getCouponClaimCount(event.id)
-    : 0;
+  const [couponClaimed, reservationCount] = await Promise.all([
+    event?.coupon_enabled ? getCouponClaimCount(event.id) : Promise.resolve(0),
+    event?.reservation_enabled
+      ? getReservationCount(event.id)
+      : Promise.resolve(0),
+  ]);
 
   // 플랜별 기능 게이팅 — 쿠폰 발행(Basic+), 예약 발행(Pro+).
   const user = await getUser();
@@ -58,6 +65,7 @@ export default async function BlogEditorPage({
         postId={postId}
         event={event}
         couponClaimed={couponClaimed}
+        reservationCount={reservationCount}
         published={post.status === "published"}
         couponAllowed={couponAllowed}
       />

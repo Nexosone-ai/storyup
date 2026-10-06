@@ -16,6 +16,11 @@ export function InquiriesTabs() {
       label: ko ? "쿠폰" : "Coupons",
       exact: false,
     },
+    {
+      href: "/dashboard/inquiries/reservations",
+      label: ko ? "예약" : "Reservations",
+      exact: false,
+    },
   ];
 
   return (
