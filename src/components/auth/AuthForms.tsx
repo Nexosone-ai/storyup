@@ -185,6 +185,10 @@ export function LoginForm({ t }: { t: AuthDict }) {
 
 export function SignupForm({ t }: { t: AuthDict }) {
   const [state, action, pending] = useActionState(signUpAction, initial);
+  // 비밀번호 확인 — 입력 중 불일치를 바로 보여주고, 최종 검증은 서버(signUpAction)가 한다.
+  const [pw, setPw] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const mismatch = confirm.length > 0 && pw !== confirm;
 
   return (
     <>
@@ -205,13 +209,33 @@ export function SignupForm({ t }: { t: AuthDict }) {
           autoComplete="new-password"
           minLength={6}
           required
+          value={pw}
+          onChange={(e) => setPw(e.target.value)}
           show={t.pwShow}
           hide={t.pwHide}
         />
         <p className="mt-1 text-xs text-muted">{t.pwHint}</p>
       </div>
+      <div>
+        <Label htmlFor="confirm">{t.confirmPassword}</Label>
+        <PasswordInput
+          id="confirm"
+          name="confirm"
+          autoComplete="new-password"
+          minLength={6}
+          required
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          aria-invalid={mismatch || undefined}
+          show={t.pwShow}
+          hide={t.pwHide}
+        />
+        {mismatch ? (
+          <p className="mt-1 text-xs text-danger">{t.pwMismatch}</p>
+        ) : null}
+      </div>
       <Alert state={state} />
-      <Button type="submit" className="w-full" disabled={pending}>
+      <Button type="submit" className="w-full" disabled={pending || mismatch}>
         {pending ? <Spinner /> : t.signup}
       </Button>
     </form>

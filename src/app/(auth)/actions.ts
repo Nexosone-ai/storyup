@@ -26,6 +26,23 @@ function friendly(msg: string, ko: boolean): string {
     return ko
       ? "비밀번호는 6자 이상이어야 합니다."
       : "Password must be at least 6 characters.";
+  // Supabase SMTP 발송 실패("Error sending confirmation email", 535 등) — 이메일 형식
+  // 문제가 아니므로 "유효한 이메일" 문구로 오인되지 않게 먼저 걸러낸다.
+  if (
+    m.includes("error sending") ||
+    m.includes("sending confirmation") ||
+    m.includes("sending recovery") ||
+    m.includes("smtp") ||
+    m.includes("535") ||
+    m.includes("unexpected_failure")
+  )
+    return ko
+      ? "인증 메일을 보내지 못했습니다. 잠시 후 다시 시도하거나 카카오·구글 로그인을 이용해주세요."
+      : "We could not send the verification email. Please try again shortly or continue with Kakao or Google.";
+  if (m.includes("rate limit"))
+    return ko
+      ? "요청이 너무 잦습니다. 잠시 후 다시 시도해주세요."
+      : "Too many requests. Please try again in a moment.";
   if (m.includes("email"))
     return ko ? "유효한 이메일을 입력해주세요." : "Please enter a valid email.";
   return ko
@@ -64,16 +81,27 @@ export async function signUpAction(
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const confirm = String(formData.get("confirm") ?? "");
 
-  if (!name || !email || !password)
+  if (!name || !email || !password || !confirm)
     return {
       error: ko ? "모든 항목을 입력해주세요." : "Please fill in all fields.",
+    };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    return {
+      error: ko ? "유효한 이메일을 입력해주세요." : "Please enter a valid email.",
     };
   if (password.length < 6)
     return {
       error: ko
         ? "비밀번호는 6자 이상이어야 합니다."
         : "Password must be at least 6 characters.",
+    };
+  if (password !== confirm)
+    return {
+      error: ko
+        ? "비밀번호가 서로 일치하지 않습니다."
+        : "The passwords do not match.",
     };
 
   // 추천 링크(/join?ref=)로 들어온 경우 쿠키의 코드를 가입 시점에 메타데이터로 박아둔다.
