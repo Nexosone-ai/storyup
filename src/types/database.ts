@@ -1554,6 +1554,16 @@ export interface Database {
           neg: number;
         }[];
       };
+      admin_referrer_stats: {
+        Args: Record<string, never>;
+        Returns: {
+          referrer_user_id: string;
+          referrer_name: string | null;
+          referrer_email: string | null;
+          signups: number;
+          conversions: number;
+        }[];
+      };
       try_reserve_image_slot: {
         Args: {
           p_business: string;
