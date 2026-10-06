@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { Button, ButtonLink } from "@/components/ui/Button";
-import { Input, Label } from "@/components/ui/Field";
+import { Input, Label, Select } from "@/components/ui/Field";
 import { Badge } from "@/components/ui/Card";
 import { Spinner } from "@/components/ui/Spinner";
 import { Icon } from "@/components/ui/icons";
@@ -18,6 +18,11 @@ import { markdownToPlainText } from "@/utils/markdown";
 import { GuideSteps, CopyButton } from "@/components/ui/GuideCard";
 import { BlogCover } from "@/components/blog/BlogCover";
 import { SectionImagePreview } from "@/components/blog/SectionImagePreview";
+import {
+  IMAGE_STYLES,
+  IMAGE_STYLE_META,
+  type ImageStyleId,
+} from "@/lib/ai/image/style";
 import { SeoScorePanel } from "@/components/blog/SeoScorePanel";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { resizeImage } from "@/components/website/templates/ImageSlot";
@@ -62,6 +67,8 @@ export function BlogEditor({
   const [content, setContent] = useState(post.content ?? "");
   const [status, setStatus] = useState(post.status);
   const [cover, setCover] = useState(post.cover_image_url ?? null);
+  // 이미지 생성 스타일(실사·일러스트·회화풍·다이어그램 등) — 커버·본문·일괄 생성 공통.
+  const [imageStyle, setImageStyle] = useState<ImageStyleId>("photo");
   const [tab, setTab] = useState<Tab>("write");
   const [note, setNote] = useState<string | null>(null);
   const [justPublished, setJustPublished] = useState(false);
@@ -91,7 +98,7 @@ export function BlogEditor({
         const res = await fetch("/api/ai/blog-cover", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ businessId, postId: post.id }),
+          body: JSON.stringify({ businessId, postId: post.id, style: imageStyle }),
         });
         const json = await res.json();
         if (!res.ok || !json.url) {
@@ -659,7 +666,21 @@ export function BlogEditor({
       <div>
         <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
           <Label>{ko ? "커버 이미지" : "Cover image"}</Label>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value={imageStyle}
+              onChange={(e) => setImageStyle(e.target.value as ImageStyleId)}
+              disabled={coverPending}
+              className="h-9 w-32"
+              aria-label={ko ? "이미지 스타일" : "Image style"}
+              title={ko ? "이미지 스타일" : "Image style"}
+            >
+              {IMAGE_STYLES.map((id) => (
+                <option key={id} value={id}>
+                  {ko ? IMAGE_STYLE_META[id].ko : IMAGE_STYLE_META[id].en}
+                </option>
+              ))}
+            </Select>
             <input
               ref={coverFileRef}
               type="file"
@@ -828,6 +849,8 @@ export function BlogEditor({
             businessId={businessId}
             postId={post.id}
             ko={ko}
+            style={imageStyle}
+            onStyleChange={setImageStyle}
           />
         )}
       </div>

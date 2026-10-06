@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { reserveImageSlot, releaseImageSlot } from "@/lib/ai/imageSlot";
 import { getLocale } from "@/lib/i18n";
 import { generateAndStoreBlogBodyImage } from "@/lib/ai/blogBodyImage";
+import { coerceImageStyle } from "@/lib/ai/image/style";
 
 export const maxDuration = 60;
 
@@ -23,12 +24,14 @@ export async function POST(request: Request) {
   let postId = "";
   let paragraph = "";
   let slotKey = "";
+  let style: ReturnType<typeof coerceImageStyle> = "photo";
   try {
     const body = await request.json();
     businessId = String(body.businessId);
     postId = String(body.postId);
     paragraph = String(body.paragraph ?? "").trim();
     slotKey = String(body.slotKey ?? "");
+    style = coerceImageStyle(body.style);
   } catch {
     return NextResponse.json(
       { error: ko ? "잘못된 요청입니다." : "Invalid request." },
@@ -74,6 +77,7 @@ export async function POST(request: Request) {
     businessId,
     category: business.category,
     paragraph: subject,
+    style,
   });
   if (!url) {
     await releaseImageSlot(supabase, businessId, bodySlot);

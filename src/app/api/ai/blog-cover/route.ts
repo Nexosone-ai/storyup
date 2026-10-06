@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n";
 import { generateAndStoreBlogCover } from "@/lib/ai/blogCover";
+import { coerceImageStyle } from "@/lib/ai/image/style";
 
 export const maxDuration = 60;
 
@@ -20,10 +21,12 @@ export async function POST(request: Request) {
 
   let businessId = "";
   let postId = "";
+  let style: ReturnType<typeof coerceImageStyle> = "photo";
   try {
     const body = await request.json();
     businessId = String(body.businessId);
     postId = String(body.postId);
+    style = coerceImageStyle(body.style);
   } catch {
     return NextResponse.json(
       { error: ko ? "잘못된 요청입니다." : "Invalid request." },
@@ -54,6 +57,7 @@ export async function POST(request: Request) {
     category: business.category,
     title: post.title,
     keywords: post.keywords ?? [],
+    style,
   });
   if (!url)
     return NextResponse.json(

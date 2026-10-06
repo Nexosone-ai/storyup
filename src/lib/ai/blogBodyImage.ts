@@ -1,6 +1,7 @@
 import { getAIProvider } from "@/lib/ai";
 import { generateImageResilient } from "@/lib/ai/image";
-import { buildBlogCoverPrompt } from "@/lib/ai/image/prompt";
+import { buildBlogImagePrompt } from "@/lib/ai/image/prompt";
+import type { ImageStyleId } from "@/lib/ai/image/style";
 import { storeGeneratedImage } from "@/lib/ai/imageStore";
 
 /**
@@ -12,6 +13,7 @@ export async function generateAndStoreBlogBodyImage(opts: {
   businessId: string;
   category: string;
   paragraph: string;
+  style?: ImageStyleId;
 }): Promise<string | null> {
   try {
     const scene = await getAIProvider()
@@ -21,7 +23,7 @@ export async function generateAndStoreBlogBodyImage(opts: {
         kind: "still-life",
       })
       .catch(() => opts.paragraph.replace(/\s+/g, " ").trim().slice(0, 120));
-    const prompt = buildBlogCoverPrompt(opts.category, scene);
+    const prompt = buildBlogImagePrompt(opts.category, scene, opts.style);
 
     const image = await generateImageResilient(prompt, "4:3");
     if (!image) return null;
