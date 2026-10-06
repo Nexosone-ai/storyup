@@ -6,12 +6,18 @@ import { Card, Badge } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Field";
 import { Spinner } from "@/components/ui/Spinner";
+import { PLANS } from "@/lib/plans";
 import {
   setMarketerAction,
   saveMarketerRewardAction,
   generateSettlementsAction,
   markSettlementPaidAction,
 } from "@/app/dashboard/admin/actions";
+
+const PLAN_LABEL = new Map<string, string>(PLANS.map((p) => [p.id, p.name.ko]));
+function planLabel(plan: string): string {
+  return PLAN_LABEL.get(plan) ?? plan;
+}
 
 type Rank = "RESELLER" | "MAKER";
 
@@ -53,6 +59,14 @@ export interface SettlementItem {
 
 function won(n: number) {
   return `₩${n.toLocaleString()}`;
+}
+
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 // ---------------- 마케터 지정/목록 ----------------
@@ -184,6 +198,131 @@ export function AdminMarketers({ marketers }: { marketers: AdminMarketerItem[] }
                       >
                         재지정
                       </Button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ---------------- 리셀러 추천 가입자 ----------------
+
+export interface MarketerReferralItem {
+  clientUserId: string;
+  clientName: string;
+  clientEmail: string;
+  marketerName: string;
+  marketerEmail: string;
+  signupAt: string;
+  plan: string;
+  paying: boolean;
+}
+
+export function AdminMarketerReferrals({
+  referrals,
+}: {
+  referrals: MarketerReferralItem[];
+}) {
+  const [q, setQ] = useState("");
+  const [onlyPaying, setOnlyPaying] = useState(false);
+
+  const filtered = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    return referrals.filter((r) => {
+      if (onlyPaying && !r.paying) return false;
+      if (!term) return true;
+      return (
+        r.clientName.toLowerCase().includes(term) ||
+        r.clientEmail.toLowerCase().includes(term) ||
+        r.marketerName.toLowerCase().includes(term) ||
+        r.marketerEmail.toLowerCase().includes(term)
+      );
+    });
+  }, [referrals, q, onlyPaying]);
+
+  const payingCount = referrals.filter((r) => r.paying).length;
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-lg font-semibold tracking-tight">리셀러 추천 가입자</h2>
+        <p className="text-sm text-muted">
+          총 <b className="tnum text-foreground">{referrals.length.toLocaleString()}</b>명
+          <span className="ml-1 text-xs">(유료 전환 {payingCount.toLocaleString()}명)</span>
+        </p>
+      </div>
+      <p className="text-xs text-muted">
+        마케터(리셀러) 추천 링크로 가입한 사람들입니다. 일반 사용자 추천은 제외됩니다.
+      </p>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="가입자 / 마케터 검색"
+          className="max-w-xs"
+        />
+        <label className="flex items-center gap-1.5 text-sm text-muted">
+          <input
+            type="checkbox"
+            checked={onlyPaying}
+            onChange={(e) => setOnlyPaying(e.target.checked)}
+            className="h-4 w-4 rounded border-border"
+          />
+          유료 전환만
+        </label>
+      </div>
+
+      {filtered.length === 0 ? (
+        <p className="rounded-2xl border border-dashed border-border bg-surface p-8 text-center text-muted">
+          {referrals.length === 0
+            ? "리셀러 추천 가입자가 없습니다."
+            : "검색 결과가 없습니다."}
+        </p>
+      ) : (
+        <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
+          <table className="w-full min-w-[720px] text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs text-muted">
+                <th className="p-3 whitespace-nowrap">가입일</th>
+                <th className="p-3">가입자</th>
+                <th className="p-3">추천 마케터</th>
+                <th className="p-3">플랜</th>
+                <th className="p-3">전환</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((r) => (
+                <tr
+                  key={r.clientUserId}
+                  className="border-b border-border/60 last:border-0"
+                >
+                  <td className="p-3 whitespace-nowrap text-muted">
+                    {fmtDate(r.signupAt)}
+                  </td>
+                  <td className="p-3">
+                    <p className="font-medium">{r.clientName}</p>
+                    <p className="text-xs text-muted">{r.clientEmail || "-"}</p>
+                  </td>
+                  <td className="p-3">
+                    <p className="font-medium">{r.marketerName}</p>
+                    <p className="text-xs text-muted">{r.marketerEmail || "-"}</p>
+                  </td>
+                  <td className="p-3">
+                    <Badge tone={r.plan && r.plan !== "free" ? "success" : "muted"}>
+                      {planLabel(r.plan)}
+                    </Badge>
+                  </td>
+                  <td className="p-3">
+                    {r.paying ? (
+                      <Badge tone="success">유료</Badge>
+                    ) : (
+                      <span className="text-muted">-</span>
                     )}
                   </td>
                 </tr>

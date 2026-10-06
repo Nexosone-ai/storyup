@@ -422,6 +422,86 @@ export async function listMarketersAdmin(): Promise<AdminMarketerItem[]> {
   return out;
 }
 
+export interface AdminMarketerReferral {
+  clientUserId: string;
+  clientName: string;
+  clientEmail: string;
+  marketerUserId: string;
+  marketerName: string;
+  marketerEmail: string;
+  signupAt: string;
+  plan: string;
+  subStatus: string;
+  /** 유지중 정기결제(유료 전환) 여부 */
+  paying: boolean;
+}
+
+/**
+ * 리셀러(마케터)를 통해 추천 가입한 사람들 목록.
+ * referrals 중 추천인이 마케터인 건만 — 일반 사용자 추천과 구분된다.
+ * 마케터가 해제(suspended)됐어도 과거 귀속분은 남기므로 상태로 거르지 않는다.
+ */
+export async function listMarketerReferralsAdmin(
+  limit = 500,
+): Promise<AdminMarketerReferral[]> {
+  const admin = createAdminClient();
+  const { data: marketers } = await admin.from("marketers").select("user_id");
+  const marketerIds = (marketers ?? []).map((m) => m.user_id);
+  if (marketerIds.length === 0) return [];
+
+  const { data: refs } = await admin
+    .from("referrals")
+    .select("referred_user_id,referrer_user_id,created_at")
+    .in("referrer_user_id", marketerIds)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  const list = refs ?? [];
+  if (list.length === 0) return [];
+
+  const clientIds = [...new Set(list.map((r) => r.referred_user_id))];
+  const [{ data: clientProfiles }, { data: subs }, { data: marketerProfiles }] =
+    await Promise.all([
+      admin
+        .from("profiles")
+        .select("user_id,name,email")
+        .in("user_id", clientIds),
+      admin
+        .from("subscriptions")
+        .select("user_id,plan,status,trial,billing_key")
+        .in("user_id", clientIds),
+      admin
+        .from("profiles")
+        .select("user_id,name,email")
+        .in("user_id", marketerIds),
+    ]);
+
+  const clientByUser = new Map((clientProfiles ?? []).map((p) => [p.user_id, p]));
+  const subByUser = new Map((subs ?? []).map((s) => [s.user_id, s]));
+  const marketerByUser = new Map(
+    (marketerProfiles ?? []).map((p) => [p.user_id, p]),
+  );
+
+  return list.map((r) => {
+    const c = clientByUser.get(r.referred_user_id);
+    const s = subByUser.get(r.referred_user_id);
+    const m = marketerByUser.get(r.referrer_user_id);
+    const paying =
+      !!s && s.status === "active" && !s.trial && !!s.billing_key;
+    return {
+      clientUserId: r.referred_user_id,
+      clientName: c?.name ?? "이름 없음",
+      clientEmail: c?.email ?? "",
+      marketerUserId: r.referrer_user_id,
+      marketerName: m?.name ?? "이름 없음",
+      marketerEmail: m?.email ?? "",
+      signupAt: r.created_at,
+      plan: s?.plan ?? "free",
+      subStatus: s?.status ?? "none",
+      paying,
+    };
+  });
+}
+
 export async function getMarketerRewardsAdmin() {
   const admin = createAdminClient();
   const { data } = await admin.from("marketer_rewards").select("*");

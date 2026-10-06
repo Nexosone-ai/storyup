@@ -1,12 +1,14 @@
 import { listProductsAdmin } from "@/lib/payments/orders";
 import {
   listMarketersAdmin,
+  listMarketerReferralsAdmin,
   getMarketerRewardsAdmin,
   listSettlementsAdmin,
 } from "@/lib/marketers";
 import { PLANS } from "@/lib/plans";
 import {
   AdminMarketers,
+  AdminMarketerReferrals,
   AdminMarketerRewards,
   AdminSettlements,
 } from "@/components/admin/AdminMarketersView";
@@ -14,14 +16,14 @@ import {
 export const metadata = { title: "관리자 · 마케터·정산" };
 
 export default async function AdminMarketersPage() {
-  const [products, marketers, marketerRewards, settlements] = await Promise.all(
-    [
+  const [products, marketers, referrals, marketerRewards, settlements] =
+    await Promise.all([
       listProductsAdmin(),
       listMarketersAdmin(),
+      listMarketerReferralsAdmin(),
       getMarketerRewardsAdmin(),
       listSettlementsAdmin(),
-    ],
-  );
+    ]);
 
   // 수당 정책 설정 대상: 유료 구독 플랜 + 판매중 상품
   const rewardTargets = [
@@ -42,6 +44,18 @@ export default async function AdminMarketersPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-10">
       <AdminMarketers marketers={marketers} />
+      <AdminMarketerReferrals
+        referrals={referrals.map((r) => ({
+          clientUserId: r.clientUserId,
+          clientName: r.clientName,
+          clientEmail: r.clientEmail,
+          marketerName: r.marketerName,
+          marketerEmail: r.marketerEmail,
+          signupAt: r.signupAt,
+          plan: r.plan,
+          paying: r.paying,
+        }))}
+      />
       <AdminMarketerRewards
         targets={rewardTargets}
         rewards={marketerRewards.map((r) => ({
