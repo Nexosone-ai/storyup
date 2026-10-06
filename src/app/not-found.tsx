@@ -13,12 +13,20 @@ export default async function NotFound() {
           {ko ? "페이지를 찾을 수 없습니다." : "Page not found."}
         </p>
       </div>
-      <Link
-        href="/"
-        className="rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground"
-      >
-        {ko ? "홈으로 돌아가기" : "Back to home"}
-      </Link>
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <Link
+          href="/"
+          className="rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground"
+        >
+          {ko ? "홈으로" : "Back to home"}
+        </Link>
+        <Link
+          href="/login"
+          className="rounded-xl border border-border px-5 py-2.5 text-sm font-medium text-foreground"
+        >
+          {ko ? "로그인" : "Log in"}
+        </Link>
+      </div>
     </div>
   );
 }
