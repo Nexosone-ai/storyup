@@ -142,6 +142,18 @@ export async function signUpAction(
   });
   if (error) return { error: friendly(error.message, ko) };
 
+  // 이미 가입된 이메일 감지. Supabase "이메일 열거 방지"가 켜져 있으면 중복 가입을
+  // 에러 없이 성공처럼 응답하고(확인 메일도 보내지 않음) data.user.identities 를
+  // 빈 배열로 돌려준다. 이를 감지하지 못하면 "확인 메일 발송" 안내가 떠서 사용자는
+  // 오지 않는 메일을 하염없이 기다리게 된다. 이 경우 로그인으로 안내한다.
+  if (data.user && (data.user.identities?.length ?? 0) === 0) {
+    return {
+      error: ko
+        ? "이미 가입된 이메일입니다. 로그인해주세요."
+        : "This email is already registered. Please log in.",
+    };
+  }
+
   // If email confirmation is disabled, a session exists immediately.
   if (data.session) redirect("/dashboard");
 
