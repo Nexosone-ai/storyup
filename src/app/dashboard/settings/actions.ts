@@ -6,27 +6,23 @@ import { getLocale } from "@/lib/i18n";
 import { deleteAccount } from "@/lib/account/deletion";
 import type { SimpleState } from "@/app/dashboard/actions";
 
-// "use server" 모듈은 async 함수만 export할 수 있어 확인 문구는 UI와 각각 둔다.
-// (DeleteAccountSection.tsx의 문구와 동일해야 함)
-const DELETE_CONFIRM_PHRASE = { ko: "삭제", en: "DELETE" } as const;
-
 /** 로그인한 사용자가 자기 계정을 삭제한다(회원탈퇴). 성공 시 /goodbye로 이동. */
 export async function deleteAccountAction(
   _prev: SimpleState,
   formData: FormData,
 ): Promise<SimpleState> {
   const ko = (await getLocale()) === "ko";
-  const confirm = String(formData.get("confirm") ?? "").trim();
+  const confirmEmail = String(formData.get("confirmEmail") ?? "")
+    .trim()
+    .toLowerCase();
   const reason = String(formData.get("reason") ?? "")
     .trim()
     .slice(0, 500);
 
-  const expected = ko ? DELETE_CONFIRM_PHRASE.ko : DELETE_CONFIRM_PHRASE.en;
-  if (confirm !== expected)
+  // 실수 방지: 탈퇴 사유를 반드시 받는다.
+  if (!reason)
     return {
-      error: ko
-        ? `확인 문구 "${expected}"를 정확히 입력해주세요.`
-        : `Type "${expected}" exactly to confirm.`,
+      error: ko ? "탈퇴 사유를 입력해주세요." : "Please tell us why you are leaving.",
     };
 
   const supabase = await createClient();
@@ -34,6 +30,15 @@ export async function deleteAccountAction(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
+
+  // 실수 방지: 본인 이메일을 그대로 다시 입력해야 삭제한다(서버가 최종 검증).
+  const accountEmail = (user.email ?? "").trim().toLowerCase();
+  if (!confirmEmail || confirmEmail !== accountEmail)
+    return {
+      error: ko
+        ? "본인 이메일을 정확히 입력해주세요."
+        : "Enter your own email address exactly to confirm.",
+    };
 
   const res = await deleteAccount(user.id, { reason, ko });
   if ("error" in res) return { error: res.error };

@@ -8,28 +8,32 @@ import { Spinner } from "@/components/ui/Spinner";
 import { deleteAccountAction } from "@/app/dashboard/settings/actions";
 import type { SimpleState } from "@/app/dashboard/actions";
 
-// settings/actions.ts의 DELETE_CONFIRM_PHRASE와 동일해야 한다.
-const PHRASE = { ko: "삭제", en: "DELETE" } as const;
-
 export function DeleteAccountSection({
+  email,
   businessCount,
   staffCount,
   hasBillingKey,
   planLabel,
 }: {
+  email: string;
   businessCount: number;
   staffCount: number;
   hasBillingKey: boolean;
   planLabel: string | null;
 }) {
   const ko = useLocale() === "ko";
-  const phrase = ko ? PHRASE.ko : PHRASE.en;
   const [open, setOpen] = useState(false);
-  const [typed, setTyped] = useState("");
+  const [typedEmail, setTypedEmail] = useState("");
+  const [reason, setReason] = useState("");
   const [state, action, pending] = useActionState(
     deleteAccountAction,
     {} as SimpleState,
   );
+
+  const emailMatches =
+    typedEmail.trim().toLowerCase() === email.trim().toLowerCase();
+  const reasonFilled = reason.trim().length > 0;
+  const canSubmit = emailMatches && reasonFilled && !pending;
 
   const bullets: string[] = ko
     ? [
@@ -89,54 +93,64 @@ export function DeleteAccountSection({
 
       <div>
         <Label htmlFor="delete-reason">
-          {ko ? "떠나시는 이유 (선택)" : "Why are you leaving? (optional)"}
+          {ko ? "떠나시는 이유" : "Why are you leaving?"}
         </Label>
         <Textarea
           id="delete-reason"
           name="reason"
           rows={2}
           maxLength={500}
+          required
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
           placeholder={
             ko
-              ? "서비스 개선에 참고할게요."
-              : "This helps us improve the service."
+              ? "탈퇴 사유를 입력해주세요. 서비스 개선에 참고할게요."
+              : "Please tell us why. This helps us improve the service."
           }
         />
       </div>
 
       <div>
         {/* id는 같은 페이지의 비밀번호 변경 폼(#confirm)과 겹치지 않게 둔다 */}
-        <Label htmlFor="delete-confirm">
+        <Label htmlFor="delete-confirm-email">
           {ko ? (
             <>
-              계속하려면 <span className="font-semibold text-danger">{phrase}</span>
-              를 입력하세요
+              실수를 막기 위해, 본인 이메일{" "}
+              <span className="font-semibold text-danger">{email}</span> 을
+              그대로 입력하세요
             </>
           ) : (
             <>
-              Type <span className="font-semibold text-danger">{phrase}</span> to
-              continue
+              To prevent mistakes, type your email{" "}
+              <span className="font-semibold text-danger">{email}</span> exactly
             </>
           )}
         </Label>
         <Input
-          id="delete-confirm"
-          name="confirm"
+          id="delete-confirm-email"
+          name="confirmEmail"
+          type="email"
           autoComplete="off"
-          value={typed}
-          onChange={(e) => setTyped(e.target.value)}
+          inputMode="email"
+          value={typedEmail}
+          onChange={(e) => setTypedEmail(e.target.value)}
+          placeholder={email}
           required
         />
+        {typedEmail.trim().length > 0 && !emailMatches && (
+          <p className="mt-1 text-sm text-danger">
+            {ko
+              ? "이메일이 일치하지 않습니다."
+              : "The email does not match."}
+          </p>
+        )}
       </div>
 
       {state.error && <p className="text-sm text-danger">{state.error}</p>}
 
       <div className="flex gap-2">
-        <Button
-          type="submit"
-          variant="danger"
-          disabled={pending || typed.trim() !== phrase}
-        >
+        <Button type="submit" variant="danger" disabled={!canSubmit}>
           {pending ? (
             <Spinner />
           ) : ko ? (
@@ -151,7 +165,8 @@ export function DeleteAccountSection({
           disabled={pending}
           onClick={() => {
             setOpen(false);
-            setTyped("");
+            setTypedEmail("");
+            setReason("");
           }}
         >
           {ko ? "취소" : "Cancel"}

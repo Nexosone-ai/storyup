@@ -94,6 +94,7 @@ export default async function SettingsPage() {
             : "Deleting your account removes your personal data immediately."}
         </p>
         <DeleteAccountSection
+          email={profile?.email ?? user.email ?? ""}
           businessCount={bizCount ?? 0}
           staffCount={staffCount ?? 0}
           hasBillingKey={!!sub?.billing_key}
