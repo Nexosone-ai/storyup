@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { SignupForm } from "@/components/auth/AuthForms";
@@ -22,7 +23,10 @@ export default async function SignupPage() {
         </>
       }
     >
-      <SignupForm t={a} />
+      {/* useSearchParams(추천 코드) 사용 — 정적 프리렌더를 위해 Suspense 경계 필요 */}
+      <Suspense fallback={null}>
+        <SignupForm t={a} />
+      </Suspense>
     </AuthShell>
   );
 }

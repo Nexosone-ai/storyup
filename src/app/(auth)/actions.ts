@@ -12,6 +12,28 @@ export interface AuthState {
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
+
+const REF_RE = /^[A-Z0-9]{4,12}$/;
+
+/**
+ * 추천 코드 결정 — 폼 hidden(ref, /signup?ref= 에서 온 값) 우선, 없으면 /join이 심은 쿠키.
+ * 링크를 연 브라우저와 가입한 브라우저가 달라 쿠키가 없어도 URL 값으로 귀속되게 한다.
+ */
+async function resolveRefCode(formData: FormData): Promise<string | null> {
+  const fromForm = String(formData.get("ref") ?? "").trim().toUpperCase();
+  if (REF_RE.test(fromForm)) return fromForm;
+  const fromCookie = ((await cookies()).get("su_ref")?.value ?? "").trim().toUpperCase();
+  return REF_RE.test(fromCookie) ? fromCookie : null;
+}
+
+/** OAuth 복귀 URL — next와 추천 코드를 /auth/callback에 실어 보낸다. */
+function oauthRedirectTo(origin: string, safeNext: string, ref: string | null): string {
+  const u = new URL("/auth/callback", origin);
+  u.searchParams.set("next", safeNext);
+  if (ref) u.searchParams.set("ref", ref);
+  return u.toString();
+}
+
 function friendly(msg: string, ko: boolean): string {
   const m = msg.toLowerCase();
   if (m.includes("invalid login"))
@@ -107,7 +129,7 @@ export async function signUpAction(
   // 추천 링크(/join?ref=)로 들어온 경우 쿠키의 코드를 가입 시점에 메타데이터로 박아둔다.
   // 이메일 인증 링크가 다른 브라우저(메일앱 내장 브라우저 등)에서 열려 쿠키가
   // 사라져도 서버에 남은 ref_code로 귀속할 수 있게 한다.
-  const refCode = (await cookies()).get("su_ref")?.value ?? null;
+  const refCode = await resolveRefCode(formData);
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
@@ -137,12 +159,13 @@ export async function signInWithGoogleAction(formData: FormData): Promise<void> 
   // 로컬(3001)과 프로덕션 어디서 열려도 현재 오리진으로 돌아오도록 헤더에서 추론
   const h = await headers();
   const origin = h.get("origin") ?? siteUrl;
+  const ref = await resolveRefCode(formData);
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(safeNext)}`,
+      redirectTo: oauthRedirectTo(origin, safeNext, ref),
     },
   });
 
@@ -157,12 +180,13 @@ export async function signInWithKakaoAction(formData: FormData): Promise<void> {
   // 로컬(3001)과 프로덕션 어디서 열려도 현재 오리진으로 돌아오도록 헤더에서 추론
   const h = await headers();
   const origin = h.get("origin") ?? siteUrl;
+  const ref = await resolveRefCode(formData);
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "kakao",
     options: {
-      redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(safeNext)}`,
+      redirectTo: oauthRedirectTo(origin, safeNext, ref),
     },
   });
 
@@ -178,12 +202,13 @@ export async function signInWithFacebookAction(
 
   const h = await headers();
   const origin = h.get("origin") ?? siteUrl;
+  const ref = await resolveRefCode(formData);
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "facebook",
     options: {
-      redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(safeNext)}`,
+      redirectTo: oauthRedirectTo(origin, safeNext, ref),
     },
   });
 

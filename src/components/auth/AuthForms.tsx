@@ -107,7 +107,17 @@ function FacebookIcon() {
 }
 
 /** Divider + 소셜 로그인(카카오·구글·페이스북) — 각 버튼은 이메일 폼과 별도의 form이어야 함 (중첩 불가) */
-function SocialAuth({ t, redirect }: { t: AuthDict; redirect?: string }) {
+function SocialAuth({
+  t,
+  redirect,
+  refCode,
+}: {
+  t: AuthDict;
+  redirect?: string;
+  /** /signup?ref= 추천 코드 — 쿠키가 없는 브라우저에서도 귀속되도록 서버 액션에 전달 */
+  refCode?: string | null;
+}) {
+  const refInput = refCode ? <input type="hidden" name="ref" value={refCode} /> : null;
   return (
     <div className="mt-5 space-y-2.5">
       <div className="mb-5 flex items-center gap-3">
@@ -116,6 +126,7 @@ function SocialAuth({ t, redirect }: { t: AuthDict; redirect?: string }) {
         <div className="h-px flex-1 bg-border" />
       </div>
       <form action={signInWithKakaoAction}>
+        {refInput}
         {redirect ? <input type="hidden" name="redirect" value={redirect} /> : null}
         <button
           type="submit"
@@ -126,6 +137,7 @@ function SocialAuth({ t, redirect }: { t: AuthDict; redirect?: string }) {
         </button>
       </form>
       <form action={signInWithGoogleAction}>
+        {refInput}
         {redirect ? <input type="hidden" name="redirect" value={redirect} /> : null}
         <button
           type="submit"
@@ -136,6 +148,7 @@ function SocialAuth({ t, redirect }: { t: AuthDict; redirect?: string }) {
         </button>
       </form>
       <form action={signInWithFacebookAction}>
+        {refInput}
         {redirect ? <input type="hidden" name="redirect" value={redirect} /> : null}
         <button
           type="submit"
@@ -153,6 +166,7 @@ export function LoginForm({ t }: { t: AuthDict }) {
   const [state, action, pending] = useActionState(signInAction, initial);
   const params = useSearchParams();
   const redirect = params.get("redirect") ?? "/dashboard";
+  const refCode = params.get("ref");
 
   return (
     <>
@@ -178,13 +192,15 @@ export function LoginForm({ t }: { t: AuthDict }) {
           {pending ? <Spinner /> : t.login}
         </Button>
       </form>
-      <SocialAuth t={t} redirect={redirect} />
+      <SocialAuth t={t} redirect={redirect} refCode={refCode} />
     </>
   );
 }
 
 export function SignupForm({ t }: { t: AuthDict }) {
   const [state, action, pending] = useActionState(signUpAction, initial);
+  // /join?ref= → /signup?ref= 로 넘어온 추천 코드. 쿠키가 없는 브라우저에서도 귀속되게 폼에 싣는다.
+  const refCode = useSearchParams().get("ref");
   // 비밀번호 확인 — 입력 중 불일치를 바로 보여주고, 최종 검증은 서버(signUpAction)가 한다.
   const [pw, setPw] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -193,6 +209,7 @@ export function SignupForm({ t }: { t: AuthDict }) {
   return (
     <>
     <form action={action} className="space-y-4">
+      {refCode ? <input type="hidden" name="ref" value={refCode} /> : null}
       <div>
         <Label htmlFor="name">{t.name}</Label>
         <Input id="name" name="name" type="text" autoComplete="name" required />
@@ -239,7 +256,7 @@ export function SignupForm({ t }: { t: AuthDict }) {
         {pending ? <Spinner /> : t.signup}
       </Button>
     </form>
-    <SocialAuth t={t} />
+    <SocialAuth t={t} refCode={refCode} />
     </>
   );
 }
