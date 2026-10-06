@@ -159,6 +159,14 @@ export const SubscribePanel = forwardRef<
         });
         return;
       }
+      const plan = getPlanById(planId);
+      if (!plan.priceKrw) {
+        setNote({
+          text: ko ? "결제할 수 없는 플랜입니다." : "This plan cannot be purchased.",
+          error: true,
+        });
+        return;
+      }
       try {
         const issue = await PortOne.requestIssueBillingKey({
           storeId: process.env.NEXT_PUBLIC_PORTONE_STORE_ID ?? "",
@@ -167,10 +175,11 @@ export const SubscribePanel = forwardRef<
             process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY_BILLING ||
             process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY ||
             "",
-          // NOTE: displayAmount(발급창 '상품가격' 표시)는 넣지 않는다. 빌링 채널·offerPeriod가 모두 정상인
-          // 상태에서도 displayAmount+currency를 보내면 이니시스가 /pay/card/billing 500을 반환했고
-          // (2026-10-02 재현), displayAmount 단독은 SDK가 거부(currency 필수). PortOne 로그 확인 전까지 금지.
-          // 금액은 우리 구독 모달(플랜명·₩/월)에서 안내한다.
+          // 발급창 '상품가격' 표시 — 이니시스 카드심사 요구사항(정기결제 금액 노출).
+          // 2026-10-02의 500 오류는 displayAmount 탓이 아니라 상점 MID 미사용 상태가 원인이었음
+          // (2026-10-06 이니시스 확인·사용 전환). displayAmount는 currency와 함께 보내야 SDK가 받는다.
+          displayAmount: plan.priceKrw,
+          currency: "KRW",
           billingKeyMethod: "CARD",
           // 서비스 제공 주기(1개월). KG이니시스는 모바일 빌링키 발급 시 offerPeriod가 필수이며,
           // 발급창의 '제공기간' 표시에도 쓰인다. 월 구독이므로 1m 고정.
