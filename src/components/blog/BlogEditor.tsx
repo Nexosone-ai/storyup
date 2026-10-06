@@ -69,6 +69,8 @@ export function BlogEditor({
   const [cover, setCover] = useState(post.cover_image_url ?? null);
   // 이미지 생성 스타일(실사·일러스트·회화풍·다이어그램 등) — 커버·본문·일괄 생성 공통.
   const [imageStyle, setImageStyle] = useState<ImageStyleId>("photo");
+  // 커버에 원하는 이미지 설명 — 비우면 제목·키워드 기반.
+  const [coverInstruction, setCoverInstruction] = useState("");
   const [tab, setTab] = useState<Tab>("write");
   const [note, setNote] = useState<string | null>(null);
   const [justPublished, setJustPublished] = useState(false);
@@ -98,7 +100,12 @@ export function BlogEditor({
         const res = await fetch("/api/ai/blog-cover", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ businessId, postId: post.id, style: imageStyle }),
+          body: JSON.stringify({
+            businessId,
+            postId: post.id,
+            style: imageStyle,
+            instruction: coverInstruction,
+          }),
         });
         const json = await res.json();
         if (!res.ok || !json.url) {
@@ -748,6 +755,17 @@ export function BlogEditor({
             className="aspect-[16/7] w-full rounded-xl"
           />
         )}
+        <Input
+          value={coverInstruction}
+          onChange={(e) => setCoverInstruction(e.target.value)}
+          disabled={coverPending}
+          placeholder={
+            ko
+              ? "원하는 커버 이미지를 설명하세요 (비우면 제목·키워드 기반)"
+              : "Describe the cover image you want (blank = from title/keywords)"
+          }
+          className="mt-2 h-9 text-sm"
+        />
       </div>
 
       {/* Content editor */}

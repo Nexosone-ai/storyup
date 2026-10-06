@@ -19,17 +19,23 @@ export async function generateAndStoreBlogCover(opts: {
   /** 블로그 생성 결과의 image_subject (영문). 없으면 제목·키워드로 즉석 생성. */
   imageSubject?: string;
   style?: ImageStyleId;
+  /** 사용자가 원하는 커버를 직접 설명한 경우 — 있으면 제목·키워드 대신 이 설명으로 피사체를 만든다. */
+  instruction?: string;
   timeoutMs?: number;
 }): Promise<string | null> {
   try {
-    const scene =
-      opts.imageSubject?.trim() ||
-      (await getAIProvider()
-        .generateImageSubject({
-          category: opts.category,
-          text: [opts.title, ...opts.keywords].join(", "),
-        })
-        .catch(() => opts.keywords.join(", ") || opts.title));
+    const instruction = opts.instruction?.trim();
+    const scene = instruction
+      ? await getAIProvider()
+          .generateImageSubject({ category: opts.category, text: instruction })
+          .catch(() => instruction)
+      : opts.imageSubject?.trim() ||
+        (await getAIProvider()
+          .generateImageSubject({
+            category: opts.category,
+            text: [opts.title, ...opts.keywords].join(", "),
+          })
+          .catch(() => opts.keywords.join(", ") || opts.title));
     const prompt = buildBlogImagePrompt(opts.category, scene, opts.style);
 
     const generate = generateImageResilient(prompt, "16:9");

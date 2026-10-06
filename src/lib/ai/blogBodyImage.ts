@@ -14,15 +14,19 @@ export async function generateAndStoreBlogBodyImage(opts: {
   category: string;
   paragraph: string;
   style?: ImageStyleId;
+  /** 사용자가 원하는 이미지를 직접 설명한 경우 — 있으면 글 내용 대신 이 설명으로 피사체를 만든다. */
+  instruction?: string;
 }): Promise<string | null> {
   try {
+    // 설명이 있으면 설명을, 없으면 글 내용을 피사체 생성의 근거로 쓴다.
+    const basis = opts.instruction?.trim() || opts.paragraph;
     const scene = await getAIProvider()
       .generateImageSubject({
         category: opts.category,
-        text: opts.paragraph,
+        text: basis,
         kind: "still-life",
       })
-      .catch(() => opts.paragraph.replace(/\s+/g, " ").trim().slice(0, 120));
+      .catch(() => basis.replace(/\s+/g, " ").trim().slice(0, 120));
     const prompt = buildBlogImagePrompt(opts.category, scene, opts.style);
 
     const image = await generateImageResilient(prompt, "4:3");

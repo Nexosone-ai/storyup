@@ -22,11 +22,13 @@ export async function POST(request: Request) {
   let businessId = "";
   let postId = "";
   let style: ReturnType<typeof coerceImageStyle> = "photo";
+  let instruction = "";
   try {
     const body = await request.json();
     businessId = String(body.businessId);
     postId = String(body.postId);
     style = coerceImageStyle(body.style);
+    instruction = String(body.instruction ?? "").trim().slice(0, 300);
   } catch {
     return NextResponse.json(
       { error: ko ? "잘못된 요청입니다." : "Invalid request." },
@@ -58,6 +60,7 @@ export async function POST(request: Request) {
     title: post.title,
     keywords: post.keywords ?? [],
     style,
+    instruction,
   });
   if (!url)
     return NextResponse.json(

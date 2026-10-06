@@ -25,6 +25,7 @@ export async function POST(request: Request) {
   let paragraph = "";
   let slotKey = "";
   let style: ReturnType<typeof coerceImageStyle> = "photo";
+  let instruction = "";
   try {
     const body = await request.json();
     businessId = String(body.businessId);
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
     paragraph = String(body.paragraph ?? "").trim();
     slotKey = String(body.slotKey ?? "");
     style = coerceImageStyle(body.style);
+    instruction = String(body.instruction ?? "").trim().slice(0, 300);
   } catch {
     return NextResponse.json(
       { error: ko ? "잘못된 요청입니다." : "Invalid request." },
@@ -78,6 +80,7 @@ export async function POST(request: Request) {
     category: business.category,
     paragraph: subject,
     style,
+    instruction,
   });
   if (!url) {
     await releaseImageSlot(supabase, businessId, bodySlot);

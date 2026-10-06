@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { marked } from "marked";
 import { preprocessMarkdown } from "@/utils/markdown";
 import { Spinner } from "@/components/ui/Spinner";
-import { Select } from "@/components/ui/Field";
+import { Input, Select } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/icons";
 import {
   IMAGE_STYLES,
@@ -124,6 +124,8 @@ export function SectionImagePreview({
     text: string;
     error: boolean;
   } | null>(null);
+  // 소제목별 "원하는 이미지" 설명 (headingIdx → 설명). 비우면 글 내용 기반 생성.
+  const [instrByIdx, setInstrByIdx] = useState<Record<number, string>>({});
 
   const imgAlt = ko ? "섹션 이미지" : "section image";
   const busy = batchBusy || busyIdx !== null;
@@ -142,6 +144,7 @@ export function SectionImagePreview({
           paragraph: `${s.heading}\n${s.bodyMd.slice(0, 400)}`,
           slotKey: `body:${s.headingIdx}`,
           style,
+          instruction: instrByIdx[s.headingIdx] ?? "",
         }),
       });
       const json = await res.json();
@@ -230,6 +233,23 @@ export function SectionImagePreview({
     onChange(lines.join("\n"));
   };
 
+  /** 원하는 이미지를 설명하는 입력 — 채우면 그 설명으로, 비우면 글 내용 기반으로 생성. */
+  const instrInput = (s: Section) => (
+    <Input
+      value={instrByIdx[s.headingIdx] ?? ""}
+      onChange={(e) =>
+        setInstrByIdx((m) => ({ ...m, [s.headingIdx]: e.target.value }))
+      }
+      disabled={busy}
+      placeholder={
+        ko
+          ? "원하는 이미지를 설명하세요 (비우면 글 내용 기반)"
+          : "Describe the image you want (blank = based on the text)"
+      }
+      className="h-9 text-sm"
+    />
+  );
+
   const box = (s: Section) => {
     const thisBusy = busyIdx === s.headingIdx;
     if (s.imageUrl) {
@@ -241,6 +261,7 @@ export function SectionImagePreview({
             alt={s.heading}
             className="aspect-[4/3] w-full rounded-xl object-cover"
           />
+          <div className="mt-2">{instrInput(s)}</div>
           <figcaption className="mt-2 flex flex-wrap gap-2">
             <button
               type="button"
@@ -253,7 +274,13 @@ export function SectionImagePreview({
               ) : (
                 <Icon.sparkles width={14} height={14} />
               )}
-              {ko ? "다시 생성" : "Regenerate"}
+              {instrByIdx[s.headingIdx]?.trim()
+                ? ko
+                  ? "설명으로 바꾸기"
+                  : "Change to description"
+                : ko
+                  ? "다시 생성"
+                  : "Regenerate"}
             </button>
             <button
               type="button"
@@ -268,7 +295,8 @@ export function SectionImagePreview({
       );
     }
     return (
-      <div className="my-3">
+      <div className="my-3 space-y-2">
+        {instrInput(s)}
         <button
           type="button"
           onClick={() => generate(s)}
@@ -283,7 +311,13 @@ export function SectionImagePreview({
           ) : (
             <>
               <Icon.sparkles width={20} height={20} />
-              {ko ? "이 소제목 이미지 생성" : "Generate an image for this section"}
+              {instrByIdx[s.headingIdx]?.trim()
+                ? ko
+                  ? "이 설명으로 이미지 생성"
+                  : "Generate from this description"
+                : ko
+                  ? "이 소제목 이미지 생성"
+                  : "Generate an image for this section"}
             </>
           )}
         </button>
