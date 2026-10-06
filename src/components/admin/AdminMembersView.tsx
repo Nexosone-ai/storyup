@@ -90,12 +90,13 @@ export function AdminMembers({
         </p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
-          <table className="w-full min-w-[640px] text-sm">
+          <table className="w-full min-w-[760px] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs text-muted">
                 <th className="p-3">가입일</th>
                 <th className="p-3">회원</th>
                 <th className="p-3">플랜</th>
+                <th className="p-3">추천인</th>
                 <th className="p-3 text-right">비즈니스</th>
                 <th className="p-3 text-right">누적 결제</th>
               </tr>
@@ -118,6 +119,20 @@ export function AdminMembers({
                   </td>
                   <td className="p-3">
                     <Badge tone={planTone(m.plan)}>{planLabel(m.plan)}</Badge>
+                  </td>
+                  <td className="p-3">
+                    {m.referredBy ? (
+                      <>
+                        <p className="font-medium">{m.referredBy.name}</p>
+                        {m.referredBy.email && (
+                          <p className="text-xs text-muted">
+                            {m.referredBy.email}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-muted">-</span>
+                    )}
                   </td>
                   <td className="tnum p-3 text-right">{m.businessCount}</td>
                   <td className="tnum p-3 text-right">
