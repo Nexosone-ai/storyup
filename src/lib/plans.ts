@@ -65,7 +65,7 @@ export const PLANS: Plan[] = [
   {
     id: "basic",
     name: { ko: "Basic", en: "Basic" },
-    priceKrw: 49000,
+    priceKrw: 59000,
     limits: { sites: 5, blogPosts: 50, cardNews: 10, aiImages: 50 },
     maxBusinesses: 1,
     maxMembers: 1,
@@ -81,7 +81,7 @@ export const PLANS: Plan[] = [
   {
     id: "pro",
     name: { ko: "Pro", en: "Pro" },
-    priceKrw: 99000,
+    priceKrw: 119000,
     limits: { sites: 10, blogPosts: 150, cardNews: 30, aiImages: 90 },
     maxBusinesses: 5,
     maxMembers: 3,

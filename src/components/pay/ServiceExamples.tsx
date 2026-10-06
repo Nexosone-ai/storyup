@@ -242,7 +242,7 @@ export function ServiceExamples({ plan }: { plan: "basic" | "pro" }) {
             </b>
             까지.
           </p>
-          <p className="tnum mt-3 text-2xl font-bold text-foreground">월 49,000원</p>
+          <p className="tnum mt-3 text-2xl font-bold text-foreground">월 119,000원</p>
           <p className="break-keep-kr mt-1 text-sm leading-relaxed text-muted">
             콘텐츠를 만들고, 검색되고, 고객을 확보하는 것까지. STORYUP Pro 하나로
             시작하세요.
