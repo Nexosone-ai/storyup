@@ -36,7 +36,6 @@ export function dashboardNav(
       label: ko ? "서포터즈" : "Supporters",
       href: "/dashboard/supporters",
       icon: "users",
-      badge: ko ? "준비 중" : "Soon",
     },
     {
       label: ko ? "포인트" : "Points",
