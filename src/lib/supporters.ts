@@ -9,6 +9,8 @@ export interface SupporterCard {
   skills: string[];
   portfolio_url: string | null;
   contact: string | null;
+  /** 월 기본가격(원). null = 미표기. 'agent' 역할에서 주로 사용. */
+  base_price_krw: number | null;
 }
 
 export type MySupporter = SupporterCard;
@@ -31,7 +33,11 @@ export async function getSupporterDirectory(): Promise<SupporterCard[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("supporter_profiles")
-    .select("id,user_id,role,display_name,bio,skills,portfolio_url,contact")
+    .select(
+      "id,user_id,role,display_name,bio,skills,portfolio_url,contact,base_price_krw",
+    )
+    // 월정액 대행(agent)을 먼저 노출하고, 그 안에서 최신순.
+    .order("base_price_krw", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false })
     .limit(100);
   return data ?? [];
@@ -43,7 +49,9 @@ export async function getMySupporterProfile(
   const supabase = await createClient();
   const { data } = await supabase
     .from("supporter_profiles")
-    .select("id,user_id,role,display_name,bio,skills,portfolio_url,contact")
+    .select(
+      "id,user_id,role,display_name,bio,skills,portfolio_url,contact,base_price_krw",
+    )
     .eq("user_id", userId)
     .maybeSingle();
   return data ?? null;

@@ -27,6 +27,7 @@ export async function saveSupporterProfile(fields: {
   skills: string[];
   portfolioUrl: string;
   contact: string;
+  basePriceKrw?: number | null;
 }): Promise<SupporterState> {
   const ko = (await getLocale()) === "ko";
   if (!(SUPPORTER_ROLES as readonly string[]).includes(fields.role))
@@ -37,6 +38,11 @@ export async function saveSupporterProfile(fields: {
   const { supabase, user } = await requireUser();
   if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
 
+  const price =
+    fields.basePriceKrw != null && fields.basePriceKrw > 0
+      ? Math.floor(fields.basePriceKrw)
+      : null;
+
   const { error } = await supabase.from("supporter_profiles").upsert(
     {
       user_id: user.id,
@@ -46,6 +52,7 @@ export async function saveSupporterProfile(fields: {
       skills: fields.skills,
       portfolio_url: fields.portfolioUrl.trim() || null,
       contact: fields.contact.trim() || null,
+      base_price_krw: price,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" },

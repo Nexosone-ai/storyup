@@ -1071,6 +1071,7 @@ export interface Database {
           skills: string[];
           portfolio_url: string | null;
           contact: string | null;
+          base_price_krw: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -1083,6 +1084,7 @@ export interface Database {
           skills?: string[];
           portfolio_url?: string | null;
           contact?: string | null;
+          base_price_krw?: number | null;
           created_at?: string;
           updated_at?: string;
         };

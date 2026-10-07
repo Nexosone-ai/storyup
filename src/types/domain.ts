@@ -109,13 +109,19 @@ export const PUBLISH_CHANNEL_LABEL: Record<PublishChannel, string> = {
   naver: "네이버 블로그",
 };
 
-export const SUPPORTER_ROLES = ["designer", "editor", "musician"] as const;
+export const SUPPORTER_ROLES = [
+  "designer",
+  "editor",
+  "musician",
+  "agent",
+] as const;
 export type SupporterRole = (typeof SUPPORTER_ROLES)[number];
 
 export const SUPPORTER_ROLE_LABEL: Record<SupporterRole, string> = {
   designer: "디자이너",
   editor: "영상 편집자",
   musician: "음악 제작자",
+  agent: "스토리업 대행",
 };
 
 export const PROJECT_STATUS_LABEL: Record<string, string> = {

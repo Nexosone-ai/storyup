@@ -28,7 +28,15 @@ const ROLE_LABEL_EN: Record<SupporterRole, string> = {
   designer: "Designer",
   editor: "Video editor",
   musician: "Music producer",
+  agent: "STORYUP agency",
 };
+
+/** 월 기본가격 표기 (₩300,000 / 월). */
+function formatMonthlyPrice(krw: number, ko: boolean): string {
+  return ko
+    ? `₩${krw.toLocaleString("ko-KR")} / 월`
+    : `₩${krw.toLocaleString("en-US")} / mo`;
+}
 
 const PROJECT_STATUS_EN: Record<string, string> = {
   requested: "Requested",
@@ -133,7 +141,10 @@ function SupporterCardItem({
   const [businessId, setBusinessId] = useState(businesses[0]?.id ?? "");
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
-  const [budget, setBudget] = useState("");
+  // 월정액 대행은 가격(원)을 예산 포인트(1P=₩1)로 미리 채워준다.
+  const [budget, setBudget] = useState(
+    supporter.base_price_krw != null ? String(supporter.base_price_krw) : "",
+  );
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [pending, start] = useTransition();
@@ -162,12 +173,17 @@ function SupporterCardItem({
 
   return (
     <Card className="flex flex-col">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <Badge tone="primary">
           {(ko
             ? SUPPORTER_ROLE_LABEL[supporter.role as SupporterRole]
             : ROLE_LABEL_EN[supporter.role as SupporterRole]) ?? supporter.role}
         </Badge>
+        {supporter.base_price_krw != null && (
+          <span className="shrink-0 rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-primary">
+            {formatMonthlyPrice(supporter.base_price_krw, ko)}
+          </span>
+        )}
       </div>
       <h3 className="mt-3 text-lg font-semibold">{supporter.display_name}</h3>
       {supporter.bio && (
@@ -274,6 +290,9 @@ function ProfileForm({ profile }: { profile: MySupporter | null }) {
   const [skills, setSkills] = useState((profile?.skills ?? []).join(", "));
   const [portfolio, setPortfolio] = useState(profile?.portfolio_url ?? "");
   const [contact, setContact] = useState(profile?.contact ?? "");
+  const [price, setPrice] = useState(
+    profile?.base_price_krw != null ? String(profile.base_price_krw) : "",
+  );
   const [note, setNote] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
@@ -290,6 +309,7 @@ function ProfileForm({ profile }: { profile: MySupporter | null }) {
           .filter(Boolean),
         portfolioUrl: portfolio,
         contact,
+        basePriceKrw: price ? Number(price) : null,
       });
       setNote(res.error ?? (ko ? "저장되었습니다." : "Saved."));
       if (!res.error) router.refresh();
@@ -361,6 +381,25 @@ function ProfileForm({ profile }: { profile: MySupporter | null }) {
             placeholder={ko ? "이메일 / SNS" : "Email / social handle"}
           />
         </div>
+      </div>
+      <div>
+        <Label htmlFor="sp-price">
+          {ko ? "월 기본가격 (원, 선택)" : "Monthly base price (KRW, optional)"}
+        </Label>
+        <Input
+          id="sp-price"
+          type="number"
+          min={0}
+          step={10000}
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          placeholder={ko ? "예: 300000" : "e.g. 300000"}
+        />
+        <p className="mt-1 text-xs text-muted">
+          {ko
+            ? "운영대행처럼 월정액 서비스를 제공하면 입력하세요. 카드에 ‘₩/월’로 표시됩니다."
+            : "For monthly services (e.g. managed operations). Shown as ‘₩/mo’ on your card."}
+        </p>
       </div>
       {note && <p className="text-sm text-primary">{note}</p>}
       <Button onClick={save} disabled={pending}>
