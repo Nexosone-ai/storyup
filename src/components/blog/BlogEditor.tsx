@@ -14,10 +14,10 @@ import {
   updateBlogCoverAction,
   uploadSiteImage,
 } from "@/app/business/actions";
-import { markdownToPlainText } from "@/utils/markdown";
+import { contentToPlainText } from "@/utils/markdown";
 import { GuideSteps, CopyButton } from "@/components/ui/GuideCard";
 import { BlogCover } from "@/components/blog/BlogCover";
-import { SectionImagePreview } from "@/components/blog/SectionImagePreview";
+import { RichEditor } from "@/components/blog/RichEditor";
 import {
   IMAGE_STYLES,
   IMAGE_STYLE_META,
@@ -27,21 +27,6 @@ import { SeoScorePanel } from "@/components/blog/SeoScorePanel";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { resizeImage } from "@/components/website/templates/ImageSlot";
 import type { BlogPostRow } from "@/types/database";
-
-type Tab = "write" | "preview";
-
-/** 커서가 놓인 단락(빈 줄로 구분)의 범위와 텍스트를 찾는다. */
-function paragraphAt(
-  text: string,
-  caret: number,
-): { start: number; end: number; text: string } {
-  const c = Math.max(0, Math.min(caret, text.length));
-  const prev = text.lastIndexOf("\n\n", Math.max(0, c - 1));
-  const start = prev === -1 ? 0 : prev + 2;
-  const nextIdx = text.indexOf("\n\n", c);
-  const end = nextIdx === -1 ? text.length : nextIdx;
-  return { start, end, text: text.slice(start, end).trim() };
-}
 
 export function BlogEditor({
   businessId,
@@ -71,7 +56,6 @@ export function BlogEditor({
   const [imageStyle, setImageStyle] = useState<ImageStyleId>("photo");
   // 커버에 원하는 이미지 설명 — 비우면 제목·키워드 기반.
   const [coverInstruction, setCoverInstruction] = useState("");
-  const [tab, setTab] = useState<Tab>("write");
   const [note, setNote] = useState<string | null>(null);
   const [justPublished, setJustPublished] = useState(false);
   // 예약 발행 — scheduled_at(0024). draft + 미래값이면 '예약 대기' 상태.
@@ -85,13 +69,7 @@ export function BlogEditor({
   const [saving, startSave] = useTransition();
   const [publishing, startPublish] = useTransition();
   const [coverPending, startCover] = useTransition();
-  const [mediaBusy, setMediaBusy] = useState(false);
-  // 단락 AI 보강(이어쓰기·이미지) 진행 상태 + 마지막 커서 위치
-  const [aiBusy, setAiBusy] = useState<null | "expand">(null);
-  const caretRef = useRef(0);
-  const ref = useRef<HTMLTextAreaElement>(null);
   const coverFileRef = useRef<HTMLInputElement>(null);
-  const bodyImageRef = useRef<HTMLInputElement>(null);
 
   const generateCover = () =>
     startCover(async () => {
@@ -170,113 +148,6 @@ export function BlogEditor({
         setNote(res.message ?? null);
       }
     });
-
-  const wrap = (before: string, after = "") => {
-    const el = ref.current;
-    if (!el) return;
-    const { selectionStart: s, selectionEnd: e } = el;
-    const sel = content.slice(s, e);
-    const next = content.slice(0, s) + before + sel + after + content.slice(e);
-    setContent(next);
-    requestAnimationFrame(() => {
-      el.focus();
-      el.selectionStart = s + before.length;
-      el.selectionEnd = e + before.length;
-    });
-  };
-
-  /** 본문 커서 위치에 텍스트 블록을 삽입한다 (앞뒤 개행 보장). */
-  const insertBlock = (block: string) => {
-    setTab("write");
-    wrap(`\n${block}\n`);
-  };
-
-  const insertBodyImage = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    void (async () => {
-      setMediaBusy(true);
-      setNote(null);
-      try {
-        const resized = await resizeImage(file, 1600);
-        const fd = new FormData();
-        fd.append("file", resized);
-        const up = await uploadSiteImage(businessId, fd);
-        if (up.error || !up.url)
-          setNote(up.error ?? (ko ? "업로드에 실패했습니다." : "Upload failed."));
-        else insertBlock(`![사진](${up.url})`);
-      } catch {
-        setNote(
-          ko
-            ? "업로드 중 문제가 발생했습니다."
-            : "Something went wrong during upload.",
-        );
-      } finally {
-        setMediaBusy(false);
-      }
-    })();
-  };
-
-  const insertVideo = () => {
-    const url = window.prompt(
-      ko
-        ? "삽입할 영상 링크를 붙여넣으세요 (YouTube 링크는 본문에서 바로 재생됩니다):"
-        : "Paste a video link to insert (YouTube links play inline in the post):",
-    );
-    if (!url?.trim()) return;
-    insertBlock(url.trim());
-  };
-
-  /** 커서가 놓인 단락을 AI가 이어서 더 작성해 같은 단락에 붙인다. */
-  const expandParagraph = () => {
-    if (aiBusy) return;
-    const { end, text: para } = paragraphAt(content, caretRef.current);
-    setTab("write");
-    if (!para) {
-      setNote(
-        ko
-          ? "이어쓸 단락에 커서를 두고 눌러주세요."
-          : "Place the cursor in a paragraph first.",
-      );
-      return;
-    }
-    setAiBusy("expand");
-    setNote(ko ? "이어서 작성하고 있어요..." : "Writing more...");
-    void (async () => {
-      try {
-        const res = await fetch("/api/ai/blog-expand", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            businessId,
-            postId: post.id,
-            paragraph: para,
-          }),
-        });
-        const json = await res.json();
-        if (!res.ok || !json.text) {
-          setNote(
-            json.error ?? (ko ? "이어쓰기에 실패했습니다." : "Failed."),
-          );
-          return;
-        }
-        // 같은 단락 끝에 자연스럽게 이어 붙인다.
-        setContent(
-          content.slice(0, end) + " " + json.text.trim() + content.slice(end),
-        );
-        setNote(ko ? "단락을 이어서 작성했어요." : "Expanded the paragraph.");
-      } catch {
-        setNote(
-          ko
-            ? "이어쓰기에 실패했습니다. 다시 시도해주세요."
-            : "Failed. Please try again.",
-        );
-      } finally {
-        setAiBusy(null);
-      }
-    })();
-  };
 
   const save = () =>
     startSave(async () => {
@@ -593,7 +464,7 @@ export function BlogEditor({
                 },
               ]}
             />
-            <CopyButton text={() => `${title}\n\n${markdownToPlainText(content)}`}>
+            <CopyButton text={() => `${title}\n\n${contentToPlainText(content)}`}>
               {ko ? "네이버 블로그용 본문 복사" : "Copy post for Naver Blog"}
             </CopyButton>
           </div>
@@ -768,115 +639,23 @@ export function BlogEditor({
         />
       </div>
 
-      {/* Content editor */}
-      <div className="rounded-2xl border border-border bg-surface">
-        <div className="flex items-center justify-between border-b border-border px-3 py-2">
-          <input
-            ref={bodyImageRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={insertBodyImage}
-          />
-          <div className="flex gap-1">
-            <ToolbarBtn onClick={() => wrap("## ")}>H</ToolbarBtn>
-            <ToolbarBtn onClick={() => wrap("**", "**")}>B</ToolbarBtn>
-            <ToolbarBtn onClick={() => wrap("- ")}>•</ToolbarBtn>
-            <ToolbarBtn
-              title={ko ? "본문에 사진 넣기" : "Insert photo into body"}
-              disabled={mediaBusy}
-              onClick={() => bodyImageRef.current?.click()}
-            >
-              {mediaBusy ? (
-                <Spinner className="size-4" />
-              ) : (
-                <Icon.image width={16} height={16} />
-              )}
-            </ToolbarBtn>
-            <ToolbarBtn
-              title={ko ? "영상 링크 넣기" : "Insert video link"}
-              onClick={insertVideo}
-            >
-              <Icon.video width={16} height={16} />
-            </ToolbarBtn>
-
-            {/* 단락 AI 보강 — 커서가 놓인 단락을 이어서 더 써준다 */}
-            <span className="mx-1 self-center text-border">|</span>
-            <button
-              type="button"
-              onClick={expandParagraph}
-              disabled={!!aiBusy}
-              title={
-                ko
-                  ? "커서를 둔 단락을 AI가 이어서 더 써줘요"
-                  : "AI writes more for the paragraph at the cursor"
-              }
-              className="flex h-8 items-center gap-1 rounded-md px-2 text-xs font-semibold text-primary hover:bg-primary-soft disabled:opacity-50"
-            >
-              {aiBusy === "expand" ? (
-                <Spinner className="size-3.5" />
-              ) : (
-                <Icon.sparkles width={14} height={14} />
-              )}
-              {ko ? "이어쓰기" : "Expand"}
-            </button>
-          </div>
-          <div className="flex gap-1 rounded-lg bg-surface-muted p-1">
-            {(["write", "preview"] as Tab[]).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={cn(
-                  "rounded-md px-3 py-1 text-xs font-medium",
-                  tab === t
-                    ? "bg-surface text-foreground shadow-sm"
-                    : "text-muted",
-                )}
-              >
-                {t === "write"
-                  ? ko
-                    ? "작성"
-                    : "Write"
-                  : ko
-                    ? "미리보기"
-                    : "Preview"}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {tab === "write" ? (
-          <textarea
-            ref={ref}
-            value={content}
-            onChange={(e) => {
-              setContent(e.target.value);
-              caretRef.current = e.target.selectionStart;
-            }}
-            onSelect={(e) => (caretRef.current = e.currentTarget.selectionStart)}
-            onClick={(e) => (caretRef.current = e.currentTarget.selectionStart)}
-            className="min-h-[420px] w-full resize-y rounded-b-2xl bg-surface p-4 font-mono text-sm leading-relaxed focus:outline-none"
-            placeholder={
-              ko ? "마크다운으로 작성하세요..." : "Write in Markdown..."
-            }
-          />
-        ) : (
-          <SectionImagePreview
-            content={content}
-            onChange={setContent}
-            businessId={businessId}
-            postId={post.id}
-            ko={ko}
-            style={imageStyle}
-            onStyleChange={setImageStyle}
-          />
-        )}
+      {/* Content editor — 위지윅(WYSIWYG) */}
+      <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+        <RichEditor
+          content={content}
+          onChange={setContent}
+          businessId={businessId}
+          postId={post.id}
+          imageStyle={imageStyle}
+          onImageStyleChange={setImageStyle}
+          ko={ko}
+        />
       </div>
 
       <p className="-mt-2 text-xs text-muted">
         {ko
-          ? "💡 ‘이어쓰기’는 커서를 둔 단락을 AI가 이어서 더 써줘요. 이미지는 ‘미리보기’ 탭에서 소제목마다 생성할 수 있어요(생성 안 하면 이미지 없이 발행돼요)."
-          : "💡 ‘Expand’ writes more for the paragraph at your cursor. Add images per subheading in the ‘Preview’ tab (skip to publish without one)."}
+          ? "💡 작성 화면이 곧 결과 화면이에요. 사진은 올리면 바로 보이고, 글자 크기·정렬·제목을 바꿀 수 있어요. 유튜브·음악은 링크를 넣으면 본문에서 바로 재생돼요. ‘AI 이미지’·‘이어쓰기’는 커서를 둔 자리에 적용돼요."
+          : "💡 What you see is what you get. Images show instantly, and you can change font size, alignment, and headings. Paste a YouTube/music link to embed it. ‘AI image’ and ‘Expand’ apply at your cursor."}
       </p>
 
       {/* 실시간 SEO 자가진단 */}
@@ -893,26 +672,3 @@ export function BlogEditor({
   );
 }
 
-function ToolbarBtn({
-  children,
-  onClick,
-  title,
-  disabled,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  title?: string;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={title}
-      disabled={disabled}
-      className="grid h-8 w-8 place-items-center rounded-md text-sm font-semibold text-muted hover:bg-surface-muted hover:text-foreground disabled:opacity-50"
-    >
-      {children}
-    </button>
-  );
-}

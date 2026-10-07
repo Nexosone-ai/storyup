@@ -350,3 +350,34 @@
   font-style: normal;
 }
 .prose hr { border: 0; border-top: 1px solid var(--border); margin: 2em 0; }
+
+/* 위지윅(WYSIWYG) 본문 — 유튜브/음악 임베드, 정렬, 에디터 공용 */
+.prose [data-youtube-video] {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin: 1.4em 0;
+}
+.prose [data-youtube-video] iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 12px;
+}
+.prose iframe { max-width: 100%; }
+.prose audio { display: block; width: 100%; margin: 1.1em 0; }
+.prose [style*="text-align: right"] { text-align: right; }
+.prose [style*="text-align: center"] { text-align: center; }
+.prose [style*="text-align: justify"] { text-align: justify; }
+/* TipTap 에디터 영역 */
+.ProseMirror { outline: none; }
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+.ProseMirror img.ProseMirror-selectednode { outline: 2px solid var(--primary); }

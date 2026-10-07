@@ -1,4 +1,4 @@
-import { markdownToPlainText } from "@/utils/markdown";
+import { contentToPlainText, looksLikeHtml } from "@/utils/markdown";
 
 /**
  * 블로그 글 SEO 자가진단 — 에디터에서 실시간으로 계산한다 (클라이언트 안전).
@@ -46,7 +46,9 @@ function check(
 export function computeSeoReport(input: SeoInput): SeoReport {
   const title = (input.seoTitle || input.title || "").trim();
   const desc = (input.seoDescription || input.summary || "").trim();
-  const plain = markdownToPlainText(input.content ?? "");
+  const raw = input.content ?? "";
+  const isHtml = looksLikeHtml(raw);
+  const plain = contentToPlainText(raw);
   const focus = input.keywords[0]?.trim() ?? "";
 
   const checks: SeoCheck[] = [];
@@ -115,8 +117,10 @@ export function computeSeoReport(input: SeoInput): SeoReport {
     ),
   );
 
-  // 4. 소제목 구조 (H2)
-  const h2Count = (input.content.match(/^##\s/gm) ?? []).length;
+  // 4. 소제목 구조 (H2) — 마크다운(## )·HTML(<h2>) 모두 인식
+  const h2Count = isHtml
+    ? (raw.match(/<h2[\s>]/gi) ?? []).length
+    : (raw.match(/^##\s/gm) ?? []).length;
   checks.push(
     check(
       "headings",
@@ -196,15 +200,20 @@ export function computeSeoReport(input: SeoInput): SeoReport {
     ),
   );
 
-  // 9. 본문 이미지 ALT — 이미지가 없으면 통과(해당 없음)
-  const images = [...input.content.matchAll(/!\[([^\]]*)\]\(/g)];
-  const missingAlt = images.filter(
-    (m) => !m[1].trim() || m[1].trim() === "사진",
+  // 9. 본문 이미지 ALT — 이미지가 없으면 통과(해당 없음). 마크다운·HTML 모두.
+  const altList = isHtml
+    ? [...raw.matchAll(/<img\b[^>]*>/gi)].map(
+        (m) => /alt\s*=\s*"([^"]*)"/i.exec(m[0])?.[1] ?? "",
+      )
+    : [...raw.matchAll(/!\[([^\]]*)\]\(/g)].map((m) => m[1]);
+  const imageCount = altList.length;
+  const missingAlt = altList.filter(
+    (a) => !a.trim() || a.trim() === "사진",
   ).length;
   checks.push(
     check(
       "image-alt",
-      images.length === 0 || missingAlt === 0 ? "pass" : "warn",
+      imageCount === 0 || missingAlt === 0 ? "pass" : "warn",
       5,
       { ko: "이미지 대체 텍스트(ALT)", en: "Image alt text" },
       {
@@ -214,10 +223,12 @@ export function computeSeoReport(input: SeoInput): SeoReport {
     ),
   );
 
-  // 10. 링크 — 본문에 참고 링크(내부/외부)가 하나라도 있는지
-  const hasLink = /\[[^\]]+\]\((https?:\/\/|\/)[^)]+\)/.test(
-    input.content.replace(/!\[[^\]]*\]\([^)]*\)/g, ""),
-  );
+  // 10. 링크 — 본문에 참고 링크(내부/외부)가 하나라도 있는지. 마크다운·HTML 모두.
+  const hasLink = isHtml
+    ? /<a\s[^>]*href\s*=\s*["'](https?:\/\/|\/)/i.test(raw)
+    : /\[[^\]]+\]\((https?:\/\/|\/)[^)]+\)/.test(
+        raw.replace(/!\[[^\]]*\]\([^)]*\)/g, ""),
+      );
   checks.push(
     check(
       "links",

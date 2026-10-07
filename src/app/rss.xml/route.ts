@@ -1,5 +1,5 @@
 import { getShowcasePosts } from "@/lib/queries";
-import { renderMarkdown } from "@/utils/markdown";
+import { renderBlogContent } from "@/lib/blog/renderContent";
 import { siteUrl } from "@/utils/seo";
 
 /**
@@ -43,7 +43,7 @@ export async function GET(): Promise<Response> {
         post.published_at ?? post.created_at,
       ).toUTCString(); // RFC 822/1123
       const description = post.seo_description || post.summary || post.title;
-      const contentHtml = await renderMarkdown(post.content ?? "");
+      const contentHtml = await renderBlogContent(post.content ?? "");
       return [
         "    <item>",
         `      <title>${escapeXml(post.title)}</title>`,

@@ -15,7 +15,7 @@ import {
   SiteLogo,
   PoweredByStoryup,
 } from "@/components/website/templates/shared";
-import { renderMarkdown } from "@/utils/markdown";
+import { renderBlogContent } from "@/lib/blog/renderContent";
 import { BlogCover } from "@/components/blog/BlogCover";
 import { RelativeTime } from "@/components/ui/RelativeTime";
 import { ShareBar } from "@/components/site/ShareBar";
@@ -71,7 +71,7 @@ export default async function PublicArticlePage({
   const post = await getPublishedPost(site.business.id, postSlug);
   if (!post) notFound();
 
-  const html = await renderMarkdown(post.content ?? "");
+  const html = await renderBlogContent(post.content ?? "");
   const name = site.website.content.hero?.businessName ?? site.business.name;
   const path = `/site/${slug}/blog/${postSlug}`;
   // 사이트 콘텐츠 언어에 맞춰 크롬 문구를 고른다

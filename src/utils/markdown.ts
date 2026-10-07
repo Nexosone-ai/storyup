@@ -86,3 +86,57 @@ export async function renderMarkdown(md: string): Promise<string> {
   // 본문 이미지는 접힌 화면 밖이므로 lazy load — LCP(커버 이미지)에 영향 없음.
   return html.replace(/<img /g, '<img loading="lazy" decoding="async" ');
 }
+
+/**
+ * 본문이 위지윅(TipTap) HTML인지 레거시 마크다운인지 판별한다.
+ * TipTap의 getHTML()은 항상 블록 태그(<p>, <h2> 등)로 시작하고,
+ * 마크다운은 #, 글자, -, ! 등으로 시작하므로 선행 태그로 구분한다.
+ * (클라이언트·서버 공용, 의존성 없음.)
+ */
+export function looksLikeHtml(content: string): boolean {
+  return /^<(p|h[1-6]|ul|ol|blockquote|figure|div|img|iframe|pre|table|audio|hr|span)[\s/>]/i.test(
+    (content ?? "").trimStart(),
+  );
+}
+
+/**
+ * 레거시 마크다운 글을 위지윅 에디터 초기값(HTML)으로 변환한다.
+ * 단독 줄 유튜브 링크는 TipTap youtube 노드가 인식하는 마크업으로,
+ * 이미지는 <img>로 변환해 에디터에서 바로 보이게 한다. (클라이언트 사용)
+ */
+export function markdownToEditorHtml(md: string): string {
+  const withYt = (md ?? "")
+    .split("\n")
+    .map((line) => {
+      const id = youtubeId(line.trim());
+      return id
+        ? `<div data-youtube-video><iframe src="https://www.youtube.com/embed/${id}" frameborder="0" allowfullscreen></iframe></div>`
+        : line;
+    })
+    .join("\n");
+  return marked.parse(fixCjkBold(withYt)) as string;
+}
+
+/** HTML 본문을 순수 텍스트로 (네이버 복사·SEO 글자수 등). 클라이언트 안전. */
+export function htmlToPlainText(html: string): string {
+  return (html ?? "")
+    .replace(/<\s*(script|style)[^>]*>[\s\S]*?<\/\s*\1\s*>/gi, "")
+    .replace(/<\/(p|div|h[1-6]|li|blockquote|tr)>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/** 본문(마크다운 또는 HTML)을 순수 텍스트로. */
+export function contentToPlainText(content: string): string {
+  return looksLikeHtml(content)
+    ? htmlToPlainText(content)
+    : markdownToPlainText(content);
+}
