@@ -27,13 +27,18 @@ export async function generateAndStoreBlogCover(opts: {
     const instruction = opts.instruction?.trim();
     const scene = instruction
       ? await getAIProvider()
-          .generateImageSubject({ category: opts.category, text: instruction })
+          .generateImageSubject({
+            category: opts.category,
+            text: instruction,
+            kind: "scene",
+          })
           .catch(() => instruction)
       : opts.imageSubject?.trim() ||
         (await getAIProvider()
           .generateImageSubject({
             category: opts.category,
             text: [opts.title, ...opts.keywords].join(", "),
+            kind: "scene",
           })
           .catch(() => opts.keywords.join(", ") || opts.title));
     const prompt = buildBlogImagePrompt(opts.category, scene, opts.style);

@@ -18,6 +18,13 @@ const STILL_LIFE_FRAMING =
   "bright soft morning window light, warm inviting earthy tones, " +
   "minimalist premium composition, high-end magazine quality.";
 
+// 블로그 커버/본문 사진 — 정물 강제 대신 글 주제를 담은 장면을 자연스럽게 담는다.
+// (주제가 추상적일 때 '책상 위 문구류' 같은 상투적 정물로 수렴하는 문제 방지.)
+const BLOG_SCENE_FRAMING =
+  "Captured as a natural editorial scene that conveys the topic, the relevant setting and objects arranged in context, " +
+  "no people present, bright soft natural light, warm inviting tones, " +
+  "clean premium composition, high-end magazine quality.";
+
 /**
  * 스타일별 "표현 매체" 지시문. 피사체(scene)는 공통, 아래 문구만 바꿔 같은 소재를
  * 사진/일러스트/회화 등으로 렌더한다. 모든 스타일에서 NO_TEXT는 유지한다
@@ -25,7 +32,7 @@ const STILL_LIFE_FRAMING =
  */
 const STYLE_FRAMING: Record<ImageStyleId, (category: string) => string> = {
   photo: (category) =>
-    `Overhead close-up still-life photography for a ${category} business:`,
+    `Editorial photograph that visually conveys the topic for a ${category} business:`,
   illustration: (category) =>
     `Modern flat vector illustration for a ${category} business, clean bold shapes, harmonious palette, subtle gradients, editorial illustration style:`,
   painting: (category) =>
@@ -38,9 +45,9 @@ const STYLE_FRAMING: Record<ImageStyleId, (category: string) => string> = {
     `Polished 3D render for a ${category} business, soft studio lighting, smooth rounded shapes, matte clay material, shallow depth of field:`,
 };
 
-/** 사진 스타일에만 붙는 정물 구도 지시 — 다른 매체는 구도를 과하게 고정하지 않는다. */
+/** 사진 스타일에만 붙는 구도 지시 — 다른 매체는 구도를 과하게 고정하지 않는다. */
 const STYLE_EXTRA: Partial<Record<ImageStyleId, string>> = {
-  photo: STILL_LIFE_FRAMING,
+  photo: BLOG_SCENE_FRAMING,
 };
 
 /**

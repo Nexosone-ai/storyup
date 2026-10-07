@@ -72,7 +72,7 @@ ${input.transcript.slice(0, 8000)}
   "seo_title": "60자 이내 SEO 제목",
   "seo_description": "150자 이내 메타 설명",
   "social_caption": "SNS 공유용 짧은 캡션",
-  "image_subject": "커버 사진 피사체 묘사 (영어 한 문장, 사람·손·글자 없이 구체적인 사물·음식·공간만. 예: freshly baked sourdough bread loaves and wheat stalks on a rustic wooden table)"
+  "image_subject": "커버 이미지 장면 묘사 (영어 한 문장). 이 글의 핵심 메시지·주제를 시각적으로 전달하는 구체적인 장면이나 상징적인 사물을 업종 맥락에 맞게 묘사하세요. 제목만 보고 뻔한 소품을 나열하지 말고 글이 말하려는 바를 담을 것. 사람·손·글자·숫자는 넣지 말고, 일반적인 사무실·빈 책상·흩어진 문구류 같은 상투적 구도는 피하세요. 예: a quiet tutoring study corner where a small plant grows beside neatly stacked books in warm sunlight, conveying steady academic growth"
 }`;
 
   return { system, user };
@@ -147,7 +147,7 @@ content 는 Markdown 형식(##, **, - 목록 사용)으로 작성합니다.
   "seo_title": "60자 이내 SEO 제목",
   "seo_description": "150자 이내 메타 설명",
   "social_caption": "SNS 공유용 짧은 캡션",
-  "image_subject": "커버 사진 피사체 묘사 (영어 한 문장, 사람·손·글자 없이 구체적인 사물·음식·공간만. 예: freshly baked sourdough bread loaves and wheat stalks on a rustic wooden table)"
+  "image_subject": "커버 이미지 장면 묘사 (영어 한 문장). 이 글의 핵심 메시지·주제를 시각적으로 전달하는 구체적인 장면이나 상징적인 사물을 업종 맥락에 맞게 묘사하세요. 제목만 보고 뻔한 소품을 나열하지 말고 글이 말하려는 바를 담을 것. 사람·손·글자·숫자는 넣지 말고, 일반적인 사무실·빈 책상·흩어진 문구류 같은 상투적 구도는 피하세요. 예: a quiet tutoring study corner where a small plant grows beside neatly stacked books in warm sunlight, conveying steady academic growth"
 }`;
 
   return { system, user };

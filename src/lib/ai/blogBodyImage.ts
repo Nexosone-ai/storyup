@@ -24,7 +24,7 @@ export async function generateAndStoreBlogBodyImage(opts: {
       .generateImageSubject({
         category: opts.category,
         text: basis,
-        kind: "still-life",
+        kind: "scene",
       })
       .catch(() => basis.replace(/\s+/g, " ").trim().slice(0, 120));
     const prompt = buildBlogImagePrompt(opts.category, scene, opts.style);
