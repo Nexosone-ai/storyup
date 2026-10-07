@@ -40,6 +40,8 @@ export interface Plan {
   seoTools?: boolean;
   /** 콘텐츠 예약 발행 (Pro 이상) */
   scheduledPublish?: boolean;
+  /** 블로그 하단 예약(식당·매장) 모듈 (Pro 이상) */
+  reservation?: boolean;
   /** 성과 리포트 제공 주기. 미지정 = 미제공, "monthly" = 월간, "weekly" = 주간+월간 */
   report?: "monthly" | "weekly";
   /** 방문자 분석 수준. "basic" = 핵심 지표, "detailed" = +유입·쿠폰·고객, "advanced" = +SEO 진단 */
@@ -92,6 +94,7 @@ export const PLANS: Plan[] = [
     aiStrategy: true,
     seoTools: true,
     scheduledPublish: true,
+    reservation: true,
     report: "weekly",
     analyticsTier: "advanced",
     aeo: true,
@@ -109,6 +112,7 @@ export const PLANS: Plan[] = [
     aiStrategy: true,
     seoTools: true,
     scheduledPublish: true,
+    reservation: true,
     report: "weekly",
     analyticsTier: "advanced",
     aeo: true,
@@ -214,6 +218,8 @@ export function planFeatureList(plan: Plan, ko: boolean): string[] {
     out.push(ko ? "AEO/GEO 답변엔진 최적화(FAQ)" : "AEO/GEO (FAQ schema)");
   if (plan.scheduledPublish)
     out.push(ko ? "콘텐츠 예약 발행" : "Scheduled publishing");
+  if (plan.reservation)
+    out.push(ko ? "블로그 하단 예약(식당·매장) 기능" : "Reservations under blog posts");
   if (plan.report)
     out.push(
       plan.report === "weekly"

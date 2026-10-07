@@ -47,6 +47,7 @@ export default async function BlogEditorPage({
   const user = await getUser();
   const plan = user ? getPlanById(await getPlanId(user.id)) : null;
   const couponAllowed = plan?.couponBlock === true;
+  const reservationAllowed = plan?.reservation === true;
   const schedulingAllowed = plan?.scheduledPublish === true;
   const aeoAllowed = plan?.aeo === true;
 
@@ -68,6 +69,7 @@ export default async function BlogEditorPage({
         reservationCount={reservationCount}
         published={post.status === "published"}
         couponAllowed={couponAllowed}
+        reservationAllowed={reservationAllowed}
       />
       <BlogFaqEditor
         businessId={id}

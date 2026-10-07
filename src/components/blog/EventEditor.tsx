@@ -25,6 +25,7 @@ export function EventEditor({
   reservationCount = 0,
   published,
   couponAllowed = true,
+  reservationAllowed = true,
 }: {
   businessId: string;
   postId: string;
@@ -34,6 +35,8 @@ export function EventEditor({
   published: boolean;
   /** 쿠폰 발행 가능 플랜(Basic+)인지. false면 쿠폰 섹션이 잠김. */
   couponAllowed?: boolean;
+  /** 예약 가능 플랜(Pro+)인지. false면 예약 섹션이 잠김. */
+  reservationAllowed?: boolean;
 }) {
   const ko = useLocale() === "ko";
   const [couponEnabled, setCouponEnabled] = useState(
@@ -92,7 +95,7 @@ export function EventEditor({
         contactEnabled,
         contactTitle,
         contactDesc,
-        reservationEnabled,
+        reservationEnabled: reservationAllowed && reservationEnabled,
         reservationTitle,
         reservationDesc,
       });
@@ -116,7 +119,7 @@ export function EventEditor({
         commentEnabled,
         addressEnabled,
         mapEnabled,
-        reservationEnabled,
+        reservationEnabled: reservationAllowed && reservationEnabled,
         reservationTitle,
         reservationDesc,
       });
@@ -333,8 +336,32 @@ export function EventEditor({
           )}
         </div>
 
-        {/* ---------- 예약 (식당·매장 예약 요청) ---------- */}
+        {/* ---------- 예약 (식당·매장 예약 요청, Pro+ 전용) ---------- */}
         <div className="mt-4 rounded-xl border border-border bg-white p-4">
+          {!reservationAllowed ? (
+            <div className="flex items-start gap-3">
+              <span aria-hidden className="mt-0.5 text-base">
+                🔒
+              </span>
+              <span>
+                <span className="block text-sm font-semibold">
+                  {ko ? "예약 받기" : "Reservations"}
+                </span>
+                <span className="mt-0.5 block text-xs text-muted">
+                  {ko
+                    ? "예약(식당·매장) 기능은 Pro 이상 플랜에서 사용할 수 있어요. (문의·댓글·주소·지도 모듈은 무료로 계속 사용 가능)"
+                    : "Reservations are available on Pro and higher. (Contact, comments, address, and map modules stay free.)"}
+                </span>
+                <a
+                  href="/dashboard/plans"
+                  className="mt-1 inline-block text-xs font-semibold text-primary underline"
+                >
+                  {ko ? "플랜 업그레이드 →" : "Upgrade plan →"}
+                </a>
+              </span>
+            </div>
+          ) : (
+            <>
           <label className="flex cursor-pointer items-start gap-3">
             <input
               type="checkbox"
@@ -404,6 +431,8 @@ export function EventEditor({
                 </span>
               </div>
             </div>
+          )}
+            </>
           )}
         </div>
 

@@ -84,14 +84,21 @@ export async function saveBlogEventAction(
   if (!post)
     return { error: ko ? "글을 찾을 수 없습니다." : "Post not found." };
 
-  // 쿠폰 발행은 Basic 이상(plan.couponBlock) 전용 — 클라이언트 우회 방지(서버 강제).
-  const canCoupon =
-    getPlanById(await getPlanId(user.id)).couponBlock === true;
+  // 플랜 게이팅 — 쿠폰(Basic+)·예약(Pro+). 클라이언트 우회 방지(서버 강제).
+  const plan = getPlanById(await getPlanId(user.id));
+  const canCoupon = plan.couponBlock === true;
   if (config.couponEnabled && !canCoupon)
     return {
       error: ko
         ? "쿠폰 발행은 Basic 이상 플랜에서 가능합니다. 쿠폰을 끄고 저장하거나 플랜을 업그레이드해주세요."
         : "Coupons require the Basic plan or higher. Turn coupons off to save, or upgrade your plan.",
+    };
+  const canReservation = plan.reservation === true;
+  if (config.reservationEnabled && !canReservation)
+    return {
+      error: ko
+        ? "예약 기능은 Pro 이상 플랜에서 가능합니다. 예약을 끄고 저장하거나 플랜을 업그레이드해주세요."
+        : "Reservations require the Pro plan or higher. Turn reservations off to save, or upgrade your plan.",
     };
 
   const benefit = config.couponBenefit.trim();
@@ -176,6 +183,10 @@ export async function applyBlogModulesToAllAction(
   const desc = config.contactDesc.trim() || null;
   const resTitle = config.reservationTitle.trim() || null;
   const resDesc = config.reservationDesc.trim() || null;
+  // 예약은 Pro+ 전용 — 플랜이 안 되면 일괄 적용에서도 켜지지 않게 서버에서 강제.
+  const canReservation =
+    getPlanById(await getPlanId(user.id)).reservation === true;
+  const resEnabled = config.reservationEnabled && canReservation;
   const rows = posts.map((p) => ({
     post_id: p.id,
     business_id: businessId,
@@ -185,7 +196,7 @@ export async function applyBlogModulesToAllAction(
     contact_enabled: config.contactEnabled,
     contact_title: title,
     contact_desc: desc,
-    reservation_enabled: config.reservationEnabled,
+    reservation_enabled: resEnabled,
     reservation_title: resTitle,
     reservation_desc: resDesc,
   }));
