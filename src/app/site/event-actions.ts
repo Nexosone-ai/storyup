@@ -3,6 +3,8 @@
 import { randomInt } from "crypto";
 import { createAdminClient } from "@/lib/supabase/server";
 import { notifyBlogEngagement } from "@/lib/notifications";
+import { getPlanId } from "@/lib/subscription";
+import { getPlanById } from "@/lib/plans";
 
 /**
  * 공개 블로그 글의 "이벤트" 모듈 액션 (쿠폰 수령 · 연락문의).
@@ -276,6 +278,23 @@ export async function createReservationAction(
     .eq("post_id", postId)
     .maybeSingle();
   if (!event || !event.reservation_enabled)
+    return {
+      error: ko
+        ? "예약을 받고 있지 않아요."
+        : "Reservations are not open.",
+    };
+
+  // 예약(Pro+) 다운그레이드 즉시 반영 — 소유자 플랜이 더 이상 예약을 허용하지
+  // 않으면 접수를 막는다(공개 폼은 숨겨지지만, 캐시된 페이지에서의 제출도 차단).
+  const { data: biz } = await admin
+    .from("businesses")
+    .select("user_id")
+    .eq("id", event.business_id)
+    .maybeSingle();
+  const canReservation = biz
+    ? getPlanById(await getPlanId(biz.user_id)).reservation === true
+    : false;
+  if (!canReservation)
     return {
       error: ko
         ? "예약을 받고 있지 않아요."

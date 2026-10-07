@@ -1,4 +1,6 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { getPlanId } from "@/lib/subscription";
+import { getPlanById } from "@/lib/plans";
 import type { BlogEventRow } from "@/types/database";
 
 /**
@@ -70,6 +72,21 @@ export async function getPublicBlogEvent(
       ? Math.max(0, event.coupon_limit - couponClaimed)
       : null;
 
+  // 예약(Pro+) 다운그레이드 즉시 반영 — 소유자 플랜이 더 이상 예약을 허용하지
+  // 않으면(해지·만료·갱신 실패 → free 취급) 공개 페이지에서 예약 폼을 숨긴다.
+  let reservationEnabled = event.reservation_enabled ?? false;
+  if (reservationEnabled) {
+    const { data: biz } = await admin
+      .from("businesses")
+      .select("user_id")
+      .eq("id", event.business_id)
+      .maybeSingle();
+    const allowed = biz
+      ? getPlanById(await getPlanId(biz.user_id)).reservation === true
+      : false;
+    if (!allowed) reservationEnabled = false;
+  }
+
   return {
     couponEnabled: event.coupon_enabled,
     couponBenefit: event.coupon_benefit,
@@ -87,7 +104,8 @@ export async function getPublicBlogEvent(
     addressEnabled: event.address_enabled ?? false,
     mapEnabled: event.map_enabled ?? false,
     // 0050 이전 DB에서는 컬럼이 없어 undefined — 예약은 기본 숨김.
-    reservationEnabled: event.reservation_enabled ?? false,
+    // reservationEnabled 는 위에서 소유자 플랜(Pro+)까지 반영해 계산한다.
+    reservationEnabled,
     reservationTitle: event.reservation_title ?? null,
     reservationDesc: event.reservation_desc ?? null,
   };
