@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/queries";
+import { isCurrentUserAdmin } from "@/lib/points";
 import {
   getSupporterDirectory,
   getMySupporterProfile,
@@ -14,12 +15,14 @@ export default async function SupportersPage() {
   const user = await getUser();
   if (!user) redirect("/login");
 
-  const [directory, myProfile, businesses, projects] = await Promise.all([
-    getSupporterDirectory(),
-    getMySupporterProfile(user.id),
-    getBusinessOptions(user.id),
-    getMyProjects(user.id),
-  ]);
+  const [directory, myProfile, businesses, projects, isAdmin] =
+    await Promise.all([
+      getSupporterDirectory(),
+      getMySupporterProfile(user.id),
+      getBusinessOptions(user.id),
+      getMyProjects(user.id),
+      isCurrentUserAdmin(),
+    ]);
 
   return (
     <SupportersView
@@ -27,6 +30,7 @@ export default async function SupportersPage() {
       myProfile={myProfile}
       businesses={businesses}
       projects={projects}
+      isAdmin={isAdmin}
     />
   );
 }

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n";
+import { isCurrentUserAdmin } from "@/lib/points";
 import { SUPPORTER_ROLES, type SupporterRole } from "@/types/domain";
 
 export interface SupporterState {
@@ -30,6 +31,13 @@ export async function saveSupporterProfile(fields: {
   basePriceKrw?: number | null;
 }): Promise<SupporterState> {
   const ko = (await getLocale()) === "ko";
+  // 큐레이션 — 서포터 등록/수정은 관리자만. (클라이언트 우회 방지, 서버 강제)
+  if (!(await isCurrentUserAdmin()))
+    return {
+      error: ko
+        ? "서포터 등록은 관리자만 가능합니다."
+        : "Only admins can register supporters.",
+    };
   if (!(SUPPORTER_ROLES as readonly string[]).includes(fields.role))
     return { error: ko ? "역할을 선택해주세요." : "Please select a role." };
   if (!fields.displayName.trim())

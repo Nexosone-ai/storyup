@@ -50,11 +50,14 @@ export function SupportersView({
   myProfile,
   businesses,
   projects,
+  isAdmin = false,
 }: {
   directory: SupporterCard[];
   myProfile: MySupporter | null;
   businesses: { id: string; name: string }[];
   projects: ProjectRow[];
+  /** 서포터 등록(내 프로필) 탭은 관리자에게만 노출(큐레이션). */
+  isAdmin?: boolean;
 }) {
   const ko = useLocale() === "ko";
   const [tab, setTab] = useState<Tab>("browse");
@@ -71,7 +74,13 @@ export function SupportersView({
         {(
           [
             ["browse", ko ? "둘러보기" : "Browse"],
-            ["profile", ko ? "내 프로필" : "My profile"],
+            // 서포터 등록(내 프로필)은 관리자 전용 — 큐레이션 디렉터리.
+            ...(isAdmin
+              ? ([["profile", ko ? "내 프로필" : "My profile"]] as [
+                  Tab,
+                  string,
+                ][])
+              : []),
             [
               "projects",
               `${ko ? "내 프로젝트" : "My projects"}${projects.length ? ` (${projects.length})` : ""}`,
@@ -96,7 +105,7 @@ export function SupportersView({
       {tab === "browse" && (
         <Directory directory={directory} businesses={businesses} />
       )}
-      {tab === "profile" && <ProfileForm profile={myProfile} />}
+      {tab === "profile" && isAdmin && <ProfileForm profile={myProfile} />}
       {tab === "projects" && <Projects projects={projects} />}
     </div>
   );

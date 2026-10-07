@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 
 export interface SupporterCard {
   id: string;
@@ -31,11 +31,22 @@ export interface ProjectRow {
 
 export async function getSupporterDirectory(): Promise<SupporterCard[]> {
   const supabase = await createClient();
+  // 큐레이션: 자가등록을 막고 관리자가 등록한 서포터만 노출한다.
+  // (관리자 판별은 profiles.is_admin — RLS 영향 없이 서비스롤로 조회.)
+  const admin = createAdminClient();
+  const { data: admins } = await admin
+    .from("profiles")
+    .select("user_id")
+    .eq("is_admin", true);
+  const adminIds = (admins ?? []).map((a) => a.user_id);
+  if (adminIds.length === 0) return [];
+
   const { data } = await supabase
     .from("supporter_profiles")
     .select(
       "id,user_id,role,display_name,bio,skills,portfolio_url,contact,base_price_krw",
     )
+    .in("user_id", adminIds)
     // 월정액 대행(agent)을 먼저 노출하고, 그 안에서 최신순.
     .order("base_price_krw", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false })
