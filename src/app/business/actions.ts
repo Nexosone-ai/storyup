@@ -7,6 +7,7 @@ import { getLocale } from "@/lib/i18n";
 import { slugify, randomSuffix } from "@/utils/slug";
 import { getPlanId } from "@/lib/subscription";
 import { getPlanById } from "@/lib/plans";
+import { applyEventDefaultsToNewPost } from "@/lib/events";
 import { BUSINESS_CATEGORIES, INDUSTRY_IDS } from "@/types/domain";
 import type { WebsiteContent, IndustryId } from "@/types/domain";
 
@@ -183,6 +184,9 @@ export async function createBlankBlogAction(
     .single();
   if (error || !data)
     return { error: ko ? "글 생성에 실패했습니다." : "Failed to create." };
+
+  // 사업체 이벤트 기본값(댓글·주소·지도·연락문의·예약)을 새 글에도 상속 (쿠폰 제외).
+  await applyEventDefaultsToNewPost(supabase, businessId, data.id);
 
   revalidatePath(`/business/${businessId}/blog`);
   return { postId: data.id };

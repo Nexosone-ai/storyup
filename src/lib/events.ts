@@ -1,7 +1,8 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getPlanId } from "@/lib/subscription";
 import { getPlanById } from "@/lib/plans";
-import type { BlogEventRow } from "@/types/database";
+import type { BlogEventRow, Database } from "@/types/database";
 
 /**
  * 블로그 이벤트(쿠폰발행 + 연락문의) 서버 조회 헬퍼.
@@ -277,4 +278,58 @@ export async function getReservationCount(eventId: string): Promise<number> {
     .select("id", { count: "exact", head: true })
     .eq("event_id", eventId);
   return count ?? 0;
+}
+
+/**
+ * 새 글에 사업체의 "이벤트 기본값"을 적용한다.
+ * 사장님이 '모든 글에 동일 적용'으로 맞춰둔 하단 모듈(댓글·주소·지도·연락문의·예약)을
+ * 새로 만든 글도 그대로 물려받게 한다. 쿠폰은 글마다 혜택·수량이 달라 제외한다.
+ * 기준은 이 사업체에서 가장 최근 수정된 blog_events 행. 없거나 모두 기본값이면 생략한다
+ * (blog_events 행이 없는 글 = 댓글 on·나머지 off 와 동일하게 동작하므로).
+ * 실패해도 글 생성 흐름을 막지 않는다.
+ */
+export async function applyEventDefaultsToNewPost(
+  supabase: SupabaseClient<Database>,
+  businessId: string,
+  postId: string,
+): Promise<void> {
+  try {
+    const { data: tmpl } = await supabase
+      .from("blog_events")
+      .select(
+        "comment_enabled, address_enabled, map_enabled, contact_enabled, contact_title, contact_desc, reservation_enabled, reservation_title, reservation_desc",
+      )
+      .eq("business_id", businessId)
+      .neq("post_id", postId)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!tmpl) return;
+
+    // 모두 기본값(댓글 on·나머지 off)이면 행을 만들지 않는다(미설정과 동일 동작).
+    const meaningful =
+      tmpl.comment_enabled === false ||
+      !!tmpl.address_enabled ||
+      !!tmpl.map_enabled ||
+      !!tmpl.contact_enabled ||
+      !!tmpl.reservation_enabled;
+    if (!meaningful) return;
+
+    await supabase.from("blog_events").insert({
+      post_id: postId,
+      business_id: businessId,
+      comment_enabled: tmpl.comment_enabled ?? true,
+      address_enabled: tmpl.address_enabled ?? false,
+      map_enabled: tmpl.map_enabled ?? false,
+      contact_enabled: tmpl.contact_enabled ?? false,
+      contact_title: tmpl.contact_title,
+      contact_desc: tmpl.contact_desc,
+      reservation_enabled: tmpl.reservation_enabled ?? false,
+      reservation_title: tmpl.reservation_title,
+      reservation_desc: tmpl.reservation_desc,
+      // 쿠폰은 글마다 달라 상속하지 않는다(coupon_* 기본값 유지).
+    });
+  } catch {
+    // 이벤트 기본값 적용 실패는 글 생성 자체를 막지 않는다.
+  }
 }

@@ -4,6 +4,7 @@ import type { BlogArticleResult } from "@/types/domain";
 import { slugWithFallback, randomSuffix } from "@/utils/slug";
 import { trackGrowthActivity } from "@/lib/gamification/engine";
 import { generateAndStoreBlogCover } from "@/lib/ai/blogCover";
+import { applyEventDefaultsToNewPost } from "@/lib/events";
 
 /**
  * AI가 생성한 글을 blog_posts draft로 저장하는 공통 시퀀스.
@@ -49,6 +50,9 @@ export async function createBlogDraft(args: {
 
   // 성장 보상 — 실패해도 생성 흐름을 막지 않는다 (멱등키: 글 ID)
   await trackGrowthActivity(userId, "blog_created", inserted.id);
+
+  // 사업체 이벤트 기본값(댓글·주소·지도·연락문의·예약)을 새 글에도 상속 (쿠폰 제외).
+  await applyEventDefaultsToNewPost(supabase, businessId, inserted.id);
 
   // 커버 이미지는 실패하거나 늦어도 글 생성을 막지 않는다 (플레이스홀더로 대체).
   const cover = await generateAndStoreBlogCover({
