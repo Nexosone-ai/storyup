@@ -1,10 +1,8 @@
-import { createAdminClient } from "@/lib/supabase/server";
 import { getAIProvider } from "@/lib/ai";
 import { generateImageResilient } from "@/lib/ai/image";
 import { buildBlogImagePrompt } from "@/lib/ai/image/prompt";
+import { storeGeneratedImage } from "@/lib/ai/imageStore";
 import type { ImageStyleId } from "@/lib/ai/image/style";
-
-const IMAGE_BUCKET = "site-images";
 
 /**
  * 블로그 커버 이미지를 생성해 스토리지에 올리고 공개 URL을 반환한다.
@@ -54,33 +52,8 @@ export async function generateAndStoreBlogCover(opts: {
       : await generate;
     if (!image) return null;
 
-    const admin = createAdminClient();
-    try {
-      const { data: buckets } = await admin.storage.listBuckets();
-      if (!buckets?.some((b) => b.name === IMAGE_BUCKET)) {
-        await admin.storage.createBucket(IMAGE_BUCKET, {
-          public: true,
-          fileSizeLimit: "10MB",
-        });
-      }
-    } catch {
-      // 버킷이 이미 있으면 업로드는 그대로 동작한다.
-    }
-
-    const ext = (image.mime.split("/")[1] || "jpg").replace("jpeg", "jpg");
-    const path = `${opts.businessId}/blog-covers/${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2, 8)}.${ext}`;
-
-    const { error } = await admin.storage
-      .from(IMAGE_BUCKET)
-      .upload(path, Buffer.from(image.b64, "base64"), {
-        contentType: image.mime,
-        upsert: false,
-      });
-    if (error) return null;
-
-    return admin.storage.from(IMAGE_BUCKET).getPublicUrl(path).data.publicUrl;
+    // 저장 시 리사이즈·압축(storeGeneratedImage 내부) — 저장·전송량 절감.
+    return await storeGeneratedImage(opts.businessId, "blog-covers", image);
   } catch (err) {
     console.error("[blogCover]", err);
     return null;

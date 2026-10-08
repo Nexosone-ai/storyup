@@ -89,7 +89,7 @@ function SitePreview({
         >
           {/* eslint-disable-next-line @next/next/no-img-element -- 사용자 업로드/AI 원격 이미지 */}
           <img
-            src={storageThumb(s.src, 800)}
+            src={storageThumb(s.src)}
             alt={k === 0 ? name : ""}
             loading="lazy"
             className="h-full w-full object-cover"
@@ -180,7 +180,7 @@ export function SiteCard({
         {item.logo && (
           // eslint-disable-next-line @next/next/no-img-element -- 사용자 업로드 로고
           <img
-            src={storageThumb(item.logo, 200)}
+            src={storageThumb(item.logo)}
             alt=""
             loading="lazy"
             className="h-5 w-auto max-w-20 object-contain"
@@ -228,7 +228,7 @@ export function PostCard({
       {item.cover ? (
         // eslint-disable-next-line @next/next/no-img-element -- AI 생성 원격 이미지
         <img
-          src={storageThumb(item.cover, 800)}
+          src={storageThumb(item.cover)}
           alt={item.title}
           loading="lazy"
           className="aspect-[16/9] w-full object-cover"
