@@ -8,14 +8,14 @@ export default function RefundPolicyPage() {
       <h2>1. 적용 범위</h2>
       <p>
         본 정책은 STORYUP 유료 플랜 구독 결제(카드 정기결제)의 취소·환불에
-        적용됩니다. UP 포인트는 현금으로 판매되지 않는 무상 서비스 이용권으로 본
+        적용됩니다. UP REWARDS는 현금으로 판매되지 않는 무상 서비스 이용권으로 본
         환불 정책의 대상이 아닙니다(제5조 참고).
       </p>
 
       <h2>2. 구독 해지</h2>
       <ul>
         <li>
-          구독은 서비스 내 &ldquo;포인트 → 구독 관리&rdquo;에서 언제든지 해지할
+          구독은 서비스 내 &ldquo;리워드 → 구독 관리&rdquo;에서 언제든지 해지할
           수 있습니다.
         </li>
         <li>
@@ -23,7 +23,7 @@ export default function RefundPolicyPage() {
           때까지는 플랜 혜택이 그대로 유지됩니다.
         </li>
         <li>
-          해지 후에도 이미 적립된 UP 포인트는 계정에 남아 계속 사용할 수
+          해지 후에도 이미 적립된 UP REWARDS는 계정에 남아 계속 사용할 수
           있습니다.
         </li>
       </ul>
@@ -58,14 +58,14 @@ export default function RefundPolicyPage() {
         <li>무료 체험 기간(결제가 발생하지 않은 기간)</li>
       </ul>
 
-      <h2>5. UP 포인트 사용과 환불</h2>
+      <h2>5. UP REWARDS 사용과 환불</h2>
       <ul>
         <li>
-          UP 포인트는 현금으로 판매되지 않는 무상 서비스 이용권으로, 그 자체는
+          UP REWARDS는 현금으로 판매되지 않는 무상 서비스 이용권으로, 그 자체는
           환불·현금 전환·출금의 대상이 아닙니다.
         </li>
         <li>
-          <b>UP 포인트 사용 내역은 구독 결제의 환불 금액에 영향을 주지
+          <b>UP REWARDS 사용 내역은 구독 결제의 환불 금액에 영향을 주지
           않습니다.</b>{" "}
           UP은 무상으로 지급된 것이므로, 환불 대상 기간에 UP을 사용했더라도 그
           사용분을 결제 금액에서 차감하지 않고 실제 결제한 금액을 기준으로
@@ -73,7 +73,7 @@ export default function RefundPolicyPage() {
         </li>
         <li>
           환불 가능 여부는 제3조·제4조의 유료 기능(월 제공량) 사용 여부로만
-          판단하며, UP 포인트 사용은 월 제공량 사용으로 보지 않습니다.
+          판단하며, UP REWARDS 사용은 월 제공량 사용으로 보지 않습니다.
         </li>
         <li>
           구독 결제의 환불 여부와 관계없이 이미 적립·사용된 UP에는 영향을 주지
@@ -83,7 +83,7 @@ export default function RefundPolicyPage() {
       <p>
         UP의 적립·사용·소멸 기준은{" "}
         <a href="/credit-policy" className="text-primary underline">
-          UP 포인트 정책
+          UP REWARDS 정책
         </a>
         을 따릅니다.
       </p>

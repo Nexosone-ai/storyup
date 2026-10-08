@@ -53,7 +53,7 @@ export async function grantPoints(
   const { admin } = await requireAdmin();
   if (!admin) return { error: "권한이 없습니다." };
   if (!Number.isInteger(amount) || amount === 0)
-    return { error: "지급/차감할 포인트를 입력해주세요." };
+    return { error: "지급/차감할 리워드를 입력해주세요." };
 
   const adminc = createAdminClient();
   const { data: profile } = await adminc

@@ -352,7 +352,7 @@ export function AdminPointLookup() {
 
   return (
     <section className="space-y-3">
-      <h2 className="text-lg font-semibold tracking-tight">사용자 포인트 조회</h2>
+      <h2 className="text-lg font-semibold tracking-tight">사용자 리워드 조회</h2>
       <Card className="space-y-3">
         <div className="flex gap-2">
           <Input

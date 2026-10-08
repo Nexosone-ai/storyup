@@ -263,7 +263,7 @@ function SupporterCardItem({
               type="number"
               value={budget}
               onChange={(e) => setBudget(e.target.value)}
-              placeholder={ko ? "예산 포인트 (선택)" : "Budget in points (optional)"}
+              placeholder={ko ? "예산 리워드 (선택)" : "Budget in rewards (optional)"}
             />
             {error && <p className="text-sm text-danger">{error}</p>}
             <div className="flex gap-2">

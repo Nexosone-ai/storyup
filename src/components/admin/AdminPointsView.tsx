@@ -91,7 +91,7 @@ export function AdminPointsView({ ledger }: { ledger: AdminPointsLedger }) {
   return (
     <section className="space-y-5">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-lg font-semibold tracking-tight">포인트 내역</h2>
+        <h2 className="text-lg font-semibold tracking-tight">리워드 내역</h2>
         <p className="text-sm text-muted">
           총{" "}
           <b className="tnum text-foreground">

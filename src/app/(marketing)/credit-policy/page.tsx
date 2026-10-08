@@ -1,13 +1,13 @@
 import { LegalPage } from "@/components/marketing/LegalPage";
 
-export const metadata = { title: "UP 포인트 정책" };
+export const metadata = { title: "UP REWARDS 정책" };
 
 export default function CreditPolicyPage() {
   return (
-    <LegalPage title="STORYUP UP 포인트 정책" updated="2026년 9월 29일">
-      <h2>1. UP 포인트의 성격</h2>
+    <LegalPage title="STORYUP UP REWARDS 정책" updated="2026년 9월 29일">
+      <h2>1. UP REWARDS의 성격</h2>
       <p>
-        UP 포인트(이하 &ldquo;UP&rdquo;)는 STORYUP 서비스 내에서 AI 콘텐츠 생성
+        UP REWARDS(이하 &ldquo;UP&rdquo;)는 STORYUP 서비스 내에서 AI 콘텐츠 생성
         등 기능을 이용하기 위한 <b>서비스 이용권</b>입니다. UP은 서비스 내 활동
         보상으로만 지급되며, 금융 자산이나 전자화폐, 선불전자지급수단이
         아닙니다. 따라서 <b>현금으로 충전하거나 선불로 구매할 수 없으며</b>, 다음과

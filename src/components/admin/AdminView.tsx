@@ -57,7 +57,7 @@ export function AdminView() {
   return (
     <div className="mx-auto max-w-2xl space-y-8">
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold tracking-tight">포인트 지급 / 차감</h2>
+        <h2 className="text-lg font-semibold tracking-tight">리워드 지급 / 차감</h2>
         <Card className="space-y-3">
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="sm:col-span-1">
@@ -70,7 +70,7 @@ export function AdminView() {
               />
             </div>
             <div>
-              <Label htmlFor="g-amount">포인트 (음수=차감)</Label>
+              <Label htmlFor="g-amount">리워드 (음수=차감)</Label>
               <Input
                 id="g-amount"
                 type="number"

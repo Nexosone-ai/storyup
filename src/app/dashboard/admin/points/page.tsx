@@ -1,7 +1,7 @@
 import { getPointsLedgerAdmin } from "@/lib/admin/points";
 import { AdminPointsView } from "@/components/admin/AdminPointsView";
 
-export const metadata = { title: "관리자 · 포인트" };
+export const metadata = { title: "관리자 · 리워드" };
 
 export default async function AdminPointsPage() {
   const ledger = await getPointsLedgerAdmin();

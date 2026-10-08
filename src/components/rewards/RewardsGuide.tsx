@@ -300,7 +300,7 @@ export async function RewardsGuide() {
       <p className="text-center text-sm text-muted">
         {ko ? "보상 지급 기준은 사전 고지 후 변경될 수 있습니다. 자세한 내용은 " : "Reward rules may change with prior notice. See the "}
         <Link href="/credit-policy" className="text-primary underline underline-offset-4">
-          {ko ? "UP 포인트 정책" : "UP Points Policy"}
+          {ko ? "UP REWARDS 정책" : "UP REWARDS Policy"}
         </Link>
         {ko ? "을 확인하세요." : " for details."}
       </p>

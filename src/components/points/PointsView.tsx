@@ -123,7 +123,7 @@ export function PointsView({
       <div>
         <p className="eyebrow mb-2">UP</p>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          {ko ? "UP 포인트" : "UP Points"}
+          {ko ? "UP REWARDS" : "UP REWARDS"}
         </h1>
       </div>
 

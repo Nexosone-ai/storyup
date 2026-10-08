@@ -9,7 +9,7 @@ import { getPendingBankTransfer } from "@/lib/payments/bankTransfer";
 import { isBillingConfigured, isPaymentsConfigured } from "@/lib/payments/portone";
 import { PointsView } from "@/components/points/PointsView";
 
-export const metadata = { title: "포인트" };
+export const metadata = { title: "리워드" };
 
 export default async function PointsPage() {
   const user = await getUser();

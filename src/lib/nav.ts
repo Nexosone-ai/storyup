@@ -38,7 +38,7 @@ export function dashboardNav(
       icon: "users",
     },
     {
-      label: ko ? "포인트" : "Points",
+      label: ko ? "리워드" : "Rewards",
       href: "/dashboard/points",
       icon: "coin",
     },
