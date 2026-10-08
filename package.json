@@ -11,7 +11,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "seed": "node --env-file=.env.local scripts/seed.mjs"
+    "seed": "node --env-file=.env.local scripts/seed.mjs",
+    "compress-images": "node --env-file=.env.local scripts/compress-storage-images.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.116.0",
