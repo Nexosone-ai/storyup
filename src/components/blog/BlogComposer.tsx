@@ -174,25 +174,59 @@ export function BlogComposer({ businessId }: { businessId: string }) {
   const startRecording = async () => {
     setError(null);
     clearAudio();
+
+    // 1) 마이크 권한 — 거부/미지원을 따로 안내한다(아이패드·설치형 PWA 대응).
+    let stream: MediaStream;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (e) {
+      const name = e instanceof DOMException ? e.name : "";
+      setError(
+        name === "NotAllowedError" || name === "SecurityError"
+          ? ko
+            ? "마이크 권한이 거부되었습니다. 브라우저 주소창의 권한 설정에서 마이크를 허용한 뒤 다시 시도하거나, 녹음 파일을 올려주세요. (홈화면에 설치한 앱에서는 마이크가 막힐 수 있어요 — Safari에서 열어보세요.)"
+            : "Microphone permission was denied. Allow mic access in your browser, or upload a recording file. (Home-screen installed apps may block the mic — try opening in Safari.)"
+          : ko
+            ? "마이크를 사용할 수 없습니다. 녹음 파일을 올려주세요."
+            : "Microphone unavailable. Please upload a recording file instead.",
+      );
+      return;
+    }
+
+    // 2) 레코더 생성·시작
+    try {
       const mime = pickRecordingMime();
-      const rec = mime
-        ? new MediaRecorder(stream, { mimeType: mime })
-        : new MediaRecorder(stream);
+      let rec: MediaRecorder;
+      try {
+        rec = mime
+          ? new MediaRecorder(stream, { mimeType: mime })
+          : new MediaRecorder(stream);
+      } catch {
+        // iOS 등에서 지정 mime로 생성 실패하면 브라우저 기본값으로.
+        rec = new MediaRecorder(stream);
+      }
       chunksRef.current = [];
       rec.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
       rec.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
-        const type = rec.mimeType || mime || "audio/webm";
+        const type = rec.mimeType || mime || "audio/mp4";
         const blob = new Blob(chunksRef.current, { type });
         if (blob.size > 0)
           setAudioBlob(blob, type, ko ? "방금 녹음한 내용" : "Your recording");
+        else
+          setError(
+            ko
+              ? "녹음된 소리가 없습니다. 마이크를 확인한 뒤 다시 시도하거나, 녹음 파일을 올려주세요."
+              : "No audio was captured. Check your mic and retry, or upload a recording file.",
+          );
       };
       recorderRef.current = rec;
-      rec.start(1000);
+      // iOS Safari는 timeslice(start(ms))로 녹음하면 mp4 조각이 합쳐지지 않아 깨진
+      // 파일이 된다(전사 실패). timeslice 없이 start() → 정지 시 완전한 단일 파일로
+      // 받는다. (전 브라우저에서 안전. 길이는 아래 setInterval 타이머로 따로 센다.)
+      rec.start();
       setSeconds(0);
       setRecording(true);
       timerRef.current = setInterval(() => {
@@ -202,10 +236,11 @@ export function BlogComposer({ businessId }: { businessId: string }) {
         });
       }, 1000);
     } catch {
+      stream.getTracks().forEach((t) => t.stop());
       setError(
         ko
-          ? "마이크를 사용할 수 없습니다. 브라우저에서 마이크 권한을 허용하거나, 녹음 파일을 업로드해주세요."
-          : "Microphone unavailable. Allow mic access in your browser, or upload a recording file.",
+          ? "녹음을 시작할 수 없습니다. 녹음 파일을 올려주세요."
+          : "Could not start recording. Please upload a recording file instead.",
       );
     }
   };
