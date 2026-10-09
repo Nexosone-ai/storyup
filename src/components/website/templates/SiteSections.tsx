@@ -9,15 +9,18 @@ import type { TextRenderer } from "./shared";
 export function SiteSections({
   sections,
   T,
+  pathPrefix = "",
 }: {
   sections?: SiteSection[];
   T: TextRenderer;
+  /** 편집 경로 접두사 — 홈은 "", 하위 페이지는 "pages.{i}." (setPath 중첩 경로). */
+  pathPrefix?: string;
 }) {
   if (!sections?.length) return null;
   return (
     <>
       {sections.map((s, i) => (
-        <SectionBlock key={i} section={s} idx={i} T={T} />
+        <SectionBlock key={i} section={s} base={`${pathPrefix}sections.${i}`} T={T} />
       ))}
     </>
   );
@@ -30,13 +33,13 @@ const H = "text-2xl font-semibold tracking-tight";
 function SectionHeader({
   title,
   subtitle,
-  idx,
+  base,
   T,
   center = true,
 }: {
   title?: string;
   subtitle?: string;
-  idx: number;
+  base: string;
   T: TextRenderer;
   center?: boolean;
 }) {
@@ -44,10 +47,10 @@ function SectionHeader({
   return (
     <div className={`mb-8 ${center ? "text-center" : ""}`}>
       {title !== undefined &&
-        T({ path: `sections.${idx}.title`, value: title, as: "h2", className: H })}
+        T({ path: `${base}.title`, value: title, as: "h2", className: H })}
       {subtitle
         ? T({
-            path: `sections.${idx}.subtitle`,
+            path: `${base}.subtitle`,
             value: subtitle,
             as: "p",
             className: "mt-2 text-muted",
@@ -59,21 +62,19 @@ function SectionHeader({
 
 function SectionBlock({
   section: s,
-  idx,
+  base,
   T,
 }: {
   section: SiteSection;
-  idx: number;
+  base: string;
   T: TextRenderer;
 }) {
-  const base = `sections.${idx}`;
-
   switch (s.type) {
     case "features":
       return (
         <section className={WRAP}>
           <div className={INNER}>
-            <SectionHeader title={s.title} subtitle={s.subtitle} idx={idx} T={T} />
+            <SectionHeader title={s.title} subtitle={s.subtitle} base={base} T={T} />
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {s.items.map((it, j) => (
                 <div
@@ -103,7 +104,7 @@ function SectionBlock({
       return (
         <section className={WRAP}>
           <div className={INNER}>
-            <SectionHeader title={s.title} subtitle={s.subtitle} idx={idx} T={T} />
+            <SectionHeader title={s.title} subtitle={s.subtitle} base={base} T={T} />
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {s.items.map((it, j) => (
                 <div key={j} className="relative rounded-2xl border border-border bg-surface p-6">
@@ -133,7 +134,7 @@ function SectionBlock({
       return (
         <section className={WRAP}>
           <div className={INNER}>
-            <SectionHeader title={s.title} subtitle={s.subtitle} idx={idx} T={T} />
+            <SectionHeader title={s.title} subtitle={s.subtitle} base={base} T={T} />
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {s.items.map((it, j) => (
                 <div
@@ -189,7 +190,7 @@ function SectionBlock({
       return (
         <section className={WRAP}>
           <div className="mx-auto max-w-3xl px-5 py-16">
-            <SectionHeader title={s.title} subtitle={s.subtitle} idx={idx} T={T} />
+            <SectionHeader title={s.title} subtitle={s.subtitle} base={base} T={T} />
             <dl className="space-y-3">
               {s.items.map((it, j) => (
                 <div key={j} className="rounded-2xl border border-border bg-surface p-5">
@@ -216,7 +217,7 @@ function SectionBlock({
       return (
         <section className={WRAP}>
           <div className={INNER}>
-            <SectionHeader title={s.title} subtitle={s.subtitle} idx={idx} T={T} />
+            <SectionHeader title={s.title} subtitle={s.subtitle} base={base} T={T} />
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {s.items.map((it, j) => (
                 <figure

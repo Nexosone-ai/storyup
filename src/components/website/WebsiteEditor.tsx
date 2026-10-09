@@ -8,6 +8,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { Icon } from "@/components/ui/icons";
 import { cn } from "@/utils/cn";
 import { TemplateRenderer, TEMPLATE_META, setPath } from "./templates";
+import { SiteSections } from "./templates/SiteSections";
 import { makeEditableRenderer } from "./templates/EditableText";
 import { makeEditableImageRenderer } from "./templates/ImageSlot";
 import { makeEditableGallery } from "./templates/GallerySection";
@@ -27,11 +28,13 @@ import type { PlaceImportData } from "@/lib/placeImport";
 import type { PdfImportData } from "@/lib/pdfImport";
 import { SITE_FONTS, SITE_PALETTES, siteStyleVars } from "./siteStyle";
 import { normalizeAdsensePublisherId } from "@/lib/adsense";
+import { slugify } from "@/utils/slug";
 import type {
   WebsiteContent,
   WebsiteFontId,
   WebsitePaletteId,
   WebsiteTemplateId,
+  SitePage,
 } from "@/types/domain";
 import type { WebsiteRow } from "@/types/database";
 
@@ -56,6 +59,8 @@ export function WebsiteEditor({
   const [multi, setMulti] = useState(false);
   const [richBusy, setRichBusy] = useState(false);
   const [richNote, setRichNote] = useState<string | null>(null);
+  // 편집 중인 페이지: "home" 또는 pages 인덱스
+  const [currentPage, setCurrentPage] = useState<"home" | number>("home");
   const [status, setStatus] = useState(website.status);
   const [device, setDevice] = useState<Device>("desktop");
   const [note, setNote] = useState<string | null>(null);
@@ -161,6 +166,56 @@ export function WebsiteEditor({
       }
     })();
   };
+
+  // ── 멀티페이지 관리 ──
+  const pages = content.pages ?? [];
+  const addPage = () => {
+    const idx = pages.length;
+    const np: SitePage = {
+      id: `pg_${Date.now().toString(36)}`,
+      slug: `page-${idx + 1}`,
+      navLabel: ko ? "새 페이지" : "New page",
+      showInNav: true,
+      sections: [],
+    };
+    setContent((c) => ({ ...c, pages: [...(c.pages ?? []), np] }));
+    setCurrentPage(idx);
+  };
+  const updatePage = (i: number, patch: Partial<SitePage>) =>
+    setContent((c) => ({
+      ...c,
+      pages: (c.pages ?? []).map((p, j) => (j === i ? { ...p, ...patch } : p)),
+    }));
+  const deletePage = (i: number) => {
+    if (!window.confirm(ko ? "이 페이지를 삭제할까요?" : "Delete this page?"))
+      return;
+    setContent((c) => ({
+      ...c,
+      pages: (c.pages ?? []).filter((_, j) => j !== i),
+    }));
+    setCurrentPage("home");
+  };
+  const movePage = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= pages.length) return;
+    setContent((c) => {
+      const arr = [...(c.pages ?? [])];
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+      return { ...c, pages: arr };
+    });
+    setCurrentPage(j);
+  };
+  const addTextSection = (i: number) =>
+    updatePage(i, {
+      sections: [
+        ...pages[i].sections,
+        {
+          type: "richText",
+          title: ko ? "제목" : "Title",
+          body: ko ? "내용을 입력하세요." : "Write here.",
+        },
+      ],
+    });
 
   /** 구글 지도에서 가져온 정보를 콘텐츠에 병합한다 — 가져온 값이 있으면 우선. */
   const applyGoogleImport = useCallback((d: PlaceImportData) => {
@@ -750,6 +805,116 @@ export function WebsiteEditor({
           : "Click any text in the preview below to edit it in place. Select text to reveal formatting tools (bold, color, highlight). Press Save when you are done."}
       </p>
 
+      {/* 페이지 관리 (멀티페이지) */}
+      {(richAllowed || pages.length > 0) && (
+        <div className="space-y-2 rounded-xl border border-border bg-surface p-3">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="eyebrow mr-1">{ko ? "페이지" : "Pages"}</span>
+            <button
+              type="button"
+              onClick={() => setCurrentPage("home")}
+              className={cn(
+                "rounded-lg px-3 py-1.5 text-xs font-medium",
+                currentPage === "home"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted hover:text-foreground",
+              )}
+            >
+              {ko ? "홈" : "Home"}
+            </button>
+            {pages.map((p, i) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setCurrentPage(i)}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-xs font-medium",
+                  currentPage === i
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted hover:text-foreground",
+                )}
+              >
+                {p.navLabel || p.slug}
+              </button>
+            ))}
+            {richAllowed && (
+              <button
+                type="button"
+                onClick={addPage}
+                className="rounded-lg border border-dashed border-border px-3 py-1.5 text-xs font-medium text-muted hover:text-foreground"
+              >
+                + {ko ? "페이지 추가" : "Add page"}
+              </button>
+            )}
+          </div>
+
+          {typeof currentPage === "number" && pages[currentPage] && (
+            <div className="flex flex-wrap items-center gap-2 border-t border-border pt-2 text-xs">
+              <input
+                value={pages[currentPage].navLabel}
+                onChange={(e) =>
+                  updatePage(currentPage, { navLabel: e.target.value })
+                }
+                placeholder={ko ? "메뉴 이름" : "Menu label"}
+                className="w-28 rounded-md border border-border px-2 py-1"
+              />
+              <span className="text-muted">/</span>
+              <input
+                defaultValue={pages[currentPage].slug}
+                onBlur={(e) =>
+                  updatePage(currentPage, {
+                    slug: slugify(e.target.value) || `page-${currentPage + 1}`,
+                  })
+                }
+                placeholder="slug"
+                className="w-28 rounded-md border border-border px-2 py-1"
+              />
+              <label className="flex items-center gap-1.5">
+                <input
+                  type="checkbox"
+                  checked={pages[currentPage].showInNav}
+                  onChange={(e) =>
+                    updatePage(currentPage, { showInNav: e.target.checked })
+                  }
+                  className="size-3.5 accent-primary"
+                />
+                {ko ? "메뉴 표시" : "In menu"}
+              </label>
+              <button
+                type="button"
+                onClick={() => movePage(currentPage, -1)}
+                className="rounded-md border border-border px-2 py-1"
+                title={ko ? "앞으로" : "Move up"}
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                onClick={() => movePage(currentPage, 1)}
+                className="rounded-md border border-border px-2 py-1"
+                title={ko ? "뒤로" : "Move down"}
+              >
+                ↓
+              </button>
+              <button
+                type="button"
+                onClick={() => addTextSection(currentPage)}
+                className="rounded-md border border-border px-2 py-1 font-medium text-primary"
+              >
+                + {ko ? "텍스트 섹션" : "Text section"}
+              </button>
+              <button
+                type="button"
+                onClick={() => deletePage(currentPage)}
+                className="ml-auto rounded-md border border-border px-2 py-1 text-danger"
+              >
+                {ko ? "페이지 삭제" : "Delete page"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* WYSIWYG canvas */}
       <div className="overflow-hidden rounded-2xl border border-border bg-surface-muted/40 p-3">
         <div
@@ -760,14 +925,42 @@ export function WebsiteEditor({
           style={siteStyleVars(content.style)}
         >
           <div className="max-h-[72vh] overflow-y-auto">
-            <TemplateRenderer
-              content={content}
-              T={editRenderer}
-              Img={editImgRenderer}
-              Gallery={editGallery}
-              editable
-              scoped
-            />
+            {typeof currentPage === "number" && pages[currentPage] ? (
+              <div className="min-h-[300px]">
+                <section className="border-b border-border bg-surface-muted/40">
+                  <div className="mx-auto max-w-3xl px-5 py-16 text-center">
+                    {editRenderer({
+                      path: `pages.${currentPage}.hero.headline`,
+                      value: pages[currentPage].hero?.headline ?? "",
+                      as: "h1",
+                      className: "text-3xl font-semibold tracking-tight",
+                      placeholder: ko ? "페이지 제목" : "Page title",
+                    })}
+                    {editRenderer({
+                      path: `pages.${currentPage}.hero.shortDescription`,
+                      value: pages[currentPage].hero?.shortDescription ?? "",
+                      as: "p",
+                      className: "mx-auto mt-3 max-w-xl text-muted",
+                      placeholder: ko ? "페이지 설명 (선택)" : "Page description (optional)",
+                    })}
+                  </div>
+                </section>
+                <SiteSections
+                  sections={pages[currentPage].sections}
+                  T={editRenderer}
+                  pathPrefix={`pages.${currentPage}.`}
+                />
+              </div>
+            ) : (
+              <TemplateRenderer
+                content={content}
+                T={editRenderer}
+                Img={editImgRenderer}
+                Gallery={editGallery}
+                editable
+                scoped
+              />
+            )}
           </div>
         </div>
       </div>
