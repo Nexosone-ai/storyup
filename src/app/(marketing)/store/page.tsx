@@ -49,7 +49,9 @@ export default async function StorePage() {
                   key={p.id}
                   className="flex flex-col overflow-hidden rounded-2xl border border-border bg-surface"
                 >
-                  {p.image_url && (
+                  {/* 플랜 상품(grants_plan)은 배너에 옛 가격·사양이 박혀 어긋나므로
+                      이미지를 띄우지 않고, 아래 이름·혜택·실제 가격 텍스트만 보여준다. */}
+                  {p.image_url && !p.grants_plan && (
                     // eslint-disable-next-line @next/next/no-img-element -- 원격 스토리지 URL
                     <img
                       src={p.image_url}

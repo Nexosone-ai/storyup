@@ -58,7 +58,9 @@ export default async function PayPage({
   return (
     <main className="mx-auto w-full max-w-md px-5 py-10">
       <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
-        {product.image_url && (
+        {/* 플랜 상품(grants_plan)은 배너에 옛 가격·사양이 박혀 어긋나므로 이미지를
+            띄우지 않고, 아래 이름·혜택·실제 가격 텍스트만 보여준다. */}
+        {product.image_url && !product.grants_plan && (
           // 상품 이미지는 외부 스토리지 URL — next/image 원격 설정 회피 위해 img 사용
           // eslint-disable-next-line @next/next/no-img-element
           <img
