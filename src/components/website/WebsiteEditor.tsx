@@ -59,6 +59,8 @@ export function WebsiteEditor({
   const [multi, setMulti] = useState(false);
   const [richBusy, setRichBusy] = useState(false);
   const [richNote, setRichNote] = useState<string | null>(null);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const pdfRef = useRef<HTMLInputElement | null>(null);
   // 편집 중인 페이지: "home" 또는 pages 인덱스
   const [currentPage, setCurrentPage] = useState<"home" | number>("home");
   const [status, setStatus] = useState(website.status);
@@ -120,6 +122,66 @@ export function WebsiteEditor({
       ),
     [businessId],
   );
+
+  /** (프리미엄) PDF 자료를 올리면 텍스트를 추출해 brief에 덧붙인다. */
+  const attachPdf = async (file: File) => {
+    if (file.size > 10 * 1024 * 1024) {
+      setRichNote(ko ? "PDF는 10MB 이하여야 합니다." : "PDF must be under 10MB.");
+      return;
+    }
+    setPdfBusy(true);
+    setRichNote(
+      ko ? "PDF에서 내용을 추출하고 있어요…" : "Extracting from the PDF…",
+    );
+    try {
+      const form = new FormData();
+      form.set("businessId", businessId);
+      form.set("file", file);
+      const res = await fetch("/api/ai/pdf-import", { method: "POST", body: form });
+      const json = await res.json();
+      if (json.error || !json.data) {
+        setRichNote(
+          json.error ?? (ko ? "PDF 추출에 실패했어요." : "PDF extraction failed."),
+        );
+        return;
+      }
+      const d = json.data as PdfImportData;
+      const parts: string[] = [];
+      if (d.headline) parts.push(d.headline);
+      if (d.shortDescription) parts.push(d.shortDescription);
+      const story = [d.storyTitle, d.storyBody].filter(Boolean).join("\n");
+      if (story) parts.push(story);
+      if (d.offers?.length)
+        parts.push(
+          (ko ? "제공 서비스:\n" : "Offers:\n") +
+            d.offers
+              .map((o) => `- ${o.title}${o.description ? `: ${o.description}` : ""}`)
+              .join("\n"),
+        );
+      const contact = [d.phone, d.email, d.address].filter(Boolean).join(" · ");
+      if (contact) parts.push((ko ? "연락처: " : "Contact: ") + contact);
+      const text = parts.filter(Boolean).join("\n\n");
+      if (!text) {
+        setRichNote(
+          ko ? "PDF에서 가져올 내용이 없었어요." : "No content found in the PDF.",
+        );
+        return;
+      }
+      setBrief((b) => (b.trim() ? b.trim() + "\n\n" : "") + text);
+      setRichNote(
+        ko
+          ? "PDF 내용을 자료에 추가했어요. 확인 후 생성하세요."
+          : "Added the PDF content to the materials. Review, then generate.",
+      );
+    } catch {
+      setRichNote(
+        ko ? "PDF 추출에 실패했어요. 다시 시도해주세요." : "Failed to read the PDF.",
+      );
+    } finally {
+      setPdfBusy(false);
+      if (pdfRef.current) pdfRef.current.value = "";
+    }
+  };
 
   /** (프리미엄) 자료를 입력하면 AI가 풍부한 섹션·컨셉까지 다시 구성한다. */
   const generateRich = () => {
@@ -582,6 +644,37 @@ export function WebsiteEditor({
                   }
                   className="min-h-32 w-full resize-y rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-foreground placeholder:text-muted focus:border-primary focus:outline-none disabled:opacity-60"
                 />
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    ref={pdfRef}
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) void attachPdf(f);
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => pdfRef.current?.click()}
+                    disabled={pdfBusy || richBusy}
+                  >
+                    {pdfBusy ? (
+                      <Spinner className="size-4" />
+                    ) : ko ? (
+                      "PDF 자료 첨부"
+                    ) : (
+                      "Attach PDF"
+                    )}
+                  </Button>
+                  <span className="text-xs text-muted">
+                    {ko
+                      ? "회사 소개서·브로슈어 PDF를 올리면 내용이 위 자료칸에 추가돼요. (10MB 이하)"
+                      : "Upload a brochure PDF to append its text to the materials above. (<10MB)"}
+                  </span>
+                </div>
                 <label className="flex items-center gap-2 text-xs text-foreground">
                   <input
                     type="checkbox"
