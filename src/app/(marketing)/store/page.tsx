@@ -4,6 +4,7 @@ import { MarketingNav } from "@/components/marketing/MarketingNav";
 import { Footer } from "@/components/marketing/Footer";
 import { getLocale } from "@/lib/i18n";
 import { listActiveProducts } from "@/lib/payments/orders";
+import { PlanBanner } from "@/components/pay/PlanBanner";
 
 export const metadata: Metadata = {
   title: "스토어",
@@ -49,16 +50,20 @@ export default async function StorePage() {
                   key={p.id}
                   className="flex flex-col overflow-hidden rounded-2xl border border-border bg-surface"
                 >
-                  {/* 플랜 상품(grants_plan)은 배너에 옛 가격·사양이 박혀 어긋나므로
-                      이미지를 띄우지 않고, 아래 이름·혜택·실제 가격 텍스트만 보여준다. */}
-                  {p.image_url && !p.grants_plan && (
+                  {/* 플랜 상품은 가격이 박히지 않은 코드 배너로(옛 가격 이미지 대신),
+                      그 외 상품은 등록된 상품 이미지로 표시한다. */}
+                  {p.grants_plan ? (
+                    <PlanBanner
+                      plan={p.grants_plan === "pro" ? "pro" : "basic"}
+                    />
+                  ) : p.image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element -- 원격 스토리지 URL
                     <img
                       src={p.image_url}
                       alt={p.name}
                       className="aspect-video w-full object-cover"
                     />
-                  )}
+                  ) : null}
                   <div className="flex flex-1 flex-col p-5">
                     <h2 className="break-keep-kr text-lg font-bold tracking-tight">
                       {p.name}
