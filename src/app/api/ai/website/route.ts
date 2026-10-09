@@ -9,7 +9,10 @@ import { trackGrowthActivity } from "@/lib/gamification/engine";
 import { getLocale } from "@/lib/i18n";
 import { getPlanId } from "@/lib/subscription";
 import { getPlanById } from "@/lib/plans";
-import { normalizeSiteSections } from "@/lib/website/sections";
+import {
+  normalizeSiteSections,
+  normalizeSitePages,
+} from "@/lib/website/sections";
 import {
   WEBSITE_TEMPLATES,
   WEBSITE_PALETTES,
@@ -36,11 +39,13 @@ export async function POST(request: Request) {
 
   let businessId = "";
   let rich = false;
+  let multiPage = false;
   let brief = "";
   try {
     const body = await request.json();
     businessId = String(body.businessId);
-    rich = body.rich === true;
+    multiPage = body.multiPage === true;
+    rich = body.rich === true || multiPage; // 멀티페이지는 상세 생성의 확장
     brief = String(body.brief ?? "").trim();
   } catch {
     return NextResponse.json(
@@ -135,14 +140,18 @@ export async function POST(request: Request) {
 
   try {
     const provider = getAIProvider();
-    const content = rich
-      ? await provider.generateRichWebsite(input, brandResult, brief, locale)
-      : await provider.generateWebsite(input, brandResult, locale);
+    const content = multiPage
+      ? await provider.generateMultiPageWebsite(input, brandResult, brief, locale)
+      : rich
+        ? await provider.generateRichWebsite(input, brandResult, brief, locale)
+        : await provider.generateWebsite(input, brandResult, locale);
     // 사이트 콘텐츠 언어를 저장 — 템플릿 크롬(메뉴·연락처 라벨)이 이를 따른다.
     content.language = locale;
 
     // 풍부한 섹션 정규화(깨진 JSON 방지) + 컨셉(template/palette/font) 허용값 검증.
     content.sections = normalizeSiteSections(content.sections);
+    // 멀티페이지일 때만 pages 정규화, 아니면 비운다(단일 페이지 재생성 시 잔재 방지).
+    content.pages = multiPage ? normalizeSitePages(content.pages) : [];
     if (
       content.template &&
       !(WEBSITE_TEMPLATES as readonly string[]).includes(content.template)

@@ -130,3 +130,36 @@ sections 배열은 아래 유형 중 내용에 맞는 것만 골라 넣습니다
 
   return { system, user };
 }
+
+/**
+ * (프리미엄) 멀티페이지 홈페이지 생성 — 홈(위 richHomepage와 동일) + 추가 페이지(pages[]).
+ * AI가 자료를 보고 어떤 하위 페이지가 필요한지(소개·서비스·요금·오시는길 등) 직접 정해
+ * 각 페이지의 섹션까지 구성한다. 반환은 순수 JSON(WebsiteContent + pages).
+ */
+export function multiPagePrompt(
+  business: BusinessInterviewInput,
+  brand: BrandStoryResult,
+  brief: string,
+  language: PromptLanguage = "ko",
+): PromptSpec {
+  const base = richHomepagePrompt(business, brand, brief, language);
+  const system = `${base.system}
+추가로, 사장님의 자료가 충분하면 홈 외 하위 페이지(pages)를 2~4개 구성합니다.
+- 흔한 예: 소개(about), 서비스/메뉴(services), 요금(pricing), 오시는 길·문의(contact). 자료에 맞는 것만.
+- 각 페이지는 상단 메뉴에 노출될 짧은 navLabel과 영문 slug(about/services/pricing 등), 선택적 hero, 그리고 섹션(sections, 홈과 같은 유형)으로 구성합니다.
+- 홈에 모든 내용을 몰아넣지 말고, 성격이 다른 묶음을 페이지로 분리해 "진짜 홈페이지"처럼 만드세요. 자료가 부족하면 pages는 비워도 됩니다.`;
+
+  const user = `${base.user}
+
+위 JSON에 더해, 최상위에 "pages" 배열을 함께 포함하세요(없으면 빈 배열). 각 페이지 형태:
+{
+  "slug": "about",                     // 영문 소문자-하이픈 (blog 등 예약어 금지)
+  "navLabel": "소개",                   // 상단 메뉴 표기(짧게)
+  "showInNav": true,
+  "hero": { "headline": "...", "shortDescription": "(선택)", "ctaLabel": "(선택)" },
+  "sections": [ /* 홈과 같은 섹션 유형들 */ ]
+}
+pages는 최대 4개. 자료에 없는 내용은 만들지 마세요.`;
+
+  return { system, user };
+}

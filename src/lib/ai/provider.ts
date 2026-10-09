@@ -44,6 +44,14 @@ export interface AIProvider {
     language?: PromptLanguage,
   ): Promise<WebsiteContent>;
 
+  /** (프리미엄) 자료로 홈 + 하위 페이지(pages[])까지 구성한 멀티페이지 사이트를 생성한다. */
+  generateMultiPageWebsite(
+    business: BusinessInterviewInput,
+    brand: BrandStoryResult,
+    brief: string,
+    language?: PromptLanguage,
+  ): Promise<WebsiteContent>;
+
   generateBlog(input: BlogPromptInput): Promise<BlogArticleResult>;
 
   /** 음성 녹음 전사문을 블로그 글로 재구성한다. */

@@ -15,7 +15,11 @@ import {
   type PromptLanguage,
   type PromptSpec,
 } from "./prompts/brand-story";
-import { websitePrompt, richHomepagePrompt } from "./prompts/website";
+import {
+  websitePrompt,
+  richHomepagePrompt,
+  multiPagePrompt,
+} from "./prompts/website";
 import {
   blogPrompt,
   blogFromTranscriptPrompt,
@@ -150,6 +154,18 @@ export class OpenAIProvider implements AIProvider {
     return this.complete<WebsiteContent>(
       richHomepagePrompt(business, brand, brief, language),
       4000,
+    );
+  }
+
+  async generateMultiPageWebsite(
+    business: BusinessInterviewInput,
+    brand: BrandStoryResult,
+    brief: string,
+    language: PromptLanguage = "ko",
+  ): Promise<WebsiteContent> {
+    return this.complete<WebsiteContent>(
+      multiPagePrompt(business, brand, brief, language),
+      6000,
     );
   }
 

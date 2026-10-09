@@ -2,7 +2,9 @@ import {
   SITE_SECTION_TYPES,
   type SiteSection,
   type SiteSectionType,
+  type SitePage,
 } from "@/types/domain";
+import { slugify } from "@/utils/slug";
 
 /**
  * AI가 생성한 "풍부한 홈페이지" 섹션 배열을 안전하게 정규화한다.
@@ -122,5 +124,69 @@ export function normalizeSiteSections(raw: unknown): SiteSection[] {
       }
     }
   }
+  return out;
+}
+
+const MAX_PAGES = 5;
+const RESERVED_SLUGS = new Set([
+  "",
+  "blog",
+  "ads.txt",
+  "sitemap.xml",
+  "robots.txt",
+  "admin",
+  "api",
+]);
+
+/**
+ * AI가 생성한 멀티페이지(pages[])를 안전하게 정규화한다.
+ * - slug: 영문 slug 우선 → 비면 navLabel → page-N, 예약어/중복 회피.
+ * - 각 페이지 sections는 normalizeSiteSections 재사용, 내용 없으면 제외.
+ */
+export function normalizeSitePages(raw: unknown): SitePage[] {
+  const list = arr(raw).slice(0, MAX_PAGES);
+  const out: SitePage[] = [];
+  const used = new Set<string>();
+
+  list.forEach((r, i) => {
+    if (!r || typeof r !== "object") return;
+    const o = r as Record<string, unknown>;
+    const navLabel = str(o.navLabel, 40) || str(o.title, 40);
+
+    let slug = slugify(str(o.slug, 48)) || slugify(navLabel) || `page-${i + 1}`;
+    if (RESERVED_SLUGS.has(slug)) slug = `page-${i + 1}`;
+    let uniq = slug;
+    let k = 2;
+    while (used.has(uniq)) uniq = `${slug}-${k++}`;
+    slug = uniq;
+
+    const sections = normalizeSiteSections(o.sections);
+
+    const h = (o.hero ?? {}) as Record<string, unknown>;
+    const headline = str(h.headline, 160);
+    const shortDescription = str(h.shortDescription, 400);
+    const hero =
+      headline || shortDescription
+        ? {
+            headline,
+            shortDescription: shortDescription || undefined,
+            ctaLabel: str(h.ctaLabel, 40) || undefined,
+          }
+        : undefined;
+
+    // 섹션도 히어로도 없으면 의미 없는 페이지 — 제외
+    if (!sections.length && !hero) return;
+
+    used.add(slug);
+    out.push({
+      id: `pg_${Date.now().toString(36)}${i}`,
+      slug,
+      navLabel: navLabel || slug,
+      showInNav: o.showInNav !== false,
+      hero,
+      sections,
+    });
+  });
+
   return out;
 }

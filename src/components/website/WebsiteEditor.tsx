@@ -53,6 +53,7 @@ export function WebsiteEditor({
   const ko = useLocale() === "ko";
   const [content, setContent] = useState<WebsiteContent>(website.content);
   const [brief, setBrief] = useState("");
+  const [multi, setMulti] = useState(false);
   const [richBusy, setRichBusy] = useState(false);
   const [richNote, setRichNote] = useState<string | null>(null);
   const [status, setStatus] = useState(website.status);
@@ -137,7 +138,12 @@ export function WebsiteEditor({
         const res = await fetch("/api/ai/website", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ businessId, rich: true, brief: brief.trim() }),
+          body: JSON.stringify({
+            businessId,
+            rich: true,
+            multiPage: multi,
+            brief: brief.trim(),
+          }),
         });
         const json = await res.json();
         if (!res.ok) {
@@ -521,10 +527,28 @@ export function WebsiteEditor({
                   }
                   className="min-h-32 w-full resize-y rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-foreground placeholder:text-muted focus:border-primary focus:outline-none disabled:opacity-60"
                 />
+                <label className="flex items-center gap-2 text-xs text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={multi}
+                    onChange={(e) => setMulti(e.target.checked)}
+                    disabled={richBusy}
+                    className="size-4 accent-primary"
+                  />
+                  {ko
+                    ? "여러 페이지로 구성 (소개·서비스 등 별도 페이지 + 상단 메뉴)"
+                    : "Multi-page (About, Services… as separate pages + top menu)"}
+                </label>
                 <div className="flex flex-wrap items-center gap-2">
                   <Button size="sm" onClick={generateRich} disabled={richBusy}>
                     {richBusy ? (
                       <Spinner className="size-4" />
+                    ) : multi ? (
+                      ko ? (
+                        "멀티페이지 홈페이지 생성"
+                      ) : (
+                        "Generate multi-page site"
+                      )
                     ) : ko ? (
                       "상세 홈페이지 생성"
                     ) : (
