@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { WebsiteContent } from "@/types/domain";
 import { SITE_UI, SiteEditLink, siteLang } from "./shared";
 
@@ -65,17 +66,26 @@ export function SiteNav({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
   const lang = siteLang(content);
   const items = buildSiteNavItems(content, { siteSlug, blogHref, showContact });
 
+  // 현재 페이지(정확 경로 일치)면 메뉴를 강조한다. 홈(base)·앵커 링크는 제외.
+  const isActive = (href: string) =>
+    href.startsWith("/") && !href.includes("#") && pathname === href;
+
   const linkCls = (it: NavItem) =>
-    it.primary
+    isActive(it.href)
       ? tone === "dark"
-        ? "font-semibold text-white"
-        : "font-medium text-primary"
-      : tone === "dark"
-        ? "text-white/80 hover:text-white"
-        : "text-muted hover:text-foreground";
+        ? "font-semibold text-white underline underline-offset-4"
+        : "font-semibold text-foreground underline underline-offset-4"
+      : it.primary
+        ? tone === "dark"
+          ? "font-semibold text-white"
+          : "font-medium text-primary"
+        : tone === "dark"
+          ? "text-white/80 hover:text-white"
+          : "text-muted hover:text-foreground";
 
   const renderLink = (it: NavItem, i: number, onClick?: () => void) =>
     it.href.startsWith("/") ? (
