@@ -1,12 +1,11 @@
-import Link from "next/link";
 import {
   CONTACT_FIELDS,
   SITE_UI,
-  SiteEditLink,
   SiteLogo,
   siteLang,
   type TemplateProps,
 } from "./shared";
+import { SiteNav } from "./SiteNav";
 import { LowerSections } from "./LowerSections";
 
 /** Bold — 다크 히어로 + 큰 타이포 + 강한 대비, 번호형 굵은 카드. */
@@ -26,12 +25,7 @@ export function BoldTemplate(props: TemplateProps) {
             <SiteLogo src={hero.logo} fallback={hero.image} />
             {T({ path: "hero.businessName", value: hero.businessName, as: "span", className: "truncate text-lg font-extrabold uppercase tracking-tight" })}
           </span>
-          <nav className="flex items-center gap-5 text-sm text-white/70">
-            <a href="#story" className="hover:text-white">{L.about}</a>
-            {showContact && <a href="#contact" className="hover:text-white">{L.contact}</a>}
-            {blogHref && <Link href={blogHref} className="font-semibold text-white">{L.blog}</Link>}
-            {editHref && <SiteEditLink href={editHref} lang={lang} />}
-          </nav>
+          <SiteNav content={content} siteSlug={siteSlug} blogHref={blogHref} editHref={editHref} showContact={showContact} tone="dark" />
         </div>
       </header>
 

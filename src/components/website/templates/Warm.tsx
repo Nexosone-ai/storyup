@@ -1,12 +1,11 @@
-import Link from "next/link";
 import {
   CONTACT_FIELDS,
   SITE_UI,
-  SiteEditLink,
   SiteLogo,
   siteLang,
   type TemplateProps,
 } from "./shared";
+import { SiteNav } from "./SiteNav";
 import { LowerSections } from "./LowerSections";
 
 /** Warm — 크림 배경 + 둥근 부드러운 카드, 왼쪽 정렬의 아늑하고 친근한 느낌. */
@@ -27,12 +26,7 @@ export function WarmTemplate(props: TemplateProps) {
             <SiteLogo src={hero.logo} fallback={hero.image} />
             {T({ path: "hero.businessName", value: hero.businessName, as: "span", className: "truncate text-lg font-bold tracking-tight" })}
           </span>
-          <nav className="flex items-center gap-5 text-sm text-muted">
-            <a href="#story" className="hover:text-foreground">{L.about}</a>
-            {showContact && <a href="#contact" className="hover:text-foreground">{L.contact}</a>}
-            {blogHref && <Link href={blogHref} className="font-semibold text-primary">{L.blog}</Link>}
-            {editHref && <SiteEditLink href={editHref} lang={lang} />}
-          </nav>
+          <SiteNav content={content} siteSlug={siteSlug} blogHref={blogHref} editHref={editHref} showContact={showContact} tone="light" />
         </div>
       </header>
 

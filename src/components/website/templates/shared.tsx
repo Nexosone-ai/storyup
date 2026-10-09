@@ -310,10 +310,10 @@ export function siteLang(content: WebsiteContent): SiteLang {
 /** 템플릿 크롬(내비게이션·섹션 제목 폴백)에 쓰는 고정 문구. */
 export const SITE_UI: Record<
   SiteLang,
-  { about: string; contact: string; blog: string; inquire: string; space: string; latestPosts: string; viewAll: string; directions: string }
+  { home: string; about: string; contact: string; blog: string; inquire: string; space: string; latestPosts: string; viewAll: string; directions: string }
 > = {
-  ko: { about: "소개", contact: "연락처", blog: "블로그", inquire: "문의하기", space: "공간", latestPosts: "최신 글", viewAll: "전체 보기 →", directions: "오시는 길" },
-  en: { about: "About", contact: "Contact", blog: "Blog", inquire: "Contact us", space: "Our Space", latestPosts: "Latest posts", viewAll: "View all →", directions: "Find us" },
+  ko: { home: "홈", about: "소개", contact: "연락처", blog: "블로그", inquire: "문의하기", space: "공간", latestPosts: "최신 글", viewAll: "전체 보기 →", directions: "오시는 길" },
+  en: { home: "Home", about: "About", contact: "Contact", blog: "Blog", inquire: "Contact us", space: "Our Space", latestPosts: "Latest posts", viewAll: "View all →", directions: "Find us" },
 };
 
 // ---- Contact 필드 정의 (세 템플릿 공용) ----

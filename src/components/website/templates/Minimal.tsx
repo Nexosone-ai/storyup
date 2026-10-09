@@ -4,12 +4,12 @@ import {
   ContactEntry,
   PoweredByStoryup,
   SITE_UI,
-  SiteEditLink,
   SiteLogo,
   SiteMap,
   siteLang,
   type TemplateProps,
 } from "./shared";
+import { SiteNav } from "./SiteNav";
 import { BlogPreviewCards } from "./BlogPreview";
 import { SiteSections } from "./SiteSections";
 import { InquiryForm } from "@/components/site/InquiryForm";
@@ -46,14 +46,7 @@ export function MinimalTemplate({
           />
           {T({ path: "hero.businessName", value: hero.businessName, as: "span", className: "truncate text-sm font-semibold uppercase tracking-[0.2em]" })}
         </span>
-        <div className="flex items-center gap-4">
-          {blogHref && (
-            <Link href={blogHref} className="text-sm text-muted hover:text-foreground">
-              {L.blog}
-            </Link>
-          )}
-          {editHref && <SiteEditLink href={editHref} lang={siteLang(content)} />}
-        </div>
+        <SiteNav content={content} siteSlug={siteSlug} blogHref={blogHref} editHref={editHref} showContact={showContact} tone="light" />
       </header>
 
       <section className="mx-auto max-w-2xl px-6 pb-16 pt-10 sm:pt-20">

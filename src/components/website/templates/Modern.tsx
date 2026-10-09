@@ -1,12 +1,11 @@
-import Link from "next/link";
 import {
   CONTACT_FIELDS,
   SITE_UI,
-  SiteEditLink,
   SiteLogo,
   siteLang,
   type TemplateProps,
 } from "./shared";
+import { SiteNav } from "./SiteNav";
 import { LowerSections } from "./LowerSections";
 
 /** Modern — 샤프한 엣지 + 모노 라벨 + 그리드 라인, 세련된 테크 느낌. */
@@ -27,12 +26,7 @@ export function ModernTemplate(props: TemplateProps) {
             <SiteLogo src={hero.logo} fallback={hero.image} />
             {T({ path: "hero.businessName", value: hero.businessName, as: "span", className: "truncate font-semibold tracking-tight" })}
           </span>
-          <nav className="flex items-center gap-6 text-xs uppercase tracking-widest text-muted" style={mono}>
-            <a href="#story" className="hover:text-foreground">{L.about}</a>
-            {showContact && <a href="#contact" className="hover:text-foreground">{L.contact}</a>}
-            {blogHref && <Link href={blogHref} className="font-semibold text-primary">{L.blog}</Link>}
-            {editHref && <SiteEditLink href={editHref} lang={lang} />}
-          </nav>
+          <SiteNav content={content} siteSlug={siteSlug} blogHref={blogHref} editHref={editHref} showContact={showContact} tone="light" />
         </div>
       </header>
 

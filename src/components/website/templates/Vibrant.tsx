@@ -1,12 +1,11 @@
-import Link from "next/link";
 import {
   CONTACT_FIELDS,
   SITE_UI,
-  SiteEditLink,
   SiteLogo,
   siteLang,
   type TemplateProps,
 } from "./shared";
+import { SiteNav } from "./SiteNav";
 import { LowerSections } from "./LowerSections";
 
 /** Vibrant — 그라디언트 히어로 + 둥근 컬러 카드, 밝고 경쾌한 느낌. */
@@ -26,12 +25,7 @@ export function VibrantTemplate(props: TemplateProps) {
             <SiteLogo src={hero.logo} fallback={hero.image} />
             {T({ path: "hero.businessName", value: hero.businessName, as: "span", className: "truncate font-extrabold tracking-tight" })}
           </span>
-          <nav className="flex items-center gap-5 text-sm text-muted">
-            <a href="#story" className="hover:text-foreground">{L.about}</a>
-            {showContact && <a href="#contact" className="hover:text-foreground">{L.contact}</a>}
-            {blogHref && <Link href={blogHref} className="font-semibold text-primary">{L.blog}</Link>}
-            {editHref && <SiteEditLink href={editHref} lang={lang} />}
-          </nav>
+          <SiteNav content={content} siteSlug={siteSlug} blogHref={blogHref} editHref={editHref} showContact={showContact} tone="light" />
         </div>
       </header>
 

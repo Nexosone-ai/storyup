@@ -4,12 +4,12 @@ import {
   ContactEntry,
   PoweredByStoryup,
   SITE_UI,
-  SiteEditLink,
   SiteLogo,
   SiteMap,
   siteLang,
   type TemplateProps,
 } from "./shared";
+import { SiteNav } from "./SiteNav";
 import { BlogPreviewCards } from "./BlogPreview";
 import { SiteSections } from "./SiteSections";
 import { InquiryForm } from "@/components/site/InquiryForm";
@@ -42,14 +42,14 @@ export function SplitTemplate({
             <SiteLogo src={hero.logo} fallback={hero.image} />
             {T({ path: "hero.businessName", value: hero.businessName, as: "span", className: "truncate font-bold tracking-tight" })}
           </span>
-          <nav className="flex items-center gap-6 text-sm">
-            <a href="#story" className="text-muted hover:text-foreground">{L.about}</a>
-            {showContact && (
-              <a href="#contact" className="text-muted hover:text-foreground">{L.contact}</a>
-            )}
-            {blogHref && <Link href={blogHref} className="font-medium text-primary">{L.blog}</Link>}
-            {editHref && <SiteEditLink href={editHref} lang={siteLang(content)} />}
-          </nav>
+          <SiteNav
+            content={content}
+            siteSlug={siteSlug}
+            blogHref={blogHref}
+            editHref={editHref}
+            showContact={showContact}
+            tone="light"
+          />
         </div>
       </header>
 

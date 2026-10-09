@@ -1,12 +1,11 @@
-import Link from "next/link";
 import {
   CONTACT_FIELDS,
   SITE_UI,
-  SiteEditLink,
   SiteLogo,
   siteLang,
   type TemplateProps,
 } from "./shared";
+import { SiteNav } from "./SiteNav";
 import { LowerSections } from "./LowerSections";
 
 /** Elegant — 세리프 헤드라인 + 넉넉한 여백 + 얇은 구분선, 절제된 고급 느낌. */
@@ -27,12 +26,7 @@ export function ElegantTemplate(props: TemplateProps) {
             <SiteLogo src={hero.logo} fallback={hero.image} />
             {T({ path: "hero.businessName", value: hero.businessName, as: "span", className: "truncate text-lg tracking-wide", style: serif })}
           </span>
-          <nav className="flex items-center gap-6 text-sm text-muted">
-            <a href="#story" className="hover:text-foreground">{L.about}</a>
-            {showContact && <a href="#contact" className="hover:text-foreground">{L.contact}</a>}
-            {blogHref && <Link href={blogHref} className="text-primary">{L.blog}</Link>}
-            {editHref && <SiteEditLink href={editHref} lang={lang} />}
-          </nav>
+          <SiteNav content={content} siteSlug={siteSlug} blogHref={blogHref} editHref={editHref} showContact={showContact} tone="light" />
         </div>
       </header>
 

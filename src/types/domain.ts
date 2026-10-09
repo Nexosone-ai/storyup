@@ -230,6 +230,26 @@ export type SiteSection =
   | { type: "cta"; title: string; body?: string; ctaLabel?: string }
   | { type: "richText"; title: string; body: string };
 
+/**
+ * (프리미엄) 멀티페이지 — 홈 외 추가 페이지. 각 페이지는 선택적 hero + 섹션 배열로
+ * 구성되고, 상단 메뉴(nav)에 노출된다. 없으면 기존 단일 페이지와 동일(하위호환).
+ * 공개 경로: /site/{slug}/{page.slug} (예약어 blog/ads.txt 등은 금지).
+ */
+export interface SitePage {
+  id: string;
+  slug: string;
+  navLabel: string;
+  showInNav: boolean;
+  hero?: {
+    headline: string;
+    shortDescription?: string;
+    image?: string;
+    ctaLabel?: string;
+  };
+  sections: SiteSection[];
+  seo?: { title?: string; description?: string };
+}
+
 export interface WebsiteContent {
   /** Chosen layout template (defaults to "classic"). */
   template?: WebsiteTemplateId;
@@ -277,6 +297,8 @@ export interface WebsiteContent {
    * 없거나 빈 배열이면 기존 랜딩페이지와 동일하게 동작(하위호환).
    */
   sections?: SiteSection[];
+  /** (프리미엄) 멀티페이지 — 홈 외 추가 페이지들. 없으면 단일 페이지(하위호환). */
+  pages?: SitePage[];
   /** Optional photo gallery band (user-uploaded image URLs). */
   gallery?: string[];
   /**
