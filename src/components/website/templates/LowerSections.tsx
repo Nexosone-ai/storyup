@@ -20,16 +20,26 @@ import { InquiryForm } from "@/components/site/InquiryForm";
 export function LowerSections({
   content,
   T,
+  Img,
   Gallery,
   blogHref,
   latestPosts,
   editable,
   siteSlug,
+  onDeleteSection,
   tone = "default",
   heading = "font-semibold tracking-tight",
 }: Pick<
   TemplateProps,
-  "content" | "T" | "Gallery" | "blogHref" | "latestPosts" | "editable" | "siteSlug"
+  | "content"
+  | "T"
+  | "Img"
+  | "Gallery"
+  | "blogHref"
+  | "latestPosts"
+  | "editable"
+  | "siteSlug"
+  | "onDeleteSection"
 > & {
   /** 섹션 구분 배경 톤 */
   tone?: "default" | "soft" | "dark";
@@ -53,7 +63,13 @@ export function LowerSections({
   return (
     <>
       {/* (프리미엄) 풍부한 홈페이지 섹션 — 강점 다음, 갤러리 앞 */}
-      <SiteSections sections={content.sections} T={T} />
+      <SiteSections
+        sections={content.sections}
+        T={T}
+        Img={Img}
+        editable={editable}
+        onDelete={onDeleteSection}
+      />
 
       {(gallery.length > 0 || editable) && (
         <section className="border-t border-border">

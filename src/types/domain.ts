@@ -215,7 +215,7 @@ export const SITE_SECTION_TYPES = [
 ] as const;
 export type SiteSectionType = (typeof SITE_SECTION_TYPES)[number];
 
-export type SiteSection =
+export type SiteSection = { image?: string } & (
   | { type: "features"; title: string; subtitle?: string; items: SiteFeatureItem[] }
   | { type: "pricing"; title: string; subtitle?: string; items: SitePricingItem[] }
   | { type: "steps"; title: string; subtitle?: string; items: SiteStepItem[] }
@@ -228,7 +228,8 @@ export type SiteSection =
     }
   | { type: "stats"; title?: string; items: SiteStatItem[] }
   | { type: "cta"; title: string; body?: string; ctaLabel?: string }
-  | { type: "richText"; title: string; body: string };
+  | { type: "richText"; title: string; body: string }
+);
 
 /**
  * (프리미엄) 멀티페이지 — 홈 외 추가 페이지. 각 페이지는 선택적 hero + 섹션 배열로

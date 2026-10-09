@@ -278,6 +278,21 @@ export function WebsiteEditor({
         },
       ],
     });
+  // 섹션(단락) 삭제 — 하위 페이지 / 홈 각각.
+  const removePageSection = (pageIndex: number, sectionIndex: number) =>
+    setContent((c) => ({
+      ...c,
+      pages: (c.pages ?? []).map((p, j) =>
+        j === pageIndex
+          ? { ...p, sections: p.sections.filter((_, k) => k !== sectionIndex) }
+          : p,
+      ),
+    }));
+  const removeHomeSection = (sectionIndex: number) =>
+    setContent((c) => ({
+      ...c,
+      sections: (c.sections ?? []).filter((_, k) => k !== sectionIndex),
+    }));
 
   /** 구글 지도에서 가져온 정보를 콘텐츠에 병합한다 — 가져온 값이 있으면 우선. */
   const applyGoogleImport = useCallback((d: PlaceImportData) => {
@@ -1041,7 +1056,10 @@ export function WebsiteEditor({
                 <SiteSections
                   sections={pages[currentPage].sections}
                   T={editRenderer}
+                  Img={editImgRenderer}
                   pathPrefix={`pages.${currentPage}.`}
+                  editable
+                  onDelete={(i) => removePageSection(currentPage, i)}
                 />
               </div>
             ) : (
@@ -1052,6 +1070,7 @@ export function WebsiteEditor({
                 Gallery={editGallery}
                 editable
                 scoped
+                onDeleteSection={removeHomeSection}
               />
             )}
           </div>

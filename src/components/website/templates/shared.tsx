@@ -49,6 +49,8 @@ export interface TemplateProps {
   siteSlug?: string;
   /** 사이트 주인이 볼 때만 넘어오는 편집 화면 링크 — 헤더에 "편집" 바로가기를 표시한다. */
   editHref?: string;
+  /** (에디터) 홈의 풍부한 섹션(단락) 삭제 콜백. */
+  onDeleteSection?: (index: number) => void;
 }
 
 /** Server-safe renderer: plain text, no interactivity.

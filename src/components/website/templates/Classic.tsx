@@ -24,6 +24,7 @@ export function ClassicTemplate({
   editable,
   siteSlug,
   editHref,
+  onDeleteSection,
 }: TemplateProps) {
   const { hero, story, offers, whyChooseUs, contact } = content;
   const L = SITE_UI[siteLang(content)];
@@ -117,7 +118,13 @@ export function ClassicTemplate({
       </section>
 
       {/* (프리미엄) 풍부한 홈페이지 섹션 */}
-      <SiteSections sections={content.sections} T={T} />
+      <SiteSections
+        sections={content.sections}
+        T={T}
+        Img={Img}
+        editable={editable}
+        onDelete={onDeleteSection}
+      />
 
       {(gallery.length > 0 || editable) && (
         <section className="border-t border-border">

@@ -5,6 +5,7 @@ import {
   SiteLogo,
   siteLang,
   staticText,
+  staticImage,
 } from "./templates/shared";
 import { SiteNav } from "./templates/SiteNav";
 import { SiteSections } from "./templates/SiteSections";
@@ -77,7 +78,7 @@ export function SubPageRenderer({
         </section>
       )}
 
-      <SiteSections sections={page.sections} T={staticText} />
+      <SiteSections sections={page.sections} T={staticText} Img={staticImage} />
 
       <footer className="border-t border-border bg-white">
         <div className="mx-auto max-w-5xl px-5 py-8 text-center text-sm text-muted">

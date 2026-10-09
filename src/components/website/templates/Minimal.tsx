@@ -24,6 +24,7 @@ export function MinimalTemplate({
   editable,
   siteSlug,
   editHref,
+  onDeleteSection,
 }: TemplateProps) {
   const { hero, story, offers, whyChooseUs, contact } = content;
   const L = SITE_UI[siteLang(content)];
@@ -121,7 +122,13 @@ export function MinimalTemplate({
       </section>
 
       {/* (프리미엄) 풍부한 홈페이지 섹션 */}
-      <SiteSections sections={content.sections} T={T} />
+      <SiteSections
+        sections={content.sections}
+        T={T}
+        Img={Img}
+        editable={editable}
+        onDelete={onDeleteSection}
+      />
 
       <div className="mx-auto max-w-2xl px-6">
         <hr className="border-border" />

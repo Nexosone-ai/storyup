@@ -1,5 +1,5 @@
 import type { SiteSection } from "@/types/domain";
-import type { TextRenderer } from "./shared";
+import type { TextRenderer, ImageRenderer } from "./shared";
 
 /**
  * (프리미엄) 풍부한 홈페이지 섹션 렌더러 — content.sections 배열을 유형별 블록으로
@@ -9,19 +9,53 @@ import type { TextRenderer } from "./shared";
 export function SiteSections({
   sections,
   T,
+  Img,
   pathPrefix = "",
+  editable = false,
+  onDelete,
 }: {
   sections?: SiteSection[];
   T: TextRenderer;
+  /** 이미지 슬롯 렌더러 — 공개는 staticImage, 에디터는 업로드·AI 생성 슬롯. */
+  Img?: ImageRenderer;
   /** 편집 경로 접두사 — 홈은 "", 하위 페이지는 "pages.{i}." (setPath 중첩 경로). */
   pathPrefix?: string;
+  editable?: boolean;
+  /** 에디터에서 해당 섹션(단락)을 삭제. */
+  onDelete?: (index: number) => void;
 }) {
   if (!sections?.length) return null;
   return (
     <>
-      {sections.map((s, i) => (
-        <SectionBlock key={i} section={s} base={`${pathPrefix}sections.${i}`} T={T} />
-      ))}
+      {sections.map((s, i) => {
+        const base = `${pathPrefix}sections.${i}`;
+        return (
+          <div key={i} className="relative">
+            {editable && onDelete && (
+              <button
+                type="button"
+                onClick={() => onDelete(i)}
+                title="섹션 삭제"
+                className="absolute right-4 top-4 z-10 rounded-lg border border-border bg-white/90 px-2.5 py-1 text-xs font-medium text-danger shadow-sm hover:bg-white"
+              >
+                ✕ 삭제
+              </button>
+            )}
+            {Img && (editable || s.image) && (
+              <div className="mx-auto max-w-5xl px-5 pt-12">
+                <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl border border-border bg-surface-muted/40">
+                  {Img({
+                    path: `${base}.image`,
+                    value: s.image,
+                    aspect: "16:9",
+                  })}
+                </div>
+              </div>
+            )}
+            <SectionBlock section={s} base={base} T={T} />
+          </div>
+        );
+      })}
     </>
   );
 }
