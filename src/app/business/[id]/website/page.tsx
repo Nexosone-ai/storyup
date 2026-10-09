@@ -60,7 +60,12 @@ export default async function WebsitePage({
     const plan = user ? getPlanById(await getPlanId(user.id)) : null;
     const maxLayouts = plan?.siteLayouts ?? 1;
     body = (
-      <WebsiteEditor businessId={id} website={website} maxLayouts={maxLayouts} />
+      <WebsiteEditor
+        businessId={id}
+        website={website}
+        maxLayouts={maxLayouts}
+        richAllowed={plan?.fullHomepage === true}
+      />
     );
   }
 

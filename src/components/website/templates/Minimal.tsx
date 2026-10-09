@@ -11,6 +11,7 @@ import {
   type TemplateProps,
 } from "./shared";
 import { BlogPreviewCards } from "./BlogPreview";
+import { SiteSections } from "./SiteSections";
 import { InquiryForm } from "@/components/site/InquiryForm";
 
 export function MinimalTemplate({
@@ -125,6 +126,9 @@ export function MinimalTemplate({
           ))}
         </div>
       </section>
+
+      {/* (프리미엄) 풍부한 홈페이지 섹션 */}
+      <SiteSections sections={content.sections} T={T} />
 
       <div className="mx-auto max-w-2xl px-6">
         <hr className="border-border" />

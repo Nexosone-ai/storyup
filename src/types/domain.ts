@@ -173,6 +173,63 @@ export type WebsitePaletteId = (typeof WEBSITE_PALETTES)[number];
 export const WEBSITE_FONTS = ["default", "noto-sans", "serif", "gowun"] as const;
 export type WebsiteFontId = (typeof WEBSITE_FONTS)[number];
 
+/** (프리미엄) 풍부한 홈페이지 섹션 — 가변 유형의 콘텐츠 블록. */
+export interface SiteFeatureItem {
+  title: string;
+  description: string;
+}
+export interface SitePricingItem {
+  name: string;
+  price: string;
+  description?: string;
+  features?: string[];
+  highlighted?: boolean;
+}
+export interface SiteStepItem {
+  title: string;
+  description: string;
+}
+export interface SiteFaqItem {
+  q: string;
+  a: string;
+}
+export interface SiteTestimonialItem {
+  quote: string;
+  author: string;
+  role?: string;
+}
+export interface SiteStatItem {
+  value: string;
+  label: string;
+}
+
+export const SITE_SECTION_TYPES = [
+  "features",
+  "pricing",
+  "steps",
+  "faq",
+  "testimonials",
+  "stats",
+  "cta",
+  "richText",
+] as const;
+export type SiteSectionType = (typeof SITE_SECTION_TYPES)[number];
+
+export type SiteSection =
+  | { type: "features"; title: string; subtitle?: string; items: SiteFeatureItem[] }
+  | { type: "pricing"; title: string; subtitle?: string; items: SitePricingItem[] }
+  | { type: "steps"; title: string; subtitle?: string; items: SiteStepItem[] }
+  | { type: "faq"; title: string; subtitle?: string; items: SiteFaqItem[] }
+  | {
+      type: "testimonials";
+      title: string;
+      subtitle?: string;
+      items: SiteTestimonialItem[];
+    }
+  | { type: "stats"; title?: string; items: SiteStatItem[] }
+  | { type: "cta"; title: string; body?: string; ctaLabel?: string }
+  | { type: "richText"; title: string; body: string };
+
 export interface WebsiteContent {
   /** Chosen layout template (defaults to "classic"). */
   template?: WebsiteTemplateId;
@@ -214,6 +271,12 @@ export interface WebsiteContent {
     x?: string;
     website: string;
   };
+  /**
+   * (프리미엄) 풍부한 홈페이지 섹션 — 사용자가 입력한 자료로 AI가 구성한 가변
+   * 섹션 배열. 기존 고정 섹션(강점) 다음, 갤러리/연락처 앞에 순서대로 렌더된다.
+   * 없거나 빈 배열이면 기존 랜딩페이지와 동일하게 동작(하위호환).
+   */
+  sections?: SiteSection[];
   /** Optional photo gallery band (user-uploaded image URLs). */
   gallery?: string[];
   /**

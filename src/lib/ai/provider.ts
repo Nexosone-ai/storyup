@@ -36,6 +36,14 @@ export interface AIProvider {
     language?: PromptLanguage,
   ): Promise<WebsiteContent>;
 
+  /** (프리미엄) 사용자 자료(brief)로 풍부한 섹션·컨셉까지 생성한다. */
+  generateRichWebsite(
+    business: BusinessInterviewInput,
+    brand: BrandStoryResult,
+    brief: string,
+    language?: PromptLanguage,
+  ): Promise<WebsiteContent>;
+
   generateBlog(input: BlogPromptInput): Promise<BlogArticleResult>;
 
   /** 음성 녹음 전사문을 블로그 글로 재구성한다. */

@@ -41,14 +41,20 @@ export function WebsiteEditor({
   businessId,
   website,
   maxLayouts = 1,
+  richAllowed = false,
 }: {
   businessId: string;
   website: WebsiteRow;
   /** 플랜별 사용 가능한 레이아웃 수 (Free 1 · Basic 3 · Pro 9). 그 이후는 잠금. */
   maxLayouts?: number;
+  /** AI 상세 홈페이지 생성 가능 플랜(Pro+)인지. false면 잠금. */
+  richAllowed?: boolean;
 }) {
   const ko = useLocale() === "ko";
   const [content, setContent] = useState<WebsiteContent>(website.content);
+  const [brief, setBrief] = useState("");
+  const [richBusy, setRichBusy] = useState(false);
+  const [richNote, setRichNote] = useState<string | null>(null);
   const [status, setStatus] = useState(website.status);
   const [device, setDevice] = useState<Device>("desktop");
   const [note, setNote] = useState<string | null>(null);
@@ -108,6 +114,47 @@ export function WebsiteEditor({
       ),
     [businessId],
   );
+
+  /** (프리미엄) 자료를 입력하면 AI가 풍부한 섹션·컨셉까지 다시 구성한다. */
+  const generateRich = () => {
+    if (richBusy || !richAllowed) return;
+    if (brief.trim().length < 20) {
+      setRichNote(
+        ko
+          ? "홈페이지에 담을 자료를 조금 더 자세히 입력해주세요."
+          : "Please add more detail about your business.",
+      );
+      return;
+    }
+    setRichBusy(true);
+    setRichNote(
+      ko
+        ? "자료를 바탕으로 홈페이지를 구성하고 있어요… (최대 1분)"
+        : "Building your homepage from the materials… (up to 1 min)",
+    );
+    void (async () => {
+      try {
+        const res = await fetch("/api/ai/website", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ businessId, rich: true, brief: brief.trim() }),
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          setRichNote(json.error ?? (ko ? "생성에 실패했습니다." : "Failed."));
+          setRichBusy(false);
+          return;
+        }
+        setRichNote(ko ? "완성됐어요! 미리보기를 불러옵니다…" : "Done! Reloading…");
+        window.location.reload();
+      } catch {
+        setRichNote(
+          ko ? "생성에 실패했습니다. 다시 시도해주세요." : "Failed. Please try again.",
+        );
+        setRichBusy(false);
+      }
+    })();
+  };
 
   /** 구글 지도에서 가져온 정보를 콘텐츠에 병합한다 — 가져온 값이 있으면 우선. */
   const applyGoogleImport = useCallback((d: PlaceImportData) => {
@@ -439,6 +486,73 @@ export function WebsiteEditor({
             {adsenseNote.text}
           </p>
         )}
+      </div>
+
+      {/* (프리미엄) AI 상세 홈페이지 만들기 */}
+      <div className="rounded-xl border border-primary/30 bg-primary-soft/30 p-4">
+        <div className="flex items-start gap-2">
+          <span aria-hidden className="text-base">
+            ✨
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">
+              {ko ? "AI 상세 홈페이지 만들기" : "AI detailed homepage"}
+              <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                PRO
+              </span>
+            </p>
+            <p className="mt-0.5 text-xs text-muted">
+              {ko
+                ? "서비스·요금·이용절차·FAQ·후기 등 자료를 자세히 적으면, AI가 섹션을 풍부하게 구성하고 어울리는 컨셉(디자인·색)까지 골라 진짜 홈페이지처럼 다시 만들어줘요. (블로그는 그대로 유지)"
+                : "Describe your services, pricing, process, FAQs, reviews, etc. — AI rebuilds a rich, homepage-like page with matching concept. (Blog stays.)"}
+            </p>
+
+            {richAllowed ? (
+              <div className="mt-3 space-y-2">
+                <textarea
+                  value={brief}
+                  onChange={(e) => setBrief(e.target.value)}
+                  disabled={richBusy}
+                  maxLength={6000}
+                  placeholder={
+                    ko
+                      ? "예) 제공 서비스와 각 설명, 요금(있으면), 이용 절차, 자주 묻는 질문, 고객 후기, 강조하고 싶은 숫자/실적 등을 자유롭게 적어주세요."
+                      : "e.g. your services with descriptions, pricing (if any), steps, FAQs, testimonials, key numbers…"
+                  }
+                  className="min-h-32 w-full resize-y rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-foreground placeholder:text-muted focus:border-primary focus:outline-none disabled:opacity-60"
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button size="sm" onClick={generateRich} disabled={richBusy}>
+                    {richBusy ? (
+                      <Spinner className="size-4" />
+                    ) : ko ? (
+                      "상세 홈페이지 생성"
+                    ) : (
+                      "Generate homepage"
+                    )}
+                  </Button>
+                  <span className="text-xs text-muted">
+                    {ko
+                      ? "기존 내용을 새로 구성합니다. 생성 후 미리보기에서 각 문구를 바로 편집할 수 있어요."
+                      : "Rebuilds the page. You can edit any text in the preview afterwards."}
+                  </span>
+                </div>
+                {richNote && (
+                  <p className="text-xs font-medium text-primary">{richNote}</p>
+                )}
+              </div>
+            ) : (
+              <a
+                href="/dashboard/plans"
+                className="mt-2 inline-block text-xs font-semibold text-primary underline"
+              >
+                {ko
+                  ? "Pro 플랜에서 사용할 수 있어요 — 업그레이드 →"
+                  : "Available on Pro — upgrade →"}
+              </a>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Google Maps import */}

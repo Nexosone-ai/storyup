@@ -11,6 +11,7 @@ import {
   type TemplateProps,
 } from "./shared";
 import { BlogPreviewCards } from "./BlogPreview";
+import { SiteSections } from "./SiteSections";
 import { InquiryForm } from "@/components/site/InquiryForm";
 
 export function ClassicTemplate({
@@ -116,6 +117,9 @@ export function ClassicTemplate({
           ))}
         </div>
       </section>
+
+      {/* (프리미엄) 풍부한 홈페이지 섹션 */}
+      <SiteSections sections={content.sections} T={T} />
 
       {(gallery.length > 0 || editable) && (
         <section className="border-t border-border">

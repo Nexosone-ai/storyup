@@ -7,10 +7,16 @@ import {
 } from "@/lib/ai/billing";
 import { trackGrowthActivity } from "@/lib/gamification/engine";
 import { getLocale } from "@/lib/i18n";
-import type {
-  BusinessInterviewInput,
-  BrandStoryResult,
-  BrandTone,
+import { getPlanId } from "@/lib/subscription";
+import { getPlanById } from "@/lib/plans";
+import { normalizeSiteSections } from "@/lib/website/sections";
+import {
+  WEBSITE_TEMPLATES,
+  WEBSITE_PALETTES,
+  WEBSITE_FONTS,
+  type BusinessInterviewInput,
+  type BrandStoryResult,
+  type BrandTone,
 } from "@/types/domain";
 
 export const maxDuration = 60;
@@ -28,9 +34,14 @@ export async function POST(request: Request) {
       { status: 401 },
     );
 
-  let businessId: string;
+  let businessId = "";
+  let rich = false;
+  let brief = "";
   try {
-    businessId = String((await request.json()).businessId);
+    const body = await request.json();
+    businessId = String(body.businessId);
+    rich = body.rich === true;
+    brief = String(body.brief ?? "").trim();
   } catch {
     return NextResponse.json(
       { error: ko ? "잘못된 요청입니다." : "Invalid request." },
@@ -86,6 +97,29 @@ export async function POST(request: Request) {
     tone: brand.tone ?? "Friendly",
   };
 
+  // 상세 홈페이지(rich)는 Pro 이상 전용 — 서버에서 강제(클라이언트 우회 방지).
+  if (rich) {
+    const plan = getPlanById(await getPlanId(user.id));
+    if (plan.fullHomepage !== true)
+      return NextResponse.json(
+        {
+          error: ko
+            ? "상세 홈페이지 생성은 Pro 이상 플랜에서 가능합니다."
+            : "Detailed homepage generation requires the Pro plan or higher.",
+        },
+        { status: 403 },
+      );
+    if (brief.length < 20)
+      return NextResponse.json(
+        {
+          error: ko
+            ? "홈페이지에 담을 자료를 조금 더 자세히 입력해주세요."
+            : "Please provide more detailed materials for the homepage.",
+        },
+        { status: 400 },
+      );
+  }
+
   let billing;
   try {
     billing = await chargeWebsiteGeneration(
@@ -100,13 +134,32 @@ export async function POST(request: Request) {
   }
 
   try {
-    const content = await getAIProvider().generateWebsite(
-      input,
-      brandResult,
-      locale,
-    );
+    const provider = getAIProvider();
+    const content = rich
+      ? await provider.generateRichWebsite(input, brandResult, brief, locale)
+      : await provider.generateWebsite(input, brandResult, locale);
     // 사이트 콘텐츠 언어를 저장 — 템플릿 크롬(메뉴·연락처 라벨)이 이를 따른다.
     content.language = locale;
+
+    // 풍부한 섹션 정규화(깨진 JSON 방지) + 컨셉(template/palette/font) 허용값 검증.
+    content.sections = normalizeSiteSections(content.sections);
+    if (
+      content.template &&
+      !(WEBSITE_TEMPLATES as readonly string[]).includes(content.template)
+    )
+      delete content.template;
+    if (content.style) {
+      if (
+        content.style.palette &&
+        !(WEBSITE_PALETTES as readonly string[]).includes(content.style.palette)
+      )
+        delete content.style.palette;
+      if (
+        content.style.font &&
+        !(WEBSITE_FONTS as readonly string[]).includes(content.style.font)
+      )
+        delete content.style.font;
+    }
 
     // 신규 생성인지(보상 구분) 업서트 전에 확인
     const { data: existingSite } = await supabase
