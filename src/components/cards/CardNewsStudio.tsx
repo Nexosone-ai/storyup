@@ -132,7 +132,7 @@ export function CardNewsStudio({
   };
   const setCardText = (
     idx: number,
-    field: "title" | "subtitle" | "heading" | "body" | "text",
+    field: "title" | "subtitle" | "heading" | "body" | "text" | "handle",
     value: string,
   ) =>
     editCard((d) => {
@@ -141,6 +141,7 @@ export function CardNewsStudio({
         else if (field === "subtitle") d.cover.subtitle = value;
       } else if (idx === d.slides.length + 1) {
         if (field === "text") d.cta.text = value;
+        else if (field === "handle") d.cta.handle = value;
       } else {
         const s = d.slides[idx - 1];
         if (s && field === "heading") s.heading = value;
@@ -171,7 +172,10 @@ export function CardNewsStudio({
         throw new Error(
           json.error ?? (ko ? "생성에 실패했습니다." : "Generation failed."),
         );
-      setData(json.cardNews as CardNewsResult);
+      const cn = json.cardNews as CardNewsResult;
+      // 마지막(CTA) 카드의 핸들은 사용자가 직접 넣도록 예시 값으로 둔다 (@아이디/이메일 등).
+      cn.cta.handle = ko ? "@아이디" : "@yourid";
+      setData(cn);
       setImages([]); // reset backdrops for the new set
       setDataPostId(postId);
     } catch (e) {
@@ -763,7 +767,15 @@ export function CardNewsStudio({
                       );
                     if (c.kind === "cta")
                       return (
-                        <CardField label={ko ? "문구" : "Text"} value={c.text} rows={2} onChange={(v) => setCardText(selectedCard, "text", v)} />
+                        <>
+                          <CardField label={ko ? "문구" : "Text"} value={c.text} rows={2} onChange={(v) => setCardText(selectedCard, "text", v)} />
+                          <CardField
+                            label={ko ? "아이디/연락처 (예: @아이디, 이메일)" : "Handle/contact (e.g. @id, email)"}
+                            value={c.handle}
+                            rows={1}
+                            onChange={(v) => setCardText(selectedCard, "handle", v)}
+                          />
+                        </>
                       );
                     return (
                       <>
