@@ -6,7 +6,15 @@ import {
   type TemplateProps,
 } from "./shared";
 import { SiteNav } from "./SiteNav";
-import { LowerSections } from "./LowerSections";
+import { SiteSections } from "./SiteSections";
+import {
+  GalleryBlock,
+  BlogBlock,
+  MapBlock,
+  ContactBlock,
+  FooterBlock,
+  LandingSections,
+} from "./lowerBlocks";
 
 /** Bold — 다크 히어로 + 큰 타이포 + 강한 대비, 번호형 굵은 카드. */
 export function BoldTemplate(props: TemplateProps) {
@@ -16,6 +24,60 @@ export function BoldTemplate(props: TemplateProps) {
   const L = SITE_UI[lang];
   const showContact =
     !!siteSlug || !!editable || CONTACT_FIELDS.some(([k]) => !!contact[k]);
+  const h = "font-extrabold tracking-tight";
+
+  const blocks = {
+    story: (
+      <section id="story" className="mx-auto max-w-3xl px-5 py-20">
+        {T({ path: "story.title", value: story.title, as: "h2", className: "mb-5 text-3xl font-extrabold tracking-tight" })}
+        {T({ path: "story.body", value: story.body, as: "p", className: "whitespace-pre-wrap text-lg leading-relaxed text-foreground/80" })}
+      </section>
+    ),
+    offers: (
+      <section className="bg-surface-muted/60">
+        <div className="mx-auto max-w-6xl px-5 py-20">
+          {T({ path: "offers.title", value: offers.title, as: "h2", className: "mb-10 text-3xl font-extrabold tracking-tight" })}
+          <div className="grid gap-6 md:grid-cols-3">
+            {offers.items.map((item, i) => (
+              <div key={i} className="rounded-3xl border-2 border-foreground bg-white p-7">
+                <span className="text-5xl font-black text-primary">{String(i + 1).padStart(2, "0")}</span>
+                {(item.image || editable) && (
+                  <div className="relative mt-4 aspect-[16/10] w-full overflow-hidden rounded-2xl border border-border">
+                    {Img({ path: `offers.items.${i}.image`, value: item.image, aspect: "16:9" })}
+                  </div>
+                )}
+                {T({ path: `offers.items.${i}.title`, value: item.title, as: "h3", className: "mt-4 text-xl font-bold" })}
+                {T({ path: `offers.items.${i}.description`, value: item.description, as: "p", className: "mt-2 leading-relaxed text-muted" })}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    ),
+    whyChooseUs: (
+      <section className="mx-auto max-w-5xl px-5 py-20">
+        {T({ path: "whyChooseUs.title", value: whyChooseUs.title, as: "h2", className: "mb-10 text-3xl font-extrabold tracking-tight" })}
+        <div className="space-y-6">
+          {whyChooseUs.items.map((item, i) => (
+            <div key={i} className="flex items-start gap-6 border-b border-border pb-6">
+              <span className="shrink-0 text-4xl font-black text-primary/30">{String(i + 1).padStart(2, "0")}</span>
+              <div>
+                {T({ path: `whyChooseUs.items.${i}.title`, value: item.title, as: "h3", className: "text-xl font-bold" })}
+                {T({ path: `whyChooseUs.items.${i}.description`, value: item.description, as: "p", className: "mt-1.5 leading-relaxed text-muted" })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    ),
+    sections: (
+      <SiteSections sections={content.sections} T={T} Img={Img} editable={editable} onDelete={props.onDeleteSection} />
+    ),
+    gallery: <GalleryBlock {...props} heading={h} />,
+    blog: <BlogBlock {...props} heading={h} />,
+    map: <MapBlock {...props} heading={h} />,
+    contact: <ContactBlock {...props} tone="dark" heading={h} />,
+  };
 
   return (
     <div>
@@ -47,50 +109,8 @@ export function BoldTemplate(props: TemplateProps) {
         </div>
       </section>
 
-      {/* Story */}
-      <section id="story" className="mx-auto max-w-3xl px-5 py-20">
-        {T({ path: "story.title", value: story.title, as: "h2", className: "mb-5 text-3xl font-extrabold tracking-tight" })}
-        {T({ path: "story.body", value: story.body, as: "p", className: "whitespace-pre-wrap text-lg leading-relaxed text-foreground/80" })}
-      </section>
-
-      {/* Offers — 번호형 굵은 카드 */}
-      <section className="bg-surface-muted/60">
-        <div className="mx-auto max-w-6xl px-5 py-20">
-          {T({ path: "offers.title", value: offers.title, as: "h2", className: "mb-10 text-3xl font-extrabold tracking-tight" })}
-          <div className="grid gap-6 md:grid-cols-3">
-            {offers.items.map((item, i) => (
-              <div key={i} className="rounded-3xl border-2 border-foreground bg-white p-7">
-                <span className="text-5xl font-black text-primary">{String(i + 1).padStart(2, "0")}</span>
-                {(item.image || editable) && (
-                  <div className="relative mt-4 aspect-[16/10] w-full overflow-hidden rounded-2xl border border-border">
-                    {Img({ path: `offers.items.${i}.image`, value: item.image, aspect: "16:9" })}
-                  </div>
-                )}
-                {T({ path: `offers.items.${i}.title`, value: item.title, as: "h3", className: "mt-4 text-xl font-bold" })}
-                {T({ path: `offers.items.${i}.description`, value: item.description, as: "p", className: "mt-2 leading-relaxed text-muted" })}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Why — 큰 번호 가로 리스트 */}
-      <section className="mx-auto max-w-5xl px-5 py-20">
-        {T({ path: "whyChooseUs.title", value: whyChooseUs.title, as: "h2", className: "mb-10 text-3xl font-extrabold tracking-tight" })}
-        <div className="space-y-6">
-          {whyChooseUs.items.map((item, i) => (
-            <div key={i} className="flex items-start gap-6 border-b border-border pb-6">
-              <span className="shrink-0 text-4xl font-black text-primary/30">{String(i + 1).padStart(2, "0")}</span>
-              <div>
-                {T({ path: `whyChooseUs.items.${i}.title`, value: item.title, as: "h3", className: "text-xl font-bold" })}
-                {T({ path: `whyChooseUs.items.${i}.description`, value: item.description, as: "p", className: "mt-1.5 leading-relaxed text-muted" })}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <LowerSections {...props} tone="dark" heading="font-extrabold tracking-tight" />
+      <LandingSections content={content} blocks={blocks} />
+      <FooterBlock content={content} />
     </div>
   );
 }

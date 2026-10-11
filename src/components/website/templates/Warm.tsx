@@ -6,7 +6,15 @@ import {
   type TemplateProps,
 } from "./shared";
 import { SiteNav } from "./SiteNav";
-import { LowerSections } from "./LowerSections";
+import { SiteSections } from "./SiteSections";
+import {
+  GalleryBlock,
+  BlogBlock,
+  MapBlock,
+  ContactBlock,
+  FooterBlock,
+  LandingSections,
+} from "./lowerBlocks";
 
 /** Warm — 크림 배경 + 둥근 부드러운 카드, 왼쪽 정렬의 아늑하고 친근한 느낌. */
 export function WarmTemplate(props: TemplateProps) {
@@ -17,6 +25,61 @@ export function WarmTemplate(props: TemplateProps) {
   const showContact =
     !!siteSlug || !!editable || CONTACT_FIELDS.some(([k]) => !!contact[k]);
   const cream = { backgroundColor: "#fbf7f1" };
+  const h = "font-bold tracking-tight";
+
+  const blocks = {
+    story: (
+      <section id="story" className="mx-auto max-w-3xl px-5 pb-16">
+        <div className="rounded-[2rem] bg-white/70 p-9">
+          {T({ path: "story.title", value: story.title, as: "h2", className: "mb-4 text-2xl font-bold tracking-tight" })}
+          {T({ path: "story.body", value: story.body, as: "p", className: "whitespace-pre-wrap leading-[1.9] text-foreground/75" })}
+        </div>
+      </section>
+    ),
+    offers: (
+      <section className="mx-auto max-w-5xl px-5 py-10">
+        {T({ path: "offers.title", value: offers.title, as: "h2", className: "mb-8 text-2xl font-bold tracking-tight" })}
+        <div className="grid gap-6 md:grid-cols-3">
+          {offers.items.map((item, i) => (
+            <div key={i} className="overflow-hidden rounded-[1.75rem] bg-white/70">
+              {(item.image || editable) && (
+                <div className="relative aspect-[16/11] w-full">
+                  {Img({ path: `offers.items.${i}.image`, value: item.image, aspect: "16:9" })}
+                </div>
+              )}
+              <div className="p-6">
+                {T({ path: `offers.items.${i}.title`, value: item.title, as: "h3", className: "font-bold" })}
+                {T({ path: `offers.items.${i}.description`, value: item.description, as: "p", className: "mt-2 text-sm leading-relaxed text-muted" })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    ),
+    whyChooseUs: (
+      <section className="mx-auto max-w-3xl px-5 py-14">
+        {T({ path: "whyChooseUs.title", value: whyChooseUs.title, as: "h2", className: "mb-8 text-2xl font-bold tracking-tight" })}
+        <div className="space-y-5">
+          {whyChooseUs.items.map((item, i) => (
+            <div key={i} className="flex items-start gap-4">
+              <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-primary-soft text-primary">✓</span>
+              <div>
+                {T({ path: `whyChooseUs.items.${i}.title`, value: item.title, as: "h3", className: "font-bold" })}
+                {T({ path: `whyChooseUs.items.${i}.description`, value: item.description, as: "p", className: "mt-1 text-sm leading-relaxed text-muted" })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    ),
+    sections: (
+      <SiteSections sections={content.sections} T={T} Img={Img} editable={editable} onDelete={props.onDeleteSection} />
+    ),
+    gallery: <GalleryBlock {...props} heading={h} />,
+    blog: <BlogBlock {...props} heading={h} />,
+    map: <MapBlock {...props} heading={h} />,
+    contact: <ContactBlock {...props} tone="soft" heading={h} />,
+  };
 
   return (
     <div style={cream}>
@@ -48,51 +111,8 @@ export function WarmTemplate(props: TemplateProps) {
         )}
       </section>
 
-      {/* Story — 둥근 카드 */}
-      <section id="story" className="mx-auto max-w-3xl px-5 pb-16">
-        <div className="rounded-[2rem] bg-white/70 p-9">
-          {T({ path: "story.title", value: story.title, as: "h2", className: "mb-4 text-2xl font-bold tracking-tight" })}
-          {T({ path: "story.body", value: story.body, as: "p", className: "whitespace-pre-wrap leading-[1.9] text-foreground/75" })}
-        </div>
-      </section>
-
-      {/* Offers — 부드러운 카드 */}
-      <section className="mx-auto max-w-5xl px-5 py-10">
-        {T({ path: "offers.title", value: offers.title, as: "h2", className: "mb-8 text-2xl font-bold tracking-tight" })}
-        <div className="grid gap-6 md:grid-cols-3">
-          {offers.items.map((item, i) => (
-            <div key={i} className="overflow-hidden rounded-[1.75rem] bg-white/70">
-              {(item.image || editable) && (
-                <div className="relative aspect-[16/11] w-full">
-                  {Img({ path: `offers.items.${i}.image`, value: item.image, aspect: "16:9" })}
-                </div>
-              )}
-              <div className="p-6">
-                {T({ path: `offers.items.${i}.title`, value: item.title, as: "h3", className: "font-bold" })}
-                {T({ path: `offers.items.${i}.description`, value: item.description, as: "p", className: "mt-2 text-sm leading-relaxed text-muted" })}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Why — 체크 리스트 */}
-      <section className="mx-auto max-w-3xl px-5 py-14">
-        {T({ path: "whyChooseUs.title", value: whyChooseUs.title, as: "h2", className: "mb-8 text-2xl font-bold tracking-tight" })}
-        <div className="space-y-5">
-          {whyChooseUs.items.map((item, i) => (
-            <div key={i} className="flex items-start gap-4">
-              <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-primary-soft text-primary">✓</span>
-              <div>
-                {T({ path: `whyChooseUs.items.${i}.title`, value: item.title, as: "h3", className: "font-bold" })}
-                {T({ path: `whyChooseUs.items.${i}.description`, value: item.description, as: "p", className: "mt-1 text-sm leading-relaxed text-muted" })}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <LowerSections {...props} tone="soft" heading="font-bold tracking-tight" />
+      <LandingSections content={content} blocks={blocks} />
+      <FooterBlock content={content} />
     </div>
   );
 }

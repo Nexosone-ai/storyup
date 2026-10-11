@@ -6,7 +6,15 @@ import {
   type TemplateProps,
 } from "./shared";
 import { SiteNav } from "./SiteNav";
-import { LowerSections } from "./LowerSections";
+import { SiteSections } from "./SiteSections";
+import {
+  GalleryBlock,
+  BlogBlock,
+  MapBlock,
+  ContactBlock,
+  FooterBlock,
+  LandingSections,
+} from "./lowerBlocks";
 
 /** Vibrant — 그라디언트 히어로 + 둥근 컬러 카드, 밝고 경쾌한 느낌. */
 export function VibrantTemplate(props: TemplateProps) {
@@ -16,6 +24,59 @@ export function VibrantTemplate(props: TemplateProps) {
   const L = SITE_UI[lang];
   const showContact =
     !!siteSlug || !!editable || CONTACT_FIELDS.some(([k]) => !!contact[k]);
+  const h = "font-extrabold tracking-tight";
+
+  const blocks = {
+    story: (
+      <section id="story" className="mx-auto max-w-3xl px-5 py-20 text-center">
+        {T({ path: "story.title", value: story.title, as: "h2", className: "mb-5 text-3xl font-extrabold tracking-tight" })}
+        {T({ path: "story.body", value: story.body, as: "p", className: "whitespace-pre-wrap text-lg leading-relaxed text-foreground/80" })}
+      </section>
+    ),
+    offers: (
+      <section className="mx-auto max-w-6xl px-5 py-16">
+        {T({ path: "offers.title", value: offers.title, as: "h2", className: "mb-10 text-center text-3xl font-extrabold tracking-tight" })}
+        <div className="grid gap-6 md:grid-cols-3">
+          {offers.items.map((item, i) => (
+            <div key={i} className="rounded-[1.75rem] bg-primary-soft/40 p-7 transition-transform hover:-translate-y-1">
+              {(item.image || editable) && (
+                <div className="relative mb-5 aspect-square w-full overflow-hidden rounded-3xl">
+                  {Img({ path: `offers.items.${i}.image`, value: item.image, aspect: "1:1" })}
+                </div>
+              )}
+              {T({ path: `offers.items.${i}.title`, value: item.title, as: "h3", className: "text-xl font-bold" })}
+              {T({ path: `offers.items.${i}.description`, value: item.description, as: "p", className: "mt-2 leading-relaxed text-muted" })}
+            </div>
+          ))}
+        </div>
+      </section>
+    ),
+    whyChooseUs: (
+      <section className="bg-surface-muted/50">
+        <div className="mx-auto max-w-5xl px-5 py-16">
+          {T({ path: "whyChooseUs.title", value: whyChooseUs.title, as: "h2", className: "mb-10 text-center text-3xl font-extrabold tracking-tight" })}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {whyChooseUs.items.map((item, i) => (
+              <div key={i} className="flex items-start gap-4 rounded-3xl bg-white p-5 shadow-sm">
+                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground">{i + 1}</span>
+                <div>
+                  {T({ path: `whyChooseUs.items.${i}.title`, value: item.title, as: "h3", className: "font-bold" })}
+                  {T({ path: `whyChooseUs.items.${i}.description`, value: item.description, as: "p", className: "mt-1 text-sm leading-relaxed text-muted" })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    ),
+    sections: (
+      <SiteSections sections={content.sections} T={T} Img={Img} editable={editable} onDelete={props.onDeleteSection} />
+    ),
+    gallery: <GalleryBlock {...props} heading={h} />,
+    blog: <BlogBlock {...props} heading={h} />,
+    map: <MapBlock {...props} heading={h} />,
+    contact: <ContactBlock {...props} heading={h} />,
+  };
 
   return (
     <div className="bg-white">
@@ -50,49 +111,8 @@ export function VibrantTemplate(props: TemplateProps) {
         </div>
       </section>
 
-      {/* Story */}
-      <section id="story" className="mx-auto max-w-3xl px-5 py-20 text-center">
-        {T({ path: "story.title", value: story.title, as: "h2", className: "mb-5 text-3xl font-extrabold tracking-tight" })}
-        {T({ path: "story.body", value: story.body, as: "p", className: "whitespace-pre-wrap text-lg leading-relaxed text-foreground/80" })}
-      </section>
-
-      {/* Offers — 둥근 컬러 카드 */}
-      <section className="mx-auto max-w-6xl px-5 py-16">
-        {T({ path: "offers.title", value: offers.title, as: "h2", className: "mb-10 text-center text-3xl font-extrabold tracking-tight" })}
-        <div className="grid gap-6 md:grid-cols-3">
-          {offers.items.map((item, i) => (
-            <div key={i} className="rounded-[1.75rem] bg-primary-soft/40 p-7 transition-transform hover:-translate-y-1">
-              {(item.image || editable) && (
-                <div className="relative mb-5 aspect-square w-full overflow-hidden rounded-3xl">
-                  {Img({ path: `offers.items.${i}.image`, value: item.image, aspect: "1:1" })}
-                </div>
-              )}
-              {T({ path: `offers.items.${i}.title`, value: item.title, as: "h3", className: "text-xl font-bold" })}
-              {T({ path: `offers.items.${i}.description`, value: item.description, as: "p", className: "mt-2 leading-relaxed text-muted" })}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Why — 알약형 카드 */}
-      <section className="bg-surface-muted/50">
-        <div className="mx-auto max-w-5xl px-5 py-16">
-          {T({ path: "whyChooseUs.title", value: whyChooseUs.title, as: "h2", className: "mb-10 text-center text-3xl font-extrabold tracking-tight" })}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {whyChooseUs.items.map((item, i) => (
-              <div key={i} className="flex items-start gap-4 rounded-3xl bg-white p-5 shadow-sm">
-                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground">{i + 1}</span>
-                <div>
-                  {T({ path: `whyChooseUs.items.${i}.title`, value: item.title, as: "h3", className: "font-bold" })}
-                  {T({ path: `whyChooseUs.items.${i}.description`, value: item.description, as: "p", className: "mt-1 text-sm leading-relaxed text-muted" })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <LowerSections {...props} tone="default" heading="font-extrabold tracking-tight" />
+      <LandingSections content={content} blocks={blocks} />
+      <FooterBlock content={content} />
     </div>
   );
 }

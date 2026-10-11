@@ -13,19 +13,21 @@ import { SiteNav } from "./SiteNav";
 import { BlogPreviewCards } from "./BlogPreview";
 import { SiteSections } from "./SiteSections";
 import { InquiryForm } from "@/components/site/InquiryForm";
+import { LandingSections } from "./lowerBlocks";
 
-export function MinimalTemplate({
-  content,
-  T,
-  Img,
-  Gallery,
-  blogHref,
-  latestPosts,
-  editable,
-  siteSlug,
-  editHref,
-  onDeleteSection,
-}: TemplateProps) {
+export function MinimalTemplate(props: TemplateProps) {
+  const {
+    content,
+    T,
+    Img,
+    Gallery,
+    blogHref,
+    latestPosts,
+    editable,
+    siteSlug,
+    editHref,
+    onDeleteSection,
+  } = props;
   const { hero, story, offers, whyChooseUs, contact } = content;
   const L = SITE_UI[siteLang(content)];
   const gallery = content.gallery ?? [];
@@ -34,6 +36,151 @@ export function MinimalTemplate({
   // 문의 폼이나 연락처 중 하나라도 있으면 Contact 섹션을 노출한다.
   const showContact =
     showInquiry || CONTACT_FIELDS.some(([key]) => !!contact[key]);
+  const hasSections = (content.sections?.length ?? 0) > 0;
+
+  // 섹션마다 위쪽 구분선을 포함해, 순서를 바꿔도 구분선이 깔끔하게 1개씩 유지된다.
+  const Divider = (
+    <div className="mx-auto max-w-2xl px-6">
+      <hr className="border-border" />
+    </div>
+  );
+
+  const blocks = {
+    story: (
+      <>
+        {Divider}
+        <section id="story" className="mx-auto max-w-2xl px-6 py-16">
+          {T({ path: "story.title", value: story.title, as: "h2", className: "eyebrow mb-6 block" })}
+          {T({ path: "story.body", value: story.body, as: "p", className: "whitespace-pre-wrap text-lg leading-[1.9] text-foreground/85" })}
+        </section>
+      </>
+    ),
+    offers: (
+      <>
+        {Divider}
+        <section className="mx-auto max-w-2xl px-6 py-16">
+          {T({ path: "offers.title", value: offers.title, as: "h2", className: "eyebrow mb-8 block" })}
+          <div className="space-y-8">
+            {offers.items.map((item, i) => (
+              <div key={i} className="flex gap-6">
+                <span className="font-mono text-sm text-muted">{String(i + 1).padStart(2, "0")}</span>
+                <div className="min-w-0 flex-1">
+                  {(item.image || editable) && (
+                    <div className="relative mb-3 aspect-[16/9] w-full overflow-hidden rounded-xl border border-border">
+                      {Img({ path: `offers.items.${i}.image`, value: item.image, aspect: "16:9" })}
+                    </div>
+                  )}
+                  {T({ path: `offers.items.${i}.title`, value: item.title, as: "h3", className: "text-xl font-semibold tracking-tight" })}
+                  {T({ path: `offers.items.${i}.description`, value: item.description, as: "p", className: "mt-1 leading-relaxed text-muted" })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </>
+    ),
+    whyChooseUs: (
+      <>
+        {Divider}
+        <section className="mx-auto max-w-2xl px-6 py-16">
+          {T({ path: "whyChooseUs.title", value: whyChooseUs.title, as: "h2", className: "eyebrow mb-8 block" })}
+          <div className="space-y-6">
+            {whyChooseUs.items.map((item, i) => (
+              <div key={i} className="flex items-start gap-4">
+                {(item.image || editable) && (
+                  <div className="relative aspect-square w-16 shrink-0 overflow-hidden rounded-lg border border-border">
+                    {Img({ path: `whyChooseUs.items.${i}.image`, value: item.image, aspect: "1:1" })}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  {T({ path: `whyChooseUs.items.${i}.title`, value: item.title, as: "h3", className: "text-lg font-semibold" })}
+                  {T({ path: `whyChooseUs.items.${i}.description`, value: item.description, as: "p", className: "mt-1 leading-relaxed text-muted" })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </>
+    ),
+    sections:
+      hasSections || editable ? (
+        <>
+          {Divider}
+          <SiteSections
+            sections={content.sections}
+            T={T}
+            Img={Img}
+            editable={editable}
+            onDelete={onDeleteSection}
+          />
+        </>
+      ) : null,
+    gallery:
+      gallery.length > 0 || editable ? (
+        <>
+          {Divider}
+          <section className="mx-auto max-w-2xl px-6 py-16">
+            <h2 className="eyebrow mb-8 block">Gallery</h2>
+            {Gallery(gallery)}
+          </section>
+        </>
+      ) : null,
+    blog:
+      blogHref && latestPosts && latestPosts.length > 0 ? (
+        <>
+          {Divider}
+          <section className="mx-auto max-w-2xl px-6 py-16">
+            <div className="mb-8 flex items-baseline justify-between">
+              <h2 className="eyebrow block">{L.latestPosts}</h2>
+              <Link href={blogHref} className="text-sm font-medium text-primary">
+                {L.viewAll}
+              </Link>
+            </div>
+            <BlogPreviewCards
+              posts={latestPosts}
+              blogHref={blogHref}
+              lang={siteLang(content)}
+              narrow
+            />
+          </section>
+        </>
+      ) : null,
+    map: contact.address ? (
+      <>
+        {Divider}
+        <section className="mx-auto max-w-2xl px-6 py-16">
+          <h2 className="eyebrow mb-6 block">{L.directions}</h2>
+          <SiteMap address={contact.address} lang={siteLang(content)} />
+        </section>
+      </>
+    ) : null,
+    contact: showContact ? (
+      <>
+        {Divider}
+        <section id="contact" className="mx-auto max-w-4xl px-6 py-16">
+          {/* 왼쪽: 사장님이 입력한 연락처 / 오른쪽: 문의 폼 */}
+          <div className="grid items-start gap-10 md:grid-cols-2">
+            <div>
+              <h2 className="eyebrow mb-6 block">Contact</h2>
+              <div className="space-y-2 text-foreground/85">
+                {CONTACT_FIELDS.map(([key, ko, en]) => (
+                  <ContactEntry
+                    key={key}
+                    k={key}
+                    label={siteLang(content) === "en" ? en : ko}
+                    value={contact[key] ?? ""}
+                    T={T}
+                    editable={editable}
+                  />
+                ))}
+              </div>
+            </div>
+            {showInquiry && <InquiryForm slug={siteSlug} lang={siteLang(content)} />}
+          </div>
+        </section>
+      </>
+    ) : null,
+  };
 
   return (
     <div className="bg-white">
@@ -65,146 +212,7 @@ export function MinimalTemplate({
         )}
       </section>
 
-      <div className="mx-auto max-w-2xl px-6">
-        <hr className="border-border" />
-      </div>
-
-      <section id="story" className="mx-auto max-w-2xl px-6 py-16">
-        {T({ path: "story.title", value: story.title, as: "h2", className: "eyebrow mb-6 block" })}
-        {T({ path: "story.body", value: story.body, as: "p", className: "whitespace-pre-wrap text-lg leading-[1.9] text-foreground/85" })}
-      </section>
-
-      <div className="mx-auto max-w-2xl px-6">
-        <hr className="border-border" />
-      </div>
-
-      <section className="mx-auto max-w-2xl px-6 py-16">
-        {T({ path: "offers.title", value: offers.title, as: "h2", className: "eyebrow mb-8 block" })}
-        <div className="space-y-8">
-          {offers.items.map((item, i) => (
-            <div key={i} className="flex gap-6">
-              <span className="font-mono text-sm text-muted">{String(i + 1).padStart(2, "0")}</span>
-              <div className="min-w-0 flex-1">
-                {(item.image || editable) && (
-                  <div className="relative mb-3 aspect-[16/9] w-full overflow-hidden rounded-xl border border-border">
-                    {Img({ path: `offers.items.${i}.image`, value: item.image, aspect: "16:9" })}
-                  </div>
-                )}
-                {T({ path: `offers.items.${i}.title`, value: item.title, as: "h3", className: "text-xl font-semibold tracking-tight" })}
-                {T({ path: `offers.items.${i}.description`, value: item.description, as: "p", className: "mt-1 leading-relaxed text-muted" })}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <div className="mx-auto max-w-2xl px-6">
-        <hr className="border-border" />
-      </div>
-
-      <section className="mx-auto max-w-2xl px-6 py-16">
-        {T({ path: "whyChooseUs.title", value: whyChooseUs.title, as: "h2", className: "eyebrow mb-8 block" })}
-        <div className="space-y-6">
-          {whyChooseUs.items.map((item, i) => (
-            <div key={i} className="flex items-start gap-4">
-              {(item.image || editable) && (
-                <div className="relative aspect-square w-16 shrink-0 overflow-hidden rounded-lg border border-border">
-                  {Img({ path: `whyChooseUs.items.${i}.image`, value: item.image, aspect: "1:1" })}
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                {T({ path: `whyChooseUs.items.${i}.title`, value: item.title, as: "h3", className: "text-lg font-semibold" })}
-                {T({ path: `whyChooseUs.items.${i}.description`, value: item.description, as: "p", className: "mt-1 leading-relaxed text-muted" })}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* (프리미엄) 풍부한 홈페이지 섹션 */}
-      <SiteSections
-        sections={content.sections}
-        T={T}
-        Img={Img}
-        editable={editable}
-        onDelete={onDeleteSection}
-      />
-
-      <div className="mx-auto max-w-2xl px-6">
-        <hr className="border-border" />
-      </div>
-
-      {(gallery.length > 0 || editable) && (
-        <>
-          <div className="mx-auto max-w-2xl px-6">
-            <hr className="border-border" />
-          </div>
-          <section className="mx-auto max-w-2xl px-6 py-16">
-            <h2 className="eyebrow mb-8 block">Gallery</h2>
-            {Gallery(gallery)}
-          </section>
-        </>
-      )}
-
-      {blogHref && latestPosts && latestPosts.length > 0 && (
-        <>
-          <div className="mx-auto max-w-2xl px-6">
-            <hr className="border-border" />
-          </div>
-          <section className="mx-auto max-w-2xl px-6 py-16">
-            <div className="mb-8 flex items-baseline justify-between">
-              <h2 className="eyebrow block">{L.latestPosts}</h2>
-              <Link href={blogHref} className="text-sm font-medium text-primary">
-                {L.viewAll}
-              </Link>
-            </div>
-            <BlogPreviewCards
-              posts={latestPosts}
-              blogHref={blogHref}
-              lang={siteLang(content)}
-              narrow
-            />
-          </section>
-        </>
-      )}
-
-      {contact.address && (
-        <>
-          <div className="mx-auto max-w-2xl px-6">
-            <hr className="border-border" />
-          </div>
-          <section className="mx-auto max-w-2xl px-6 py-16">
-            <h2 className="eyebrow mb-6 block">{L.directions}</h2>
-            <SiteMap address={contact.address} lang={siteLang(content)} />
-          </section>
-        </>
-      )}
-
-      {showContact && (
-        <section id="contact" className="mx-auto max-w-4xl px-6 py-16">
-          {/* 왼쪽: 사장님이 입력한 연락처 / 오른쪽: 문의 폼 */}
-          <div className="grid items-start gap-10 md:grid-cols-2">
-            <div>
-              <h2 className="eyebrow mb-6 block">Contact</h2>
-              <div className="space-y-2 text-foreground/85">
-                {CONTACT_FIELDS.map(([key, ko, en]) => (
-                  <ContactEntry
-                    key={key}
-                    k={key}
-                    label={siteLang(content) === "en" ? en : ko}
-                    value={contact[key] ?? ""}
-                    T={T}
-                    editable={editable}
-                  />
-                ))}
-              </div>
-            </div>
-            {showInquiry && (
-              <InquiryForm slug={siteSlug} lang={siteLang(content)} />
-            )}
-          </div>
-        </section>
-      )}
+      <LandingSections content={content} blocks={blocks} />
 
       <footer className="mx-auto max-w-2xl px-6 py-10 text-sm text-muted">
         {hero.businessName} · © {new Date().getFullYear()} ·{" "}

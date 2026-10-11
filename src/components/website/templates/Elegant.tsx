@@ -6,7 +6,15 @@ import {
   type TemplateProps,
 } from "./shared";
 import { SiteNav } from "./SiteNav";
-import { LowerSections } from "./LowerSections";
+import { SiteSections } from "./SiteSections";
+import {
+  GalleryBlock,
+  BlogBlock,
+  MapBlock,
+  ContactBlock,
+  FooterBlock,
+  LandingSections,
+} from "./lowerBlocks";
 
 /** Elegant — 세리프 헤드라인 + 넉넉한 여백 + 얇은 구분선, 절제된 고급 느낌. */
 export function ElegantTemplate(props: TemplateProps) {
@@ -17,6 +25,60 @@ export function ElegantTemplate(props: TemplateProps) {
   const showContact =
     !!siteSlug || !!editable || CONTACT_FIELDS.some(([k]) => !!contact[k]);
   const serif = { fontFamily: "Georgia, 'Times New Roman', serif" };
+  const h = "tracking-tight";
+
+  const blocks = {
+    story: (
+      <section id="story" className="mx-auto max-w-2xl px-5 py-20 text-center">
+        <div className="mx-auto mb-7 h-px w-16 bg-foreground/30" />
+        {T({ path: "story.title", value: story.title, as: "h2", className: "mb-6 text-3xl tracking-tight", style: serif })}
+        {T({ path: "story.body", value: story.body, as: "p", className: "whitespace-pre-wrap text-lg leading-[1.9] text-foreground/75" })}
+      </section>
+    ),
+    offers: (
+      <section className="border-y border-border">
+        <div className="mx-auto max-w-4xl px-5 py-20">
+          {T({ path: "offers.title", value: offers.title, as: "h2", className: "mb-10 text-center text-3xl tracking-tight", style: serif })}
+          <div className="divide-y divide-border">
+            {offers.items.map((item, i) => (
+              <div key={i} className="grid gap-5 py-8 md:grid-cols-[1fr_2fr] md:items-center">
+                {(item.image || editable) && (
+                  <div className="relative aspect-[4/3] w-full overflow-hidden rounded-sm border border-border">
+                    {Img({ path: `offers.items.${i}.image`, value: item.image, aspect: "4:3" })}
+                  </div>
+                )}
+                <div>
+                  {T({ path: `offers.items.${i}.title`, value: item.title, as: "h3", className: "text-xl tracking-tight", style: serif })}
+                  {T({ path: `offers.items.${i}.description`, value: item.description, as: "p", className: "mt-2 leading-relaxed text-muted" })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    ),
+    whyChooseUs: (
+      <section className="mx-auto max-w-4xl px-5 py-20">
+        {T({ path: "whyChooseUs.title", value: whyChooseUs.title, as: "h2", className: "mb-12 text-center text-3xl tracking-tight", style: serif })}
+        <div className="grid gap-10 md:grid-cols-3">
+          {whyChooseUs.items.map((item, i) => (
+            <div key={i} className="text-center">
+              <span className="text-sm uppercase tracking-[0.3em] text-primary">{String(i + 1).padStart(2, "0")}</span>
+              {T({ path: `whyChooseUs.items.${i}.title`, value: item.title, as: "h3", className: "mt-3 text-lg tracking-tight", style: serif })}
+              {T({ path: `whyChooseUs.items.${i}.description`, value: item.description, as: "p", className: "mt-2 text-sm leading-relaxed text-muted" })}
+            </div>
+          ))}
+        </div>
+      </section>
+    ),
+    sections: (
+      <SiteSections sections={content.sections} T={T} Img={Img} editable={editable} onDelete={props.onDeleteSection} />
+    ),
+    gallery: <GalleryBlock {...props} heading={h} />,
+    blog: <BlogBlock {...props} heading={h} />,
+    map: <MapBlock {...props} heading={h} />,
+    contact: <ContactBlock {...props} heading={h} />,
+  };
 
   return (
     <div>
@@ -49,50 +111,8 @@ export function ElegantTemplate(props: TemplateProps) {
         </div>
       )}
 
-      {/* Story */}
-      <section id="story" className="mx-auto max-w-2xl px-5 py-20 text-center">
-        <div className="mx-auto mb-7 h-px w-16 bg-foreground/30" />
-        {T({ path: "story.title", value: story.title, as: "h2", className: "mb-6 text-3xl tracking-tight", style: serif })}
-        {T({ path: "story.body", value: story.body, as: "p", className: "whitespace-pre-wrap text-lg leading-[1.9] text-foreground/75" })}
-      </section>
-
-      {/* Offers — 얇은 구분선 리스트 */}
-      <section className="border-y border-border">
-        <div className="mx-auto max-w-4xl px-5 py-20">
-          {T({ path: "offers.title", value: offers.title, as: "h2", className: "mb-10 text-center text-3xl tracking-tight", style: serif })}
-          <div className="divide-y divide-border">
-            {offers.items.map((item, i) => (
-              <div key={i} className="grid gap-5 py-8 md:grid-cols-[1fr_2fr] md:items-center">
-                {(item.image || editable) && (
-                  <div className="relative aspect-[4/3] w-full overflow-hidden rounded-sm border border-border">
-                    {Img({ path: `offers.items.${i}.image`, value: item.image, aspect: "4:3" })}
-                  </div>
-                )}
-                <div>
-                  {T({ path: `offers.items.${i}.title`, value: item.title, as: "h3", className: "text-xl tracking-tight", style: serif })}
-                  {T({ path: `offers.items.${i}.description`, value: item.description, as: "p", className: "mt-2 leading-relaxed text-muted" })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Why — 3열 중앙 */}
-      <section className="mx-auto max-w-4xl px-5 py-20">
-        {T({ path: "whyChooseUs.title", value: whyChooseUs.title, as: "h2", className: "mb-12 text-center text-3xl tracking-tight", style: serif })}
-        <div className="grid gap-10 md:grid-cols-3">
-          {whyChooseUs.items.map((item, i) => (
-            <div key={i} className="text-center">
-              <span className="text-sm uppercase tracking-[0.3em] text-primary">{String(i + 1).padStart(2, "0")}</span>
-              {T({ path: `whyChooseUs.items.${i}.title`, value: item.title, as: "h3", className: "mt-3 text-lg tracking-tight", style: serif })}
-              {T({ path: `whyChooseUs.items.${i}.description`, value: item.description, as: "p", className: "mt-2 text-sm leading-relaxed text-muted" })}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <LowerSections {...props} tone="default" heading="tracking-tight" />
+      <LandingSections content={content} blocks={blocks} />
+      <FooterBlock content={content} />
     </div>
   );
 }

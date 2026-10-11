@@ -29,16 +29,51 @@ import type { PdfImportData } from "@/lib/pdfImport";
 import { SITE_FONTS, SITE_PALETTES, siteStyleVars } from "./siteStyle";
 import { normalizeAdsensePublisherId } from "@/lib/adsense";
 import { slugify } from "@/utils/slug";
-import type {
-  WebsiteContent,
-  WebsiteFontId,
-  WebsitePaletteId,
-  WebsiteTemplateId,
-  SitePage,
+import {
+  LANDING_SECTION_KEYS,
+  type WebsiteContent,
+  type WebsiteFontId,
+  type WebsitePaletteId,
+  type WebsiteTemplateId,
+  type SitePage,
+  type LandingSectionKey,
 } from "@/types/domain";
 import type { WebsiteRow } from "@/types/database";
 
 type Device = "desktop" | "mobile";
+
+/** 메인 섹션 키 → 편집기 라벨(관리자가 보는 이름). */
+const SECTION_LABELS: Record<LandingSectionKey, { ko: string; en: string }> = {
+  story: { ko: "스토리", en: "Story" },
+  offers: { ko: "제공 서비스", en: "Offers" },
+  whyChooseUs: { ko: "강점", en: "Why us" },
+  sections: { ko: "상세 섹션 (Pro)", en: "Detail sections (Pro)" },
+  gallery: { ko: "갤러리", en: "Gallery" },
+  blog: { ko: "최신 글", en: "Blog" },
+  map: { ko: "오시는 길", en: "Location" },
+  contact: { ko: "연락처·문의", en: "Contact" },
+};
+
+/** 저장된 순서를 정규화 — 저장값 우선, 빠진 키는 기본 순서로 뒤에 붙인다. */
+function normalizeSectionOrder(
+  saved?: LandingSectionKey[],
+): LandingSectionKey[] {
+  const seen = new Set<LandingSectionKey>();
+  const out: LandingSectionKey[] = [];
+  for (const k of saved ?? []) {
+    if (LANDING_SECTION_KEYS.includes(k) && !seen.has(k)) {
+      seen.add(k);
+      out.push(k);
+    }
+  }
+  for (const k of LANDING_SECTION_KEYS) {
+    if (!seen.has(k)) {
+      seen.add(k);
+      out.push(k);
+    }
+  }
+  return out;
+}
 
 export function WebsiteEditor({
   businessId,
@@ -377,6 +412,25 @@ export function WebsiteEditor({
 
   const setFont = (id: WebsiteFontId) =>
     setContent((c) => ({ ...c, style: { ...c.style, font: id } }));
+
+  // 메인(랜딩) 섹션 순서/숨김 — 히어로/푸터 사이 블록 재배치.
+  const sectionOrder = normalizeSectionOrder(content.sectionOrder);
+  const hiddenSet = new Set(content.hiddenSections ?? []);
+  const moveSection = (i: number, dir: -1 | 1) =>
+    setContent((c) => {
+      const order = normalizeSectionOrder(c.sectionOrder);
+      const j = i + dir;
+      if (j < 0 || j >= order.length) return c;
+      [order[i], order[j]] = [order[j], order[i]];
+      return { ...c, sectionOrder: order };
+    });
+  const toggleSection = (key: LandingSectionKey) =>
+    setContent((c) => {
+      const set = new Set(c.hiddenSections ?? []);
+      if (set.has(key)) set.delete(key);
+      else set.add(key);
+      return { ...c, hiddenSections: [...set] };
+    });
 
   const palette = content.style?.palette ?? "forest";
   const font = content.style?.font ?? "default";
@@ -904,6 +958,81 @@ export function WebsiteEditor({
             </button>
           ))}
         </div>
+      </div>
+
+      {/* 메인 섹션 배치/순서 — 히어로와 푸터 사이 블록을 원하는 순서로 바꾸고 숨길 수 있다. */}
+      <div className="space-y-2 rounded-xl border border-border bg-surface p-3">
+        <div className="flex flex-wrap items-baseline gap-2">
+          <span className="eyebrow mr-1">{ko ? "섹션 배치" : "Section order"}</span>
+          <span className="text-xs text-muted">
+            {ko
+              ? "메인 화면의 섹션 순서를 바꾸거나 숨겨요. (상단 히어로·하단 푸터는 고정)"
+              : "Reorder or hide the main-page sections. (Top hero and bottom footer are fixed.)"}
+          </span>
+        </div>
+        <ul className="divide-y divide-border">
+          {sectionOrder.map((key, i) => {
+            const hiddenHere = hiddenSet.has(key);
+            const label = SECTION_LABELS[key];
+            return (
+              <li
+                key={key}
+                className={cn(
+                  "flex items-center gap-2 py-2",
+                  hiddenHere && "opacity-50",
+                )}
+              >
+                <span className="w-5 text-center text-xs text-muted">
+                  {i + 1}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                  {ko ? label.ko : label.en}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => moveSection(i, -1)}
+                  disabled={i === 0}
+                  className="rounded-md border border-border px-2 py-1 text-xs disabled:opacity-30"
+                  title={ko ? "위로" : "Move up"}
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveSection(i, 1)}
+                  disabled={i === sectionOrder.length - 1}
+                  className="rounded-md border border-border px-2 py-1 text-xs disabled:opacity-30"
+                  title={ko ? "아래로" : "Move down"}
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleSection(key)}
+                  className={cn(
+                    "rounded-md border px-2 py-1 text-xs font-medium",
+                    hiddenHere
+                      ? "border-border text-muted hover:text-foreground"
+                      : "border-primary/40 text-primary hover:bg-primary-soft",
+                  )}
+                >
+                  {hiddenHere
+                    ? ko
+                      ? "숨김"
+                      : "Hidden"
+                    : ko
+                      ? "표시"
+                      : "Shown"}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        <p className="text-xs text-muted">
+          {ko
+            ? "내용이 없는 섹션(예: 갤러리 사진 미등록)은 '표시'여도 공개 사이트에는 자동으로 나타나지 않아요. 변경 후 저장을 눌러주세요."
+            : "Empty sections (e.g. no gallery photos) won’t appear on the live site even when set to Shown. Press Save to apply."}
+        </p>
       </div>
 
       {note && <p className="text-sm text-primary">{note}</p>}

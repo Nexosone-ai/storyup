@@ -232,6 +232,22 @@ export type SiteSection = { image?: string } & (
 );
 
 /**
+ * 메인(랜딩) 페이지에서 히어로/푸터 사이에 재배치 가능한 섹션 키.
+ * 관리자가 순서를 바꾸거나 숨길 수 있다. (히어로=최상단, 푸터=최하단 고정)
+ */
+export const LANDING_SECTION_KEYS = [
+  "story",
+  "offers",
+  "whyChooseUs",
+  "sections",
+  "gallery",
+  "blog",
+  "map",
+  "contact",
+] as const;
+export type LandingSectionKey = (typeof LANDING_SECTION_KEYS)[number];
+
+/**
  * (프리미엄) 멀티페이지 — 홈 외 추가 페이지. 각 페이지는 선택적 hero + 섹션 배열로
  * 구성되고, 상단 메뉴(nav)에 노출된다. 없으면 기존 단일 페이지와 동일(하위호환).
  * 공개 경로: /site/{slug}/{page.slug} (예약어 blog/ads.txt 등은 금지).
@@ -298,6 +314,13 @@ export interface WebsiteContent {
    * 없거나 빈 배열이면 기존 랜딩페이지와 동일하게 동작(하위호환).
    */
   sections?: SiteSection[];
+  /**
+   * 메인(랜딩) 섹션 순서 — 히어로/푸터 사이 재배치 가능한 블록들의 순서.
+   * 값은 LANDING_SECTION_KEYS의 부분/전체. 없으면 기본 순서(하위호환).
+   */
+  sectionOrder?: LandingSectionKey[];
+  /** 숨길 메인 섹션 키 목록. */
+  hiddenSections?: LandingSectionKey[];
   /** (프리미엄) 멀티페이지 — 홈 외 추가 페이지들. 없으면 단일 페이지(하위호환). */
   pages?: SitePage[];
   /** Optional photo gallery band (user-uploaded image URLs). */
