@@ -74,12 +74,26 @@ export function CardNewsStudio({
   handle: string;
   /** 공개된 랜딩페이지 슬러그 — 없으면 공유 링크 대신 안내를 보여준다. */
   siteSlug?: string | null;
-  initial?: { cardNews?: CardNewsResult; blogPostId?: string };
+  initial?: {
+    cardNews?: CardNewsResult;
+    blogPostId?: string;
+    id?: string;
+    thanks?: number;
+    views?: number;
+  };
 }) {
   const ko = useLocale() === "ko";
   const [postId, setPostId] = useState(
     initial?.blogPostId ?? posts[0]?.id ?? "",
   );
+  // 공개 공유용 카드뉴스 id(marketing_contents.id) + 감사·조회 집계
+  const [cardNewsId, setCardNewsId] = useState<string | null>(
+    initial?.id ?? null,
+  );
+  const [shareStats] = useState<{ thanks: number; views: number }>({
+    thanks: initial?.thanks ?? 0,
+    views: initial?.views ?? 0,
+  });
   const [data, setData] = useState<CardNewsResult | null>(
     initial?.cardNews ?? null,
   );
@@ -178,6 +192,7 @@ export function CardNewsStudio({
       setData(cn);
       setImages([]); // reset backdrops for the new set
       setDataPostId(postId);
+      if (json.cardNewsId) setCardNewsId(json.cardNewsId as string);
     } catch (e) {
       setError(
         e instanceof Error
@@ -461,6 +476,22 @@ export function CardNewsStudio({
       });
   };
 
+  /** 카드뉴스 공개 공유 페이지(/cards/{id}) 링크 복사 — 받은 분들이 감사 표시 가능. */
+  const copyCardShareLink = async () => {
+    if (!cardNewsId) return;
+    const url = `${window.location.origin}/cards/${cardNewsId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareMsg(
+        ko
+          ? "카드 공유 링크를 복사했어요. 받으신 분들이 공유 페이지에서 '감사 표시'를 남길 수 있어요."
+          : "Card share link copied. Recipients can leave a 'thanks' on the page.",
+      );
+    } catch {
+      setShareMsg(url);
+    }
+  };
+
   if (posts.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border-strong bg-surface px-6 py-14 text-center">
@@ -617,8 +648,27 @@ export function CardNewsStudio({
                     {ko ? "링크 복사" : "Copy link"}
                   </button>
                 )}
+                {cardNewsId && (
+                  <button
+                    type="button"
+                    onClick={copyCardShareLink}
+                    aria-label={ko ? "카드 공유 페이지 링크" : "Card share page link"}
+                    title={ko ? "카드 공유 페이지 링크 (감사 표시 받기)" : "Card share page link"}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-full border border-primary/40 bg-primary-soft px-3 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+                  >
+                    <Icon.share width={14} height={14} />
+                    {ko ? "카드 공유 링크" : "Share page"}
+                  </button>
+                )}
               </div>
             </div>
+            {cardNewsId && (
+              <p className="text-xs text-muted">
+                {ko
+                  ? `공유 페이지 반응 — 👏 감사 ${shareStats.thanks.toLocaleString()} · 👀 조회 ${shareStats.views.toLocaleString()}`
+                  : `Share page — 👏 ${shareStats.thanks.toLocaleString()} · 👀 ${shareStats.views.toLocaleString()}`}
+              </p>
+            )}
             <p className="text-xs leading-relaxed text-muted">
               {ko
                 ? "SNS 아이콘을 누르면 블로그 글이 아니라 카드 이미지가 공유돼요. 휴대폰에서는 공유 창에서 로그인된 앱(인스타그램·X·페북)을 골라 바로 올리고, PC에서는 이미지가 내려받아지며 작성창이 열립니다. (인스타그램 게시는 휴대폰 앱에서만 가능)"

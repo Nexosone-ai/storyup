@@ -46,7 +46,7 @@ export default async function MarketingPage({
   // Latest card-news set.
   const { data: cardRow } = await supabase
     .from("marketing_contents")
-    .select("blog_post_id,content")
+    .select("id,blog_post_id,content,thanks_count,view_count")
     .eq("business_id", id)
     .eq("platform", "instagram_cards")
     .order("created_at", { ascending: false })
@@ -54,13 +54,22 @@ export default async function MarketingPage({
     .maybeSingle();
 
   let initialCards:
-    | { cardNews?: CardNewsResult; blogPostId?: string }
+    | {
+        cardNews?: CardNewsResult;
+        blogPostId?: string;
+        id?: string;
+        thanks?: number;
+        views?: number;
+      }
     | undefined;
   if (cardRow?.content) {
     try {
       initialCards = {
         cardNews: JSON.parse(cardRow.content) as CardNewsResult,
         blogPostId: cardRow.blog_post_id ?? undefined,
+        id: cardRow.id,
+        thanks: cardRow.thanks_count,
+        views: cardRow.view_count,
       };
     } catch {
       initialCards = undefined;

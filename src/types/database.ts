@@ -509,6 +509,8 @@ export interface Database {
           blog_post_id: string | null;
           platform: string;
           content: string;
+          thanks_count: number;
+          view_count: number;
           created_at: string;
         };
         Insert: {
@@ -517,6 +519,8 @@ export interface Database {
           blog_post_id?: string | null;
           platform: string;
           content: string;
+          thanks_count?: number;
+          view_count?: number;
           created_at?: string;
         };
         Update: Partial<
@@ -1536,6 +1540,14 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      bump_card_thanks: {
+        Args: { p_id: string };
+        Returns: number;
+      };
+      bump_card_view: {
+        Args: { p_id: string };
+        Returns: number;
+      };
       active_custom_domain_for: {
         Args: { p_business_id: string };
         Returns: string | null;

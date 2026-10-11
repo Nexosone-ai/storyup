@@ -91,17 +91,25 @@ export async function POST(request: Request) {
       .eq("blog_post_id", blogPostId)
       .eq("platform", "instagram_cards");
 
-    await supabase.from("marketing_contents").insert({
-      business_id: businessId,
-      blog_post_id: blogPostId,
-      platform: "instagram_cards",
-      content: JSON.stringify(result),
-    });
+    const { data: inserted } = await supabase
+      .from("marketing_contents")
+      .insert({
+        business_id: businessId,
+        blog_post_id: blogPostId,
+        platform: "instagram_cards",
+        content: JSON.stringify(result),
+      })
+      .select("id")
+      .single();
 
     // 성장 보상 — 같은 글의 카드뉴스 재생성은 중복 지급되지 않도록 글 ID를 멱등키로
     await trackGrowthActivity(user.id, "card_created", blogPostId);
 
-    return NextResponse.json({ ok: true, cardNews: result });
+    return NextResponse.json({
+      ok: true,
+      cardNews: result,
+      cardNewsId: inserted?.id ?? null,
+    });
   } catch (err) {
     await billing.refund();
     const message =
