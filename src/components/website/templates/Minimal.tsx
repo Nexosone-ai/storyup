@@ -13,6 +13,7 @@ import { SiteNav } from "./SiteNav";
 import { BlogPreviewCards } from "./BlogPreview";
 import { SiteSections } from "./SiteSections";
 import { InquiryForm } from "@/components/site/InquiryForm";
+import { CardNewsSlider } from "@/components/marketing/CardNewsSlider";
 import { LandingSections } from "./lowerBlocks";
 
 export function MinimalTemplate(props: TemplateProps) {
@@ -23,6 +24,7 @@ export function MinimalTemplate(props: TemplateProps) {
     Gallery,
     blogHref,
     latestPosts,
+    cards,
     editable,
     siteSlug,
     editHref,
@@ -142,6 +144,36 @@ export function MinimalTemplate(props: TemplateProps) {
               lang={siteLang(content)}
               narrow
             />
+          </section>
+        </>
+      ) : null,
+    cards:
+      cards && cards.length > 0 ? (
+        <>
+          {Divider}
+          <section className="mx-auto max-w-2xl px-6 py-16">
+            <h2 className="eyebrow mb-8 block">{L.cardNews}</h2>
+            <div className="grid gap-6 sm:grid-cols-2">
+              {cards.map((item) => (
+                <div
+                  key={item.id}
+                  className="overflow-hidden rounded-2xl border border-border bg-white"
+                >
+                  <CardNewsSlider item={item} />
+                  <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+                    <span className="min-w-0 truncate text-sm font-medium text-foreground">
+                      {item.title}
+                    </span>
+                    <Link
+                      href={item.href}
+                      className="shrink-0 text-xs font-medium text-primary"
+                    >
+                      {L.openShare}
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
           </section>
         </>
       ) : null,

@@ -10,6 +10,7 @@ import { SiteSections } from "./SiteSections";
 import {
   GalleryBlock,
   BlogBlock,
+  CardsBlock,
   MapBlock,
   ContactBlock,
   FooterBlock,
@@ -87,6 +88,7 @@ export function ModernTemplate(props: TemplateProps) {
     ),
     gallery: <GalleryBlock {...props} heading={h} />,
     blog: <BlogBlock {...props} heading={h} />,
+    cards: <CardsBlock {...props} heading={h} />,
     map: <MapBlock {...props} heading={h} />,
     contact: <ContactBlock {...props} heading={h} />,
   };

@@ -5,6 +5,7 @@ import {
   getBusiness,
   getBrandProfile,
   getWebsite,
+  getSiteCards,
 } from "@/lib/queries";
 import { WebsiteGenerator } from "@/components/website/WebsiteGenerator";
 import { WebsiteEditor } from "@/components/website/WebsiteEditor";
@@ -59,12 +60,20 @@ export default async function WebsitePage({
     const user = await getUser();
     const plan = user ? getPlanById(await getPlanId(user.id)) : null;
     const maxLayouts = plan?.siteLayouts ?? 1;
+    // 미리보기의 "카드뉴스" 섹션에 표시할 이 가게의 카드뉴스.
+    const content = website.content as { hero?: { businessName?: string } };
+    const cards = await getSiteCards(
+      id,
+      website.slug,
+      content.hero?.businessName ?? business.name,
+    );
     body = (
       <WebsiteEditor
         businessId={id}
         website={website}
         maxLayouts={maxLayouts}
         richAllowed={plan?.fullHomepage === true}
+        cards={cards}
       />
     );
   }

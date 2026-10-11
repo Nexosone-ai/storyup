@@ -10,6 +10,7 @@ import { SiteSections } from "./SiteSections";
 import {
   GalleryBlock,
   BlogBlock,
+  CardsBlock,
   MapBlock,
   ContactBlock,
   FooterBlock,
@@ -93,6 +94,7 @@ export function ClassicTemplate(props: TemplateProps) {
     ),
     gallery: <GalleryBlock {...props} />,
     blog: <BlogBlock {...props} />,
+    cards: <CardsBlock {...props} />,
     map: <MapBlock {...props} />,
     contact: <ContactBlock {...props} />,
   };

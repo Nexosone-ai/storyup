@@ -8,6 +8,7 @@ import type {
   SiteInquiryRow,
 } from "@/types/database";
 import type { CardNewsResult, WebsiteContent } from "@/types/domain";
+import type { ShowcaseCardItem } from "@/components/marketing/showcaseData";
 
 /** Current authenticated user, or null. */
 export async function getUser() {
@@ -757,4 +758,59 @@ export async function getShowcaseCards(limit = 12): Promise<ShowcaseCard[]> {
     }
   }
   return cards;
+}
+
+/**
+ * 한 가게가 만든 카드뉴스 목록 — 랜딩페이지 "카드뉴스" 섹션 및 에디터 미리보기용.
+ * 최신순. 공개 사이트(anon)·소유자(에디터) 모두 RLS로 자기 가게 카드만 읽힌다.
+ * 각 항목은 클릭 시 공개 공유 페이지(/cards/{id})로 연결된다.
+ */
+export async function getSiteCards(
+  businessId: string,
+  slug: string,
+  businessName: string,
+  limit = 12,
+): Promise<ShowcaseCardItem[]> {
+  if (!supabaseConfigured()) return [];
+  const supabase = await createClient();
+  const { data: rows } = await supabase
+    .from("marketing_contents")
+    .select("id, content, created_at")
+    .eq("business_id", businessId)
+    .eq("platform", "instagram_cards")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  const items: ShowcaseCardItem[] = [];
+  for (const row of rows ?? []) {
+    try {
+      const parsed = JSON.parse(row.content) as CardNewsResult;
+      if (!parsed.cover?.title) continue;
+      const images = Array.isArray(parsed.images) ? parsed.images : undefined;
+      items.push({
+        id: row.id,
+        href: `/cards/${row.id}`,
+        title: parsed.cover.title,
+        subtitle: parsed.cover.subtitle ?? "",
+        businessName,
+        image: images?.find(Boolean) ?? null,
+        handle: `@${slug}`,
+        cardNews: {
+          cover: {
+            title: parsed.cover.title,
+            subtitle: parsed.cover.subtitle ?? "",
+          },
+          slides: Array.isArray(parsed.slides) ? parsed.slides : [],
+          cta: parsed.cta ?? { text: "", handle: `@${slug}` },
+          images,
+          cardStyles: Array.isArray(parsed.cardStyles)
+            ? parsed.cardStyles
+            : undefined,
+        },
+      });
+    } catch {
+      // 파싱 불가한 카드뉴스는 건너뛴다.
+    }
+  }
+  return items;
 }

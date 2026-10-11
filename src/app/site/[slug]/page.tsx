@@ -1,6 +1,11 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getPublishedSite, getPublishedPosts, getUser } from "@/lib/queries";
+import {
+  getPublishedSite,
+  getPublishedPosts,
+  getUser,
+  getSiteCards,
+} from "@/lib/queries";
 import { SiteRenderer } from "@/components/website/SiteRenderer";
 import { TrackPageView } from "@/components/site/TrackPageView";
 import { contactHref } from "@/components/website/templates/shared";
@@ -56,6 +61,12 @@ export default async function PublicSitePage({
   }));
 
   const c = site.website.content;
+  // 랜딩페이지 "카드뉴스" 섹션 — 이 가게가 만든 카드뉴스(최신순).
+  const cards = await getSiteCards(
+    site.business.id,
+    slug,
+    c.hero?.businessName ?? site.business.name,
+  );
   const baseUrl = siteBaseUrl(site.primaryDomain, slug);
   // 검색·AI 답변엔진(AEO)용 구조화 데이터
   const jsonLd = {
@@ -86,6 +97,7 @@ export default async function PublicSitePage({
         content={site.website.content}
         blogHref={blogHref}
         latestPosts={latestPosts}
+        cards={cards}
         siteSlug={slug}
         editHref={editHref}
       />

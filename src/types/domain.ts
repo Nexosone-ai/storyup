@@ -242,6 +242,7 @@ export const LANDING_SECTION_KEYS = [
   "sections",
   "gallery",
   "blog",
+  "cards",
   "map",
   "contact",
 ] as const;

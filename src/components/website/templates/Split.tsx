@@ -13,6 +13,7 @@ import { SiteNav } from "./SiteNav";
 import { BlogPreviewCards } from "./BlogPreview";
 import { SiteSections } from "./SiteSections";
 import { InquiryForm } from "@/components/site/InquiryForm";
+import { CardNewsSlider } from "@/components/marketing/CardNewsSlider";
 import { LandingSections } from "./lowerBlocks";
 
 export function SplitTemplate(props: TemplateProps) {
@@ -23,6 +24,7 @@ export function SplitTemplate(props: TemplateProps) {
     Gallery,
     blogHref,
     latestPosts,
+    cards,
     editable,
     siteSlug,
     editHref,
@@ -134,6 +136,38 @@ export function SplitTemplate(props: TemplateProps) {
               blogHref={blogHref}
               lang={siteLang(content)}
             />
+          </div>
+        </section>
+      ) : null,
+    cards:
+      cards && cards.length > 0 ? (
+        <section className="border-b border-border">
+          <div className="mx-auto max-w-6xl px-6 py-16">
+            <p className="eyebrow mb-2">Card news</p>
+            <h2 className="mb-8 text-2xl font-semibold tracking-tight">
+              {L.cardNews}
+            </h2>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {cards.map((item) => (
+                <div
+                  key={item.id}
+                  className="overflow-hidden rounded-2xl border border-border bg-white"
+                >
+                  <CardNewsSlider item={item} />
+                  <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+                    <span className="min-w-0 truncate text-sm font-medium text-foreground">
+                      {item.title}
+                    </span>
+                    <Link
+                      href={item.href}
+                      className="shrink-0 text-xs font-medium text-primary"
+                    >
+                      {L.openShare}
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       ) : null,

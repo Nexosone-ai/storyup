@@ -39,6 +39,7 @@ import {
   type LandingSectionKey,
 } from "@/types/domain";
 import type { WebsiteRow } from "@/types/database";
+import type { ShowcaseCardItem } from "@/components/marketing/showcaseData";
 
 type Device = "desktop" | "mobile";
 
@@ -50,6 +51,7 @@ const SECTION_LABELS: Record<LandingSectionKey, { ko: string; en: string }> = {
   sections: { ko: "상세 섹션 (Pro)", en: "Detail sections (Pro)" },
   gallery: { ko: "갤러리", en: "Gallery" },
   blog: { ko: "최신 글", en: "Blog" },
+  cards: { ko: "카드뉴스", en: "Card news" },
   map: { ko: "오시는 길", en: "Location" },
   contact: { ko: "연락처·문의", en: "Contact" },
 };
@@ -80,6 +82,7 @@ export function WebsiteEditor({
   website,
   maxLayouts = 1,
   richAllowed = false,
+  cards = [],
 }: {
   businessId: string;
   website: WebsiteRow;
@@ -87,6 +90,8 @@ export function WebsiteEditor({
   maxLayouts?: number;
   /** AI 상세 홈페이지 생성 가능 플랜(Pro+)인지. false면 잠금. */
   richAllowed?: boolean;
+  /** 이 가게의 카드뉴스 — 미리보기의 "카드뉴스" 섹션에 표시. */
+  cards?: ShowcaseCardItem[];
 }) {
   const ko = useLocale() === "ko";
   const [content, setContent] = useState<WebsiteContent>(website.content);
@@ -1197,6 +1202,7 @@ export function WebsiteEditor({
                 T={editRenderer}
                 Img={editImgRenderer}
                 Gallery={editGallery}
+                cards={cards}
                 editable
                 scoped
                 onDeleteSection={removeHomeSection}

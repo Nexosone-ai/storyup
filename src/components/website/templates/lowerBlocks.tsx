@@ -11,6 +11,7 @@ import {
 } from "./shared";
 import { BlogPreviewCards } from "./BlogPreview";
 import { InquiryForm } from "@/components/site/InquiryForm";
+import { CardNewsSlider } from "@/components/marketing/CardNewsSlider";
 import { orderedLandingKeys } from "./landingOrder";
 import type { LandingSectionKey, WebsiteContent } from "@/types/domain";
 
@@ -41,7 +42,14 @@ export function LandingSections({
  */
 type Shared = Pick<
   TemplateProps,
-  "content" | "T" | "Gallery" | "blogHref" | "latestPosts" | "editable" | "siteSlug"
+  | "content"
+  | "T"
+  | "Gallery"
+  | "blogHref"
+  | "latestPosts"
+  | "cards"
+  | "editable"
+  | "siteSlug"
 > & { tone?: "default" | "soft" | "dark"; heading?: string };
 
 const HEADING_DEFAULT = "font-semibold tracking-tight";
@@ -83,6 +91,44 @@ export function BlogBlock({
           </Link>
         </div>
         <BlogPreviewCards posts={latestPosts} blogHref={blogHref} lang={lang} />
+      </div>
+    </section>
+  );
+}
+
+export function CardsBlock({
+  content,
+  cards,
+  heading = HEADING_DEFAULT,
+}: Shared) {
+  if (!cards || cards.length === 0) return null;
+  const lang = siteLang(content);
+  const L = SITE_UI[lang];
+  return (
+    <section className="border-t border-border">
+      <div className="mx-auto max-w-5xl px-5 py-16">
+        <h2 className={`mb-8 text-2xl ${heading}`}>{L.cardNews}</h2>
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {cards.map((item) => (
+            <div
+              key={item.id}
+              className="overflow-hidden rounded-2xl border border-border bg-white"
+            >
+              <CardNewsSlider item={item} />
+              <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+                <span className="min-w-0 truncate text-sm font-medium text-foreground">
+                  {item.title}
+                </span>
+                <Link
+                  href={item.href}
+                  className="shrink-0 text-xs font-medium text-primary"
+                >
+                  {L.openShare}
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
