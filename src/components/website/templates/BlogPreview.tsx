@@ -13,6 +13,11 @@ export interface SitePostPreview {
   keyword?: string;
 }
 
+/** 글 목록(postList) 섹션 필터링용 — 카테고리를 포함한 글 미리보기. */
+export interface SiteSectionPost extends SitePostPreview {
+  category: string | null;
+}
+
 /**
  * 랜딩페이지 하단의 "최신 블로그 글" 섹션 본문 (제목/컨테이너는 템플릿이 감싼다).
  * 카드를 클릭하면 해당 글로 이동한다. 세 템플릿 공용.

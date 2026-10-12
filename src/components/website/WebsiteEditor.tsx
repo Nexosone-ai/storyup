@@ -40,6 +40,7 @@ import {
 } from "@/types/domain";
 import type { WebsiteRow } from "@/types/database";
 import type { ShowcaseCardItem } from "@/components/marketing/showcaseData";
+import type { SiteSectionPost } from "./templates/BlogPreview";
 
 type Device = "desktop" | "mobile";
 
@@ -83,6 +84,8 @@ export function WebsiteEditor({
   maxLayouts = 1,
   richAllowed = false,
   cards = [],
+  posts = [],
+  categories = [],
 }: {
   businessId: string;
   website: WebsiteRow;
@@ -92,6 +95,10 @@ export function WebsiteEditor({
   richAllowed?: boolean;
   /** 이 가게의 카드뉴스 — 미리보기의 "카드뉴스" 섹션에 표시. */
   cards?: ShowcaseCardItem[];
+  /** 이 가게의 공개 블로그 글 — 글 목록(postList) 섹션 미리보기·필터용. */
+  posts?: SiteSectionPost[];
+  /** 사용 중인 블로그 카테고리 — postList 입력 힌트. */
+  categories?: string[];
 }) {
   const ko = useLocale() === "ko";
   const [content, setContent] = useState<WebsiteContent>(website.content);
@@ -307,6 +314,17 @@ export function WebsiteEditor({
     });
     setCurrentPage(j);
   };
+  const addPostListSection = (i: number) =>
+    updatePage(i, {
+      sections: [
+        ...pages[i].sections,
+        {
+          type: "postList",
+          title: ko ? "블로그 글" : "Blog posts",
+          category: "",
+        },
+      ],
+    });
   const addTextSection = (i: number) =>
     updatePage(i, {
       sections: [
@@ -1148,6 +1166,13 @@ export function WebsiteEditor({
               </button>
               <button
                 type="button"
+                onClick={() => addPostListSection(currentPage)}
+                className="rounded-md border border-border px-2 py-1 font-medium text-primary"
+              >
+                + {ko ? "글 목록" : "Blog list"}
+              </button>
+              <button
+                type="button"
                 onClick={() => deletePage(currentPage)}
                 className="ml-auto rounded-md border border-border px-2 py-1 text-danger"
               >
@@ -1210,6 +1235,10 @@ export function WebsiteEditor({
                   pathPrefix={`pages.${currentPage}.`}
                   editable
                   onDelete={(i) => removePageSection(currentPage, i)}
+                  posts={posts}
+                  blogHref={`/site/${slug}/blog`}
+                  lang={content.language === "en" ? "en" : "ko"}
+                  categories={categories}
                 />
               </div>
             ) : (

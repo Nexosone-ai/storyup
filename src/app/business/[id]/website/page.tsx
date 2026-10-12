@@ -6,6 +6,7 @@ import {
   getBrandProfile,
   getWebsite,
   getSiteCards,
+  getPublishedPosts,
 } from "@/lib/queries";
 import { WebsiteGenerator } from "@/components/website/WebsiteGenerator";
 import { WebsiteEditor } from "@/components/website/WebsiteEditor";
@@ -62,11 +63,29 @@ export default async function WebsitePage({
     const maxLayouts = plan?.siteLayouts ?? 1;
     // 미리보기의 "카드뉴스" 섹션에 표시할 이 가게의 카드뉴스.
     const content = website.content as { hero?: { businessName?: string } };
-    const cards = await getSiteCards(
-      id,
-      website.slug,
-      content.hero?.businessName ?? business.name,
-    );
+    const [cards, posts] = await Promise.all([
+      getSiteCards(
+        id,
+        website.slug,
+        content.hero?.businessName ?? business.name,
+      ),
+      getPublishedPosts(id),
+    ]);
+    // 글 목록(postList) 섹션 미리보기·카테고리 힌트용.
+    const sectionPosts = posts.map((p) => ({
+      slug: p.slug,
+      title: p.title,
+      summary: p.summary,
+      coverImageUrl: p.cover_image_url,
+      publishedAt: p.published_at,
+      keyword: p.keywords[0],
+      category: p.category,
+    }));
+    const categories = [
+      ...new Set(
+        posts.map((p) => p.category).filter((c): c is string => !!c),
+      ),
+    ];
     body = (
       <WebsiteEditor
         businessId={id}
@@ -74,6 +93,8 @@ export default async function WebsitePage({
         maxLayouts={maxLayouts}
         richAllowed={plan?.fullHomepage === true}
         cards={cards}
+        posts={sectionPosts}
+        categories={categories}
       />
     );
   }

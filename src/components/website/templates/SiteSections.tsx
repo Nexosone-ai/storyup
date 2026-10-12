@@ -1,5 +1,6 @@
 import type { SiteSection } from "@/types/domain";
-import type { TextRenderer, ImageRenderer } from "./shared";
+import type { TextRenderer, ImageRenderer, SiteLang } from "./shared";
+import { BlogPreviewCards, type SiteSectionPost } from "./BlogPreview";
 
 /**
  * (프리미엄) 풍부한 홈페이지 섹션 렌더러 — content.sections 배열을 유형별 블록으로
@@ -13,6 +14,10 @@ export function SiteSections({
   pathPrefix = "",
   editable = false,
   onDelete,
+  posts,
+  blogHref,
+  lang = "ko",
+  categories,
 }: {
   sections?: SiteSection[];
   T: TextRenderer;
@@ -23,6 +28,13 @@ export function SiteSections({
   editable?: boolean;
   /** 에디터에서 해당 섹션(단락)을 삭제. */
   onDelete?: (index: number) => void;
+  /** 글 목록(postList) 섹션용 — 이 사이트의 공개 글(카테고리 포함). */
+  posts?: SiteSectionPost[];
+  /** 블로그 글 링크 베이스 (예: /site/{slug}/blog). */
+  blogHref?: string;
+  lang?: SiteLang;
+  /** (에디터) 사용 중인 블로그 카테고리 — postList 카테고리 입력 힌트. */
+  categories?: string[];
 }) {
   if (!sections?.length) return null;
   return (
@@ -41,7 +53,7 @@ export function SiteSections({
                 ✕ 삭제
               </button>
             )}
-            {Img && (editable || s.image) && (
+            {Img && s.type !== "postList" && (editable || s.image) && (
               <div className="mx-auto max-w-5xl px-5 pt-12">
                 <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl border border-border bg-surface-muted/40">
                   {Img({
@@ -52,7 +64,16 @@ export function SiteSections({
                 </div>
               </div>
             )}
-            <SectionBlock section={s} base={base} T={T} />
+            <SectionBlock
+              section={s}
+              base={base}
+              T={T}
+              editable={editable}
+              posts={posts}
+              blogHref={blogHref}
+              lang={lang}
+              categories={categories}
+            />
           </div>
         );
       })}
@@ -98,10 +119,20 @@ function SectionBlock({
   section: s,
   base,
   T,
+  editable = false,
+  posts,
+  blogHref,
+  lang = "ko",
+  categories,
 }: {
   section: SiteSection;
   base: string;
   T: TextRenderer;
+  editable?: boolean;
+  posts?: SiteSectionPost[];
+  blogHref?: string;
+  lang?: SiteLang;
+  categories?: string[];
 }) {
   switch (s.type) {
     case "features":
@@ -362,6 +393,70 @@ function SectionBlock({
           </div>
         </section>
       );
+
+    case "postList": {
+      const cat = (s.category ?? "").trim();
+      const all = posts ?? [];
+      const matched = (
+        cat ? all.filter((p) => (p.category ?? "") === cat) : all
+      ).slice(0, 6);
+      return (
+        <section className={WRAP}>
+          <div className={INNER}>
+            {s.title
+              ? T({
+                  path: `${base}.title`,
+                  value: s.title,
+                  as: "h2",
+                  className: `mb-6 ${H}`,
+                })
+              : null}
+            {editable && (
+              <div className="mb-6 rounded-xl border border-dashed border-border bg-surface-muted/40 p-4">
+                <label className="mb-1 block text-xs font-medium text-muted">
+                  표시할 카테고리
+                </label>
+                {T({
+                  path: `${base}.category`,
+                  value: s.category ?? "",
+                  as: "span",
+                  placeholder: "카테고리명 (예: 여행)",
+                  className:
+                    "inline-block min-w-36 rounded-md border border-border bg-white px-2 py-1 text-sm",
+                })}
+                <p className="mt-2 text-xs leading-relaxed text-muted">
+                  공개 페이지에서 이 카테고리의 블로그 글이 자동 목록으로 표시됩니다(최신 6개).
+                  비우면 전체 글.
+                  {categories && categories.length > 0 && (
+                    <>
+                      {" "}
+                      · 사용 중인 카테고리:{" "}
+                      <span className="text-foreground">
+                        {categories.join(", ")}
+                      </span>
+                    </>
+                  )}
+                  {` · 현재 ${matched.length}개 매칭`}
+                </p>
+              </div>
+            )}
+            {matched.length > 0 ? (
+              <BlogPreviewCards
+                posts={matched}
+                blogHref={blogHref ?? "#"}
+                lang={lang}
+              />
+            ) : editable ? (
+              <p className="rounded-xl border border-dashed border-border bg-surface p-6 text-center text-sm text-muted">
+                {cat
+                  ? `'${cat}' 카테고리의 공개 글이 없습니다. 블로그에서 글의 카테고리를 '${cat}'(으)로 저장하면 여기에 표시됩니다.`
+                  : "표시할 공개 글이 없습니다. 블로그 글을 발행해보세요."}
+              </p>
+            ) : null}
+          </div>
+        </section>
+      );
+    }
 
     default:
       return null;

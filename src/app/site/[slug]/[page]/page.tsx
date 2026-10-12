@@ -62,6 +62,16 @@ export default async function PublicSubPage({
     viewer && viewer.id === site.business.user_id
       ? `/business/${site.business.id}/website`
       : undefined;
+  // 글 목록(postList) 섹션용 — 카테고리 필터에 쓰도록 공개 글을 넘긴다.
+  const sectionPosts = posts.map((p) => ({
+    slug: p.slug,
+    title: p.title,
+    summary: p.summary,
+    coverImageUrl: p.cover_image_url,
+    publishedAt: p.published_at,
+    keyword: p.keywords[0],
+    category: p.category,
+  }));
 
   return (
     <>
@@ -72,6 +82,7 @@ export default async function PublicSubPage({
         siteSlug={slug}
         blogHref={blogHref}
         editHref={editHref}
+        posts={sectionPosts}
       />
     </>
   );

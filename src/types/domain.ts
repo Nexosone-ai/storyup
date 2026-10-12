@@ -207,6 +207,7 @@ export const SITE_SECTION_TYPES = [
   "features",
   "pricing",
   "steps",
+  "postList",
   "faq",
   "testimonials",
   "stats",
@@ -229,6 +230,8 @@ export type SiteSection = { image?: string } & (
   | { type: "stats"; title?: string; items: SiteStatItem[] }
   | { type: "cta"; title: string; body?: string; ctaLabel?: string }
   | { type: "richText"; title: string; body: string }
+  // 블로그 글 목록 — category(블로그 카테고리)로 자동 필터해 카드로 노출. 비우면 전체.
+  | { type: "postList"; title?: string; category?: string }
 );
 
 /**

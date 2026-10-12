@@ -9,6 +9,7 @@ import {
 } from "./templates/shared";
 import { SiteNav } from "./templates/SiteNav";
 import { SiteSections } from "./templates/SiteSections";
+import type { SiteSectionPost } from "./templates/BlogPreview";
 
 /**
  * (프리미엄) 멀티페이지 — 홈 외 서브페이지 공개 렌더러.
@@ -21,12 +22,15 @@ export function SubPageRenderer({
   siteSlug,
   blogHref,
   editHref,
+  posts,
 }: {
   content: WebsiteContent;
   page: SitePage;
   siteSlug: string;
   blogHref?: string;
   editHref?: string;
+  /** 글 목록(postList) 섹션용 — 이 사이트 공개 글. */
+  posts?: SiteSectionPost[];
 }) {
   const lang = siteLang(content);
   const { hero } = content;
@@ -78,7 +82,14 @@ export function SubPageRenderer({
         </section>
       )}
 
-      <SiteSections sections={page.sections} T={staticText} Img={staticImage} />
+      <SiteSections
+        sections={page.sections}
+        T={staticText}
+        Img={staticImage}
+        posts={posts}
+        blogHref={blogHref}
+        lang={lang}
+      />
 
       <footer className="border-t border-border bg-white">
         <div className="mx-auto max-w-5xl px-5 py-8 text-center text-sm text-muted">
