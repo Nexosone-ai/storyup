@@ -1091,6 +1091,7 @@ export function WebsiteEditor({
           </div>
 
           {typeof currentPage === "number" && pages[currentPage] && (
+            <>
             <div className="flex flex-wrap items-center gap-2 border-t border-border pt-2 text-xs">
               <input
                 value={pages[currentPage].navLabel}
@@ -1153,6 +1154,21 @@ export function WebsiteEditor({
                 {ko ? "페이지 삭제" : "Delete page"}
               </button>
             </div>
+            <p className="pt-1 text-[11px] text-muted">
+              {ko ? "공개 주소: " : "Public URL: "}
+              <span className="font-mono">
+                /site/{slug}/{pages[currentPage].slug}
+              </span>
+              {" · "}
+              {status === "published"
+                ? ko
+                  ? "‘저장’을 누르면 바로 공개됩니다."
+                  : "Press Save to publish this page."
+                : ko
+                  ? "‘저장’ 후 상단 ‘게시하기’를 눌러야 공개됩니다. (저장·게시 전에는 404)"
+                  : "Save, then press Publish at the top to make it public."}
+            </p>
+            </>
           )}
         </div>
       )}
