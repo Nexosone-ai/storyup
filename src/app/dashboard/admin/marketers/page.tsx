@@ -1,32 +1,32 @@
 import { listProductsAdmin } from "@/lib/payments/orders";
 import {
-  listMarketersAdmin,
-  listMarketerReferralsAdmin,
-  getMarketerRewardsAdmin,
-  listSettlementsAdmin,
-} from "@/lib/marketers";
+  listDistributorsAdmin,
+  listAllDistributorRatesAdmin,
+  listNetworkReferralsAdmin,
+} from "@/lib/network";
+import { listSettlementsAdmin } from "@/lib/marketers";
 import { PLANS } from "@/lib/plans";
 import {
-  AdminMarketers,
-  AdminMarketerReferrals,
-  AdminMarketerRewards,
+  AdminDistributors,
+  AdminDistributorRates,
+  AdminNetworkReferrals,
   AdminSettlements,
 } from "@/components/admin/AdminMarketersView";
 
-export const metadata = { title: "관리자 · 마케터·정산" };
+export const metadata = { title: "관리자 · 유통 네트워크·정산" };
 
 export default async function AdminMarketersPage() {
-  const [products, marketers, referrals, marketerRewards, settlements] =
+  const [products, distributors, rates, referrals, settlements] =
     await Promise.all([
       listProductsAdmin(),
-      listMarketersAdmin(),
-      listMarketerReferralsAdmin(),
-      getMarketerRewardsAdmin(),
+      listDistributorsAdmin(),
+      listAllDistributorRatesAdmin(),
+      listNetworkReferralsAdmin(),
       listSettlementsAdmin(),
     ]);
 
-  // 수당 정책 설정 대상: 유료 구독 플랜 + 판매중 상품
-  const rewardTargets = [
+  // 지급률 설정 대상: 유료 구독 플랜 + 판매중 상품
+  const rateTargets = [
     ...PLANS.filter((p) => p.priceKrw && p.priceKrw > 0).map((p) => ({
       itemType: "subscription_plan" as const,
       itemKey: p.id,
@@ -43,29 +43,13 @@ export default async function AdminMarketersPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-10">
-      <AdminMarketers marketers={marketers} />
-      <AdminMarketerReferrals
-        referrals={referrals.map((r) => ({
-          clientUserId: r.clientUserId,
-          clientName: r.clientName,
-          clientEmail: r.clientEmail,
-          marketerName: r.marketerName,
-          marketerEmail: r.marketerEmail,
-          signupAt: r.signupAt,
-          plan: r.plan,
-          paying: r.paying,
-        }))}
+      <AdminDistributors distributors={distributors} />
+      <AdminDistributorRates
+        distributors={distributors}
+        targets={rateTargets}
+        rates={rates}
       />
-      <AdminMarketerRewards
-        targets={rewardTargets}
-        rewards={marketerRewards.map((r) => ({
-          itemType: r.item_type as "subscription_plan" | "product",
-          itemKey: r.item_key,
-          rank: r.rank,
-          amount: r.reward_amount,
-          active: r.active,
-        }))}
-      />
+      <AdminNetworkReferrals referrals={referrals} />
       <AdminSettlements
         settlements={settlements.map((s) => ({
           id: s.id,

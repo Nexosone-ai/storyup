@@ -24,6 +24,12 @@ import {
   markSettlementPaid,
   type Rank,
 } from "@/lib/marketers";
+import {
+  registerDistributor,
+  setMemberStatus,
+  setDistributorSplit,
+  setDistributorRate,
+} from "@/lib/network";
 
 export interface AdminState {
   error?: string;
@@ -413,6 +419,74 @@ export async function markSettlementPaidAction(
   if (res.error) return { error: res.error };
   revalidatePath("/dashboard/admin");
   return { ok: true, message: "지급완료로 처리했습니다." };
+}
+
+// ---------------- 유통 네트워크 (총판·영업점·리셀러) ----------------
+
+/** 총판 등록/재활성화. */
+export async function registerDistributorAction(
+  email: string,
+  payoutType: "freelancer" | "business",
+): Promise<AdminState> {
+  const { user, admin } = await requireAdmin();
+  if (!admin || !user) return { error: "권한이 없습니다." };
+  const res = await registerDistributor(email, payoutType, user.id);
+  if (res.error) return { error: res.error };
+  revalidatePath("/dashboard/admin");
+  return { ok: true, message: "총판으로 등록했습니다." };
+}
+
+/** 멤버 활성/정지 (총판 강등 = 정지). */
+export async function setMemberStatusAction(
+  userId: string,
+  status: "active" | "suspended",
+): Promise<AdminState> {
+  const { admin } = await requireAdmin();
+  if (!admin) return { error: "권한이 없습니다." };
+  const res = await setMemberStatus(userId, status);
+  if (res.error) return { error: res.error };
+  revalidatePath("/dashboard/admin");
+  return {
+    ok: true,
+    message: status === "active" ? "활성화했습니다." : "정지(강등)했습니다.",
+  };
+}
+
+/** 총판 배분비율 설정 (합계 100). */
+export async function setDistributorSplitAction(
+  distributorUserId: string,
+  sd: number,
+  sa: number,
+  sr: number,
+): Promise<AdminState> {
+  const { admin } = await requireAdmin();
+  if (!admin) return { error: "권한이 없습니다." };
+  const res = await setDistributorSplit(distributorUserId, sd, sa, sr);
+  if (res.error) return { error: res.error };
+  revalidatePath("/dashboard/admin");
+  return { ok: true, message: "배분비율을 저장했습니다." };
+}
+
+/** 총판별 지급률(%) 설정. */
+export async function setDistributorRateAction(
+  distributorUserId: string,
+  itemType: "subscription_plan" | "product",
+  itemKey: string,
+  ratePct: number,
+  active: boolean,
+): Promise<AdminState> {
+  const { admin } = await requireAdmin();
+  if (!admin) return { error: "권한이 없습니다." };
+  const res = await setDistributorRate({
+    distributorUserId,
+    itemType,
+    itemKey,
+    ratePct,
+    active,
+  });
+  if (res.error) return { error: res.error };
+  revalidatePath("/dashboard/admin");
+  return { ok: true, message: "지급률을 저장했습니다." };
 }
 
 // ---------------- 게이미피케이션 (UP/XP/미션/보상 정책) ----------------

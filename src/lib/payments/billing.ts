@@ -8,7 +8,7 @@ import {
 } from "@/lib/payments/portone";
 import { getPlanById, type PlanId } from "@/lib/plans";
 import { markReferralPaidConversion } from "@/lib/gamification/referral";
-import { accrueSubscriptionCommission } from "@/lib/marketers";
+import { accrueSubscriptionCommission } from "@/lib/network";
 
 /**
  * 정기결제(빌링키) 구독 서비스.

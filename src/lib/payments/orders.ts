@@ -2,9 +2,9 @@ import { randomUUID } from "crypto";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getPortonePayment } from "@/lib/payments/portone";
 import {
-  resolveActiveMarketerByCode,
+  resolveSellerByCode,
   accrueProductCommission,
-} from "@/lib/marketers";
+} from "@/lib/network";
 import type { PlanId } from "@/lib/plans";
 import type { ProductRow, ProductOrderRow } from "@/types/database";
 
@@ -83,7 +83,7 @@ export async function createProductOrder(args: {
 
   // 마케터 귀속 — 결제링크의 ?ref=코드가 활성 마케터면 주문에 연결
   const refMarketerId = args.refCode
-    ? await resolveActiveMarketerByCode(args.refCode)
+    ? await resolveSellerByCode(args.refCode)
     : null;
 
   const orderId = `ord_${randomUUID()}`;

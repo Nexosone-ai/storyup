@@ -955,7 +955,11 @@ export interface Database {
           client_user_id: string | null;
           item_key: string;
           item_label: string | null;
-          rank_at_sale: string;
+          rank_at_sale: string | null;
+          role_at_sale: string | null;
+          seller_user_id: string | null;
+          pool_amount: number | null;
+          rate_pct: number | null;
           gross_sale: number;
           amount: number;
           status: string;
@@ -972,7 +976,11 @@ export interface Database {
           client_user_id?: string | null;
           item_key: string;
           item_label?: string | null;
-          rank_at_sale: string;
+          rank_at_sale?: string | null;
+          role_at_sale?: string | null;
+          seller_user_id?: string | null;
+          pool_amount?: number | null;
+          rate_pct?: number | null;
           gross_sale?: number;
           amount?: number;
           status?: string;
@@ -1016,6 +1024,74 @@ export interface Database {
         };
         Update: Partial<
           Database["public"]["Tables"]["marketer_settlements"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      network_members: {
+        Row: {
+          user_id: string;
+          role: string;
+          parent_id: string | null;
+          distributor_id: string;
+          status: string;
+          split_distributor: number;
+          split_agency: number;
+          split_reseller: number;
+          payout_type: string;
+          bank_name: string | null;
+          bank_account: string | null;
+          account_holder: string | null;
+          tax_id: string | null;
+          memo: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          role: string;
+          parent_id?: string | null;
+          distributor_id: string;
+          status?: string;
+          split_distributor?: number;
+          split_agency?: number;
+          split_reseller?: number;
+          payout_type?: string;
+          bank_name?: string | null;
+          bank_account?: string | null;
+          account_holder?: string | null;
+          tax_id?: string | null;
+          memo?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["network_members"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      distributor_rates: {
+        Row: {
+          id: string;
+          distributor_user_id: string;
+          item_type: string;
+          item_key: string;
+          rate_pct: number;
+          active: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          distributor_user_id: string;
+          item_type: string;
+          item_key: string;
+          rate_pct?: number;
+          active?: boolean;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["distributor_rates"]["Insert"]
         >;
         Relationships: [];
       };
@@ -1657,6 +1733,10 @@ export type MarketerCommissionRow =
   Database["public"]["Tables"]["marketer_commissions"]["Row"];
 export type MarketerSettlementRow =
   Database["public"]["Tables"]["marketer_settlements"]["Row"];
+export type NetworkMemberRow =
+  Database["public"]["Tables"]["network_members"]["Row"];
+export type DistributorRateRow =
+  Database["public"]["Tables"]["distributor_rates"]["Row"];
 export type BusinessRow = Database["public"]["Tables"]["businesses"]["Row"];
 export type BrandProfileRow =
   Database["public"]["Tables"]["brand_profiles"]["Row"];

@@ -10,7 +10,7 @@ import {
   needsOnboarding,
 } from "@/lib/queries";
 import { isCurrentUserAdmin } from "@/lib/points";
-import { isCurrentUserMarketer } from "@/lib/marketers";
+import { isCurrentUserNetworkMember } from "@/lib/network";
 import { dashboardNav, workspaceNav } from "@/lib/nav";
 import { getLocale } from "@/lib/i18n";
 import { getUnreadNotificationCount } from "@/lib/notifications";
@@ -44,7 +44,7 @@ export default async function DashboardLayout({
   ] = await Promise.all([
     getProfileName(),
     isCurrentUserAdmin(),
-    isCurrentUserMarketer(),
+    isCurrentUserNetworkMember(),
     getLocale(),
     getPrimaryBusiness(),
     getUnreadNotificationCount(),
