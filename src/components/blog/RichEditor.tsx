@@ -61,6 +61,8 @@ const CustomImage = Image.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
+      // 이미지 너비(비율 또는 px) — width 속성으로 저장. 예: "50%".
+      width: { default: null },
       align: {
         default: null,
         rendered: false,
@@ -481,6 +483,25 @@ export function RichEditor({
         >
           <Icon.link width={15} height={15} />
         </TB>
+        {editor.isActive("image") && (
+          <select
+            value={(editor.getAttributes("image").width as string) || ""}
+            onChange={(e) =>
+              editor
+                .chain()
+                .focus()
+                .updateAttributes("image", { width: e.target.value || null })
+                .run()
+            }
+            title={ko ? "이미지 크기" : "Image size"}
+            className="h-8 rounded-md border border-primary/40 bg-primary-soft px-2 text-xs font-medium text-primary"
+          >
+            <option value="">{ko ? "원본 크기" : "Original"}</option>
+            <option value="75%">75%</option>
+            <option value="50%">50%</option>
+            <option value="25%">25%</option>
+          </select>
+        )}
 
         <Divider />
         <TB
