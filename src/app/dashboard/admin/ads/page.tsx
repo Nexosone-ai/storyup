@@ -18,6 +18,7 @@ export default async function AdminAdsPage() {
         campaigns={campaigns.map((c) => ({
           id: c.id,
           name: c.name,
+          type: c.type,
           businessName: c.businessName,
           status: c.status,
           bidAmount: c.bid_amount,

@@ -5,6 +5,7 @@ import type { CampaignCreative } from "./campaigns";
 export interface ServedAd {
   placementId: string;
   campaignId: string;
+  type: "cpc" | "cpv" | "cpa";
   creative: CampaignCreative;
 }
 
@@ -30,7 +31,7 @@ export async function getActiveAdFor(
   const campIds = [...new Set(list.map((p) => p.campaign_id))];
   const { data: camps } = await admin
     .from("ad_campaigns")
-    .select("id,status,spent,total_budget,creative")
+    .select("id,status,spent,total_budget,creative,type")
     .in("id", campIds)
     .eq("status", "active");
   const validCampaigns = new Map(
@@ -46,6 +47,7 @@ export async function getActiveAdFor(
   return {
     placementId: pick.id,
     campaignId: pick.campaign_id,
+    type: (camp.type ?? "cpc") as "cpc" | "cpv" | "cpa",
     creative: (camp.creative ?? {}) as CampaignCreative,
   };
 }

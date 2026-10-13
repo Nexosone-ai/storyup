@@ -30,14 +30,32 @@ const C_STATUS: Record<string, { label: string; tone: "success" | "muted" | "war
   rejected: { label: "반려", tone: "danger" },
 };
 
+type AdType = "cpc" | "cpv" | "cpa";
+const TYPE_META: Record<AdType, { label: string; unit: string; metric: string }> = {
+  cpc: { label: "CPC·클릭당", unit: "클릭당 단가", metric: "클릭" },
+  cpv: { label: "CPV·노출당", unit: "노출당 단가", metric: "노출" },
+  cpa: { label: "CPA·리드당", unit: "리드당 단가", metric: "리드" },
+};
+
+export interface AdLeadItem {
+  id: string;
+  campaignName: string;
+  name: string;
+  phone: string;
+  message: string | null;
+  createdAt: string;
+}
+
 export function AdvertiserAdsView({
   businessId,
   report,
   buyer,
+  leads,
 }: {
   businessId: string;
   report: AdvertiserReport;
   buyer: { name: string; email: string };
+  leads: AdLeadItem[];
 }) {
   const router = useRouter();
   const [busy, start] = useTransition();
@@ -48,6 +66,7 @@ export function AdvertiserAdsView({
   const [phone, setPhone] = useState("");
 
   // 캠페인 생성
+  const [cType, setCType] = useState<AdType>("cpc");
   const [banner, setBanner] = useState<SiteBanner>({
     id: "draft",
     placement: "landing",
@@ -107,6 +126,7 @@ export function AdvertiserAdsView({
   const createCampaign = () =>
     run(async () => {
       const res = await createCampaignAction(businessId, {
+        type: cType,
         name: cName,
         creative: {
           image: banner.image,
@@ -193,11 +213,36 @@ export function AdvertiserAdsView({
       <section className="space-y-3">
         <h2 className="text-lg font-semibold tracking-tight">새 캠페인</h2>
         <Card className="space-y-3">
+          <div className="flex flex-wrap gap-1.5">
+            {(["cpc", "cpv", "cpa"] as AdType[]).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setCType(t)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
+                  cType === t
+                    ? "border-primary bg-primary-soft text-primary"
+                    : "border-border text-muted"
+                }`}
+              >
+                {TYPE_META[t].label}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-muted">
+            {cType === "cpc" && "클릭당 과금 — 방문자가 광고를 클릭하면 단가만큼 차감됩니다."}
+            {cType === "cpv" && "노출당 과금 — 광고가 방문자에게 1회 노출될 때마다 차감됩니다."}
+            {cType === "cpa" && "리드당 과금 — 광고 신청폼으로 잠재고객 DB(이름·연락처)를 받을 때 차감됩니다."}
+          </p>
           <div className="grid gap-2 sm:grid-cols-2">
             <Input value={cName} onChange={(e) => setCName(e.target.value)} placeholder="캠페인 이름" maxLength={80} />
-            <Input value={cUrl} onChange={(e) => setCUrl(e.target.value)} placeholder="클릭 시 이동할 링크 (https://…)" />
+            <Input
+              value={cUrl}
+              onChange={(e) => setCUrl(e.target.value)}
+              placeholder={cType === "cpa" ? "이동 링크 (선택, https://…)" : "클릭 시 이동할 링크 (https://…)"}
+            />
             <label className="flex items-center gap-2 text-sm">
-              <span className="text-xs text-muted">클릭당 단가(₩)</span>
+              <span className="text-xs text-muted">{TYPE_META[cType].unit}(₩)</span>
               <Input type="number" min={1} value={cBid} onChange={(e) => setCBid(e.target.value)} className="w-28 text-right" />
             </label>
             <label className="flex items-center gap-2 text-sm">
@@ -231,10 +276,11 @@ export function AdvertiserAdsView({
               <thead>
                 <tr className="border-b border-border text-left text-xs text-muted">
                   <th className="p-3">캠페인</th>
+                  <th className="p-3">유형</th>
                   <th className="p-3">상태</th>
                   <th className="p-3 text-right">단가/예산</th>
                   <th className="p-3 text-right">지출</th>
-                  <th className="p-3 text-right">노출/클릭</th>
+                  <th className="p-3 text-right">노출/클릭/리드</th>
                   <th className="p-3 text-right">CTR</th>
                   <th className="p-3"></th>
                 </tr>
@@ -243,6 +289,7 @@ export function AdvertiserAdsView({
                 {report.campaigns.map((c) => (
                   <tr key={c.campaignId} className="border-b border-border/60 last:border-0">
                     <td className="p-3 font-medium">{c.name}</td>
+                    <td className="p-3 text-xs uppercase text-muted">{c.type}</td>
                     <td className="p-3">
                       <Badge tone={C_STATUS[c.status]?.tone ?? "muted"}>
                         {C_STATUS[c.status]?.label ?? c.status}
@@ -253,7 +300,7 @@ export function AdvertiserAdsView({
                     </td>
                     <td className="tnum p-3 text-right">{won(c.spent)}</td>
                     <td className="tnum p-3 text-right">
-                      {c.impressions.toLocaleString()} / {c.clicks.toLocaleString()}
+                      {c.impressions.toLocaleString()} / {c.clicks.toLocaleString()} / {c.leads.toLocaleString()}
                     </td>
                     <td className="tnum p-3 text-right">{c.ctr}%</td>
                     <td className="p-3">
@@ -285,6 +332,40 @@ export function AdvertiserAdsView({
           </div>
         )}
       </section>
+
+      {/* 수령한 리드(CPA) */}
+      {leads.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold tracking-tight">수령한 리드 ({leads.length})</h2>
+          <p className="text-xs text-muted">CPA 광고로 받은 잠재고객 DB입니다.</p>
+          <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
+            <table className="w-full min-w-[560px] text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs text-muted">
+                  <th className="p-3">일시</th>
+                  <th className="p-3">이름</th>
+                  <th className="p-3">연락처</th>
+                  <th className="p-3">문의</th>
+                  <th className="p-3">캠페인</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leads.map((l) => (
+                  <tr key={l.id} className="border-b border-border/60 last:border-0">
+                    <td className="p-3 whitespace-nowrap text-muted">
+                      {new Date(l.createdAt).toLocaleDateString("ko-KR", { month: "short", day: "numeric" })}
+                    </td>
+                    <td className="p-3 font-medium">{l.name}</td>
+                    <td className="tnum p-3">{l.phone}</td>
+                    <td className="p-3 text-xs text-muted">{l.message ?? "-"}</td>
+                    <td className="p-3 text-xs">{l.campaignName}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

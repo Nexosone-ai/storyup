@@ -9,10 +9,13 @@ export interface CampaignCreative {
   aspect?: "4:1" | "3:1" | "16:9" | "1:1";
 }
 
+export type CampaignType = "cpc" | "cpv" | "cpa";
+
 export interface CampaignInput {
+  type: CampaignType;
   name: string;
   creative: CampaignCreative;
-  targetUrl: string;
+  targetUrl: string; // CPA면 선택(리드폼 안내 링크)
   bidAmount: number;
   totalBudget: number;
   industry?: string | null;
@@ -20,12 +23,17 @@ export interface CampaignInput {
 
 function validate(input: CampaignInput): string | null {
   if (!input.name.trim()) return "캠페인 이름을 입력하세요.";
-  if (!/^https?:\/\//i.test(input.targetUrl.trim()))
+  if (!["cpc", "cpv", "cpa"].includes(input.type))
+    return "광고 유형이 올바르지 않습니다.";
+  // CPC/CPV는 클릭/노출 시 이동할 링크 필수. CPA는 리드폼으로 수집(링크 선택).
+  if (input.type !== "cpa" && !/^https?:\/\//i.test(input.targetUrl.trim()))
     return "이동할 링크(target URL)를 http(s):// 형식으로 입력하세요.";
+  if (input.type === "cpa" && input.targetUrl.trim() && !/^https?:\/\//i.test(input.targetUrl.trim()))
+    return "링크는 http(s):// 형식이어야 합니다.";
   if (!Number.isInteger(input.bidAmount) || input.bidAmount <= 0)
-    return "클릭당 단가를 올바르게 입력하세요.";
+    return "단가를 올바르게 입력하세요.";
   if (!Number.isInteger(input.totalBudget) || input.totalBudget < input.bidAmount)
-    return "총 예산은 클릭당 단가 이상이어야 합니다.";
+    return "총 예산은 단가 이상이어야 합니다.";
   return null;
 }
 
@@ -61,10 +69,10 @@ export async function createCampaign(
     .from("ad_campaigns")
     .insert({
       business_id: businessId,
-      type: "cpc",
+      type: input.type,
       name: input.name.trim().slice(0, 80),
       creative: (input.creative ?? {}) as unknown as Json,
-      target_url: input.targetUrl.trim(),
+      target_url: input.targetUrl.trim() || "",
       bid_amount: input.bidAmount,
       total_budget: input.totalBudget,
       status: "pending_review",

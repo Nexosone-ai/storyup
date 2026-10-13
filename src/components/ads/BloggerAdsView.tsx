@@ -16,6 +16,11 @@ import type { BloggerEarningsReport } from "@/lib/ads/report";
 import type { SiteBanner } from "@/types/domain";
 
 const won = (n: number) => `₩${n.toLocaleString()}`;
+const UNIT_LABEL: Record<string, string> = {
+  cpc: "클릭당",
+  cpv: "노출당",
+  cpa: "리드당",
+};
 const SLOT_LABEL: Record<AdSlot, string> = {
   postTop: "글 상단",
   postBottom: "글 하단",
@@ -119,7 +124,7 @@ export function BloggerAdsView({
                   <div className="flex items-baseline justify-between">
                     <p className="font-medium">{c.name}</p>
                     <span className="tnum text-sm font-semibold text-primary">
-                      클릭당 {won(c.bidAmount)}
+                      {UNIT_LABEL[c.type] ?? "건당"} {won(c.bidAmount)}
                     </span>
                   </div>
                   <p className="text-xs text-muted">

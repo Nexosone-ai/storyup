@@ -17,6 +17,7 @@ const won = (n: number) => `₩${n.toLocaleString()}`;
 export interface AdminCampaign {
   id: string;
   name: string;
+  type: string;
   businessName: string;
   status: string;
   bidAmount: number;
@@ -107,7 +108,7 @@ export function AdminAdsView({
                 <div className="min-w-0">
                   <p className="font-medium">{c.name}</p>
                   <p className="text-xs text-muted">
-                    {c.businessName} · 클릭당 {won(c.bidAmount)} · 예산 {won(c.totalBudget)} · 잔액 {won(c.balance)}
+                    <span className="uppercase">{c.type}</span> · {c.businessName} · 단가 {won(c.bidAmount)} · 예산 {won(c.totalBudget)} · 잔액 {won(c.balance)}
                   </p>
                   <a href={c.targetUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">
                     {c.targetUrl}

@@ -8,6 +8,7 @@ export type { AdSlot };
 export interface InventoryCampaign {
   id: string;
   name: string;
+  type: string; // cpc | cpv | cpa
   advertiserName: string;
   bidAmount: number;
   budgetLeft: number;
@@ -43,6 +44,7 @@ export async function listInventory(
   return list.map((c) => ({
     id: c.id,
     name: c.name,
+    type: c.type,
     advertiserName: nameById.get(c.business_id) ?? "",
     bidAmount: c.bid_amount,
     budgetLeft: c.total_budget - c.spent,

@@ -23,6 +23,6 @@ export async function POST(request: Request) {
   const vid = (await cookies()).get("bl_vid")?.value ?? null;
   const visitorKey = user ? `user:${user.id}` : vid ? `anon:${vid}` : null;
 
-  await recordImpression(placementId, visitorKey);
+  await recordImpression(placementId, visitorKey, user?.id ?? null);
   return NextResponse.json({ ok: true });
 }

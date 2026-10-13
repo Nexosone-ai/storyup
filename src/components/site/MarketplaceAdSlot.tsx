@@ -20,6 +20,11 @@ export async function MarketplaceAdSlot({
   const ad = await getActiveAdFor(businessId, slot);
   if (!ad) return null;
 
+  // CPA는 리드폼 페이지로, 그 외(CPC/CPV)는 클릭 라우트로.
+  const href =
+    ad.type === "cpa"
+      ? `/ads/lead/${ad.placementId}`
+      : `/api/ads/click/${ad.placementId}`;
   const banner: SiteBanner = {
     id: ad.placementId,
     placement: "landing",
@@ -28,7 +33,7 @@ export async function MarketplaceAdSlot({
     subtitle: ad.creative.subtitle,
     ctaLabel: ad.creative.ctaLabel,
     aspect: ad.creative.aspect ?? "3:1",
-    ctaHref: `/api/ads/click/${ad.placementId}`,
+    ctaHref: href,
   };
 
   return (

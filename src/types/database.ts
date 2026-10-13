@@ -1338,6 +1338,36 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["ad_settings"]["Insert"]>;
         Relationships: [];
       };
+      ad_leads: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          placement_id: string | null;
+          advertiser_business_id: string;
+          blogger_user_id: string;
+          name: string;
+          phone: string;
+          message: string | null;
+          charged: boolean;
+          amount: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          campaign_id: string;
+          placement_id?: string | null;
+          advertiser_business_id: string;
+          blogger_user_id: string;
+          name: string;
+          phone: string;
+          message?: string | null;
+          charged?: boolean;
+          amount?: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ad_leads"]["Insert"]>;
+        Relationships: [];
+      };
       service_prices: {
         Row: {
           service: string;
@@ -1998,6 +2028,7 @@ export type AdSettlementRow =
   Database["public"]["Tables"]["ad_settlements"]["Row"];
 export type AdDepositOrderRow =
   Database["public"]["Tables"]["ad_deposit_orders"]["Row"];
+export type AdLeadRow = Database["public"]["Tables"]["ad_leads"]["Row"];
 export type BusinessRow = Database["public"]["Tables"]["businesses"]["Row"];
 export type BrandProfileRow =
   Database["public"]["Tables"]["brand_profiles"]["Row"];

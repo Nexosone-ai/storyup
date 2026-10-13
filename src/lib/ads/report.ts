@@ -1,16 +1,19 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { getAdBalance } from "./wallet";
 import { listCampaigns } from "./campaigns";
+import { leadCountsByCampaign } from "./leads";
 
 export interface CampaignStat {
   campaignId: string;
   name: string;
+  type: string; // cpc | cpv | cpa
   status: string;
   bidAmount: number;
   totalBudget: number;
   spent: number;
   impressions: number;
   clicks: number; // 과금된 클릭
+  leads: number; // 과금된 리드(CPA)
   ctr: number; // %
 }
 
@@ -31,19 +34,22 @@ export async function getAdvertiserReport(
   const ids = campaigns.map((c) => c.id);
   const clicksByCamp = new Map<string, number>();
   const impByCamp = new Map<string, number>();
+  let leadsByCamp = new Map<string, number>();
   if (ids.length > 0) {
-    const [{ data: clicks }, { data: imps }] = await Promise.all([
+    const [{ data: clicks }, { data: imps }, leads] = await Promise.all([
       admin
         .from("ad_clicks")
         .select("campaign_id,charged")
         .in("campaign_id", ids)
         .eq("charged", true),
       admin.from("ad_impressions").select("campaign_id").in("campaign_id", ids),
+      leadCountsByCampaign(ids),
     ]);
     for (const c of clicks ?? [])
       clicksByCamp.set(c.campaign_id, (clicksByCamp.get(c.campaign_id) ?? 0) + 1);
     for (const i of imps ?? [])
       impByCamp.set(i.campaign_id, (impByCamp.get(i.campaign_id) ?? 0) + 1);
+    leadsByCamp = leads;
   }
   const stats: CampaignStat[] = campaigns.map((c) => {
     const clicks = clicksByCamp.get(c.id) ?? 0;
@@ -51,12 +57,14 @@ export async function getAdvertiserReport(
     return {
       campaignId: c.id,
       name: c.name,
+      type: c.type,
       status: c.status,
       bidAmount: c.bid_amount,
       totalBudget: c.total_budget,
       spent: c.spent,
       impressions,
       clicks,
+      leads: leadsByCamp.get(c.id) ?? 0,
       ctr: impressions > 0 ? Math.round((clicks / impressions) * 1000) / 10 : 0,
     };
   });
