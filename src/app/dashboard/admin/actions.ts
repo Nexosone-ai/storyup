@@ -30,6 +30,12 @@ import {
   setDistributorSplit,
   setDistributorRate,
 } from "@/lib/network";
+import { reviewCampaign } from "@/lib/ads/campaigns";
+import { setPlatformFeePct } from "@/lib/ads/settings";
+import {
+  generateAdSettlements,
+  markAdSettlementPaid,
+} from "@/lib/ads/settlement";
 
 export interface AdminState {
   error?: string;
@@ -465,6 +471,54 @@ export async function setDistributorSplitAction(
   if (res.error) return { error: res.error };
   revalidatePath("/dashboard/admin");
   return { ok: true, message: "배분비율을 저장했습니다." };
+}
+
+// ---------------- 광고 마켓플레이스 ----------------
+
+/** 캠페인 검수 승인/반려. */
+export async function reviewCampaignAction(
+  campaignId: string,
+  approve: boolean,
+  note?: string,
+): Promise<AdminState> {
+  const { admin } = await requireAdmin();
+  if (!admin) return { error: "권한이 없습니다." };
+  const res = await reviewCampaign(campaignId, approve, note);
+  if (res.error) return { error: res.error };
+  revalidatePath("/dashboard/admin/ads");
+  return { ok: true, message: approve ? "승인했습니다." : "반려했습니다." };
+}
+
+/** 플랫폼 수수료 % 설정. */
+export async function setAdFeeAction(pct: number): Promise<AdminState> {
+  const { admin } = await requireAdmin();
+  if (!admin) return { error: "권한이 없습니다." };
+  await setPlatformFeePct(pct);
+  revalidatePath("/dashboard/admin/ads");
+  return { ok: true, message: "수수료를 저장했습니다." };
+}
+
+/** 광고 수익 월별 정산 생성. */
+export async function generateAdSettlementsAction(
+  period: string,
+): Promise<AdminState> {
+  const { admin } = await requireAdmin();
+  if (!admin) return { error: "권한이 없습니다." };
+  const res = await generateAdSettlements(period);
+  if (res.error) return { error: res.error };
+  revalidatePath("/dashboard/admin/ads");
+  return { ok: true, message: `${period} 정산 ${res.created ?? 0}건 생성.` };
+}
+
+export async function markAdSettlementPaidAction(
+  settlementId: string,
+): Promise<AdminState> {
+  const { admin } = await requireAdmin();
+  if (!admin) return { error: "권한이 없습니다." };
+  const res = await markAdSettlementPaid(settlementId);
+  if (res.error) return { error: res.error };
+  revalidatePath("/dashboard/admin/ads");
+  return { ok: true, message: "지급완료로 처리했습니다." };
 }
 
 /** 총판별 지급률(%) 설정. */

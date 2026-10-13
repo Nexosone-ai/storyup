@@ -18,6 +18,7 @@ import {
 import { renderBlogContent } from "@/lib/blog/renderContent";
 import { BlogCover } from "@/components/blog/BlogCover";
 import { BannerStrip } from "@/components/website/templates/BannerView";
+import { MarketplaceAdSlot } from "@/components/site/MarketplaceAdSlot";
 import { RelativeTime } from "@/components/ui/RelativeTime";
 import { ShareBar } from "@/components/site/ShareBar";
 import { BlogComments } from "@/components/site/BlogComments";
@@ -228,6 +229,11 @@ export default async function PublicArticlePage({
           placement="postTop"
           className="mb-8"
         />
+        <MarketplaceAdSlot
+          businessId={site.business.id}
+          slot="postTop"
+          className="mb-8"
+        />
         {/* 브레드크럼 — 위 BreadcrumbList 스키마와 짝을 이루는 실제 내부 링크 */}
         <nav
           aria-label={ko ? "탐색 경로" : "Breadcrumb"}
@@ -315,6 +321,11 @@ export default async function PublicArticlePage({
         <BannerStrip
           banners={site.website.content.banners}
           placement="postBottom"
+          className="mt-10"
+        />
+        <MarketplaceAdSlot
+          businessId={site.business.id}
+          slot="postBottom"
           className="mt-10"
         />
 

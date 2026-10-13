@@ -15,6 +15,7 @@ import {
 import { RelativeTime } from "@/components/ui/RelativeTime";
 import { BlogCover } from "@/components/blog/BlogCover";
 import { BannerStrip } from "@/components/website/templates/BannerView";
+import { MarketplaceAdSlot } from "@/components/site/MarketplaceAdSlot";
 import { TrackPageView } from "@/components/site/TrackPageView";
 import { buildSeo, siteBaseUrl } from "@/utils/seo";
 
@@ -138,6 +139,11 @@ export default async function PublicBlogListPage({
         <BannerStrip
           banners={site.website.content.banners}
           placement="blogList"
+          className="mb-8"
+        />
+        <MarketplaceAdSlot
+          businessId={site.business.id}
+          slot="blogList"
           className="mb-8"
         />
         <h1 className="mb-8 text-3xl font-bold tracking-tight">

@@ -1098,6 +1098,246 @@ export interface Database {
         >;
         Relationships: [];
       };
+      ad_wallet_tx: {
+        Row: {
+          id: string;
+          business_id: string;
+          amount: number;
+          reason: string | null;
+          ref_type: string | null;
+          ref_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          amount: number;
+          reason?: string | null;
+          ref_type?: string | null;
+          ref_id?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ad_wallet_tx"]["Insert"]>;
+        Relationships: [];
+      };
+      ad_deposit_orders: {
+        Row: {
+          id: string;
+          business_id: string;
+          order_id: string;
+          amount: number;
+          currency: string;
+          status: string;
+          payment_key: string | null;
+          approved_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          order_id: string;
+          amount: number;
+          currency?: string;
+          status?: string;
+          payment_key?: string | null;
+          approved_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["ad_deposit_orders"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      ad_campaigns: {
+        Row: {
+          id: string;
+          business_id: string;
+          type: string;
+          name: string;
+          creative: Json;
+          target_url: string;
+          bid_amount: number;
+          total_budget: number;
+          spent: number;
+          status: string;
+          industry: string | null;
+          review_note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          type?: string;
+          name: string;
+          creative?: Json;
+          target_url: string;
+          bid_amount: number;
+          total_budget: number;
+          spent?: number;
+          status?: string;
+          industry?: string | null;
+          review_note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ad_campaigns"]["Insert"]>;
+        Relationships: [];
+      };
+      ad_placements: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          business_id: string;
+          blogger_user_id: string;
+          slots: string[];
+          status: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          campaign_id: string;
+          business_id: string;
+          blogger_user_id: string;
+          slots?: string[];
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ad_placements"]["Insert"]>;
+        Relationships: [];
+      };
+      ad_clicks: {
+        Row: {
+          id: string;
+          placement_id: string;
+          campaign_id: string;
+          advertiser_business_id: string;
+          blogger_user_id: string;
+          visitor_key: string;
+          charged: boolean;
+          amount: number;
+          fee_amount: number;
+          blogger_amount: number;
+          click_day: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          placement_id: string;
+          campaign_id: string;
+          advertiser_business_id: string;
+          blogger_user_id: string;
+          visitor_key: string;
+          charged?: boolean;
+          amount?: number;
+          fee_amount?: number;
+          blogger_amount?: number;
+          click_day?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ad_clicks"]["Insert"]>;
+        Relationships: [];
+      };
+      ad_impressions: {
+        Row: {
+          id: string;
+          placement_id: string;
+          campaign_id: string;
+          visitor_key: string | null;
+          imp_day: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          placement_id: string;
+          campaign_id: string;
+          visitor_key?: string | null;
+          imp_day?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ad_impressions"]["Insert"]>;
+        Relationships: [];
+      };
+      ad_earnings: {
+        Row: {
+          id: string;
+          blogger_user_id: string;
+          business_id: string;
+          campaign_id: string | null;
+          placement_id: string | null;
+          event_type: string;
+          ref_id: string | null;
+          amount: number;
+          status: string;
+          settlement_id: string | null;
+          occurred_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          blogger_user_id: string;
+          business_id: string;
+          campaign_id?: string | null;
+          placement_id?: string | null;
+          event_type?: string;
+          ref_id?: string | null;
+          amount?: number;
+          status?: string;
+          settlement_id?: string | null;
+          occurred_at?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ad_earnings"]["Insert"]>;
+        Relationships: [];
+      };
+      ad_settlements: {
+        Row: {
+          id: string;
+          blogger_user_id: string;
+          period: string;
+          gross: number;
+          tax: number;
+          net: number;
+          earning_count: number;
+          status: string;
+          paid_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          blogger_user_id: string;
+          period: string;
+          gross?: number;
+          tax?: number;
+          net?: number;
+          earning_count?: number;
+          status?: string;
+          paid_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ad_settlements"]["Insert"]>;
+        Relationships: [];
+      };
+      ad_settings: {
+        Row: {
+          id: number;
+          platform_fee_pct: number;
+          updated_at: string;
+        };
+        Insert: {
+          id?: number;
+          platform_fee_pct?: number;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ad_settings"]["Insert"]>;
+        Relationships: [];
+      };
       service_prices: {
         Row: {
           service: string;
@@ -1655,6 +1895,16 @@ export interface Database {
         };
         Returns: number;
       };
+      ad_wallet_spend: {
+        Args: {
+          p_business: string;
+          p_amount: number;
+          p_reason: string;
+          p_ref_type: string | null;
+          p_ref_id: string | null;
+        };
+        Returns: number;
+      };
       increment_blog_view: {
         Args: {
           p_business: string;
@@ -1740,6 +1990,14 @@ export type NetworkMemberRow =
   Database["public"]["Tables"]["network_members"]["Row"];
 export type DistributorRateRow =
   Database["public"]["Tables"]["distributor_rates"]["Row"];
+export type AdCampaignRow = Database["public"]["Tables"]["ad_campaigns"]["Row"];
+export type AdPlacementRow =
+  Database["public"]["Tables"]["ad_placements"]["Row"];
+export type AdEarningRow = Database["public"]["Tables"]["ad_earnings"]["Row"];
+export type AdSettlementRow =
+  Database["public"]["Tables"]["ad_settlements"]["Row"];
+export type AdDepositOrderRow =
+  Database["public"]["Tables"]["ad_deposit_orders"]["Row"];
 export type BusinessRow = Database["public"]["Tables"]["businesses"]["Row"];
 export type BrandProfileRow =
   Database["public"]["Tables"]["brand_profiles"]["Row"];
