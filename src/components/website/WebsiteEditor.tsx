@@ -37,15 +37,18 @@ import {
   type WebsiteTemplateId,
   type SitePage,
   type LandingSectionKey,
+  type SiteBanner,
 } from "@/types/domain";
 import type { WebsiteRow } from "@/types/database";
 import type { ShowcaseCardItem } from "@/components/marketing/showcaseData";
 import type { SiteSectionPost } from "./templates/BlogPreview";
+import { BannerEditor } from "./BannerEditor";
 
 type Device = "desktop" | "mobile";
 
 /** 메인 섹션 키 → 편집기 라벨(관리자가 보는 이름). */
 const SECTION_LABELS: Record<LandingSectionKey, { ko: string; en: string }> = {
+  banner: { ko: "배너", en: "Banner" },
   story: { ko: "스토리", en: "Story" },
   offers: { ko: "제공 서비스", en: "Offers" },
   whyChooseUs: { ko: "강점", en: "Why us" },
@@ -454,6 +457,31 @@ export function WebsiteEditor({
       else set.add(key);
       return { ...c, hiddenSections: [...set] };
     });
+
+  // 배너 관리 (랜딩/블로그 공용) — content.banners. 저장은 기존 '저장' 경로로 영속.
+  const banners = content.banners ?? [];
+  const addBanner = () =>
+    setContent((c) => ({
+      ...c,
+      banners: [
+        ...(c.banners ?? []),
+        {
+          id: `bn_${Date.now().toString(36)}`,
+          placement: "landing",
+          aspect: "3:1",
+        } as SiteBanner,
+      ],
+    }));
+  const updateBanner = (id: string, next: SiteBanner) =>
+    setContent((c) => ({
+      ...c,
+      banners: (c.banners ?? []).map((b) => (b.id === id ? next : b)),
+    }));
+  const removeBanner = (id: string) =>
+    setContent((c) => ({
+      ...c,
+      banners: (c.banners ?? []).filter((b) => b.id !== id),
+    }));
 
   const palette = content.style?.palette ?? "forest";
   const font = content.style?.font ?? "default";
@@ -1055,6 +1083,41 @@ export function WebsiteEditor({
           {ko
             ? "내용이 없는 섹션(예: 갤러리 사진 미등록)은 '표시'여도 공개 사이트에는 자동으로 나타나지 않아요. 변경 후 저장을 눌러주세요."
             : "Empty sections (e.g. no gallery photos) won’t appear on the live site even when set to Shown. Press Save to apply."}
+        </p>
+      </div>
+
+      {/* 배너 관리 — 랜딩/블로그에 노출할 이미지 배너(문구·버튼·AI 이미지·사이즈). */}
+      <div className="space-y-3 rounded-xl border border-border bg-surface p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <span className="eyebrow mr-1">{ko ? "배너" : "Banners"}</span>
+            <span className="text-xs text-muted">
+              {ko
+                ? "랜딩페이지·블로그에 이미지 배너를 추가해요. 이미지 업로드 또는 AI 생성(원하는 내용 입력), 문구·버튼·사이즈·노출 위치를 설정할 수 있어요. 랜딩 배너의 순서는 위 ‘섹션 배치’에서 조정."
+                : "Add image banners to your landing page and blog. Upload or generate with AI, set text, button, size, and placement."}
+            </span>
+          </div>
+          <Button variant="outline" size="sm" onClick={addBanner}>
+            + {ko ? "배너 추가" : "Add banner"}
+          </Button>
+        </div>
+        {banners.length > 0 && (
+          <div className="space-y-4">
+            {banners.map((b) => (
+              <BannerEditor
+                key={b.id}
+                banner={b}
+                businessId={businessId}
+                onChange={(next) => updateBanner(b.id, next)}
+                onRemove={() => removeBanner(b.id)}
+              />
+            ))}
+          </div>
+        )}
+        <p className="text-xs text-muted">
+          {ko
+            ? "변경 후 상단 ‘저장’을 눌러야 반영됩니다. (게시된 사이트는 저장 즉시 공개)"
+            : "Press Save at the top to apply. (Published sites go live on save.)"}
         </p>
       </div>
 

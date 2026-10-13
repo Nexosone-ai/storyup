@@ -216,6 +216,34 @@ export const SITE_SECTION_TYPES = [
 ] as const;
 export type SiteSectionType = (typeof SITE_SECTION_TYPES)[number];
 
+/**
+ * 배너 — 랜딩/블로그에 노출하는 이미지 배너(문구·버튼 오버레이 가능).
+ * 이미지 직접 업로드 또는 AI 생성(prompt). 사이즈는 비율 프리셋 또는 높이(px).
+ * placement으로 노출 위치를 지정한다.
+ */
+export type SiteBannerPlacement =
+  | "landing" // 랜딩페이지 섹션(순서 배치)
+  | "blogList" // 블로그 목록 상단
+  | "postTop" // 글 상단
+  | "postBottom"; // 글 하단
+export type SiteBannerAspect = "4:1" | "3:1" | "16:9" | "1:1";
+
+export interface SiteBanner {
+  id: string;
+  placement: SiteBannerPlacement;
+  image?: string;
+  title?: string;
+  subtitle?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+  /** AI 이미지 생성 시 넣을 내용(프롬프트). */
+  prompt?: string;
+  /** 비율 프리셋(높이 미지정 시 적용). 기본 3:1. */
+  aspect?: SiteBannerAspect;
+  /** 높이 직접 지정(px) — 있으면 비율 대신 이 높이로 고정. */
+  heightPx?: number;
+}
+
 export type SiteSection = { image?: string } & (
   | { type: "features"; title: string; subtitle?: string; items: SiteFeatureItem[] }
   | { type: "pricing"; title: string; subtitle?: string; items: SitePricingItem[] }
@@ -239,6 +267,7 @@ export type SiteSection = { image?: string } & (
  * 관리자가 순서를 바꾸거나 숨길 수 있다. (히어로=최상단, 푸터=최하단 고정)
  */
 export const LANDING_SECTION_KEYS = [
+  "banner",
   "story",
   "offers",
   "whyChooseUs",
@@ -325,6 +354,8 @@ export interface WebsiteContent {
   sectionOrder?: LandingSectionKey[];
   /** 숨길 메인 섹션 키 목록. */
   hiddenSections?: LandingSectionKey[];
+  /** 배너 목록(랜딩/블로그). placement으로 노출 위치를 구분한다. */
+  banners?: SiteBanner[];
   /** (프리미엄) 멀티페이지 — 홈 외 추가 페이지들. 없으면 단일 페이지(하위호환). */
   pages?: SitePage[];
   /** Optional photo gallery band (user-uploaded image URLs). */

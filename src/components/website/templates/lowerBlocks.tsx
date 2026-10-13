@@ -12,8 +12,22 @@ import {
 import { BlogPreviewCards } from "./BlogPreview";
 import { InquiryForm } from "@/components/site/InquiryForm";
 import { CardNewsSlider } from "@/components/marketing/CardNewsSlider";
+import { BannerStrip } from "./BannerView";
 import { orderedLandingKeys } from "./landingOrder";
 import type { LandingSectionKey, WebsiteContent } from "@/types/domain";
+
+/** 랜딩 배너 섹션 — placement="landing" 배너를 순서대로. */
+function LandingBannerBlock({ content }: { content: WebsiteContent }) {
+  const list = (content.banners ?? []).filter((b) => b.placement === "landing");
+  if (list.length === 0) return null;
+  return (
+    <section className="border-t border-border">
+      <div className="mx-auto max-w-5xl px-5 py-8">
+        <BannerStrip banners={content.banners} placement="landing" />
+      </div>
+    </section>
+  );
+}
 
 /**
  * 메인 섹션을 content.sectionOrder 순서대로 렌더한다. blocks에서 각 키의 노드를 꺼내
@@ -29,7 +43,13 @@ export function LandingSections({
   return (
     <>
       {orderedLandingKeys(content).map((k) => (
-        <Fragment key={k}>{blocks[k] ?? null}</Fragment>
+        <Fragment key={k}>
+          {k === "banner" ? (
+            <LandingBannerBlock content={content} />
+          ) : (
+            (blocks[k] ?? null)
+          )}
+        </Fragment>
       ))}
     </>
   );

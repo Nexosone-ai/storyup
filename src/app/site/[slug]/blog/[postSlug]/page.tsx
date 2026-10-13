@@ -17,6 +17,7 @@ import {
 } from "@/components/website/templates/shared";
 import { renderBlogContent } from "@/lib/blog/renderContent";
 import { BlogCover } from "@/components/blog/BlogCover";
+import { BannerStrip } from "@/components/website/templates/BannerView";
 import { RelativeTime } from "@/components/ui/RelativeTime";
 import { ShareBar } from "@/components/site/ShareBar";
 import { BlogComments } from "@/components/site/BlogComments";
@@ -222,6 +223,11 @@ export default async function PublicArticlePage({
       </header>
 
       <article className="mx-auto max-w-2xl px-5 py-12">
+        <BannerStrip
+          banners={site.website.content.banners}
+          placement="postTop"
+          className="mb-8"
+        />
         {/* 브레드크럼 — 위 BreadcrumbList 스키마와 짝을 이루는 실제 내부 링크 */}
         <nav
           aria-label={ko ? "탐색 경로" : "Breadcrumb"}
@@ -304,6 +310,12 @@ export default async function PublicArticlePage({
         <div
           className="prose mt-8 max-w-none"
           dangerouslySetInnerHTML={{ __html: html }}
+        />
+
+        <BannerStrip
+          banners={site.website.content.banners}
+          placement="postBottom"
+          className="mt-10"
         />
 
         {faqItems.length > 0 && (
