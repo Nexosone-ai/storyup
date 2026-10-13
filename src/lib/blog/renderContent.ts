@@ -22,7 +22,9 @@ const SANITIZE_OPTS: sanitizeHtml.IOptions = {
   ],
   allowedAttributes: {
     a: ["href", "title", "target", "rel"],
-    img: ["src", "alt", "title", "width", "height", "loading", "decoding"],
+    img: [
+      "src", "alt", "title", "width", "height", "loading", "decoding", "style",
+    ],
     span: ["style"],
     p: ["style"],
     h1: ["style"], h2: ["style"], h3: ["style"],
@@ -42,6 +44,10 @@ const SANITIZE_OPTS: sanitizeHtml.IOptions = {
       color: [/^#[0-9a-fA-F]{3,8}$/, /^rgb\(/, /^rgba\(/, /^[a-z]+$/],
       "background-color": [/^#[0-9a-fA-F]{3,8}$/, /^rgb\(/, /^rgba\(/, /^[a-z]+$/],
       "text-align": [/^(left|right|center|justify)$/],
+      // 이미지 정렬(가운데/좌/우) — img에 margin auto로 저장된다.
+      display: [/^(block|inline-block|inline)$/],
+      "margin-left": [/^(auto|0)$/],
+      "margin-right": [/^(auto|0)$/],
     },
   },
   allowedSchemes: ["http", "https", "mailto"],

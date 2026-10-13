@@ -44,6 +44,58 @@ const Audio = Node.create({
   },
 });
 
+/** 이미지 정렬을 img 인라인 스타일(margin)로 표현 — 새니타이저 허용 범위와 일치. */
+function alignStyle(align: string | null): string | null {
+  if (align === "center") return "display:block;margin-left:auto;margin-right:auto";
+  if (align === "right") return "display:block;margin-left:auto;margin-right:0";
+  if (align === "left") return "display:block;margin-left:0;margin-right:auto";
+  return null;
+}
+
+/**
+ * 이미지 노드 확장 — 정렬(align)과 하이퍼링크(href) 지원.
+ * - 정렬: img에 margin auto 스타일로 저장(center/left/right). 새니타이저가 허용.
+ * - 링크: href가 있으면 <a> 로 감싸 렌더. 다시 열 때 closest("a")로 복원.
+ */
+const CustomImage = Image.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      align: {
+        default: null,
+        rendered: false,
+        parseHTML: (el: HTMLElement) => {
+          const ml = el.style.marginLeft;
+          const mr = el.style.marginRight;
+          if (ml === "auto" && mr === "auto") return "center";
+          if (ml === "auto") return "right";
+          if (mr === "auto") return "left";
+          return null;
+        },
+      },
+      href: {
+        default: null,
+        rendered: false,
+        parseHTML: (el: HTMLElement) =>
+          el.closest("a")?.getAttribute("href") || null,
+      },
+    };
+  },
+  renderHTML({ node, HTMLAttributes }) {
+    const style = alignStyle(node.attrs.align as string | null);
+    const attrs = mergeAttributes(
+      this.options.HTMLAttributes,
+      HTMLAttributes,
+      style ? { style } : {},
+    );
+    const img: [string, Record<string, unknown>] = ["img", attrs];
+    const href = node.attrs.href as string | null;
+    return href
+      ? ["a", { href, target: "_blank", rel: "noopener noreferrer" }, img]
+      : img;
+  },
+}).configure({ inline: false });
+
 const FONT_SIZES: { label: string; value: string }[] = [
   { label: "작게", value: "14px" },
   { label: "보통", value: "" },
@@ -88,7 +140,7 @@ export function RichEditor({
       FontSize,
       Color,
       TextAlign.configure({ types: ["heading", "paragraph"] }),
-      Image.configure({ inline: false }),
+      CustomImage,
       Youtube.configure({ nocookie: true, controls: true }),
       Audio,
     ],
@@ -168,6 +220,21 @@ export function RichEditor({
   };
 
   const insertLink = () => {
+    // 이미지가 선택돼 있으면 이미지에 하이퍼링크를 건다(클릭 시 이동).
+    if (editor.isActive("image")) {
+      const prevImg = editor.getAttributes("image").href as string | undefined;
+      const url = window.prompt(
+        ko ? "이미지 링크 주소 (비우면 해제):" : "Image link URL (empty to remove):",
+        prevImg ?? "https://",
+      );
+      if (url === null) return;
+      editor
+        .chain()
+        .focus()
+        .updateAttributes("image", { href: url.trim() || null })
+        .run();
+      return;
+    }
     const prev = editor.getAttributes("link").href as string | undefined;
     const url = window.prompt(ko ? "링크 주소:" : "Link URL:", prev ?? "https://");
     if (url === null) return;
@@ -182,6 +249,17 @@ export function RichEditor({
       .setLink({ href: url.trim() })
       .run();
   };
+
+  /** 정렬 — 이미지가 선택됐으면 이미지 정렬, 아니면 문단/제목 정렬. */
+  const applyAlign = (align: "left" | "center" | "right") => {
+    if (editor.isActive("image"))
+      editor.chain().focus().updateAttributes("image", { align }).run();
+    else editor.chain().focus().setTextAlign(align).run();
+  };
+  const alignActive = (align: "left" | "center" | "right") =>
+    editor.isActive("image")
+      ? editor.isActive("image", { align })
+      : editor.isActive({ textAlign: align });
 
   const setFont = (value: string) => {
     if (!value) editor.chain().focus().unsetFontSize().run();
@@ -373,30 +451,33 @@ export function RichEditor({
           1.
         </TB>
         <TB
-          active={editor.isActive({ textAlign: "left" })}
-          onClick={() => editor.chain().focus().setTextAlign("left").run()}
-          title={ko ? "왼쪽 정렬" : "Align left"}
+          active={alignActive("left")}
+          onClick={() => applyAlign("left")}
+          title={ko ? "왼쪽 정렬 (이미지 선택 시 이미지 정렬)" : "Align left"}
         >
           ⯇
         </TB>
         <TB
-          active={editor.isActive({ textAlign: "center" })}
-          onClick={() => editor.chain().focus().setTextAlign("center").run()}
-          title={ko ? "가운데 정렬" : "Align center"}
+          active={alignActive("center")}
+          onClick={() => applyAlign("center")}
+          title={ko ? "가운데 정렬 (이미지 선택 시 이미지 정렬)" : "Align center"}
         >
           ≡
         </TB>
         <TB
-          active={editor.isActive({ textAlign: "right" })}
-          onClick={() => editor.chain().focus().setTextAlign("right").run()}
-          title={ko ? "오른쪽 정렬" : "Align right"}
+          active={alignActive("right")}
+          onClick={() => applyAlign("right")}
+          title={ko ? "오른쪽 정렬 (이미지 선택 시 이미지 정렬)" : "Align right"}
         >
           ⯈
         </TB>
         <TB
-          active={editor.isActive("link")}
+          active={
+            editor.isActive("link") ||
+            (editor.isActive("image") && !!editor.getAttributes("image").href)
+          }
           onClick={insertLink}
-          title={ko ? "링크" : "Link"}
+          title={ko ? "링크 (이미지 선택 시 이미지 링크)" : "Link"}
         >
           <Icon.link width={15} height={15} />
         </TB>

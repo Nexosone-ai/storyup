@@ -654,8 +654,8 @@ export function BlogEditor({
 
       <p className="-mt-2 text-xs text-muted">
         {ko
-          ? "💡 작성 화면이 곧 결과 화면이에요. 사진은 올리면 바로 보이고, 글자 크기·정렬·제목을 바꿀 수 있어요. 유튜브·음악은 링크를 넣으면 본문에서 바로 재생돼요. ‘AI 이미지’·‘이어쓰기’는 커서를 둔 자리에 적용돼요."
-          : "💡 What you see is what you get. Images show instantly, and you can change font size, alignment, and headings. Paste a YouTube/music link to embed it. ‘AI image’ and ‘Expand’ apply at your cursor."}
+          ? "💡 작성 화면이 곧 결과 화면이에요. 사진은 올리면 바로 보이고, 글자 크기·정렬·제목을 바꿀 수 있어요. 이미지를 클릭해 선택한 뒤 정렬(가운데 등) 버튼을 누르면 이미지가 정렬되고, 링크 버튼을 누르면 이미지에 하이퍼링크를 걸 수 있어요. 유튜브·음악은 링크를 넣으면 본문에서 바로 재생돼요. ‘AI 이미지’·‘이어쓰기’는 커서를 둔 자리에 적용돼요."
+          : "💡 What you see is what you get. Images show instantly, and you can change font size, alignment, and headings. Click an image to select it, then use the align buttons to center it or the link button to hyperlink it. Paste a YouTube/music link to embed it. ‘AI image’ and ‘Expand’ apply at your cursor."}
       </p>
 
       {/* 실시간 SEO 자가진단 */}
