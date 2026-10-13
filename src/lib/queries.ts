@@ -496,6 +496,36 @@ export async function getBlogCategories(businessId: string): Promise<string[]> {
   return [...new Set(data.map((r) => r.category as string).filter(Boolean))];
 }
 
+/**
+ * 관리형 블로그 카테고리 목록 — businesses.blog_categories(관리 목록)를 먼저,
+ * 글에만 쓰인 카테고리(아직 목록에 없는 것)를 뒤에 붙인 병합 목록.
+ * 관리 UI·작성기·글 목록 섹션에서 공통으로 쓴다. (0054 이전 DB는 글 기반으로만 동작)
+ */
+export async function getManagedBlogCategories(
+  businessId: string,
+): Promise<string[]> {
+  if (!supabaseConfigured()) return [];
+  const supabase = await createClient();
+  const [bizRes, postCats] = await Promise.all([
+    supabase
+      .from("businesses")
+      .select("blog_categories")
+      .eq("id", businessId)
+      .maybeSingle(),
+    getBlogCategories(businessId),
+  ]);
+  const managed = (bizRes.data?.blog_categories ?? []).filter(Boolean);
+  const seen = new Set(managed);
+  const merged = [...managed];
+  for (const c of postCats) {
+    if (!seen.has(c)) {
+      seen.add(c);
+      merged.push(c);
+    }
+  }
+  return merged;
+}
+
 export async function getPublishedPost(
   businessId: string,
   postSlug: string,

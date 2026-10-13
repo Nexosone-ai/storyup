@@ -64,6 +64,8 @@ export interface Database {
           strengths: string | null;
           tone: string | null;
           slug: string;
+          /** 블로그 카테고리 관리 목록 (0054). 글의 category와 별개로 유지된다. */
+          blog_categories: string[];
         } & Timestamps;
         Insert: {
           id?: string;
@@ -71,6 +73,7 @@ export interface Database {
           name: string;
           category: string;
           industry?: string | null;
+          blog_categories?: string[];
           description?: string | null;
           founder_story?: string | null;
           target_customer?: string | null;

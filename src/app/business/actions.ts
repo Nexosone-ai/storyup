@@ -342,6 +342,110 @@ export async function saveWebsiteAction(
   return { ok: true, message: ko ? "저장되었습니다." : "Saved." };
 }
 
+// ---------------- 블로그 카테고리 관리 (사장님) ----------------
+
+/** 현재 관리 목록을 읽는다(소유자 RLS). */
+async function readBlogCategories(
+  supabase: Awaited<ReturnType<typeof requireUser>>["supabase"],
+  businessId: string,
+): Promise<string[]> {
+  const { data } = await supabase
+    .from("businesses")
+    .select("blog_categories")
+    .eq("id", businessId)
+    .maybeSingle();
+  return (data?.blog_categories ?? []).filter(Boolean);
+}
+
+/** 카테고리 추가 (중복·공백 제외, 최대 30자). */
+export async function addBlogCategoryAction(
+  businessId: string,
+  name: string,
+): Promise<ActionState> {
+  const ko = (await getLocale()) === "ko";
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
+  const clean = name.trim().slice(0, 30);
+  if (!clean) return { error: ko ? "카테고리명을 입력하세요." : "Enter a name." };
+
+  const list = await readBlogCategories(supabase, businessId);
+  if (list.includes(clean))
+    return { error: ko ? "이미 있는 카테고리입니다." : "Already exists." };
+  const { error } = await supabase
+    .from("businesses")
+    .update({ blog_categories: [...list, clean] })
+    .eq("id", businessId);
+  if (error)
+    return {
+      error: ko
+        ? "추가에 실패했습니다. (0054 마이그레이션 확인)"
+        : "Failed to add.",
+    };
+  revalidatePath(`/business/${businessId}/blog`);
+  return { ok: true, message: ko ? "카테고리를 추가했습니다." : "Added." };
+}
+
+/** 카테고리 이름 변경 — 관리 목록 + 해당 글들의 category를 함께 변경. */
+export async function renameBlogCategoryAction(
+  businessId: string,
+  oldName: string,
+  newName: string,
+): Promise<ActionState> {
+  const ko = (await getLocale()) === "ko";
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
+  const from = oldName.trim();
+  const to = newName.trim().slice(0, 30);
+  if (!from || !to) return { error: ko ? "카테고리명을 입력하세요." : "Enter a name." };
+  if (from === to) return { ok: true };
+
+  const list = await readBlogCategories(supabase, businessId);
+  const next = [...new Set(list.map((c) => (c === from ? to : c)))];
+  const { error } = await supabase
+    .from("businesses")
+    .update({ blog_categories: next })
+    .eq("id", businessId);
+  if (error) return { error: ko ? "변경에 실패했습니다." : "Failed to rename." };
+  // 글의 category도 함께 이동
+  await supabase
+    .from("blog_posts")
+    .update({ category: to })
+    .eq("business_id", businessId)
+    .eq("category", from);
+
+  revalidatePath(`/business/${businessId}/blog`);
+  return { ok: true, message: ko ? "카테고리를 변경했습니다." : "Renamed." };
+}
+
+/** 카테고리 삭제 — 관리 목록에서 제거하고, 해당 글들은 미분류(null)로. */
+export async function deleteBlogCategoryAction(
+  businessId: string,
+  name: string,
+): Promise<ActionState> {
+  const ko = (await getLocale()) === "ko";
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
+  const target = name.trim();
+  if (!target) return { error: ko ? "카테고리명을 입력하세요." : "Enter a name." };
+
+  const list = await readBlogCategories(supabase, businessId);
+  const next = list.filter((c) => c !== target);
+  const { error } = await supabase
+    .from("businesses")
+    .update({ blog_categories: next })
+    .eq("id", businessId);
+  if (error) return { error: ko ? "삭제에 실패했습니다." : "Failed to delete." };
+  // 해당 카테고리 글은 미분류 처리
+  await supabase
+    .from("blog_posts")
+    .update({ category: null })
+    .eq("business_id", businessId)
+    .eq("category", target);
+
+  revalidatePath(`/business/${businessId}/blog`);
+  return { ok: true, message: ko ? "카테고리를 삭제했습니다." : "Deleted." };
+}
+
 /**
  * 설정 페이지에서 개별 사이트의 헤더 로고만 바꾼다.
  * 전체 콘텐츠를 클라이언트로 주고받지 않도록, 서버에서 현재 content를 읽어 hero.logo만 교체한다.

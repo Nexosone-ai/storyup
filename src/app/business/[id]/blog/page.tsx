@@ -1,7 +1,12 @@
 import { notFound } from "next/navigation";
-import { getBusiness, getBlogPosts } from "@/lib/queries";
+import {
+  getBusiness,
+  getBlogPosts,
+  getManagedBlogCategories,
+} from "@/lib/queries";
 import { getLocale } from "@/lib/i18n";
 import { BlogList } from "@/components/blog/BlogList";
+import { BlogCategoryManager } from "@/components/blog/BlogCategoryManager";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/icons";
 import { WorkflowSteps } from "@/components/dashboard/WorkflowSteps";
@@ -17,7 +22,10 @@ export default async function BlogPage({
   const { id } = await params;
   const business = await getBusiness(id);
   if (!business) notFound();
-  const posts = await getBlogPosts(id);
+  const [posts, categories] = await Promise.all([
+    getBlogPosts(id),
+    getManagedBlogCategories(id),
+  ]);
   const ko = (await getLocale()) === "ko";
 
   return (
@@ -63,6 +71,7 @@ export default async function BlogPage({
           },
         ]}
       />
+      <BlogCategoryManager businessId={id} categories={categories} />
       <div data-tour="blog-list">
         <BlogList businessId={id} posts={posts} />
       </div>

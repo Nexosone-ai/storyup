@@ -4,7 +4,7 @@ import {
   getBusiness,
   getBlogPost,
   getWebsite,
-  getBlogCategories,
+  getManagedBlogCategories,
 } from "@/lib/queries";
 import {
   getBlogEventForOwner,
@@ -31,7 +31,7 @@ export default async function BlogEditorPage({
   const [post, website, categories, event] = await Promise.all([
     getBlogPost(postId),
     getWebsite(id),
-    getBlogCategories(id),
+    getManagedBlogCategories(id),
     getBlogEventForOwner(postId),
   ]);
   if (!post || post.business_id !== id) notFound();
