@@ -4,6 +4,8 @@ import { getAdvertiserReport } from "@/lib/ads/report";
 import { listAdvertiserLeads } from "@/lib/ads/leads";
 import { listPlacementRequests } from "@/lib/ads/placements";
 import { AdvertiserAdsView } from "@/components/ads/AdvertiserAdsView";
+import { AdsComingSoon } from "@/components/ads/AdsComingSoon";
+import { ADS_ENABLED } from "@/lib/ads/config";
 
 export const metadata = { title: "광고" };
 
@@ -15,6 +17,7 @@ export default async function AdsPage({
   const { id } = await params;
   const business = await getBusiness(id);
   if (!business) notFound();
+  if (!ADS_ENABLED) return <AdsComingSoon />;
 
   const [user, name, report, leadRows, requests] = await Promise.all([
     getUser(),

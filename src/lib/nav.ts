@@ -46,6 +46,7 @@ export function dashboardNav(
       label: ko ? "광고 수익" : "Ad earnings",
       href: "/dashboard/ads",
       icon: "megaphone",
+      badge: ko ? "준비중" : "Soon",
     },
     {
       label: ko ? "UP 적립" : "Earn UP",
@@ -113,7 +114,12 @@ export function workspaceNav(businessId: string, locale: Locale = "ko"): NavItem
     },
     { label: ko ? "블로그" : "Blog", href: `${base}/blog`, icon: "pen", step: 3 },
     { label: "SNS", href: `${base}/marketing`, icon: "megaphone", step: 4 },
-    { label: ko ? "광고" : "Ads", href: `${base}/ads`, icon: "megaphone" },
+    {
+      label: ko ? "광고" : "Ads",
+      href: `${base}/ads`,
+      icon: "megaphone",
+      badge: ko ? "준비중" : "Soon",
+    },
     {
       label: ko ? "애널리틱스" : "Analytics",
       href: `${base}/analytics`,

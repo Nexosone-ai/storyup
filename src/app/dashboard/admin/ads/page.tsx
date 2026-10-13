@@ -2,10 +2,13 @@ import { listCampaignsAdmin } from "@/lib/ads/campaigns";
 import { getPlatformFeePct } from "@/lib/ads/settings";
 import { listAdSettlementsAdmin } from "@/lib/ads/settlement";
 import { AdminAdsView } from "@/components/admin/AdminAdsView";
+import { AdsComingSoon } from "@/components/ads/AdsComingSoon";
+import { ADS_ENABLED } from "@/lib/ads/config";
 
 export const metadata = { title: "관리자 · 광고" };
 
 export default async function AdminAdsPage() {
+  if (!ADS_ENABLED) return <AdsComingSoon admin />;
   const [campaigns, feePct, settlements] = await Promise.all([
     listCampaignsAdmin(),
     getPlatformFeePct(),

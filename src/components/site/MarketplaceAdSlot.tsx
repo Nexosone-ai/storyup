@@ -1,5 +1,6 @@
 import { getActiveAdFor } from "@/lib/ads/serve";
 import type { AdSlot } from "@/lib/ads/placements";
+import { ADS_ENABLED } from "@/lib/ads/config";
 import { BannerView } from "@/components/website/templates/BannerView";
 import { AdImpressionBeacon } from "./AdImpressionBeacon";
 import type { SiteBanner } from "@/types/domain";
@@ -17,6 +18,7 @@ export async function MarketplaceAdSlot({
   slot: AdSlot;
   className?: string;
 }) {
+  if (!ADS_ENABLED) return null; // 광고 준비중 — 노출 안 함
   const ad = await getActiveAdFor(businessId, slot);
   if (!ad) return null;
 

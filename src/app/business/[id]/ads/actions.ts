@@ -10,6 +10,7 @@ import {
   type CampaignInput,
 } from "@/lib/ads/campaigns";
 import { setPlacementApproval } from "@/lib/ads/placements";
+import { ADS_ENABLED } from "@/lib/ads/config";
 import type { CreatedAdDeposit } from "@/lib/ads/deposit";
 
 async function requireOwner(businessId: string) {
@@ -22,6 +23,7 @@ export async function createAdDepositAction(
   businessId: string,
   amount: number,
 ): Promise<{ order?: CreatedAdDeposit; error?: string }> {
+  if (!ADS_ENABLED) return { error: "광고 서비스 준비중입니다." };
   if (!(await requireOwner(businessId))) return { error: "권한이 없습니다." };
   return createAdDeposit(businessId, amount);
 }

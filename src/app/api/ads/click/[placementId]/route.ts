@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { chargeClick } from "@/lib/ads/charge";
+import { ADS_ENABLED } from "@/lib/ads/config";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,8 @@ export async function GET(
   ctx: { params: Promise<{ placementId: string }> },
 ) {
   const { placementId } = await ctx.params;
+  // 광고 준비중 — 과금 없이 홈으로.
+  if (!ADS_ENABLED) return NextResponse.redirect(new URL("/", request.url), 302);
 
   const supabase = await createClient();
   const {

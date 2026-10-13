@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getLeadAd } from "@/lib/ads/leads";
+import { ADS_ENABLED } from "@/lib/ads/config";
 import { BannerView } from "@/components/website/templates/BannerView";
 import { AdLeadForm } from "@/components/site/AdLeadForm";
 import type { SiteBanner } from "@/types/domain";
@@ -13,6 +14,7 @@ export default async function AdLeadPage({
   params: Promise<{ placementId: string }>;
 }) {
   const { placementId } = await params;
+  if (!ADS_ENABLED) notFound();
   const ad = await getLeadAd(placementId);
   if (!ad) notFound();
 
