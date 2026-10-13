@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getUser, getPrimaryBusiness } from "@/lib/queries";
+import { createAdminClient } from "@/lib/supabase/server";
 import { listInventory, listBloggerPlacements } from "@/lib/ads/placements";
 import { getBloggerEarningsReport } from "@/lib/ads/report";
 import { BloggerAdsView } from "@/components/ads/BloggerAdsView";
@@ -17,10 +18,22 @@ export default async function BloggerAdsPage() {
     getBloggerEarningsReport(user.id),
   ]);
 
+  // 발행된 StoryUp 사이트 보유 여부 — 광고 집행 조건.
+  let canRun = false;
+  if (primary?.id) {
+    const { data: site } = await createAdminClient()
+      .from("websites")
+      .select("status")
+      .eq("business_id", primary.id)
+      .maybeSingle();
+    canRun = site?.status === "published";
+  }
+
   return (
     <BloggerAdsView
       bloggerBusinessId={primary?.id ?? null}
       businessName={primary?.name ?? null}
+      canRun={canRun}
       inventory={inventory}
       placements={placements}
       earnings={earnings}

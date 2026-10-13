@@ -36,7 +36,9 @@ export async function acceptCampaignAction(
     slots,
   });
   if (res.ok) revalidatePath("/dashboard/ads");
-  return res.ok ? { ok: true, message: "광고를 수락했습니다." } : res;
+  return res.ok
+    ? { ok: true, message: "집행을 요청했습니다. 광고주 승인 후 노출됩니다." }
+    : res;
 }
 
 export async function setPlacementStatusAction(

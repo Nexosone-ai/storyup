@@ -9,6 +9,7 @@ import {
   getCampaign,
   type CampaignInput,
 } from "@/lib/ads/campaigns";
+import { setPlacementApproval } from "@/lib/ads/placements";
 import type { CreatedAdDeposit } from "@/lib/ads/deposit";
 
 async function requireOwner(businessId: string) {
@@ -57,6 +58,18 @@ export async function setCampaignStatusAction(
   if (!c || c.business_id !== businessId)
     return { error: "캠페인을 찾을 수 없습니다." };
   const res = await setCampaignStatusByOwner(campaignId, status);
+  if (res.ok) revalidatePath(`/business/${businessId}/ads`);
+  return res;
+}
+
+/** 블로거 집행 요청 승인/거절. */
+export async function approvePlacementAction(
+  businessId: string,
+  placementId: string,
+  approve: boolean,
+): Promise<{ ok?: boolean; error?: string }> {
+  if (!(await requireOwner(businessId))) return { error: "권한이 없습니다." };
+  const res = await setPlacementApproval(placementId, businessId, approve);
   if (res.ok) revalidatePath(`/business/${businessId}/ads`);
   return res;
 }

@@ -27,16 +27,26 @@ const SLOT_LABEL: Record<AdSlot, string> = {
   blogList: "블로그 목록",
   landing: "랜딩 메인",
 };
+const PLACEMENT_LABEL: Record<string, { label: string; tone: "success" | "muted" | "warning" | "danger" }> = {
+  requested: { label: "승인 대기", tone: "warning" },
+  active: { label: "노출중", tone: "success" },
+  paused: { label: "중지", tone: "muted" },
+  ended: { label: "종료", tone: "muted" },
+  declined: { label: "거절됨", tone: "danger" },
+};
 
 export function BloggerAdsView({
   bloggerBusinessId,
   businessName,
+  canRun,
   inventory,
   placements,
   earnings,
 }: {
   bloggerBusinessId: string | null;
   businessName: string | null;
+  /** 발행된 StoryUp 사이트 보유 여부(광고 집행 가능 조건). */
+  canRun: boolean;
   inventory: InventoryCampaign[];
   placements: BloggerPlacement[];
   earnings: BloggerEarningsReport;
@@ -98,11 +108,11 @@ export function BloggerAdsView({
         </Card>
       </div>
 
-      {!bloggerBusinessId && (
+      {!canRun && (
         <Card>
           <p className="text-sm text-muted">
-            광고를 집행하려면 먼저 발행된 사이트(블로그)가 필요합니다. ‘내 비즈니스’에서 사이트를 만들어
-            게시해주세요.
+            광고를 집행하려면 <b>발행된 StoryUp 사이트(블로그)</b>가 필요합니다. ‘내 비즈니스’에서
+            사이트를 만들어 <b>게시</b>한 뒤 다시 시도해주세요. (StoryUp 블로거만 광고 집행 가능)
           </p>
         </Card>
       )}
@@ -130,8 +140,10 @@ export function BloggerAdsView({
                   <p className="text-xs text-muted">
                     광고주 {c.advertiserName} · 잔여 예산 {won(c.budgetLeft)}
                   </p>
-                  {c.alreadyAccepted ? (
-                    <Badge tone="success">수락함</Badge>
+                  {c.placementStatus ? (
+                    <Badge tone={PLACEMENT_LABEL[c.placementStatus]?.tone ?? "muted"}>
+                      {PLACEMENT_LABEL[c.placementStatus]?.label ?? c.placementStatus}
+                    </Badge>
                   ) : (
                     <>
                       <div className="flex flex-wrap gap-1.5">
@@ -152,14 +164,14 @@ export function BloggerAdsView({
                       </div>
                       <Button
                         size="sm"
-                        disabled={busy || !bloggerBusinessId || slots.length === 0}
+                        disabled={busy || !bloggerBusinessId || !canRun || slots.length === 0}
                         onClick={() =>
                           run(() =>
                             acceptCampaignAction(bloggerBusinessId!, c.id, slots),
                           )
                         }
                       >
-                        {busy ? <Spinner className="size-4" /> : "이 광고 집행하기"}
+                        {busy ? <Spinner className="size-4" /> : "이 광고 집행 요청"}
                       </Button>
                     </>
                   )}
@@ -200,10 +212,10 @@ export function BloggerAdsView({
                     </td>
                     <td className="tnum p-3 text-right">{won(p.bidAmount)}</td>
                     <td className="p-3">
-                      <Badge tone={p.status === "active" ? "success" : "muted"}>
-                        {p.status === "active" ? "노출중" : p.status === "paused" ? "중지" : "종료"}
+                      <Badge tone={PLACEMENT_LABEL[p.status]?.tone ?? "muted"}>
+                        {PLACEMENT_LABEL[p.status]?.label ?? p.status}
                       </Badge>
-                      {p.campaignStatus !== "active" && (
+                      {p.status === "active" && p.campaignStatus !== "active" && (
                         <span className="ml-1 text-xs text-muted">(광고주 비활성)</span>
                       )}
                     </td>
@@ -220,10 +232,10 @@ export function BloggerAdsView({
                             재개
                           </Button>
                         ) : null}
-                        {p.status !== "ended" && (
+                        {["requested", "active", "paused"].includes(p.status) && (
                           <Button size="sm" variant="ghost" disabled={busy}
                             onClick={() => run(() => setPlacementStatusAction(p.id, "ended"))}>
-                            <span className="text-danger">종료</span>
+                            <span className="text-danger">{p.status === "requested" ? "요청취소" : "종료"}</span>
                           </Button>
                         )}
                       </div>

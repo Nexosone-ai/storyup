@@ -14,6 +14,7 @@ import {
   confirmAdDepositAction,
   createCampaignAction,
   setCampaignStatusAction,
+  approvePlacementAction,
 } from "@/app/business/[id]/ads/actions";
 import type { SiteBanner } from "@/types/domain";
 import type { AdvertiserReport } from "@/lib/ads/report";
@@ -45,17 +46,32 @@ export interface AdLeadItem {
   message: string | null;
   createdAt: string;
 }
+export interface PlacementRequestItem {
+  id: string;
+  campaignName: string;
+  bloggerName: string;
+  bloggerSlug: string | null;
+  slots: string[];
+}
+const SLOT_KO: Record<string, string> = {
+  postTop: "글 상단",
+  postBottom: "글 하단",
+  blogList: "블로그 목록",
+  landing: "랜딩 메인",
+};
 
 export function AdvertiserAdsView({
   businessId,
   report,
   buyer,
   leads,
+  requests,
 }: {
   businessId: string;
   report: AdvertiserReport;
   buyer: { name: string; email: string };
   leads: AdLeadItem[];
+  requests: PlacementRequestItem[];
 }) {
   const router = useRouter();
   const [busy, start] = useTransition();
@@ -208,6 +224,48 @@ export function AdvertiserAdsView({
         </Button>
         <p className="w-full text-xs text-muted">최소 ₩10,000. 결제 영수증은 {buyer.email}로 발송됩니다.</p>
       </Card>
+
+      {/* 집행 요청 승인 */}
+      {requests.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold tracking-tight">
+            집행 요청 ({requests.length})
+          </h2>
+          <p className="text-xs text-muted">
+            블로거가 내 광고 집행을 요청했어요. 승인하면 해당 블로그에 노출이 시작됩니다.
+          </p>
+          <div className="space-y-2">
+            {requests.map((r) => (
+              <Card key={r.id} className="flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-medium">{r.bloggerName}</p>
+                  <p className="text-xs text-muted">
+                    {r.campaignName} · {r.slots.map((s) => SLOT_KO[s] ?? s).join(", ")}
+                    {r.bloggerSlug && (
+                      <>
+                        {" · "}
+                        <a href={`/site/${r.bloggerSlug}`} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                          사이트 보기
+                        </a>
+                      </>
+                    )}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" disabled={busy}
+                    onClick={() => run(() => approvePlacementAction(businessId, r.id, true))}>
+                    승인
+                  </Button>
+                  <Button size="sm" variant="ghost" disabled={busy}
+                    onClick={() => run(() => approvePlacementAction(businessId, r.id, false))}>
+                    <span className="text-danger">거절</span>
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 캠페인 생성 */}
       <section className="space-y-3">

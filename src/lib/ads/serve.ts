@@ -31,12 +31,24 @@ export async function getActiveAdFor(
   const campIds = [...new Set(list.map((p) => p.campaign_id))];
   const { data: camps } = await admin
     .from("ad_campaigns")
-    .select("id,status,spent,total_budget,creative,type")
+    .select("id,status,spent,total_budget,creative,type,business_id,bid_amount")
     .in("id", campIds)
     .eq("status", "active");
+  const active = (camps ?? []).filter((c) => c.spent < c.total_budget);
+  // 결제(충전) 게이트 — 광고주 지갑 잔액 ≥ 단가인 캠페인만 노출.
+  const advIds = [...new Set(active.map((c) => c.business_id))];
+  const balById = new Map<string, number>();
+  if (advIds.length > 0) {
+    const { data: wt } = await admin
+      .from("ad_wallet_tx")
+      .select("business_id,amount")
+      .in("business_id", advIds);
+    for (const r of wt ?? [])
+      balById.set(r.business_id, (balById.get(r.business_id) ?? 0) + r.amount);
+  }
   const validCampaigns = new Map(
-    (camps ?? [])
-      .filter((c) => c.spent < c.total_budget)
+    active
+      .filter((c) => (balById.get(c.business_id) ?? 0) >= c.bid_amount)
       .map((c) => [c.id, c]),
   );
   const candidates = list.filter((p) => validCampaigns.has(p.campaign_id));
