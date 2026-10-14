@@ -19,15 +19,19 @@ export async function generateAndStoreBlogBodyImage(opts: {
 }): Promise<string | null> {
   try {
     // 설명이 있으면 설명을, 없으면 글 내용을 피사체 생성의 근거로 쓴다.
+    const directed = !!opts.instruction?.trim();
     const basis = opts.instruction?.trim() || opts.paragraph;
     const scene = await getAIProvider()
       .generateImageSubject({
         category: opts.category,
         text: basis,
         kind: "scene",
+        allowPeople: directed, // 사용자가 직접 요청하면 사람·인물도 반영
       })
       .catch(() => basis.replace(/\s+/g, " ").trim().slice(0, 120));
-    const prompt = buildBlogImagePrompt(opts.category, scene, opts.style);
+    const prompt = buildBlogImagePrompt(opts.category, scene, opts.style, {
+      allowPeople: directed,
+    });
 
     const image = await generateImageResilient(prompt, "4:3");
     if (!image) return null;

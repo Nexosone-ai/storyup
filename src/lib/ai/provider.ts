@@ -87,6 +87,8 @@ export interface AIProvider {
     category: string;
     text: string;
     kind?: "still-life" | "scene";
+    /** true면 사용자가 요청한 사람·인물·행동을 장면에 충실히 포함(기본 false=사람 배제). */
+    allowPeople?: boolean;
   }): Promise<string>;
 
   /** PDF(소개서·브로슈어)에서 랜딩페이지 콘텐츠를 추출한다. */

@@ -25,6 +25,11 @@ const BLOG_SCENE_FRAMING =
   "no people present, bright soft natural light, warm inviting tones, " +
   "clean premium composition, high-end magazine quality.";
 
+// 사용자가 사람·인물을 직접 요청한 경우 — "사람 배제"를 빼고 요청 장면을 충실히 담는다.
+const BLOG_SCENE_FRAMING_PEOPLE =
+  "Captured as a natural candid editorial scene that conveys the topic, people and setting shown naturally in context with realistic anatomy, " +
+  "bright soft natural light, warm inviting tones, clean premium composition, high-end magazine quality.";
+
 /**
  * 스타일별 "표현 매체" 지시문. 피사체(scene)는 공통, 아래 문구만 바꿔 같은 소재를
  * 사진/일러스트/회화 등으로 렌더한다. 모든 스타일에서 NO_TEXT는 유지한다
@@ -58,11 +63,19 @@ export function buildBlogImagePrompt(
   category: string,
   scene: string,
   style: ImageStyleId = "photo",
+  opts?: { allowPeople?: boolean },
 ): string {
+  // photo 스타일만 '사람 배제' 구도를 강제한다. 사용자가 사람을 요청하면 허용 구도로.
+  const extra =
+    style === "photo"
+      ? opts?.allowPeople
+        ? BLOG_SCENE_FRAMING_PEOPLE
+        : BLOG_SCENE_FRAMING
+      : (STYLE_EXTRA[style] ?? "");
   return [
     STYLE_FRAMING[style](category),
     `${scene.trim().slice(0, 220)}.`,
-    STYLE_EXTRA[style] ?? "",
+    extra,
     NO_TEXT,
   ]
     .filter(Boolean)

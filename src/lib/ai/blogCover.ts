@@ -29,6 +29,7 @@ export async function generateAndStoreBlogCover(opts: {
             category: opts.category,
             text: instruction,
             kind: "scene",
+            allowPeople: true, // 사용자가 직접 요청하면 사람·인물도 반영
           })
           .catch(() => instruction)
       : opts.imageSubject?.trim() ||
@@ -39,7 +40,9 @@ export async function generateAndStoreBlogCover(opts: {
             kind: "scene",
           })
           .catch(() => opts.keywords.join(", ") || opts.title));
-    const prompt = buildBlogImagePrompt(opts.category, scene, opts.style);
+    const prompt = buildBlogImagePrompt(opts.category, scene, opts.style, {
+      allowPeople: !!instruction,
+    });
 
     const generate = generateImageResilient(prompt, "16:9");
     const image = opts.timeoutMs
