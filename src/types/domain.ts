@@ -465,6 +465,11 @@ export interface CardNewsResult {
   images?: (string | null)[];
   /** 카드별 텍스트 스타일 (toIGCards 순서와 동일한 인덱스). 사용자 편집값. */
   cardStyles?: CardTextStyle[];
+  /**
+   * 공유용 대표 이미지 URL — 렌더된 커버 카드(텍스트 포함)를 저장한 것.
+   * /cards/{id} 공유 페이지의 og:image로 쓰여 SNS에서 글처럼 이미지가 먼저 보인다.
+   */
+  shareImage?: string;
 }
 
 // Input the onboarding wizard collects.

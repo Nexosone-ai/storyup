@@ -43,13 +43,27 @@ export async function generateMetadata({
   const data = await loadCard(id);
   if (!data) return { title: "카드뉴스" };
   const title = data.cardNews.cover?.title || data.biz?.name || "카드뉴스";
+  const description = data.cardNews.cover?.subtitle || undefined;
+  // 대표 이미지: 렌더된 커버(shareImage) 우선, 없으면 첫 카드 배경.
+  const cover = data.cardNews.shareImage || data.cardNews.images?.[0];
+  const image = cover
+    ? [{ url: cover, width: 1080, height: 1350, alt: title }]
+    : undefined;
   return {
     title: `${title} · STORYUP`,
-    description: data.cardNews.cover?.subtitle || undefined,
+    description,
     openGraph: {
+      type: "article",
+      url: `/cards/${id}`,
       title,
-      description: data.cardNews.cover?.subtitle || undefined,
-      images: data.cardNews.images?.[0] ? [data.cardNews.images[0]] : undefined,
+      description,
+      images: image,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: cover ? [cover] : undefined,
     },
   };
 }

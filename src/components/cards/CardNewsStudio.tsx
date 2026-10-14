@@ -12,6 +12,7 @@ import {
   uploadSiteImage,
   saveCardImagesAction,
   saveCardNewsAction,
+  saveCardShareImageAction,
 } from "@/app/business/actions";
 import { IG } from "./cardTheme";
 import { resizeImage } from "@/components/website/templates/ImageSlot";
@@ -456,6 +457,65 @@ export function CardNewsStudio({
     });
   };
 
+  /**
+   * 페이스북 공유 — 카드 이미지를 내려받는 대신, 카드 공유 페이지(/cards/{id})
+   * 링크를 페이스북 공유창으로 넘긴다. 공유 페이지의 og:image(대표 커버 이미지)
+   * 덕분에 블로그 글을 공유했을 때처럼 '이미지가 먼저' 미리보기로 뜬다.
+   * 공유 직전에 현재 커버(0번) 카드를 렌더해 대표 이미지로 저장(최신 상태 반영)한다.
+   */
+  const shareCardLinkToFacebook = () => {
+    if (!cardNewsId) {
+      setShareMsg(
+        ko
+          ? "먼저 카드뉴스를 생성하면 공유 링크가 만들어져요."
+          : "Generate the card news first to get a share link.",
+      );
+      return;
+    }
+    setShareMsg(null);
+    // 팝업 차단 회피: 클릭(사용자 제스처) 즉시 창을 연 뒤, 준비되면 주소를 채운다.
+    const win = window.open("", "_blank");
+    const shareUrl = `${window.location.origin}/cards/${cardNewsId}`;
+    const sharer = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+      shareUrl,
+    )}`;
+    void withBusy(async () => {
+      // 1) 현재 커버(0번) 카드를 대표 이미지로 렌더·업로드·저장 → og:image 최신화
+      try {
+        const blob = await nodeToBlob(igRefs.current[0]);
+        if (blob && dataPostId) {
+          const file = new File([blob], `${slugName()}-cover.png`, {
+            type: "image/png",
+          });
+          const fd = new FormData();
+          fd.append("file", file);
+          const up = await uploadSiteImage(businessId, fd);
+          if (up.url)
+            await saveCardShareImageAction(businessId, dataPostId, up.url);
+        }
+      } catch {
+        // 대표 이미지 준비 실패해도 공유는 진행(기존 배경이 og:image로 사용됨)
+      }
+      // 2) 성장 보상 + 공유 트래킹
+      void recordShareAction("facebook");
+      if (siteSlug)
+        trackEvent({
+          slug: siteSlug,
+          event: "share",
+          path: `/cards/${cardNewsId}`,
+          channel: "card_facebook_link",
+        });
+      // 3) 열어둔 창을 공유창으로 이동 (차단됐으면 현재 창 기준으로 새로 연다)
+      if (win && !win.closed) win.location.href = sharer;
+      else window.open(sharer, "_blank", "noopener");
+      setShareMsg(
+        ko
+          ? "페이스북 공유창을 열었어요. 카드 대표 이미지가 미리보기로 함께 올라갑니다."
+          : "Opened the Facebook share window — the card's preview image is included.",
+      );
+    });
+  };
+
   /** 링크 공유(별도 유지) — 블로그/랜딩 링크를 복사한다. */
   const copyLink = async () => {
     if (!sharePath) return;
@@ -628,10 +688,16 @@ export function CardNewsStudio({
                 </button>
                 <button
                   type="button"
-                  onClick={() => shareCards("facebook")}
+                  onClick={shareCardLinkToFacebook}
                   disabled={busy}
-                  aria-label={ko ? "Facebook에 카드 공유" : "Share cards to Facebook"}
-                  title={ko ? "Facebook에 카드 공유" : "Share cards to Facebook"}
+                  aria-label={
+                    ko ? "Facebook에 카드 링크 공유" : "Share card link to Facebook"
+                  }
+                  title={
+                    ko
+                      ? "Facebook에 카드 공유 링크 올리기 (이미지 미리보기 포함)"
+                      : "Share the card link to Facebook (with image preview)"
+                  }
                   className="grid size-8 place-items-center rounded-full border border-border text-foreground transition-colors hover:border-primary/50 hover:text-primary disabled:opacity-50"
                 >
                   <Icon.facebookBrand width={16} height={16} />
@@ -671,8 +737,8 @@ export function CardNewsStudio({
             )}
             <p className="text-xs leading-relaxed text-muted">
               {ko
-                ? "SNS 아이콘을 누르면 블로그 글이 아니라 카드 이미지가 공유돼요. 휴대폰에서는 공유 창에서 로그인된 앱(인스타그램·X·페북)을 골라 바로 올리고, PC에서는 이미지가 내려받아지며 작성창이 열립니다. (인스타그램 게시는 휴대폰 앱에서만 가능)"
-                : "The SNS icons share the card images (not the blog link). On phones, pick a logged-in app (Instagram/X/Facebook) in the share sheet; on desktop the images download and the composer opens. (Instagram posting works from the mobile app only.)"}
+                ? "인스타그램·X는 카드 이미지를 공유해요(휴대폰은 공유 창에서 로그인된 앱 선택, PC는 이미지 다운로드+작성창). 페이스북은 카드 공유 링크를 올려 블로그 글처럼 대표 이미지가 미리보기로 먼저 보입니다. (인스타그램 게시는 휴대폰 앱에서만 가능)"
+                : "Instagram/X share the card images (phone: pick a logged-in app; desktop: images download + composer opens). Facebook posts the card share link so the preview image shows first, like a blog post. (Instagram posting works from the mobile app only.)"}
             </p>
             {shareMsg && (
               <p className="text-xs font-medium text-primary">{shareMsg}</p>

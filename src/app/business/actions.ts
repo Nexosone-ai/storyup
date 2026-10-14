@@ -954,6 +954,53 @@ export async function saveCardImagesAction(
   return { ok: true };
 }
 
+/**
+ * 공유용 대표 이미지(렌더된 커버 카드) URL을 카드뉴스 content.shareImage에 저장한다.
+ * /cards/{id} 공유 페이지의 og:image로 쓰여 페이스북 등에서 글처럼 이미지가 먼저 보인다.
+ */
+export async function saveCardShareImageAction(
+  businessId: string,
+  blogPostId: string,
+  url: string,
+): Promise<ActionState> {
+  const ko = (await getLocale()) === "ko";
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
+
+  if (typeof url !== "string" || !/^https?:\/\//.test(url))
+    return { error: ko ? "저장에 실패했습니다." : "Failed to save." };
+
+  // 소유권 확인은 RLS가 걸린 사용자 클라이언트 조회로 한다.
+  const { data: row } = await supabase
+    .from("marketing_contents")
+    .select("id, content")
+    .eq("business_id", businessId)
+    .eq("blog_post_id", blogPostId)
+    .eq("platform", "instagram_cards")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!row)
+    return { error: ko ? "카드뉴스를 찾을 수 없습니다." : "Card news not found." };
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(row.content) as Record<string, unknown>;
+  } catch {
+    return { error: ko ? "저장에 실패했습니다." : "Failed to save." };
+  }
+  parsed.shareImage = url.slice(0, 600);
+
+  // marketing_contents에는 UPDATE RLS가 없어 관리자 클라이언트로 쓴다.
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("marketing_contents")
+    .update({ content: JSON.stringify(parsed) })
+    .eq("id", row.id);
+  if (error) return { error: ko ? "저장에 실패했습니다." : "Failed to save." };
+  return { ok: true };
+}
+
 /** 카드뉴스 텍스트/스타일 편집 저장 — cover·slides·cta·cardStyles를 저장 content에 병합(images 보존). */
 export async function saveCardNewsAction(
   businessId: string,
