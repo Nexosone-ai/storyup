@@ -611,6 +611,25 @@ export function BlogEditor({
             </Button>
           </div>
         </div>
+        {/* 원하는 이미지 설명 — 생성 전에 입력. 결과를 보고 설명을 고쳐 다시 생성(조정). */}
+        <div className="mb-2 space-y-1">
+          <Input
+            value={coverInstruction}
+            onChange={(e) => setCoverInstruction(e.target.value)}
+            disabled={coverPending}
+            placeholder={
+              ko
+                ? "원하는 커버 이미지를 설명하세요 (예: 노트북과 커피가 놓인 아침 책상, 따뜻한 햇살)"
+                : "Describe the cover image you want (e.g. a morning desk with a laptop and coffee)"
+            }
+            className="h-9 text-sm"
+          />
+          <p className="text-[11px] leading-relaxed text-muted">
+            {ko
+              ? "설명을 입력하고 ‘AI 커버 이미지 생성’을 누르면 그 내용으로 만들어져요. 결과가 마음에 들지 않으면 설명을 고쳐 ‘AI로 다시 생성’으로 조정할 수 있어요. 비우면 제목·키워드로 자동 생성됩니다."
+              : "Describe it and press Generate to create that image. Not happy? Edit the text and press Regenerate to adjust. Blank = auto from title/keywords."}
+          </p>
+        </div>
         {cover ? (
           // eslint-disable-next-line @next/next/no-img-element -- 원격 스토리지 URL, 크기 고정 컨테이너
           <img
@@ -626,17 +645,6 @@ export function BlogEditor({
             className="aspect-[16/7] w-full rounded-xl"
           />
         )}
-        <Input
-          value={coverInstruction}
-          onChange={(e) => setCoverInstruction(e.target.value)}
-          disabled={coverPending}
-          placeholder={
-            ko
-              ? "원하는 커버 이미지를 설명하세요 (비우면 제목·키워드 기반)"
-              : "Describe the cover image you want (blank = from title/keywords)"
-          }
-          className="mt-2 h-9 text-sm"
-        />
       </div>
 
       {/* Content editor — 위지윅(WYSIWYG) */}
