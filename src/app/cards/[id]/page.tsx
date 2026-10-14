@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n";
 import { CardNewsSlider } from "@/components/marketing/CardNewsSlider";
-import { CardThanksBar } from "@/components/cards/CardThanksBar";
+import { CardShareBar } from "@/components/cards/CardShareBar";
 import { Logo } from "@/components/ui/Logo";
 import type { CardNewsResult } from "@/types/domain";
 
@@ -15,7 +15,7 @@ async function loadCard(id: string) {
   const admin = createAdminClient();
   const { data: row } = await admin
     .from("marketing_contents")
-    .select("id,business_id,content,thanks_count,view_count")
+    .select("id,business_id,content,view_count,share_count")
     .eq("id", id)
     .eq("platform", "instagram_cards")
     .maybeSingle();
@@ -31,7 +31,14 @@ async function loadCard(id: string) {
     .select("name, slug")
     .eq("id", row.business_id)
     .maybeSingle();
-  return { row, cardNews, biz };
+  // 공유 이력(최근순) — 공개 페이지 하단 리스트.
+  const { data: shareRows } = await admin
+    .from("card_shares")
+    .select("channel, visitor_key, created_at")
+    .eq("card_id", id)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  return { row, cardNews, biz, shareRows: shareRows ?? [] };
 }
 
 export async function generateMetadata({
@@ -78,7 +85,7 @@ export default async function CardSharePage({
   const data = await loadCard(id);
   if (!data) notFound();
 
-  const { row, cardNews, biz } = data;
+  const { row, cardNews, biz, shareRows } = data;
   const item = {
     id: row.id,
     href: biz?.slug ? `/site/${biz.slug}` : "/",
@@ -89,6 +96,11 @@ export default async function CardSharePage({
     handle: `@${biz?.slug ?? "storyup"}`,
     cardNews,
   };
+  const shares = shareRows.map((s) => ({
+    channel: s.channel,
+    visitorKey: s.visitor_key,
+    createdAt: s.created_at,
+  }));
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center gap-6 px-5 py-10">
@@ -96,10 +108,11 @@ export default async function CardSharePage({
         <CardNewsSlider item={item} />
       </div>
 
-      <CardThanksBar
+      <CardShareBar
         id={row.id}
-        thanks={row.thanks_count}
         views={row.view_count}
+        shareCount={row.share_count ?? 0}
+        shares={shares}
         ko={ko}
       />
 

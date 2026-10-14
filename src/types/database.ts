@@ -514,6 +514,7 @@ export interface Database {
           content: string;
           thanks_count: number;
           view_count: number;
+          share_count: number;
           created_at: string;
         };
         Insert: {
@@ -524,10 +525,31 @@ export interface Database {
           content: string;
           thanks_count?: number;
           view_count?: number;
+          share_count?: number;
           created_at?: string;
         };
         Update: Partial<
           Database["public"]["Tables"]["marketing_contents"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      card_shares: {
+        Row: {
+          id: string;
+          card_id: string;
+          channel: string;
+          visitor_key: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          card_id: string;
+          channel?: string;
+          visitor_key?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["card_shares"]["Insert"]
         >;
         Relationships: [];
       };
@@ -1895,6 +1917,10 @@ export interface Database {
       };
       bump_card_view: {
         Args: { p_id: string };
+        Returns: number;
+      };
+      bump_card_share: {
+        Args: { p_id: string; p_channel: string; p_visitor: string | null };
         Returns: number;
       };
       active_custom_domain_for: {

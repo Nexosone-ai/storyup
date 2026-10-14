@@ -516,6 +516,41 @@ export function CardNewsStudio({
     });
   };
 
+  /**
+   * 인스타그램: 웹 게시 API가 없어 카드뉴스 공유 페이지(/cards/{id})로 바로 포워딩한다.
+   * 로그인 상태(스튜디오)에서 버튼을 누르면 공유 페이지가 새 탭으로 열려, 거기서
+   * 공유하거나 이미지를 저장할 수 있다.
+   */
+  const openCardPageForInstagram = () => {
+    if (!cardNewsId) {
+      setShareMsg(
+        ko
+          ? "먼저 카드뉴스를 생성하면 공유 페이지가 만들어져요."
+          : "Generate the card news first to get a share page.",
+      );
+      return;
+    }
+    setShareMsg(null);
+    void recordShareAction("instagram");
+    if (siteSlug)
+      trackEvent({
+        slug: siteSlug,
+        event: "share",
+        path: `/cards/${cardNewsId}`,
+        channel: "card_instagram_forward",
+      });
+    window.open(
+      `${window.location.origin}/cards/${cardNewsId}`,
+      "_blank",
+      "noopener",
+    );
+    setShareMsg(
+      ko
+        ? "카드뉴스 공유 페이지를 열었어요. 여기서 공유하거나 이미지를 저장할 수 있어요."
+        : "Opened the card share page — share or save the images from there.",
+    );
+  };
+
   /** 링크 공유(별도 유지) — 블로그/랜딩 링크를 복사한다. */
   const copyLink = async () => {
     if (!sharePath) return;
@@ -668,10 +703,18 @@ export function CardNewsStudio({
                 {/* 카드 이미지를 SNS로 공유 — 블로그 링크가 아니라 카드 이미지 자체. */}
                 <button
                   type="button"
-                  onClick={() => shareCards("instagram")}
+                  onClick={openCardPageForInstagram}
                   disabled={busy}
-                  aria-label={ko ? "인스타그램에 카드 공유" : "Share cards to Instagram"}
-                  title={ko ? "인스타그램에 카드 공유" : "Share cards to Instagram"}
+                  aria-label={
+                    ko
+                      ? "인스타그램 — 카드뉴스 공유 페이지 열기"
+                      : "Instagram — open card share page"
+                  }
+                  title={
+                    ko
+                      ? "인스타그램 — 카드뉴스 공유 페이지로 이동"
+                      : "Instagram — go to the card share page"
+                  }
                   className="grid size-8 place-items-center rounded-full border border-border text-foreground transition-colors hover:border-primary/50 hover:text-primary disabled:opacity-50"
                 >
                   <Icon.instagramBrand width={16} height={16} />
@@ -737,8 +780,8 @@ export function CardNewsStudio({
             )}
             <p className="text-xs leading-relaxed text-muted">
               {ko
-                ? "인스타그램·X는 카드 이미지를 공유해요(휴대폰은 공유 창에서 로그인된 앱 선택, PC는 이미지 다운로드+작성창). 페이스북은 카드 공유 링크를 올려 블로그 글처럼 대표 이미지가 미리보기로 먼저 보입니다. (인스타그램 게시는 휴대폰 앱에서만 가능)"
-                : "Instagram/X share the card images (phone: pick a logged-in app; desktop: images download + composer opens). Facebook posts the card share link so the preview image shows first, like a blog post. (Instagram posting works from the mobile app only.)"}
+                ? "인스타그램은 카드뉴스 공유 페이지로 이동해 거기서 공유·저장할 수 있어요. X는 카드 이미지를 공유하고(휴대폰은 공유 창에서 앱 선택, PC는 이미지 다운로드+작성창), 페이스북은 공유 링크를 올려 블로그 글처럼 대표 이미지가 미리보기로 먼저 보입니다."
+                : "Instagram opens the card share page, where you can share or save. X shares the card images (phone: pick an app; desktop: images download + composer). Facebook posts the share link so the preview image shows first, like a blog post."}
             </p>
             {shareMsg && (
               <p className="text-xs font-medium text-primary">{shareMsg}</p>
