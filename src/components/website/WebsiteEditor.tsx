@@ -23,6 +23,7 @@ import { MapImportBar } from "./MapImportBar";
 import { RichTextToolbar } from "./RichTextToolbar";
 import { stripHtml } from "@/utils/richtext";
 import { PdfImportBar } from "./PdfImportBar";
+import { UrlImportBar } from "./UrlImportBar";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import type { PlaceImportData } from "@/lib/placeImport";
 import type { PdfImportData } from "@/lib/pdfImport";
@@ -849,6 +850,9 @@ export function WebsiteEditor({
 
       {/* Google Maps import */}
       <MapImportBar businessId={businessId} onImport={applyGoogleImport} />
+
+      {/* URL import — 기존 홈페이지 주소에서 콘텐츠·사진 가져오기 */}
+      <UrlImportBar businessId={businessId} onImport={applyPdfImport} />
 
       {/* PDF import */}
       <PdfImportBar businessId={businessId} onImport={applyPdfImport} />

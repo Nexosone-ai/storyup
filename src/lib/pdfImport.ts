@@ -33,6 +33,33 @@ export interface PdfImportResult {
   error?: string;
 }
 
+/** AI 추출 결과(부분)를 안전한 PdfLandingExtract로 정규화한다 (PDF·URL 공용). */
+export function normalizeLandingExtract(
+  parsed: Partial<PdfLandingExtract>,
+): PdfLandingExtract {
+  const s = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+  return {
+    name: s(parsed.name),
+    headline: s(parsed.headline),
+    shortDescription: s(parsed.shortDescription),
+    storyTitle: s(parsed.storyTitle),
+    storyBody: s(parsed.storyBody),
+    offers: Array.isArray(parsed.offers)
+      ? parsed.offers
+          .slice(0, 3)
+          .map((o) => ({ title: s(o?.title), description: s(o?.description) }))
+          .filter((o) => o.title || o.description)
+      : [],
+    phone: s(parsed.phone),
+    email: s(parsed.email),
+    address: s(parsed.address),
+    website: s(parsed.website),
+    instagram: s(parsed.instagram),
+    facebook: s(parsed.facebook),
+    x: s(parsed.x),
+  };
+}
+
 export const PDF_MAX_BYTES = 10 * 1024 * 1024; // 10MB
 const MAX_CANDIDATES = 24; // 스캔으로 모을 JPEG 후보 상한 (CPU 가드)
 const MIN_JPEG_BYTES = 8 * 1024; // 아이콘/장식 제외

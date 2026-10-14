@@ -39,6 +39,7 @@ import {
 import { blogFaqPrompt, type BlogFaqPromptInput } from "./prompts/faq";
 import { cardNewsPrompt, type CardNewsPromptInput } from "./prompts/card-news";
 import type { PdfLandingExtract } from "@/lib/pdfImport";
+import { normalizeLandingExtract } from "@/lib/pdfImport";
 
 /**
  * OpenAI(ChatGPT) 프로바이더 — Claude와 동일한 AIProvider 계약을 구현한다.
@@ -245,6 +246,51 @@ ${
     };
     const res = await this.complete<{ subject: string }>(spec, 300);
     return res.subject;
+  }
+
+  /** 웹페이지에서 긁어온 본문 텍스트로 랜딩페이지 콘텐츠를 추출한다(URL 불러오기). */
+  async extractLandingFromText(
+    text: string,
+    language: PromptLanguage = "ko",
+  ): Promise<PdfLandingExtract> {
+    const ko = language === "ko";
+    const spec: PromptSpec = {
+      system: ko
+        ? "당신은 사업체 웹페이지 내용을 랜딩페이지 콘텐츠로 옮기는 카피라이터입니다. 반드시 순수 JSON만 반환하세요."
+        : "You turn a business web page into landing page copy. Return pure JSON only.",
+      user: `아래는 한 사업체의 웹페이지(홈페이지·소개 페이지 등)에서 가져온 텍스트입니다. 랜딩페이지에 넣을 콘텐츠를 추출해 아래 JSON으로만 응답하세요.
+
+규칙:
+- 모든 텍스트는 ${ko ? "한국어" : "영어(English)"}로 작성 (원문이 다른 언어면 번역)
+- 페이지에 없는 항목은 빈 문자열 "" / 빈 배열 (지어내지 말 것)
+- 전화번호·이메일·주소·URL·SNS 계정은 원문 그대로
+- headline은 고객을 끌어당기는 한 문장(30자 내외), shortDescription은 1~2문장
+- storyBody는 사업 소개·철학을 2~4문장으로
+- offers는 대표 상품/서비스 최대 3개
+- 메뉴·푸터·쿠키 안내 등 광고/탐색성 잡텍스트는 제외하고 핵심만
+
+--- 웹페이지 텍스트 시작 ---
+${text.slice(0, 12000)}
+--- 웹페이지 텍스트 끝 ---
+
+{
+  "name": "사업체 이름",
+  "headline": "",
+  "shortDescription": "",
+  "storyTitle": "",
+  "storyBody": "",
+  "offers": [{ "title": "", "description": "" }],
+  "phone": "",
+  "email": "",
+  "address": "",
+  "website": "",
+  "instagram": "",
+  "facebook": "",
+  "x": ""
+}`,
+    };
+    const parsed = await this.complete<Partial<PdfLandingExtract>>(spec, 2500);
+    return normalizeLandingExtract(parsed);
   }
 
   /** PDF(회사 소개서·브로슈어·메뉴판 등)에서 랜딩페이지 콘텐츠를 추출한다. */

@@ -96,6 +96,12 @@ export interface AIProvider {
     pdfBase64: string,
     language?: PromptLanguage,
   ): Promise<PdfLandingExtract>;
+
+  /** 웹페이지에서 긁어온 본문 텍스트로 랜딩페이지 콘텐츠를 추출한다(URL 불러오기). */
+  extractLandingFromText(
+    text: string,
+    language?: PromptLanguage,
+  ): Promise<PdfLandingExtract>;
 }
 
 /** Raised when generation fails; carries a user-safe message. */
