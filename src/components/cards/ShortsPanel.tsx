@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { useLocale } from "@/components/i18n/LocaleProvider";
@@ -8,9 +8,14 @@ import { reserveShortsQuota } from "@/app/business/actions";
 import type { PlanId } from "@/lib/plans";
 import {
   createMusicBed,
+  createCustomBed,
   SHORTS_MOODS,
   type ShortsMood,
 } from "@/lib/shorts/music";
+
+/** 음악 선택 — 합성 분위기 또는 '내 음악 올리기'(custom). */
+type MusicChoice = ShortsMood | "custom";
+const MAX_AUDIO_BYTES = 20 * 1024 * 1024; // 20MB
 import {
   renderShortsVideo,
   fileToImage,
@@ -70,7 +75,10 @@ export function ShortsPanel({
   const ko = useLocale() === "ko";
   const [size, setSize] = useState<SizeId>("youtube");
   const [motion, setMotion] = useState<ShortsMotion>("static");
-  const [mood, setMood] = useState<ShortsMood>("bright");
+  const [music, setMusic] = useState<MusicChoice>("bright");
+  const [customFile, setCustomFile] = useState<File | null>(null);
+  const [consent, setConsent] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -101,6 +109,20 @@ export function ShortsPanel({
           : `You've used all ${limit} shorts this month.`,
       );
       return;
+    }
+    if (music === "custom") {
+      if (!customFile) {
+        setError(ko ? "사용할 음원 파일을 선택해주세요." : "Please choose an audio file.");
+        return;
+      }
+      if (!consent) {
+        setError(
+          ko
+            ? "업로드 음원의 저작권 책임 동의에 체크해주세요."
+            : "Please agree to the copyright responsibility notice.",
+        );
+        return;
+      }
     }
     if (!guard()) return;
 
@@ -133,7 +155,19 @@ export function ShortsPanel({
           .webkitAudioContext;
       AC = new AudioCtx();
       await AC.resume().catch(() => {});
-      const bed = createMusicBed(AC, mood, totalSec);
+      let bed;
+      if (music === "custom" && customFile) {
+        const arr = await customFile.arrayBuffer();
+        let buffer: AudioBuffer;
+        try {
+          buffer = await AC.decodeAudioData(arr);
+        } catch {
+          throw new Error("decode");
+        }
+        bed = createCustomBed(AC, buffer, totalSec);
+      } else {
+        bed = createMusicBed(AC, music === "custom" ? "none" : music, totalSec);
+      }
       bed.start();
 
       const result = await renderShortsVideo(imgs, {
@@ -156,14 +190,19 @@ export function ShortsPanel({
           : "Saved! Upload it to YouTube Shorts, TikTok, or Reels.",
       );
     } catch (e) {
+      const code = e instanceof Error ? e.message : "";
       setError(
-        e instanceof Error && e.message === "no cards"
+        code === "no cards"
           ? ko
             ? "카드가 없어요. 먼저 카드뉴스를 만들어주세요."
             : "No cards yet. Create card news first."
-          : ko
-            ? "쇼츠를 만드는 중 문제가 발생했어요. 다시 시도해주세요."
-            : "Something went wrong while making the shorts. Please try again.",
+          : code === "decode"
+            ? ko
+              ? "음원 파일을 읽을 수 없어요. mp3·m4a·wav 형식의 다른 파일로 시도해주세요."
+              : "Could not read the audio file. Try another mp3/m4a/wav file."
+            : ko
+              ? "쇼츠를 만드는 중 문제가 발생했어요. 다시 시도해주세요."
+              : "Something went wrong while making the shorts. Please try again.",
       );
     } finally {
       imgs.forEach((im) => {
@@ -248,19 +287,91 @@ export function ShortsPanel({
                 {SHORTS_MOODS.map((m) => (
                   <Chip
                     key={m.id}
-                    active={mood === m.id}
-                    onClick={() => setMood(m.id)}
+                    active={music === m.id}
+                    onClick={() => setMusic(m.id)}
                     disabled={busy}
                   >
                     {ko ? m.ko : m.en}
                   </Chip>
                 ))}
+                <Chip
+                  active={music === "custom"}
+                  onClick={() => setMusic("custom")}
+                  disabled={busy}
+                >
+                  {ko ? "내 음악 올리기" : "Upload music"}
+                </Chip>
               </div>
             </Field>
           </div>
 
+          {/* 내 음악 업로드 + 저작권 책임 동의 */}
+          {music === "custom" && (
+            <div className="mt-3 rounded-xl border border-border bg-surface-muted/50 p-3">
+              <input
+                ref={fileRef}
+                type="file"
+                accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  setError(null);
+                  if (!f) return;
+                  if (f.size > MAX_AUDIO_BYTES) {
+                    setError(
+                      ko
+                        ? "음원은 20MB 이하만 올릴 수 있어요."
+                        : "Audio files must be 20MB or smaller.",
+                    );
+                    return;
+                  }
+                  setCustomFile(f);
+                }}
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={busy}
+                >
+                  {ko ? "음원 파일 선택" : "Choose audio file"}
+                </Button>
+                <span className="text-xs text-muted">
+                  {customFile
+                    ? customFile.name
+                    : ko
+                      ? "mp3·m4a·wav 등 (20MB 이하)"
+                      : "mp3/m4a/wav (≤20MB)"}
+                </span>
+              </div>
+              <label className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-muted">
+                <input
+                  type="checkbox"
+                  checked={consent}
+                  onChange={(e) => setConsent(e.target.checked)}
+                  disabled={busy}
+                  className="mt-0.5 size-4 shrink-0 accent-[var(--primary)]"
+                />
+                <span>
+                  {ko
+                    ? "업로드하는 음원의 저작권 및 사용 권한에 대한 책임은 전적으로 본인에게 있으며, 이로 인한 분쟁의 책임이 STORYUP에 없음에 동의합니다."
+                    : "I confirm I have the rights to use this audio and take full responsibility for any copyright claims; STORYUP is not liable."}
+                </span>
+              </label>
+            </div>
+          )}
+
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            <Button onClick={make} disabled={busy || limitReached}>
+            <Button
+              onClick={make}
+              disabled={
+                busy ||
+                limitReached ||
+                (music === "custom" && (!customFile || !consent))
+              }
+            >
               {busy ? (
                 <>
                   <Spinner className="size-4" />

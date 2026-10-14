@@ -20,6 +20,46 @@ export const SHORTS_MOODS: { id: ShortsMood; ko: string; en: string }[] = [
   { id: "none", ko: "음악 없음", en: "No music" },
 ];
 
+/**
+ * 사용자가 올린 음원(AudioBuffer)을 배경으로 쓴다. 파일은 서버로 보내지 않고
+ * 브라우저에서 디코딩해 녹화 스트림에 합친다(패킷 미사용). 길이가 짧으면 반복,
+ * 시작·끝에 페이드를 준다. 저작권 책임은 업로더 본인(패널에서 동의 받음).
+ */
+export function createCustomBed(
+  ctx: AudioContext,
+  buffer: AudioBuffer,
+  durationSec: number,
+): MusicBed {
+  const dest = ctx.createMediaStreamDestination();
+  const gain = ctx.createGain();
+  gain.gain.value = 0.0001;
+  gain.connect(dest);
+  let src: AudioBufferSourceNode | null = null;
+  return {
+    stream: dest.stream,
+    start() {
+      src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.loop = buffer.duration < durationSec; // 길이가 짧으면 반복
+      src.connect(gain);
+      const t = ctx.currentTime + 0.05;
+      const end = t + durationSec;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.95, t + 0.4);
+      gain.gain.setValueAtTime(0.95, Math.max(t + 0.4, end - 0.6));
+      gain.gain.exponentialRampToValueAtTime(0.0001, end);
+      src.start(t);
+    },
+    stop() {
+      try {
+        src?.stop();
+      } catch {
+        /* noop */
+      }
+    },
+  };
+}
+
 type MoodSpec = {
   bpm: number;
   scale: number[]; // semitone offsets from root
