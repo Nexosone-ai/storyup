@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getBusiness, getBlogPosts, getWebsite } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
+import { getShortsQuota } from "@/lib/subscription";
 import { getLocale } from "@/lib/i18n";
 import { MarketingHub } from "@/components/marketing/MarketingHub";
 import { CardNewsStudio } from "@/components/cards/CardNewsStudio";
@@ -22,6 +23,10 @@ export default async function MarketingPage({
 
   const [posts, website] = await Promise.all([getBlogPosts(id), getWebsite(id)]);
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const shortsQuota = user ? await getShortsQuota(user.id) : null;
 
   // Latest Instagram/Facebook text posts.
   const { data: textRows } = await supabase
@@ -166,6 +171,7 @@ export default async function MarketingPage({
           handle={`@${business.slug}`}
           siteSlug={siteSlug}
           initial={initialCards}
+          shorts={shortsQuota}
         />
       </section>
     </div>

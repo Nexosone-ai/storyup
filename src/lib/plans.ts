@@ -19,6 +19,8 @@ export interface Plan {
     blogPosts: number | null;
     /** SNS 카드뉴스(6매) 건/월. null = 협의 */
     cardNews: number | null;
+    /** 쇼츠(카드뉴스 배경 9:16 영상) 생성 건/월. 0 = 미제공(Free), null = 협의(무제한) */
+    shorts: number | null;
     /**
      * (레거시) 과거 월 이미지 제공량. 이미지는 이제 딜리버리(랜딩·블로그·카드뉴스)에
      * 포함되어 무과금이라 이 값은 청구/표기에 쓰지 않는다. null = 협의(Partner) 구분용으로만 유지.
@@ -59,7 +61,7 @@ export const PLANS: Plan[] = [
     id: "free",
     name: { ko: "Free", en: "Free" },
     priceKrw: 0,
-    limits: { sites: 1, blogPosts: 10, cardNews: 1, aiImages: 30 }, // aiImages: 미사용(이미지 무과금·딜리버리 포함)
+    limits: { sites: 1, blogPosts: 10, cardNews: 1, shorts: 0, aiImages: 30 }, // aiImages: 미사용(이미지 무과금·딜리버리 포함)
     maxBusinesses: 1,
     maxMembers: 1,
     siteLayouts: 1,
@@ -70,7 +72,7 @@ export const PLANS: Plan[] = [
     id: "basic",
     name: { ko: "Basic", en: "Basic" },
     priceKrw: 59000,
-    limits: { sites: 5, blogPosts: 50, cardNews: 10, aiImages: 50 },
+    limits: { sites: 5, blogPosts: 50, cardNews: 10, shorts: 30, aiImages: 50 },
     maxBusinesses: 1,
     maxMembers: 1,
     siteLayouts: 3,
@@ -86,7 +88,7 @@ export const PLANS: Plan[] = [
     id: "pro",
     name: { ko: "Pro", en: "Pro" },
     priceKrw: 119000,
-    limits: { sites: 10, blogPosts: 150, cardNews: 30, aiImages: 90 },
+    limits: { sites: 10, blogPosts: 150, cardNews: 30, shorts: 90, aiImages: 90 },
     maxBusinesses: 5,
     maxMembers: 3,
     siteLayouts: 9,
@@ -106,7 +108,7 @@ export const PLANS: Plan[] = [
     id: "partner",
     name: { ko: "Partner", en: "Partner" },
     priceKrw: null,
-    limits: { sites: null, blogPosts: null, cardNews: null, aiImages: null },
+    limits: { sites: null, blogPosts: null, cardNews: null, shorts: null, aiImages: null },
     maxBusinesses: null,
     maxMembers: null,
     domain: "custom",
@@ -182,6 +184,15 @@ export function planFeatureList(plan: Plan, ko: boolean): string[] {
         ? `SNS 카드뉴스(${CARD_NEWS_PAGES}매) ${l.cardNews}${per}`
         : `${l.cardNews} card news (${CARD_NEWS_PAGES} pages)${per}`,
   );
+
+  // 쇼츠(카드뉴스 배경 9:16 영상) — 제공 플랜만 표기.
+  if (l.shorts === null) {
+    out.push(ko ? `쇼츠 생성 ${talk}` : `Shorts: ${talk}`);
+  } else if (l.shorts > 0) {
+    out.push(
+      ko ? `쇼츠 생성 ${l.shorts}${per}` : `${l.shorts} shorts${per}`,
+    );
+  }
 
   // AI 이미지 — 딜리버리(랜딩·블로그·카드뉴스)에 포함되어 별도 제공량/과금 없음.
   out.push(

@@ -5,7 +5,7 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { trackGrowthActivity } from "@/lib/gamification/engine";
 import { getLocale } from "@/lib/i18n";
 import { slugify, randomSuffix } from "@/utils/slug";
-import { getPlanId } from "@/lib/subscription";
+import { getPlanId, getShortsQuota } from "@/lib/subscription";
 import { getPlanById } from "@/lib/plans";
 import { applyEventDefaultsToNewPost } from "@/lib/events";
 import { BUSINESS_CATEGORIES, INDUSTRY_IDS } from "@/types/domain";
@@ -1046,6 +1046,57 @@ export async function saveCardNewsAction(
     .eq("id", row.id);
   if (error) return { error: ko ? "저장에 실패했습니다." : "Failed to save." };
   return { ok: true };
+}
+
+/**
+ * 쇼츠 생성 쿼터 1회 소비(생성 시작 시 호출). 플랜(BASIC·Pro·Partner)과 이번 달
+ * 사용량을 서버에서 검증하고 usage_events에 기록한다. 실제 영상은 클라이언트에서
+ * 로컬 생성하므로(패킷 최소), 여기서는 권한·한도만 확인한다.
+ */
+export async function reserveShortsQuota(businessId: string): Promise<{
+  ok?: true;
+  used?: number;
+  limit?: number | null;
+  error?: string;
+}> {
+  const ko = (await getLocale()) === "ko";
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
+
+  // 소유권 확인(RLS).
+  const { data: biz } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("id", businessId)
+    .maybeSingle();
+  if (!biz)
+    return { error: ko ? "권한이 없습니다." : "You don't have permission." };
+
+  const { planId, limit, used } = await getShortsQuota(user.id);
+  if (planId === "free" || limit === 0)
+    return {
+      error: ko
+        ? "쇼츠 만들기는 BASIC·Pro 플랜에서 사용할 수 있어요. 플랜을 업그레이드해주세요."
+        : "Shorts are available on the BASIC and Pro plans. Please upgrade.",
+    };
+  if (limit !== null && used >= limit)
+    return {
+      error: ko
+        ? `이번 달 쇼츠 ${limit}회를 모두 사용했어요. 다음 달에 다시 이용해주세요.`
+        : `You've used all ${limit} shorts this month. Please try again next month.`,
+      used,
+      limit,
+    };
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("usage_events")
+    .insert({ user_id: user.id, kind: "shorts", charged: 0 });
+  if (error) {
+    console.error("[reserveShortsQuota] insert failed", error);
+    return { error: ko ? "잠시 후 다시 시도해주세요." : "Please try again." };
+  }
+  return { ok: true, used: used + 1, limit };
 }
 
 export async function deleteBlogAction(

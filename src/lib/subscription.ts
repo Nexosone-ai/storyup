@@ -64,6 +64,25 @@ export async function countMonthlyUsage(
   return count ?? 0;
 }
 
+/**
+ * 쿼터 조회 — 쇼츠(카드뉴스 배경 영상) 생성. 플랜별 월 제한(plans.limits.shorts)과
+ * 이번 달(서울 기준) 사용량을 함께 돌려준다. limit=0은 미제공(Free), null은 무제한(Partner).
+ */
+export async function getShortsQuota(
+  userId: string,
+): Promise<{ planId: PlanId; limit: number | null; used: number }> {
+  const planId = await getPlanId(userId);
+  const limit = getPlanById(planId).limits.shorts;
+  const admin = createAdminClient();
+  const { count } = await admin
+    .from("usage_events")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("kind", "shorts")
+    .gte("created_at", currentPeriod().startIso);
+  return { planId, limit, used: count ?? 0 };
+}
+
 /** 전체 기간 kind별 누적 사용 건수 (무료 플랜의 평생 총량 제한용). 조회 실패 시 null. */
 export async function countTotalUsage(
   userId: string,
