@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>StoryUp — 15초 쇼릴</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Black+Han+Sans&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --night:#0B1030; --signal:#FF4A1C; --ultra:#2F3BFF; --volt:#D4FF3F; --paper:#F6F4FF;
+  --ui-bg:#05071A; --ui-fg:#F6F4FF; --ui-dim:rgba(246,244,255,.55);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){ --ui-bg:#E9E8F2; --ui-fg:#0B1030; --ui-dim:rgba(11,16,48,.55);} }
+:root[data-theme="dark"]{ --ui-bg:#05071A; --ui-fg:#F6F4FF; --ui-dim:rgba(246,244,255,.55); }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{height:100%;background:var(--ui-bg);color:var(--ui-fg);font-family:'Black Han Sans','Apple SD Gothic Neo','Malgun Gothic',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;overflow:hidden;-webkit-font-smoothing:antialiased}
+
+#sizer{position:relative;overflow:hidden;border-radius:6px;box-shadow:0 30px 80px rgba(0,0,0,.45);background:var(--night)}
+#stage{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;overflow:hidden;background:var(--night)}
+.scene{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;visibility:hidden;overflow:hidden}
+.anton{font-family:'Anton','Impact','Arial Narrow Bold',sans-serif}
+
+#s0{background:var(--night)}
+#dot{width:26px;height:26px;border-radius:50%;background:var(--paper);position:absolute}
+.rip{position:absolute;width:26px;height:26px;border-radius:50%;border:2px solid var(--volt)}
+
+#s1{background:var(--signal);--fill:var(--night);--stroke:0px;--sc:var(--night)}
+#storyWord{display:flex;gap:6px;font-size:560px;line-height:.86;letter-spacing:-.01em}
+#storyWord span{display:inline-block;color:var(--fill);-webkit-text-stroke:var(--stroke) var(--sc)}
+
+.band{position:absolute;inset:0}
+#upWrap{position:relative;display:flex;align-items:center;gap:40px}
+#upText{font-size:880px;line-height:.8;color:var(--paper);letter-spacing:-.02em}
+#upArrow{width:300px;height:760px;overflow:visible}
+#upArrow path{fill:none;stroke:var(--volt);stroke-width:78;stroke-linecap:square;stroke-linejoin:miter}
+#upCap{position:absolute;left:120px;bottom:110px;font-size:54px;color:var(--paper)}
+
+#s3{background:var(--night);flex-direction:column}
+.slot{height:230px;overflow:hidden;position:relative;width:1700px}
+.col{position:absolute;left:0;right:0;top:0}
+.line{height:230px;line-height:230px;font-size:156px;color:var(--paper);white-space:nowrap;text-align:center}
+.line b{font-weight:400;color:var(--volt)}
+#s3 .line:last-child b{color:var(--signal)}
+#cnt{position:absolute;left:150px;top:140px;display:flex;align-items:flex-start;gap:18px}
+#cntSlot{height:120px;overflow:hidden;width:130px;position:relative}
+#cntCol div{height:120px;line-height:120px;font-size:120px;color:var(--signal)}
+#cntTotal{font-size:40px;color:rgba(246,244,255,.45);margin-top:18px}
+#pbarTrack{position:absolute;left:150px;right:150px;bottom:150px;height:6px;background:rgba(246,244,255,.14)}
+#pbar{position:absolute;inset:0;background:var(--volt);transform-origin:0 50%}
+#rise{position:absolute;right:150px;top:140px;bottom:180px;width:6px;background:var(--signal);transform-origin:50% 100%}
+
+#s4{background:var(--volt);clip-path:circle(0% at 50% 50%)}
+#s4 h2{position:absolute;top:110px;left:0;right:0;text-align:center;font-size:80px;font-weight:400;color:var(--night);letter-spacing:.01em}
+.card{position:absolute;left:50%;top:50%;margin:-255px 0 0 -185px;width:370px;height:510px;border-radius:30px;background:var(--night);padding:38px 36px;display:flex;flex-direction:column;justify-content:space-between;color:var(--paper)}
+.card .no{font-size:128px;line-height:1;color:var(--signal)}
+.card:nth-child(3) .no{color:var(--volt)}
+.card .en{font-size:104px;line-height:1}
+.card .ko{font-size:42px;color:rgba(246,244,255,.6)}
+#cards{position:absolute;inset:0}
+
+#s5{background:var(--night)}
+#tunnel{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.ring{position:absolute;font-size:230px;color:transparent;-webkit-text-stroke:3px var(--c);white-space:nowrap;line-height:1}
+.ring:nth-child(3n+1){--c:var(--signal)} .ring:nth-child(3n+2){--c:var(--paper)} .ring:nth-child(3n){--c:var(--ultra)}
+#coreUp{position:relative;font-size:420px;color:var(--volt);line-height:.9}
+
+#s6{background:var(--paper);flex-direction:column}
+#ticker{position:absolute;top:50%;left:0;transform:translateY(-50%);white-space:nowrap;font-size:360px;color:transparent;-webkit-text-stroke:2px rgba(11,16,48,.08);line-height:1}
+#shock{position:absolute;width:60px;height:60px;border-radius:50%;border:10px solid var(--signal)}
+#lockup{position:relative;display:flex;align-items:flex-end;gap:26px}
+#lkStory{display:flex;font-size:300px;line-height:.82;color:var(--night);letter-spacing:-.01em}
+#lkStory span{display:inline-block}
+#lkUp{position:relative;height:246px;padding:0 36px;display:flex;align-items:center;gap:14px;overflow:hidden}
+#lkBox{position:absolute;inset:0;background:var(--signal);border-radius:22px;transform-origin:50% 100%}
+#lkUpText{position:relative;font-size:246px;line-height:1;color:var(--paper);margin-top:10px}
+#lkArrow{position:relative;width:90px;height:170px;overflow:visible}
+#lkArrow path{fill:none;stroke:var(--paper);stroke-width:26;stroke-linecap:square}
+#tag{position:relative;margin-top:64px;font-size:74px;color:var(--night);display:flex}
+#tag span{display:inline-block;white-space:pre}
+#url{position:relative;margin-top:34px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:40px;color:var(--ultra)}
+#urlLine{position:absolute;left:0;right:0;bottom:-8px;height:4px;background:var(--ultra);transform-origin:0 50%}
+
+#flash{position:absolute;inset:0;background:var(--paper);visibility:hidden;pointer-events:none}
+#grain{position:absolute;inset:-100px;pointer-events:none;opacity:.11;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  animation:grain .5s steps(4) infinite}
+@keyframes grain{0%{transform:translate(0,0)}25%{transform:translate(-40px,20px)}50%{transform:translate(30px,-30px)}75%{transform:translate(-20px,-40px)}100%{transform:translate(0,0)}}
+@media (prefers-reduced-motion: reduce){ #grain{animation:none} }
+#tc{position:absolute;right:56px;top:44px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:26px;color:#fff;mix-blend-mode:difference;letter-spacing:.04em}
+#brandTag{position:absolute;left:56px;top:40px;font-family:'Anton',Impact,sans-serif;font-size:34px;color:#fff;mix-blend-mode:difference}
+
+#start{position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:48px;background:rgba(11,16,48,.84)}
+#start h1{font-family:'Anton',Impact,sans-serif;font-weight:400;color:var(--paper);font-size:200px;line-height:1}
+#start h1 em{font-style:normal;color:var(--signal)}
+#start .row{display:flex;gap:28px}
+#start button{font-size:56px;padding:26px 56px}
+button{font:inherit;cursor:pointer;border:0;border-radius:999px;padding:10px 20px;font-size:15px;font-family:'Black Han Sans',sans-serif}
+#goSound{background:var(--signal);color:var(--paper)}
+#goMute{background:rgba(246,244,255,.16);color:var(--paper)}
+button:focus-visible{outline:3px solid var(--volt);outline-offset:3px}
+
+#ctrl{display:flex;align-items:center;gap:10px;padding:0 12px;width:min(100%,900px)}
+#ctrl button{background:transparent;color:var(--ui-fg);border:1.5px solid var(--ui-dim);padding:7px 14px;font-size:14px;min-width:44px}
+#seek{position:relative;height:28px;cursor:pointer;flex:1;display:flex;align-items:center}
+#seekTrack{position:relative;width:100%;height:4px;background:var(--ui-dim);border-radius:2px;overflow:hidden}
+#seekFill{position:absolute;inset:0;background:var(--signal);transform-origin:0 50%;transform:scaleX(0)}
+#hint{font-size:12px;color:var(--ui-dim);font-family:system-ui,sans-serif;text-align:center;padding:0 12px}
+
+/* --- embed 모드(홈페이지 히어로 iframe): 화면을 꽉 채우고 자동재생, 컨트롤·오버레이 숨김 --- */
+html.embed,body.embed{background:var(--night);gap:0}
+body.embed #ctrl,body.embed #hint,body.embed #start,body.embed #tc,body.embed #brandTag{display:none!important}
+body.embed #sizer{border-radius:0;box-shadow:none}
+</style>
+</head>
+<body>
+
+<div id="sizer">
+  <div id="stage">
+    <section class="scene" id="s0">
+      <div class="rip"></div><div class="rip"></div><div class="rip"></div>
+      <div id="dot"></div>
+    </section>
+
+    <section class="scene" id="s1">
+      <div id="storyWord" class="anton"><span>S</span><span>T</span><span>O</span><span>R</span><span>Y</span></div>
+    </section>
+
+    <section class="scene" id="s2">
+      <div class="band" style="background:var(--volt)"></div>
+      <div class="band" style="background:var(--paper)"></div>
+      <div class="band" style="background:var(--signal)"></div>
+      <div class="band" style="background:var(--night)"></div>
+      <div class="band" style="background:var(--ultra)"></div>
+      <div id="upWrap">
+        <div id="upText" class="anton">UP</div>
+        <svg id="upArrow" viewBox="0 0 300 760"><path pathLength="1" d="M150 740 V60 M20 200 L150 60 L280 200"/></svg>
+      </div>
+      <div id="upCap">이야기는 위로 자란다</div>
+    </section>
+
+    <section class="scene" id="s3">
+      <div id="cnt"><div id="cntSlot"><div id="cntCol" class="anton"><div>1</div><div>2</div><div>3</div><div>4</div></div></div><div id="cntTotal" class="anton">/ 4</div></div>
+      <div class="slot"><div class="col" id="col">
+        <div class="line">한 줄의 <b>문장</b>이</div>
+        <div class="line">하나의 <b>장면</b>이 되고</div>
+        <div class="line">한 편의 <b>이야기</b>가 되어</div>
+        <div class="line"><b>브랜드</b>로 떠오른다</div>
+      </div></div>
+      <div id="rise"></div>
+      <div id="pbarTrack"><div id="pbar"></div></div>
+    </section>
+
+    <section class="scene" id="s4">
+      <h2 class="anton">FROM IDEA TO STORY</h2>
+      <div id="cards">
+        <div class="card"><div class="no anton">01</div><div><div class="en anton">IDEA</div><div class="ko">발견</div></div></div>
+        <div class="card"><div class="no anton">02</div><div><div class="en anton">PLOT</div><div class="ko">구성</div></div></div>
+        <div class="card"><div class="no anton">03</div><div><div class="en anton">SCENE</div><div class="ko">연출</div></div></div>
+        <div class="card"><div class="no anton">04</div><div><div class="en anton">STORY</div><div class="ko">완성</div></div></div>
+      </div>
+    </section>
+
+    <section class="scene" id="s5">
+      <div id="tunnel"></div>
+      <div id="coreUp" class="anton">UP</div>
+    </section>
+
+    <section class="scene" id="s6">
+      <div id="ticker" class="anton">STORYUP STORYUP STORYUP STORYUP STORYUP</div>
+      <div id="shock"></div>
+      <div id="lockup">
+        <div id="lkStory" class="anton"><span>S</span><span>T</span><span>O</span><span>R</span><span>Y</span></div>
+        <div id="lkUp"><div id="lkBox"></div><span id="lkUpText" class="anton">UP</span>
+          <svg id="lkArrow" viewBox="0 0 90 170"><path d="M45 160 V20 M8 58 L45 20 L82 58"/></svg></div>
+      </div>
+      <div id="tag"></div>
+      <div id="url">storyup.me<div id="urlLine"></div></div>
+    </section>
+
+    <div id="flash"></div>
+    <div id="grain"></div>
+    <div id="brandTag">STORYUP REEL</div>
+    <div id="tc">00:00:00</div>
+
+    <div id="start">
+      <h1>STORY<em>UP</em> 15″</h1>
+      <div class="row">
+        <button id="goSound">▶ 사운드와 함께 재생</button>
+        <button id="goMute">소리 없이 보기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="ctrl">
+  <button id="bPlay" aria-label="재생/일시정지">▶</button>
+  <button id="bRe" aria-label="처음부터">↺</button>
+  <button id="bMute" aria-label="소리 켜기/끄기">🔊</button>
+  <div id="seek" aria-label="탐색"><div id="seekTrack"><div id="seekFill"></div></div></div>
+  <button id="bFs" aria-label="전체 화면">⤢</button>
+</div>
+<div id="hint">가로 화면에서 더 크게 볼 수 있어요 · 스페이스바로 재생/정지</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script>
+(() => {
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const C = {night:'#0B1030', signal:'#FF4A1C', ultra:'#2F3BFF', volt:'#D4FF3F', paper:'#F6F4FF'};
+
+const EMBED = new URLSearchParams(location.search).has('embed');
+if (EMBED) document.body.classList.add('embed');
+const sizer = $('#sizer'), stage = $('#stage');
+function fit(){
+  const fs = document.fullscreenElement === sizer;
+  if (EMBED){
+    // 컨테이너(iframe)를 가득 채운다(cover) — 16:9 컨테이너면 레터박스 없이 꽉 참.
+    const s = Math.max(innerWidth / 1920, innerHeight / 1080);
+    sizer.style.width = innerWidth + 'px'; sizer.style.height = innerHeight + 'px';
+    stage.style.transform = `translate(${(innerWidth - 1920 * s) / 2}px, ${(innerHeight - 1080 * s) / 2}px) scale(${s})`;
+    return;
+  }
+  const ch = fs ? 0 : $('#ctrl').offsetHeight + $('#hint').offsetHeight + 44;
+  const s = Math.min((innerWidth - (fs ? 0 : 24)) / 1920, (innerHeight - ch) / 1080);
+  sizer.style.width = 1920*s + 'px'; sizer.style.height = 1080*s + 'px';
+  stage.style.transform = `scale(${s})`;
+}
+addEventListener('resize', fit); fit();
+
+const tunnel = $('#tunnel');
+for (let i = 0; i < 16; i++){ const r = document.createElement('div'); r.className = 'ring anton'; r.textContent = 'STORY'; tunnel.appendChild(r); }
+const tag = $('#tag');
+[...'당신의 이야기를, 한 단계 위로.'].forEach(ch => { const s = document.createElement('span'); s.textContent = ch; tag.appendChild(s); });
+
+/* ---------- AUDIO: synthesized score, sample-accurate to the timeline ---------- */
+let AC = null, master, nbuf, live = [], muted = false;
+function initAudio(){
+  if (AC) return;
+  AC = new (window.AudioContext || window.webkitAudioContext)();
+  const comp = AC.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 5;
+  master = AC.createGain(); master.gain.value = muted ? 0 : .85;
+  master.connect(comp); comp.connect(AC.destination);
+  nbuf = AC.createBuffer(1, AC.sampleRate * 4, AC.sampleRate);
+  const d = nbuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1;
+}
+const G = () => AC.createGain();
+const F = (type, f, q=1) => { const b = AC.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; return b; };
+function env(g, t, peak, a, d){ g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(.0001, t + a + d); }
+function osc(type, f, t, dur){ const o = AC.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t); o.start(t); o.stop(t + dur + .05); live.push(o); return o; }
+function noise(t, dur){ const n = AC.createBufferSource(); n.buffer = nbuf; n.loop = true; n.start(t, Math.random()*1.5); n.stop(t + dur + .05); live.push(n); return n; }
+const chain = (...n) => { for (let i = 0; i < n.length - 1; i++) n[i].connect(n[i+1]); };
+
+const kick = (t, v=1) => { const o = osc('sine', 165, t, .4); o.frequency.exponentialRampToValueAtTime(42, t + .13); const g = G(); env(g, t, v, .002, .34); chain(o, g, master);
+  const n = noise(t, .02), gg = G(); env(gg, t, .25*v, .001, .015); chain(n, F('highpass', 3000), gg, master); };
+const snare = (t, v=.5) => { const n = noise(t, .22), g = G(); env(g, t, v, .001, .18); chain(n, F('highpass', 1300), g, master);
+  const o = osc('triangle', 195, t, .1), g2 = G(); env(g2, t, v*.6, .001, .08); chain(o, g2, master); };
+const hat = (t, v=.12) => { const n = noise(t, .06), g = G(); env(g, t, v, .001, .045); chain(n, F('highpass', 7800), g, master); };
+const bass = (t, f) => { const o = osc('sawtooth', f, t, .45), lp = F('lowpass', 1100, 7), g = G(); lp.frequency.setValueAtTime(1100, t); lp.frequency.exponentialRampToValueAtTime(180, t + .35); env(g, t, .2, .005, .38); chain(o, lp, g, master); };
+const blip = (t, f) => { const o = osc('sine', f, t, .2), g = G(); env(g, t, .28, .002, .14); chain(o, g, master); };
+const whoosh = (t, dur) => { const n = noise(t, dur), bp = F('bandpass', 300, 1.4), g = G(); bp.frequency.setValueAtTime(300, t); bp.frequency.exponentialRampToValueAtTime(6000, t + dur);
+  g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.4, t + dur*.75); g.gain.exponentialRampToValueAtTime(.0001, t + dur); chain(n, bp, g, master); };
+const crash = (t, v=.4) => { const n = noise(t, 1.7), g = G(); env(g, t, v, .002, 1.6); chain(n, F('highpass', 2600), g, master); };
+const sub = t => { const o = osc('sine', 72, t, 1.9); o.frequency.exponentialRampToValueAtTime(36, t + .7); const g = G(); env(g, t, .95, .003, 1.8); chain(o, g, master); };
+const stab = t => { [220, 277.2, 329.6, 440, 554.4].forEach(f => { const o = osc('sawtooth', f, t, 1.1), lp = F('lowpass', 4000, 2), g = G(); lp.frequency.setValueAtTime(4000, t); lp.frequency.exponentialRampToValueAtTime(350, t + 1); env(g, t, .075, .004, 1); chain(o, lp, g, master); }); };
+const riser = (t, dur) => { const n = noise(t, dur), bp = F('bandpass', 400, 2), g = G(); bp.frequency.setValueAtTime(400, t); bp.frequency.exponentialRampToValueAtTime(9000, t + dur);
+  g.gain.setValueAtTime(.01, t); g.gain.linearRampToValueAtTime(.32, t + dur); g.gain.setValueAtTime(.0001, t + dur + .01); chain(n, bp, g, master);
+  const o = osc('sawtooth', 110, t, dur), lp = F('lowpass', 2800), g2 = G(); o.frequency.exponentialRampToValueAtTime(1760, t + dur);
+  g2.gain.setValueAtTime(.001, t); g2.gain.linearRampToValueAtTime(.09, t + dur); g2.gain.setValueAtTime(.0001, t + dur + .01); chain(o, lp, g2, master); };
+
+const SCORE = [];
+const at = (t, fn) => SCORE.push([t, fn]);
+at(0, t => blip(t, 660)); at(.5, t => blip(t, 880)); at(1, t => blip(t, 1320));
+at(1.12, t => whoosh(t, .38));
+at(1.5, t => crash(t, .35));
+for (let x = 1.5; x < 10.3; x += .5) at(x, t => kick(t));
+for (let x = 2; x <= 10; x += 1) at(x, t => snare(t));
+for (let x = 1.75; x < 10.4; x += .5) at(x, t => hat(t, .13));
+for (let x = 5.5; x < 10.4; x += .5) at(x, t => hat(t, .05));
+const BL = [110,110,130.8,98,110,164.8,146.8,98];
+for (let i = 0, x = 1.5; x < 10.3; x += .5, i++){ const f = BL[i % 8]; at(x, t => bass(t, f)); }
+[3.42, 5.12, 7.62, 10.0].forEach(x => at(x, t => whoosh(t, .36)));
+at(10.5, t => { kick(t); crash(t, .3); riser(t, 2.3); });
+[11, 11.5, 12, 12.25, 12.5, 12.625, 12.75].forEach(x => at(x, t => kick(t, .8)));
+for (let x = 11.5; x < 12.8; ){ const v = .18 + (x - 11.5) * .3; at(x, t => snare(t, v)); x += x < 12 ? .25 : x < 12.5 ? .125 : .0625; }
+at(13, t => { kick(t, 1); sub(t); crash(t, .5); stab(t); });
+at(14.2, t => blip(t, 1760));
+
+function stopAll(){ live.forEach(n => { try { n.stop(0); } catch(e){} }); live = []; }
+function schedule(from){
+  if (!AC) return;
+  stopAll();
+  const base = AC.currentTime + .05 - from;
+  SCORE.forEach(([t, fn]) => { if (t >= from - .001) fn(base + t); });
+}
+
+/* ---------- TIMELINE ---------- */
+const tl = gsap.timeline({ paused: true, defaults: { immediateRender: false }, onUpdate: hud, onComplete: done });
+const L = $$('#storyWord span'), bands = $$('.band'), cards = $$('.card'), rings = $$('.ring'),
+      lk = $$('#lkStory span'), tagC = $$('#tag span');
+const cardX = [-645, -215, 215, 645], cardY = [24, -24, 24, -24], cardR = [-7, 3, -3, 7];
+const letterFrom = [{y:-700, rotation:-25}, {x:1100, rotation:10}, {scale:0}, {y:760, rotation:18}, {x:-1100, rotation:-12}];
+
+tl.set('.scene', {autoAlpha: 0, yPercent: 0}, 0)
+  .set('#s0', {autoAlpha: 1}, 0)
+  .set('#flash', {autoAlpha: 0}, 0)
+  .set('#dot', {scaleX: 0, scaleY: 0, y: 0}, 0)
+  .set('.rip', {scale: 1, autoAlpha: 0}, 0)
+  .set('#s1', {backgroundColor: C.signal, '--fill': C.night, '--stroke': '0px', '--sc': C.night}, 0)
+  .set('#storyWord', {x: 0}, 0)
+  .set(L, {x: 0, y: 0, rotation: 0, scale: 1, autoAlpha: 0}, 0)
+  .set(bands, {yPercent: 101}, 0)
+  .set('#upWrap', {scale: 1}, 0)
+  .set('#upText', {scale: 2.4, autoAlpha: 0, filter: 'blur(30px)'}, 0)
+  .set('#upArrow path', {strokeDasharray: 1, strokeDashoffset: 1}, 0)
+  .set('#upCap', {autoAlpha: 0, x: -60}, 0)
+  .set('#s3', {yPercent: 100}, 0)
+  .set('.slot', {scale: 1}, 0)
+  .set('#col', {y: 230}, 0).set('#cntCol', {y: 120}, 0)
+  .set('#pbar', {scaleX: 0}, 0).set('#rise', {scaleY: 0}, 0)
+  .set('#s4', {clipPath: 'circle(0% at 50% 50%)'}, 0)
+  .set('#s4 h2', {y: -80, autoAlpha: 0}, 0)
+  .set(cards, {x: i => cardX[i] * 1.3, y: 1150, rotation: i => (i % 2 ? 40 : -40), scale: 1}, 0)
+  .set(cards[3].children, {autoAlpha: 1}, 0)
+  .set('#tunnel', {rotation: 0}, 0)
+  .set(rings, {scale: .03, rotation: 0, autoAlpha: 0}, 0)
+  .set('#coreUp', {scale: .2, x: 0, autoAlpha: 0}, 0)
+  .set('#ticker', {x: 0}, 0)
+  .set('#shock', {scale: 0, autoAlpha: 1}, 0)
+  .set(lk, {y: -300, autoAlpha: 0}, 0)
+  .set('#lkBox', {scaleY: 0}, 0)
+  .set('#lkUpText', {yPercent: 120}, 0)
+  .set('#lkArrow', {y: 80, autoAlpha: 0}, 0)
+  .set('#lockup', {scale: 1}, 0)
+  .set(tagC, {y: 50, autoAlpha: 0}, 0)
+  .set('#url', {autoAlpha: 0}, 0).set('#urlLine', {scaleX: 0}, 0);
+
+/* 0.0–1.5  heartbeat dot → shoots UP */
+tl.to('#dot', {scaleX: 1, scaleY: 1, duration: .25, ease: 'back.out(4)'}, 0);
+[.5, 1].forEach(t => tl.fromTo('#dot', {scaleX: 1.9, scaleY: 1.9}, {scaleX: 1, scaleY: 1, duration: .35, ease: 'power3.out'}, t));
+$$('.rip').forEach((r, i) => tl.fromTo(r, {scale: 1, autoAlpha: .9}, {scale: 16, autoAlpha: 0, duration: .8, ease: 'power2.out'}, i * .5));
+tl.to('#dot', {scaleY: 64, scaleX: .35, duration: .22, ease: 'power3.in'}, 1.18)
+  .to('#dot', {y: -1600, duration: .12, ease: 'power2.in'}, 1.38);
+
+/* 1.5–3.4  STORY letters slam on 16ths */
+tl.set('#s1', {autoAlpha: 1}, 1.5).set('#s0', {autoAlpha: 0}, 1.5)
+  .fromTo('#flash', {autoAlpha: 1}, {autoAlpha: 0, duration: .3}, 1.5);
+L.forEach((el, i) => tl.fromTo(el, {...letterFrom[i], autoAlpha: 0}, {x: 0, y: 0, rotation: 0, scale: 1, autoAlpha: 1, duration: .45, ease: 'expo.out'}, 1.5 + i * .25));
+tl.fromTo('#storyWord', {x: -26}, {x: 0, duration: .3, ease: 'elastic.out(1,.3)'}, 2.75)
+  .set('#s1', {'--fill': 'transparent', '--stroke': '9px'}, 2.75)
+  .set('#s1', {'--fill': C.night, '--stroke': '0px'}, 2.875)
+  .set('#s1', {backgroundColor: C.ultra, '--fill': C.volt, '--sc': C.volt}, 3.0)
+  .set('#s1', {'--fill': 'transparent', '--stroke': '9px'}, 3.125)
+  .to(L, {y: -1300, duration: .3, ease: 'power3.in', stagger: .035}, 3.2);
+
+/* 3.4–5.5  UP — color bands rise, arrow draws */
+tl.set('#s2', {autoAlpha: 1}, 3.42)
+  .to(bands, {yPercent: 0, duration: .45, ease: 'expo.out', stagger: .07}, 3.42)
+  .set('#s1', {autoAlpha: 0}, 3.9)
+  .to('#upText', {scale: 1, autoAlpha: 1, filter: 'blur(0px)', duration: .5, ease: 'expo.out'}, 3.85)
+  .to('#upArrow path', {strokeDashoffset: 0, duration: .5, ease: 'power3.out'}, 4.1)
+  .to('#upCap', {autoAlpha: 1, x: 0, duration: .4, ease: 'expo.out'}, 4.3);
+[4.5, 5.0].forEach(t => tl.fromTo('#upWrap', {scale: 1.07}, {scale: 1, duration: .4, ease: 'power3.out'}, t));
+tl.to('#s2', {yPercent: -100, duration: .32, ease: 'power4.in'}, 5.18);
+
+/* 5.2–8.0  narrative slot machine */
+tl.set('#s3', {autoAlpha: 1}, 5.18)
+  .to('#s3', {yPercent: 0, duration: .32, ease: 'power4.in'}, 5.18)
+  .set('#s2', {autoAlpha: 0}, 5.5)
+  .to('#pbar', {scaleX: 1, duration: 2.4, ease: 'none'}, 5.5)
+  .to('#rise', {scaleY: 1, duration: 2.3, ease: 'power2.in'}, 5.5);
+[5.55, 6.15, 6.75, 7.35].forEach((t, i) => {
+  tl.to('#col', {y: -230 * i, duration: .42, ease: 'expo.out'}, t)
+    .to('#cntCol', {y: -120 * i, duration: .42, ease: 'expo.out'}, t);
+});
+tl.to('.slot', {scale: 1.12, duration: .45, ease: 'power2.in'}, 7.35);
+
+/* 7.65–10.5  process cards */
+tl.set('#s4', {autoAlpha: 1}, 7.65)
+  .to('#s4', {clipPath: 'circle(150% at 50% 50%)', duration: .4, ease: 'power3.in'}, 7.65)
+  .set('#s3', {autoAlpha: 0}, 8.1)
+  .to('#s4 h2', {y: 0, autoAlpha: 1, duration: .45, ease: 'expo.out'}, 8.0);
+cards.forEach((c, i) => {
+  tl.to(c, {x: cardX[i], y: cardY[i], rotation: cardR[i], duration: .5, ease: 'expo.out'}, 8.0 + i * .5)
+    .fromTo(c, {scale: 1.08}, {scale: 1, duration: .3, ease: 'power2.out'}, 8.35 + i * .5);
+});
+tl.to(cards, {x: 0, y: 0, rotation: 0, duration: .28, ease: 'power3.in', stagger: .03}, 10.0)
+  .to('#s4 h2', {autoAlpha: 0, y: -60, duration: .2}, 10.0)
+  .to(cards[3].children, {autoAlpha: 0, duration: .1}, 10.28)
+  .to(cards[3], {scale: 7, duration: .22, ease: 'power4.in'}, 10.28);
+
+/* 10.5–12.8  ascent tunnel + strobe build */
+tl.set('#s5', {autoAlpha: 1}, 10.5).set('#s4', {autoAlpha: 0}, 10.5)
+  .to('#tunnel', {rotation: 32, duration: 2.3, ease: 'power1.in'}, 10.5);
+rings.forEach((r, i) => {
+  const t = 10.5 + i * .14;
+  tl.set(r, {autoAlpha: 1}, t).to(r, {scale: 11, rotation: (i % 2 ? -1 : 1) * 28, duration: 1.4, ease: 'power2.in'}, t);
+});
+tl.set('#coreUp', {autoAlpha: 1}, 10.55)
+  .to('#coreUp', {scale: 1.15, duration: 2.2, ease: 'power2.in'}, 10.6);
+[12.0, 12.25, 12.5, 12.625, 12.75].forEach(t => tl.fromTo('#flash', {autoAlpha: .85}, {autoAlpha: 0, duration: .09}, t));
+[12.0, 12.25, 12.5].forEach(t => tl.fromTo('#coreUp', {x: 18}, {x: 0, duration: .2, ease: 'elastic.out(1,.3)'}, t));
+tl.set('#s5', {autoAlpha: 0}, 12.8);
+
+/* 13.0–15.0  lockup */
+tl.set('#s6', {autoAlpha: 1}, 13.0)
+  .fromTo('#flash', {autoAlpha: 1}, {autoAlpha: 0, duration: .45}, 13.0)
+  .to('#shock', {scale: 40, autoAlpha: 0, duration: .9, ease: 'power2.out'}, 13.0)
+  .to('#ticker', {x: -700, duration: 2, ease: 'none'}, 13.0)
+  .to(lk, {y: 0, autoAlpha: 1, duration: .5, ease: 'expo.out', stagger: .04}, 13.0)
+  .to('#lkBox', {scaleY: 1, duration: .38, ease: 'expo.out'}, 13.12)
+  .to('#lkUpText', {yPercent: 0, duration: .42, ease: 'expo.out'}, 13.22)
+  .to('#lkArrow', {y: 0, autoAlpha: 1, duration: .4, ease: 'expo.out'}, 13.3)
+  .to('#lkArrow', {y: -16, duration: .25, ease: 'sine.inOut', yoyo: true, repeat: 3}, 13.75)
+  .to(tagC, {y: 0, autoAlpha: 1, duration: .4, ease: 'expo.out', stagger: .025}, 13.5)
+  .to('#url', {autoAlpha: 1, duration: .3}, 13.95)
+  .to('#urlLine', {scaleX: 1, duration: .45, ease: 'expo.out'}, 14.05)
+  .to('#lockup', {scale: 1.035, duration: 1.6, ease: 'none'}, 13.4)
+  .set({}, {}, 15.0);
+
+/* ---------- HUD / controls ---------- */
+const tc = $('#tc'), fill = $('#seekFill'), bPlay = $('#bPlay');
+function hud(){
+  const t = tl.time(), s = Math.floor(t), f = Math.min(23, Math.floor((t - s) * 24));
+  tc.textContent = `00:${String(s).padStart(2,'0')}:${String(f).padStart(2,'0')}`;
+  fill.style.transform = `scaleX(${tl.progress()})`;
+}
+let playing = false, loopTimer = null, started = false;
+function done(){ loopTimer = setTimeout(() => { if (playing) restart(); }, 1100); }
+function restart(){ clearTimeout(loopTimer); tl.restart(); schedule(0); playing = true; bPlay.textContent = '❚❚'; }
+function play(){ if (!started) return begin(!muted); if (tl.progress() >= 1) return restart(); if (AC) AC.resume(); tl.play(); schedule(tl.time()); playing = true; bPlay.textContent = '❚❚'; }
+function pause(){ tl.pause(); stopAll(); playing = false; bPlay.textContent = '▶'; clearTimeout(loopTimer); }
+function setMute(m){ muted = m; if (master) master.gain.value = m ? 0 : .85; $('#bMute').textContent = m ? '🔇' : '🔊'; }
+function begin(withSound){
+  started = true; initAudio(); setMute(!withSound); AC.resume();
+  gsap.to('#start', {autoAlpha: 0, duration: .3});
+  restart();
+}
+$('#goSound').onclick = () => begin(true);
+$('#goMute').onclick = () => begin(false);
+bPlay.onclick = () => playing ? pause() : play();
+$('#bRe').onclick = () => { if (!started) return begin(true); AC.resume(); restart(); };
+$('#bMute').onclick = () => { initAudio(); setMute(!muted); };
+$('#bFs').onclick = () => { const fn = sizer.requestFullscreen || sizer.webkitRequestFullscreen; if (fn) fn.call(sizer); };
+document.addEventListener('fullscreenchange', () => setTimeout(fit, 60));
+$('#seek').onclick = e => {
+  if (!started){ started = true; initAudio(); gsap.set('#start', {autoAlpha: 0}); }
+  const r = e.currentTarget.getBoundingClientRect(); const p = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+  clearTimeout(loopTimer); tl.progress(p); hud();
+  if (playing){ tl.play(); schedule(tl.time()); }
+};
+addEventListener('keydown', e => { if (e.code === 'Space'){ e.preventDefault(); playing ? pause() : play(); } });
+
+// poster frame behind the start overlay: the final lockup
+tl.progress(1); tl.pause(); hud();
+
+// embed(홈페이지 히어로): 음소거 자동재생 + 반복. 모션 민감 사용자는 최종 포스터 프레임 유지.
+if (EMBED && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+  const startEmbed = () => { try { begin(false); } catch (e) {} };
+  if (document.visibilityState === 'visible') startEmbed();
+  else addEventListener('visibilitychange', startEmbed, { once: true });
+}
+})();
+</script>
+</body>
+</html>

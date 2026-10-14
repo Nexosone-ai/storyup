@@ -41,6 +41,20 @@ export default async function LandingPage() {
     <div className="flex min-h-dvh flex-col bg-background">
       <MarketingNav />
 
+      {/* 최상단 메인 슬라이드 — 15초 모션 릴(음소거 자동재생·반복) */}
+      <section className="w-full bg-[#0B1030]">
+        <div className="relative aspect-video max-h-[86svh] w-full overflow-hidden">
+          <iframe
+            src="/reel/storyup-15s.html?embed=1"
+            title="StoryUp 15초 모션 릴"
+            loading="eager"
+            allow="autoplay"
+            scrolling="no"
+            className="absolute inset-0 h-full w-full border-0"
+          />
+        </div>
+      </section>
+
       {/* Hero — 좌 네이비 스토리 / 우 라이브 데모 */}
       <section className="grid lg:min-h-[calc(100svh-4rem)] lg:grid-cols-2">
         <div className="band-dark flex flex-col justify-center px-6 py-20 sm:px-12 lg:px-16">
