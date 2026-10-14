@@ -64,17 +64,19 @@ export const staticText: TextRenderer = ({
   style,
 }) => {
   const Tag = as as ElementType;
+  // 저장값의 줄바꿈(\n)을 그대로 보이게 한다 — 사용자가 넣은 수동 줄바꿈 반영.
+  const withBreaks: CSSProperties = { whiteSpace: "pre-line", ...style };
   if (hasRichHtml(value)) {
     return (
       <Tag
         className={className}
-        style={style}
+        style={withBreaks}
         dangerouslySetInnerHTML={{ __html: sanitizeInlineHtml(value) }}
       />
     );
   }
   return (
-    <Tag className={className} style={style}>
+    <Tag className={className} style={withBreaks}>
       {value}
     </Tag>
   );

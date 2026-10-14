@@ -86,7 +86,8 @@ function EditableText({
         "cursor-text rounded-sm outline-none ring-primary/40 transition hover:bg-primary-soft/40 focus:bg-primary-soft/50 focus:ring-2 [&_a]:underline",
         className,
       )}
-      style={style}
+      // 저장된 줄바꿈(\n)을 편집 중에도 그대로 보이게 한다.
+      style={{ whiteSpace: "pre-line", ...style }}
     />
   );
 }

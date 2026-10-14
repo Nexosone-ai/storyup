@@ -69,6 +69,11 @@ export const SITE_FONTS: Array<{
 export function siteStyleVars(style: WebsiteContent["style"]): CSSProperties {
   const vars: Record<string, string> = {};
 
+  // 한글이 단어 중간에서 끊기지 않게(예: '완벽'이 '완/벽'으로 갈라짐) 전역 적용.
+  // word-break·overflow-wrap은 상속되므로 사이트 전체 텍스트에 반영된다.
+  vars.wordBreak = "keep-all";
+  vars.overflowWrap = "break-word";
+
   const palette = SITE_PALETTES.find((p) => p.id === style?.palette);
   if (palette && palette.id !== "forest") {
     vars["--primary"] = palette.primary;
