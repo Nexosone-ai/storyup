@@ -270,6 +270,15 @@ export function RichEditor({
 
   const aiImage = () => {
     const { text, after } = currentBlock();
+    // 사용자가 원하는 이미지를 직접 설명할 수 있게 한다. 비우면 현재 단락 내용으로 생성.
+    const desc = window.prompt(
+      ko
+        ? "원하는 이미지를 설명해주세요. (비우면 커서가 놓인 단락 내용으로 생성)"
+        : "Describe the image you want. (leave empty to use the current paragraph)",
+      "",
+    );
+    if (desc === null) return; // 취소
+    const instruction = desc.trim();
     setBusy("ai-image");
     setErr(null);
     void (async () => {
@@ -281,6 +290,7 @@ export function RichEditor({
             businessId,
             postId,
             paragraph: text,
+            instruction,
             slotKey: `rich-${slotRef.current++}-${Date.now()}`,
             style: imageStyle,
           }),
@@ -527,7 +537,7 @@ export function RichEditor({
           type="button"
           onClick={aiImage}
           disabled={!!busy}
-          title={ko ? "커서 위치에 AI 이미지 생성" : "AI image at cursor"}
+          title={ko ? "원하는 이미지를 입력해 커서 위치에 AI 생성" : "Describe & generate AI image at cursor"}
           className="flex h-8 items-center gap-1 rounded-md px-2 text-xs font-semibold text-primary hover:bg-primary-soft disabled:opacity-50"
         >
           {busy === "ai-image" ? (
