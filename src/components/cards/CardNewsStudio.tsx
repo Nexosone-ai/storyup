@@ -457,11 +457,29 @@ export function CardNewsStudio({
     });
   };
 
+  /** 현재 커버(0번) 카드를 렌더해 대표 이미지로 저장한다(백그라운드·실패 무시).
+   *  /cards/{id} 공유 페이지의 og:image로 쓰여 다음 공유부터 미리보기에 반영된다. */
+  const persistCoverShareImage = async () => {
+    try {
+      const blob = await nodeToBlob(igRefs.current[0]);
+      if (!blob || !dataPostId) return;
+      const file = new File([blob], `${slugName()}-cover.png`, {
+        type: "image/png",
+      });
+      const fd = new FormData();
+      fd.append("file", file);
+      const up = await uploadSiteImage(businessId, fd);
+      if (up.url) await saveCardShareImageAction(businessId, dataPostId, up.url);
+    } catch {
+      // 대표 이미지 준비 실패해도 공유는 영향받지 않는다(기존 배경이 og:image).
+    }
+  };
+
   /**
    * 페이스북 공유 — 카드 이미지를 내려받는 대신, 카드 공유 페이지(/cards/{id})
-   * 링크를 페이스북 공유창으로 넘긴다. 공유 페이지의 og:image(대표 커버 이미지)
-   * 덕분에 블로그 글을 공유했을 때처럼 '이미지가 먼저' 미리보기로 뜬다.
-   * 공유 직전에 현재 커버(0번) 카드를 렌더해 대표 이미지로 저장(최신 상태 반영)한다.
+   * 링크를 페이스북 공유창으로 넘긴다. 공유 페이지의 og:image 덕분에 블로그 글을
+   * 공유했을 때처럼 '이미지가 먼저' 미리보기로 뜬다.
+   * 공유창은 클릭 즉시 연다(빈 탭 없음). 대표 이미지 저장은 백그라운드로 처리한다.
    */
   const shareCardLinkToFacebook = () => {
     if (!cardNewsId) {
@@ -473,47 +491,28 @@ export function CardNewsStudio({
       return;
     }
     setShareMsg(null);
-    // 팝업 차단 회피: 클릭(사용자 제스처) 즉시 창을 연 뒤, 준비되면 주소를 채운다.
-    const win = window.open("", "_blank");
     const shareUrl = `${window.location.origin}/cards/${cardNewsId}`;
     const sharer = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
       shareUrl,
     )}`;
-    void withBusy(async () => {
-      // 1) 현재 커버(0번) 카드를 대표 이미지로 렌더·업로드·저장 → og:image 최신화
-      try {
-        const blob = await nodeToBlob(igRefs.current[0]);
-        if (blob && dataPostId) {
-          const file = new File([blob], `${slugName()}-cover.png`, {
-            type: "image/png",
-          });
-          const fd = new FormData();
-          fd.append("file", file);
-          const up = await uploadSiteImage(businessId, fd);
-          if (up.url)
-            await saveCardShareImageAction(businessId, dataPostId, up.url);
-        }
-      } catch {
-        // 대표 이미지 준비 실패해도 공유는 진행(기존 배경이 og:image로 사용됨)
-      }
-      // 2) 성장 보상 + 공유 트래킹
-      void recordShareAction("facebook");
-      if (siteSlug)
-        trackEvent({
-          slug: siteSlug,
-          event: "share",
-          path: `/cards/${cardNewsId}`,
-          channel: "card_facebook_link",
-        });
-      // 3) 열어둔 창을 공유창으로 이동 (차단됐으면 현재 창 기준으로 새로 연다)
-      if (win && !win.closed) win.location.href = sharer;
-      else window.open(sharer, "_blank", "noopener");
-      setShareMsg(
-        ko
-          ? "페이스북 공유창을 열었어요. 카드 대표 이미지가 미리보기로 함께 올라갑니다."
-          : "Opened the Facebook share window — the card's preview image is included.",
-      );
-    });
+    // 1) 공유창 즉시 열기 — 사용자 제스처 내에서 바로 열어 빈 탭/차단을 피한다.
+    window.open(sharer, "_blank", "noopener,width=680,height=760");
+    // 2) 성장 보상 + 공유 트래킹
+    void recordShareAction("facebook");
+    if (siteSlug)
+      trackEvent({
+        slug: siteSlug,
+        event: "share",
+        path: `/cards/${cardNewsId}`,
+        channel: "card_facebook_link",
+      });
+    // 3) 대표 이미지(커버) 백그라운드 저장 — 다음 공유부터 미리보기에 반영.
+    void persistCoverShareImage();
+    setShareMsg(
+      ko
+        ? "페이스북 공유창을 열었어요. 카드 공유 페이지가 이미지 미리보기와 함께 올라갑니다."
+        : "Opened the Facebook share window — the card page is posted with an image preview.",
+    );
   };
 
   /**
