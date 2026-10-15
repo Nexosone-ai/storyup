@@ -103,7 +103,8 @@ export async function countTotalUsage(
  * (표기도 "/월" 없이 총 제공량으로 노출 — src/lib/plans.ts)
  */
 export function isLifetimeQuota(planId: PlanId, kind: UsageKind): boolean {
-  return planId === "free" && (kind === "blog_post" || kind === "card_news");
+  // 무료 블로그는 이제 월 이용권(freeAccess)으로 관리하므로 평생 누적 대상은 카드뉴스만.
+  return planId === "free" && kind === "card_news";
 }
 
 /** 플랜·kind에 맞는 사용 건수(무료 블로그·카드뉴스는 누적, 그 외 월간). */

@@ -553,6 +553,34 @@ export interface Database {
         >;
         Relationships: [];
       };
+      free_grants: {
+        Row: {
+          id: string;
+          user_id: string;
+          status: "active" | "pending" | "rejected";
+          period_start: string | null;
+          period_end: string | null;
+          requested_at: string | null;
+          approved_at: string | null;
+          approved_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          status?: "active" | "pending" | "rejected";
+          period_start?: string | null;
+          period_end?: string | null;
+          requested_at?: string | null;
+          approved_at?: string | null;
+          approved_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["free_grants"]["Insert"]
+        >;
+        Relationships: [];
+      };
       story_connect_posts: {
         Row: {
           id: string;

@@ -6,6 +6,11 @@ import { trackGrowthActivity } from "@/lib/gamification/engine";
 import { getLocale } from "@/lib/i18n";
 import { slugify, randomSuffix } from "@/utils/slug";
 import { getPlanId, getShortsQuota } from "@/lib/subscription";
+import {
+  consumeFreeBlogIfApplicable,
+  requestFreeReapply,
+  FreeBlogLimitError,
+} from "@/lib/freeAccess";
 import { getPlanById } from "@/lib/plans";
 import { applyEventDefaultsToNewPost } from "@/lib/events";
 import { BUSINESS_CATEGORIES, INDUSTRY_IDS } from "@/types/domain";
@@ -170,6 +175,15 @@ export async function createBlankBlogAction(
   if (!biz)
     return { error: ko ? "사업장을 찾을 수 없습니다." : "Business not found." };
 
+  // 무료 플랜 블로그 한도(하루 1·월 30·이용권) 검증 + 사용 기록.
+  let freeBilling: { refund: () => Promise<void> } | null = null;
+  try {
+    freeBilling = await consumeFreeBlogIfApplicable(user.id, ko);
+  } catch (e) {
+    if (e instanceof FreeBlogLimitError) return { error: e.message };
+    throw e;
+  }
+
   const { data, error } = await supabase
     .from("blog_posts")
     .insert({
@@ -182,8 +196,10 @@ export async function createBlankBlogAction(
     })
     .select("id")
     .single();
-  if (error || !data)
+  if (error || !data) {
+    await freeBilling?.refund();
     return { error: ko ? "글 생성에 실패했습니다." : "Failed to create." };
+  }
 
   // 사업체 이벤트 기본값(댓글·주소·지도·연락문의·예약)을 새 글에도 상속 (쿠폰 제외).
   await applyEventDefaultsToNewPost(supabase, businessId, data.id);
@@ -1097,6 +1113,17 @@ export async function reserveShortsQuota(businessId: string): Promise<{
     return { error: ko ? "잠시 후 다시 시도해주세요." : "Please try again." };
   }
   return { ok: true, used: used + 1, limit };
+}
+
+/** 무료 플랜 블로그 이용 '재신청' — 관리자 승인 대기 요청을 만든다. */
+export async function requestFreeReapplyAction(): Promise<{
+  ok?: true;
+  error?: string;
+}> {
+  const ko = (await getLocale()) === "ko";
+  const { user } = await requireUser();
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
+  return requestFreeReapply(user.id, ko);
 }
 
 export async function deleteBlogAction(

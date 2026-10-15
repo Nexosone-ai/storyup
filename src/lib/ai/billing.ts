@@ -7,6 +7,7 @@ import {
   type UsageKind,
 } from "@/lib/subscription";
 import { getServicePrice } from "@/lib/payments/prices";
+import { consumeFreeBlogIfApplicable } from "@/lib/freeAccess";
 
 /**
  * AI 서비스 과금 — 모든 AI 라우트가 공용으로 사용한다.
@@ -43,6 +44,13 @@ export async function chargeAiUsage(
   // 없이 항상 무료 — 딜리버리 개수(사이트·블로그·카드뉴스)로 이미 제한된다.
   // (관리자 단가가 바뀌어도 이미지가 막히지 않도록 코드에서 못박는다.)
   if (service === "IMAGE_GENERATION") return noop;
+
+  // 무료 플랜 블로그는 '하루 1개·월 30개 + 월 단위 재신청(관리자 승인)'으로 제한한다.
+  // (한도 초과/기간 만료 시 FreeBlogLimitError throw — 라우트가 메시지로 응답.)
+  if (service === "AI_BLOG") {
+    const free = await consumeFreeBlogIfApplicable(userId, ko);
+    if (free) return free;
+  }
 
   const kind = QUOTA_KIND[service];
   if (kind) {

@@ -5,7 +5,10 @@ import {
   getManagedBlogCategories,
 } from "@/lib/queries";
 import { getLocale } from "@/lib/i18n";
+import { createClient } from "@/lib/supabase/server";
+import { getFreeBlogStatus } from "@/lib/freeAccess";
 import { BlogList } from "@/components/blog/BlogList";
+import { FreeBlogStatus } from "@/components/blog/FreeBlogStatus";
 import { BlogCategoryManager } from "@/components/blog/BlogCategoryManager";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/icons";
@@ -27,6 +30,11 @@ export default async function BlogPage({
     getManagedBlogCategories(id),
   ]);
   const ko = (await getLocale()) === "ko";
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const freeStatus = user ? await getFreeBlogStatus(user.id) : null;
 
   return (
     <div className="space-y-6">
@@ -71,6 +79,7 @@ export default async function BlogPage({
           },
         ]}
       />
+      {freeStatus?.isFree && <FreeBlogStatus status={freeStatus} />}
       <BlogCategoryManager businessId={id} categories={categories} />
       <div data-tour="blog-list">
         <BlogList businessId={id} posts={posts} />

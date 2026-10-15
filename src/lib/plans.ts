@@ -61,7 +61,7 @@ export const PLANS: Plan[] = [
     id: "free",
     name: { ko: "Free", en: "Free" },
     priceKrw: 0,
-    limits: { sites: 1, blogPosts: 10, cardNews: 1, shorts: 0, aiImages: 30 }, // aiImages: 미사용(이미지 무과금·딜리버리 포함)
+    limits: { sites: 1, blogPosts: 30, cardNews: 1, shorts: 0, aiImages: 30 }, // 블로그: 하루 1개·월 30개(월 재신청), aiImages: 미사용
     maxBusinesses: 1,
     maxMembers: 1,
     siteLayouts: 1,
@@ -163,15 +163,19 @@ export function planFeatureList(plan: Plan, ko: boolean): string[] {
     );
   }
 
-  // 블로그 생성
+  // 블로그 생성 (무료는 하루 1개·월 30개 + 월 단위 재신청/관리자 승인)
   out.push(
     l.blogPosts === null
       ? ko
         ? `블로그 생성 ${talk}`
         : `Blog posts: ${talk}`
-      : ko
-        ? `블로그 생성 ${l.blogPosts}${per}`
-        : `${l.blogPosts} blog posts${per}`,
+      : oneTime
+        ? ko
+          ? `블로그 생성 하루 1개·월 ${l.blogPosts}개 (재신청제)`
+          : `Blog: 1/day, ${l.blogPosts}/mo (renewable)`
+        : ko
+          ? `블로그 생성 ${l.blogPosts}${per}`
+          : `${l.blogPosts} blog posts${per}`,
   );
 
   // SNS 카드뉴스

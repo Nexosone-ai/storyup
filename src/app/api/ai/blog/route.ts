@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAIProvider, AIGenerationError } from "@/lib/ai";
 import { chargeAiUsage, InsufficientPointsError } from "@/lib/ai/billing";
+import { FreeBlogLimitError } from "@/lib/freeAccess";
 import { getLocale } from "@/lib/i18n";
 import { createBlogDraft } from "@/lib/blogDraft";
 import { BLOG_TONES, BLOG_LENGTHS } from "@/types/domain";
@@ -69,6 +70,11 @@ export async function POST(request: Request) {
   try {
     billing = await chargeAiUsage(user.id, "AI_BLOG", "AI 블로그 생성");
   } catch (err) {
+    if (err instanceof FreeBlogLimitError)
+      return NextResponse.json(
+        { error: err.message, code: err.code },
+        { status: 402 },
+      );
     if (err instanceof InsufficientPointsError)
       return NextResponse.json({ error: err.message }, { status: 402 });
     throw err;
