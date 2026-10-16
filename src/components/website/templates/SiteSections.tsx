@@ -1,6 +1,7 @@
 import type { SiteSection } from "@/types/domain";
 import type { TextRenderer, ImageRenderer, SiteLang } from "./shared";
 import { BlogPreviewCards, type SiteSectionPost } from "./BlogPreview";
+import { LucianFaq } from "./LucianFaq";
 
 /**
  * (프리미엄) 풍부한 홈페이지 섹션 렌더러 — content.sections 배열을 유형별 블록으로
@@ -195,33 +196,42 @@ function SectionBlock({
         </section>
       );
 
+    // 가격표 — Lucian UX/UI #056(월·연 요금 전환 카드)의 시각 처리(강조 링·추천 배지·
+    // 체크 아이콘)를 그리드 카드에 적용. https://lucianlabs.dev/uxui-prompt/#056
     case "pricing":
       return (
         <section className={WRAP}>
           <div className={INNER}>
             <SectionHeader title={s.title} subtitle={s.subtitle} base={base} T={T} />
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid items-start gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {s.items.map((it, j) => (
                 <div
                   key={j}
-                  className={`flex flex-col rounded-2xl border p-6 ${
+                  className={`relative flex flex-col rounded-[22px] border bg-surface p-6 transition-transform ${
                     it.highlighted
-                      ? "border-primary bg-primary-soft/40"
-                      : "border-border bg-surface"
+                      ? "border-primary/60 shadow-[0_18px_40px_-24px_var(--ring)] lg:-translate-y-2 lg:scale-[1.03]"
+                      : "border-border"
                   }`}
                 >
+                  {it.highlighted && (
+                    <span className="absolute right-5 top-5 inline-flex items-center rounded-md bg-primary-soft px-2 py-0.5 text-[11px] font-extrabold text-primary">
+                      {lang === "ko" ? "추천" : "Popular"}
+                    </span>
+                  )}
                   {T({
                     path: `${base}.items.${j}.name`,
                     value: it.name,
                     as: "h3",
-                    className: "font-semibold",
+                    className: "text-lg font-extrabold tracking-tight",
                   })}
-                  {T({
-                    path: `${base}.items.${j}.price`,
-                    value: it.price,
-                    as: "p",
-                    className: "mt-1 text-2xl font-bold tracking-tight",
-                  })}
+                  <div className="mt-1 flex items-end gap-1">
+                    {T({
+                      path: `${base}.items.${j}.price`,
+                      value: it.price,
+                      as: "span",
+                      className: "text-3xl font-black tracking-tight",
+                    })}
+                  </div>
                   {it.description
                     ? T({
                         path: `${base}.items.${j}.description`,
@@ -231,10 +241,19 @@ function SectionBlock({
                       })
                     : null}
                   {it.features && it.features.length > 0 && (
-                    <ul className="mt-4 space-y-1.5 text-sm text-foreground/85">
+                    <ul className="mt-5 space-y-2.5 border-t border-border pt-5 text-sm text-foreground/85">
                       {it.features.map((f, k) => (
-                        <li key={k} className="flex gap-2">
-                          <span className="mt-0.5 shrink-0 text-primary">✓</span>
+                        <li key={k} className="flex items-center gap-2.5">
+                          <svg
+                            viewBox="0 0 18 18"
+                            aria-hidden="true"
+                            className="size-[18px] shrink-0 fill-none stroke-primary"
+                            strokeWidth="2.4"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M4 9.4l3.2 3.2L14 5.6" />
+                          </svg>
                           {T({
                             path: `${base}.items.${j}.features.${k}`,
                             value: f,
@@ -251,33 +270,47 @@ function SectionBlock({
         </section>
       );
 
+    // FAQ — 발행 사이트는 Lucian UX/UI #044 아코디언(한 번에 하나 열림·+/− 모프),
+    // 에디터는 인라인 편집을 위해 모두 펼친 목록으로 렌더. https://lucianlabs.dev/uxui-prompt/#044
     case "faq":
       return (
         <section className={WRAP}>
           <div className="mx-auto max-w-3xl px-5 py-16">
             <SectionHeader title={s.title} subtitle={s.subtitle} base={base} T={T} />
-            <dl className="space-y-3">
-              {s.items.map((it, j) => (
-                <div key={j} className="rounded-2xl border border-border bg-surface p-5">
-                  {T({
-                    path: `${base}.items.${j}.q`,
-                    value: it.q,
-                    as: "dt",
-                    className: "font-semibold",
-                  })}
-                  {T({
-                    path: `${base}.items.${j}.a`,
-                    value: it.a,
-                    as: "dd",
-                    className: "mt-1.5 whitespace-pre-wrap leading-relaxed text-muted",
-                  })}
-                </div>
-              ))}
-            </dl>
+            {editable ? (
+              <dl className="space-y-3">
+                {s.items.map((it, j) => (
+                  <div
+                    key={j}
+                    className="rounded-2xl border border-border bg-surface p-5"
+                  >
+                    {T({
+                      path: `${base}.items.${j}.q`,
+                      value: it.q,
+                      as: "dt",
+                      className: "font-semibold",
+                    })}
+                    {T({
+                      path: `${base}.items.${j}.a`,
+                      value: it.a,
+                      as: "dd",
+                      className:
+                        "mt-1.5 whitespace-pre-wrap leading-relaxed text-muted",
+                    })}
+                  </div>
+                ))}
+              </dl>
+            ) : (
+              <LucianFaq
+                items={s.items.map((it) => ({ q: it.q, a: it.a }))}
+              />
+            )}
           </div>
         </section>
       );
 
+    // 후기 — Lucian UX/UI #207(두 줄로 흐르는 후기 벽)의 카드 처리(별점·이니셜 아바타·
+    // 떠오르는 카드)를 편집 가능한 그리드에 적용. https://lucianlabs.dev/uxui-prompt/#207
     case "testimonials":
       return (
         <section className={WRAP}>
@@ -287,29 +320,40 @@ function SectionBlock({
               {s.items.map((it, j) => (
                 <figure
                   key={j}
-                  className="flex flex-col rounded-2xl border border-border bg-surface p-6"
+                  className="flex flex-col rounded-[22px] border border-border bg-surface p-6 transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_14px_26px_-14px_rgba(0,0,0,.22)]"
                 >
+                  <div
+                    aria-hidden="true"
+                    className="mb-3 text-sm tracking-tight text-amber-400"
+                  >
+                    ★★★★★
+                  </div>
                   {T({
                     path: `${base}.items.${j}.quote`,
                     value: it.quote,
                     as: "blockquote",
                     className: "flex-1 leading-relaxed text-foreground/90",
                   })}
-                  <figcaption className="mt-4 text-sm">
-                    {T({
-                      path: `${base}.items.${j}.author`,
-                      value: it.author,
-                      as: "span",
-                      className: "font-semibold",
-                    })}
-                    {it.role
-                      ? T({
-                          path: `${base}.items.${j}.role`,
-                          value: it.role,
-                          as: "span",
-                          className: "ml-1 text-muted",
-                        })
-                      : null}
+                  <figcaption className="mt-5 flex items-center gap-3">
+                    <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary text-sm font-extrabold text-primary-foreground">
+                      {(it.author || "·").trim().charAt(0) || "·"}
+                    </span>
+                    <span className="min-w-0 text-sm">
+                      {T({
+                        path: `${base}.items.${j}.author`,
+                        value: it.author,
+                        as: "span",
+                        className: "block font-semibold",
+                      })}
+                      {it.role
+                        ? T({
+                            path: `${base}.items.${j}.role`,
+                            value: it.role,
+                            as: "span",
+                            className: "block text-xs text-muted",
+                          })
+                        : null}
+                    </span>
                   </figcaption>
                 </figure>
               ))}

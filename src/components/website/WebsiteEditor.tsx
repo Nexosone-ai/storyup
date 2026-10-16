@@ -39,6 +39,7 @@ import {
   type SitePage,
   type LandingSectionKey,
   type SiteBanner,
+  type SiteSection,
 } from "@/types/domain";
 import type { WebsiteRow } from "@/types/database";
 import type { ShowcaseCardItem } from "@/components/marketing/showcaseData";
@@ -47,13 +48,76 @@ import { BannerEditor } from "./BannerEditor";
 
 type Device = "desktop" | "mobile";
 
+/** '섹션 추가'로 넣는 가격표·후기·FAQ의 시작 템플릿(언어별 예시 내용). */
+function makeStarterSection(
+  type: "pricing" | "testimonials" | "faq",
+  ko: boolean,
+): SiteSection {
+  if (type === "pricing")
+    return {
+      type: "pricing",
+      title: ko ? "요금 안내" : "Pricing",
+      subtitle: ko ? "합리적인 가격으로 시작하세요" : "Simple, fair pricing",
+      items: [
+        {
+          name: ko ? "베이직" : "Basic",
+          price: ko ? "₩0" : "$0",
+          description: ko ? "가볍게 시작하는 분께" : "To get started",
+          features: ko ? ["기본 기능", "이메일 문의"] : ["Core features", "Email support"],
+        },
+        {
+          name: ko ? "프로" : "Pro",
+          price: ko ? "₩00,000" : "$00",
+          description: ko ? "가장 인기 있는 선택" : "Most popular",
+          features: ko
+            ? ["모든 기본 기능", "우선 지원", "추가 혜택"]
+            : ["Everything in Basic", "Priority support", "Extra perks"],
+          highlighted: true,
+        },
+      ],
+    };
+  if (type === "testimonials")
+    return {
+      type: "testimonials",
+      title: ko ? "고객 후기" : "What customers say",
+      items: [
+        {
+          quote: ko
+            ? "여기에 실제 고객의 후기를 적어주세요. 신뢰를 높여줍니다."
+            : "Add a real customer quote here to build trust.",
+          author: ko ? "홍길동" : "Jane D.",
+          role: ko ? "단골 고객" : "Regular customer",
+        },
+        {
+          quote: ko ? "또 다른 후기를 적어주세요." : "Another happy customer quote.",
+          author: ko ? "김영희" : "John S.",
+          role: ko ? "고객" : "Customer",
+        },
+      ],
+    };
+  return {
+    type: "faq",
+    title: ko ? "자주 묻는 질문" : "FAQ",
+    items: [
+      {
+        q: ko ? "질문을 입력하세요?" : "Your question here?",
+        a: ko ? "답변을 입력하세요." : "Your answer here.",
+      },
+      {
+        q: ko ? "또 다른 질문은?" : "Another question?",
+        a: ko ? "답변을 입력하세요." : "Your answer here.",
+      },
+    ],
+  };
+}
+
 /** 메인 섹션 키 → 편집기 라벨(관리자가 보는 이름). */
 const SECTION_LABELS: Record<LandingSectionKey, { ko: string; en: string }> = {
   banner: { ko: "배너", en: "Banner" },
   story: { ko: "스토리", en: "Story" },
   offers: { ko: "제공 서비스", en: "Offers" },
   whyChooseUs: { ko: "강점", en: "Why us" },
-  sections: { ko: "상세 섹션 (Pro)", en: "Detail sections (Pro)" },
+  sections: { ko: "상세 섹션 (가격표·후기·FAQ 등)", en: "Detail sections" },
   gallery: { ko: "갤러리", en: "Gallery" },
   blog: { ko: "최신 글", en: "Blog" },
   cards: { ko: "카드뉴스", en: "Card news" },
@@ -355,6 +419,17 @@ export function WebsiteEditor({
       ...c,
       sections: (c.sections ?? []).filter((_, k) => k !== sectionIndex),
     }));
+
+  /** '섹션 추가' — 가격표·후기·FAQ 시작 템플릿을 메인 섹션(content.sections)에 추가한다. */
+  const addHomeSection = (type: "pricing" | "testimonials" | "faq") => {
+    const starter = makeStarterSection(type, ko);
+    setContent((c) => ({
+      ...c,
+      sections: [...(c.sections ?? []), starter],
+      // 추가한 섹션이 바로 보이도록 '상세 섹션' 블록 숨김을 해제한다.
+      hiddenSections: (c.hiddenSections ?? []).filter((k) => k !== "sections"),
+    }));
+  };
 
   /** 구글 지도에서 가져온 정보를 콘텐츠에 병합한다 — 가져온 값이 있으면 우선. */
   const applyGoogleImport = useCallback((d: PlaceImportData) => {
@@ -1088,6 +1163,36 @@ export function WebsiteEditor({
             ? "내용이 없는 섹션(예: 갤러리 사진 미등록)은 '표시'여도 공개 사이트에는 자동으로 나타나지 않아요. 변경 후 저장을 눌러주세요."
             : "Empty sections (e.g. no gallery photos) won’t appear on the live site even when set to Shown. Press Save to apply."}
         </p>
+      </div>
+
+      {/* 섹션 추가 — 가격표·후기·FAQ를 메인에 추가(추가 후 미리보기에서 글자를 눌러 편집) */}
+      <div className="space-y-2 rounded-xl border border-border bg-surface p-3">
+        <div className="flex flex-wrap items-baseline gap-2">
+          <span className="eyebrow mr-1">{ko ? "섹션 추가" : "Add section"}</span>
+          <span className="text-xs text-muted">
+            {ko
+              ? "가격표·후기·자주 묻는 질문(FAQ)을 메인에 추가해요. 추가하면 아래 미리보기에 바로 나타나고, 글자를 눌러 내용을 바꿀 수 있어요."
+              : "Add a pricing, testimonials, or FAQ section. It appears in the preview below — click any text to edit."}
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              ["pricing", ko ? "가격표" : "Pricing"],
+              ["testimonials", ko ? "후기" : "Testimonials"],
+              ["faq", "FAQ"],
+            ] as const
+          ).map(([t, label]) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => addHomeSection(t)}
+              className="rounded-lg border border-border-strong px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:border-primary/50 hover:bg-primary-soft hover:text-primary"
+            >
+              + {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* 배너 관리 — 랜딩/블로그에 노출할 이미지 배너(문구·버튼·AI 이미지·사이즈). */}
