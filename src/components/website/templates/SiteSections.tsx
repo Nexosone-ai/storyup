@@ -2,6 +2,56 @@ import type { SiteSection } from "@/types/domain";
 import type { TextRenderer, ImageRenderer, SiteLang } from "./shared";
 import { BlogPreviewCards, type SiteSectionPost } from "./BlogPreview";
 import { LucianFaq } from "./LucianFaq";
+import { LucianStats } from "./LucianStats";
+
+/* 가입 유도 버튼 — Lucian UX/UI #211(테두리 빛이 도는 가입 유도 버튼)의 회전
+ * 글로우 테두리를 브랜드 색으로 포팅. 순수 CSS(@property) — JS 불필요.
+ * https://lucianlabs.dev/uxui-prompt/#211 */
+const GLOW_CSS = `
+@property --lxa{syntax:'<angle>';inherits:false;initial-value:0deg}
+.lxcta{position:relative;display:inline-flex;align-items:center;gap:8px;height:52px;padding:0 28px;border-radius:999px;background:var(--primary);color:var(--primary-foreground);font-weight:800;font-size:15px;isolation:isolate;box-shadow:0 12px 30px -16px var(--primary);transition:transform .3s cubic-bezier(.3,1.6,.5,1)}
+.lxcta::before{content:"";position:absolute;inset:-4px;z-index:-1;border-radius:inherit;background:conic-gradient(from var(--lxa),var(--primary),color-mix(in srgb,var(--primary) 35%,#fff),var(--primary),color-mix(in srgb,var(--primary) 35%,#fff),var(--primary));filter:blur(13px);opacity:.5;animation:lxspin 5s linear infinite}
+.lxcta:hover{transform:translateY(-2px)}
+.lxcta:hover::before{opacity:.85;animation-duration:1.6s}
+.lxcta-ar{transition:transform .3s cubic-bezier(.3,1.6,.5,1)}
+.lxcta:hover .lxcta-ar{transform:translateX(4px)}
+@keyframes lxspin{to{--lxa:360deg}}
+@media (prefers-reduced-motion:reduce){.lxcta::before{animation:none}}
+`;
+
+/** 글로우 테두리 CTA 버튼(#contact로 이동). 라벨은 T로 인라인 편집 가능. */
+function GlowCta({
+  base,
+  label,
+  T,
+}: {
+  base: string;
+  label: string;
+  T: TextRenderer;
+}) {
+  return (
+    <>
+      <style>{GLOW_CSS}</style>
+      <a href="#contact" className="lxcta">
+        {T({ path: `${base}.ctaLabel`, value: label, as: "span" })}
+        <svg
+          className="lxcta-ar"
+          width="16"
+          height="16"
+          viewBox="0 0 14 14"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.9"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M3 7h8M7.5 3.5 11 7l-3.5 3.5" />
+        </svg>
+      </a>
+    </>
+  );
+}
 
 /**
  * (프리미엄) 풍부한 홈페이지 섹션 렌더러 — content.sections 배열을 유형별 블록으로
@@ -54,7 +104,10 @@ export function SiteSections({
                 ✕ 삭제
               </button>
             )}
-            {Img && s.type !== "postList" && (editable || s.image) && (
+            {Img &&
+              s.type !== "postList" &&
+              s.type !== "hero" &&
+              (editable || s.image) && (
               <div className="mx-auto max-w-5xl px-5 pt-12">
                 <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl border border-border bg-surface-muted/40">
                   {Img({
@@ -136,6 +189,35 @@ function SectionBlock({
   categories?: string[];
 }) {
   switch (s.type) {
+    // 섹션형 히어로 — 액센트 글로우 배경 + 큰 제목 + 소개 + 글로우 CTA 버튼.
+    case "hero":
+      return (
+        <section className="relative overflow-hidden border-t border-border bg-[radial-gradient(120%_70%_at_50%_0%,var(--primary-soft),transparent_62%)]">
+          <div className="mx-auto max-w-3xl px-5 py-24 text-center">
+            {T({
+              path: `${base}.title`,
+              value: s.title,
+              as: "h2",
+              className:
+                "text-3xl font-black leading-[1.14] tracking-tight sm:text-5xl",
+            })}
+            {s.subtitle
+              ? T({
+                  path: `${base}.subtitle`,
+                  value: s.subtitle,
+                  as: "p",
+                  className: "mx-auto mt-4 max-w-xl text-muted sm:text-lg",
+                })
+              : null}
+            {(s.ctaLabel || editable) && (
+              <div className="mt-9 flex justify-center">
+                <GlowCta base={base} label={s.ctaLabel || "문의하기"} T={T} />
+              </div>
+            )}
+          </div>
+        </section>
+      );
+
     case "features":
       return (
         <section className={WRAP}>
@@ -362,6 +444,7 @@ function SectionBlock({
         </section>
       );
 
+    // 통계 — 발행 사이트는 화면에 들어오면 숫자가 굴러 오름(count-up), 에디터는 편집 목록.
     case "stats":
       return (
         <section className={WRAP}>
@@ -374,32 +457,38 @@ function SectionBlock({
                   className: `mb-8 text-center ${H}`,
                 })
               : null}
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {s.items.map((it, j) => (
-                <div key={j} className="text-center">
-                  {T({
-                    path: `${base}.items.${j}.value`,
-                    value: it.value,
-                    as: "p",
-                    className: "text-3xl font-bold tracking-tight text-primary",
-                  })}
-                  {T({
-                    path: `${base}.items.${j}.label`,
-                    value: it.label,
-                    as: "p",
-                    className: "mt-1 text-sm text-muted",
-                  })}
-                </div>
-              ))}
-            </div>
+            {editable ? (
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                {s.items.map((it, j) => (
+                  <div key={j} className="text-center">
+                    {T({
+                      path: `${base}.items.${j}.value`,
+                      value: it.value,
+                      as: "p",
+                      className:
+                        "text-3xl font-black tracking-tight text-primary",
+                    })}
+                    {T({
+                      path: `${base}.items.${j}.label`,
+                      value: it.label,
+                      as: "p",
+                      className: "mt-1 text-sm text-muted",
+                    })}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <LucianStats items={s.items} />
+            )}
           </div>
         </section>
       );
 
+    // CTA — Lucian #211의 글로우 테두리 버튼 + 액센트 글로우 배경.
     case "cta":
       return (
-        <section className={WRAP}>
-          <div className="mx-auto max-w-3xl px-5 py-16 text-center">
+        <section className="relative overflow-hidden border-t border-border bg-[radial-gradient(80%_70%_at_50%_100%,var(--primary-soft),transparent_70%)]">
+          <div className="mx-auto max-w-3xl px-5 py-20 text-center">
             {T({ path: `${base}.title`, value: s.title, as: "h2", className: H })}
             {s.body
               ? T({
@@ -409,16 +498,9 @@ function SectionBlock({
                   className: "mx-auto mt-3 max-w-xl text-muted",
                 })
               : null}
-            <a
-              href="#contact"
-              className="mt-7 inline-flex rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground shadow-xs"
-            >
-              {T({
-                path: `${base}.ctaLabel`,
-                value: s.ctaLabel || "문의하기",
-                as: "span",
-              })}
-            </a>
+            <div className="mt-8 flex justify-center">
+              <GlowCta base={base} label={s.ctaLabel || "문의하기"} T={T} />
+            </div>
           </div>
         </section>
       );

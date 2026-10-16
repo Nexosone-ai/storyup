@@ -48,11 +48,45 @@ import { BannerEditor } from "./BannerEditor";
 
 type Device = "desktop" | "mobile";
 
-/** '섹션 추가'로 넣는 가격표·후기·FAQ의 시작 템플릿(언어별 예시 내용). */
-function makeStarterSection(
-  type: "pricing" | "testimonials" | "faq",
-  ko: boolean,
-): SiteSection {
+type AddableSection =
+  | "hero"
+  | "pricing"
+  | "testimonials"
+  | "faq"
+  | "stats"
+  | "cta";
+
+/** '섹션 추가'로 넣는 섹션의 시작 템플릿(언어별 예시 내용). */
+function makeStarterSection(type: AddableSection, ko: boolean): SiteSection {
+  if (type === "hero")
+    return {
+      type: "hero",
+      title: ko ? "당신의 비즈니스,\n여기서 시작하세요" : "Your business starts here",
+      subtitle: ko
+        ? "핵심 메시지를 한두 문장으로 적어주세요."
+        : "Add one or two sentences about what you offer.",
+      ctaLabel: ko ? "문의하기" : "Get in touch",
+    };
+  if (type === "stats")
+    return {
+      type: "stats",
+      title: ko ? "숫자로 보는 우리" : "By the numbers",
+      items: [
+        { value: ko ? "1,200+" : "1,200+", label: ko ? "누적 고객" : "Customers" },
+        { value: "98%", label: ko ? "재방문율" : "Return rate" },
+        { value: ko ? "4.9" : "4.9", label: ko ? "평균 평점" : "Avg. rating" },
+        { value: ko ? "10년" : "10 yrs", label: ko ? "업력" : "Experience" },
+      ],
+    };
+  if (type === "cta")
+    return {
+      type: "cta",
+      title: ko ? "지금 바로 시작해볼까요?" : "Ready to get started?",
+      body: ko
+        ? "궁금한 점이 있으면 편하게 문의해주세요."
+        : "Have a question? Reach out anytime.",
+      ctaLabel: ko ? "문의하기" : "Contact us",
+    };
   if (type === "pricing")
     return {
       type: "pricing",
@@ -420,8 +454,8 @@ export function WebsiteEditor({
       sections: (c.sections ?? []).filter((_, k) => k !== sectionIndex),
     }));
 
-  /** '섹션 추가' — 가격표·후기·FAQ 시작 템플릿을 메인 섹션(content.sections)에 추가한다. */
-  const addHomeSection = (type: "pricing" | "testimonials" | "faq") => {
+  /** '섹션 추가' — 선택한 시작 템플릿을 메인 섹션(content.sections)에 추가한다. */
+  const addHomeSection = (type: AddableSection) => {
     const starter = makeStarterSection(type, ko);
     setContent((c) => ({
       ...c,
@@ -1178,9 +1212,12 @@ export function WebsiteEditor({
         <div className="flex flex-wrap gap-2">
           {(
             [
+              ["hero", ko ? "히어로" : "Hero"],
               ["pricing", ko ? "가격표" : "Pricing"],
               ["testimonials", ko ? "후기" : "Testimonials"],
               ["faq", "FAQ"],
+              ["stats", ko ? "통계" : "Stats"],
+              ["cta", ko ? "CTA(행동 유도)" : "CTA"],
             ] as const
           ).map(([t, label]) => (
             <button

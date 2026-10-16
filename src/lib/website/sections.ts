@@ -34,6 +34,13 @@ export function normalizeSiteSections(raw: unknown): SiteSection[] {
     const items = arr(o.items).slice(0, MAX_ITEMS);
 
     switch (type) {
+      case "hero": {
+        const ctaLabel = str(o.ctaLabel, 40) || undefined;
+        const image = str(o.image, 600) || undefined;
+        if (title || subtitle || ctaLabel)
+          out.push({ type, title, subtitle, ctaLabel, image });
+        break;
+      }
       case "features": {
         const its = items
           .map((i) => {

@@ -204,6 +204,7 @@ export interface SiteStatItem {
 }
 
 export const SITE_SECTION_TYPES = [
+  "hero",
   "features",
   "pricing",
   "steps",
@@ -245,6 +246,8 @@ export interface SiteBanner {
 }
 
 export type SiteSection = { image?: string } & (
+  // 섹션형 히어로 — 배지(subtitle)·큰 제목·버튼. image는 배경으로 쓰인다.
+  | { type: "hero"; title: string; subtitle?: string; ctaLabel?: string }
   | { type: "features"; title: string; subtitle?: string; items: SiteFeatureItem[] }
   | { type: "pricing"; title: string; subtitle?: string; items: SitePricingItem[] }
   | { type: "steps"; title: string; subtitle?: string; items: SiteStepItem[] }
