@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 const TABS: { href: string; label: string }[] = [
   { href: "/dashboard/admin", label: "운영" },
   { href: "/dashboard/admin/members", label: "회원" },
+  { href: "/dashboard/admin/test-accounts", label: "테스트 계정" },
   { href: "/dashboard/admin/free-approvals", label: "무료 재신청" },
   { href: "/dashboard/admin/inquiries", label: "문의고객" },
   { href: "/dashboard/admin/traffic", label: "트래픽" },

@@ -553,6 +553,30 @@ export interface Database {
         >;
         Relationships: [];
       };
+      test_accounts: {
+        Row: {
+          id: string;
+          user_id: string;
+          email: string | null;
+          label: string | null;
+          expires_at: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          email?: string | null;
+          label?: string | null;
+          expires_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["test_accounts"]["Insert"]
+        >;
+        Relationships: [];
+      };
       free_grants: {
         Row: {
           id: string;
