@@ -11,6 +11,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/icons";
 import { SeoAudit, type SeoAuditItem } from "@/components/blog/SeoAudit";
 import { TrendChart } from "@/components/analytics/TrendChart";
+import { SeoSearchPanel } from "@/components/analytics/SeoSearchPanel";
 
 export const metadata = { title: "애널리틱스" };
 
@@ -38,6 +39,20 @@ function pathLabel(
   if (post)
     return `${ko ? "글" : "Post"} · ${slugToTitle.get(post[1]) ?? post[1]}`;
   return path;
+}
+
+/** 최근 N일 내 발행된 글 수 (Date.now는 컴포넌트 밖에서 호출). */
+function countPublishedSince(
+  posts: { status: string; published_at: string | null }[],
+  days: number,
+): number {
+  const cutoff = Date.now() - days * 86400000;
+  return posts.filter(
+    (p) =>
+      p.status === "published" &&
+      p.published_at &&
+      new Date(p.published_at).getTime() >= cutoff,
+  ).length;
 }
 
 /** 증감율 배지 (▲ 초록 / ▼ 빨강 / – 회색) */
@@ -147,51 +162,23 @@ export default async function AnalyticsPage({
     }),
   }));
 
-  // ---- 맞춤 제안(규칙 기반) ----
-  const tips: string[] = [];
-  if (coupon.issued === 0)
-    tips.push(
-      ko
-        ? "아직 쿠폰 이벤트가 없어요. 블로그 글에 쿠폰을 달면 방문자의 이름·연락처를 모아 단골로 만들 수 있어요."
-        : "No coupon events yet. Add a coupon to a blog post to collect visitors' names and contacts.",
-    );
-  if (coupon.issued > 0 && coupon.usageRate < 30)
-    tips.push(
-      ko
-        ? `쿠폰 사용률이 ${coupon.usageRate}%로 낮아요. 사용 기간을 늘리거나 혜택을 강화하고, 발급 고객에게 안내 문자를 보내보세요.`
-        : `Coupon usage is only ${coupon.usageRate}%. Extend the validity or boost the benefit, and remind claimants.`,
-    );
-  if (coupon.byPost[0])
-    tips.push(
-      ko
-        ? `‘${coupon.byPost[0].title}’ 글에서 쿠폰이 가장 많이 발행됐어요(${coupon.byPost[0].issued}건). 비슷한 주제의 글을 더 써보세요.`
-        : `‘${coupon.byPost[0].title}’ issued the most coupons (${coupon.byPost[0].issued}). Write more on similar topics.`,
-    );
-  if (leads.growthPct < 0)
-    tips.push(
-      ko
-        ? "최근 신규 고객이 줄고 있어요. 새 쿠폰 이벤트를 열거나 블로그 글을 발행해 유입을 늘려보세요."
-        : "New customers are declining. Launch a new coupon event or publish a post to drive traffic.",
-    );
-  else if (leads.new30d > 0)
-    tips.push(
-      ko
-        ? `최근 30일 신규 고객이 ${leads.new30d}명이에요(${leads.growthPct >= 0 ? "+" : ""}${leads.growthPct}%). 이 흐름을 이어가세요.`
-        : `${leads.new30d} new customers in 30 days (${leads.growthPct >= 0 ? "+" : ""}${leads.growthPct}%). Keep it up.`,
-    );
-  if (data.viewsGrowthPct < 0)
-    tips.push(
-      ko
-        ? "방문이 감소 추세예요. 새 블로그 글과 SNS 공유로 유입 경로를 넓혀보세요."
-        : "Visits are trending down. Add new posts and share on social to widen your reach.",
-    );
-  if (data.shares30d === 0 && data.views30d > 0)
-    tips.push(
-      ko
-        ? "공유가 아직 없어요. 글 하단 공유 버튼을 눌러 직접 퍼뜨려 보세요."
-        : "No shares yet. Use the share buttons under your posts to spread the word.",
-    );
-  const suggestions = tips.slice(0, 5);
+  // 콘텐츠 발행 지표(성과 리포트 통합) — 발행 글 수.
+  const publishedPosts = posts.filter((p) => p.status === "published");
+  const published30d = countPublishedSince(posts, 30);
+
+  // SEO 검색 확인용 — 발행 글 + 공개 URL.
+  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "storyup.me";
+  const siteBase =
+    published && website?.slug
+      ? `https://${appDomain}/site/${website.slug}`
+      : null;
+  const seoPosts = publishedPosts.map((p) => ({
+    id: p.id,
+    title: p.title,
+    slug: p.slug,
+    keywords: p.keywords ?? [],
+    url: siteBase ? `${siteBase}/blog/${p.slug}` : null,
+  }));
 
   return (
     <div className="space-y-8">
@@ -293,6 +280,32 @@ export default async function AnalyticsPage({
         </div>
         <TrendChart data={data.trend} ko={ko} />
       </Card>
+
+      {/* 콘텐츠 발행 (성과 리포트 통합) */}
+      <Card className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-sm text-muted">{ko ? "콘텐츠 발행" : "Publishing"}</p>
+          <p className="mt-1">
+            <span className="tnum text-2xl font-semibold">
+              {publishedPosts.length.toLocaleString()}
+            </span>{" "}
+            <span className="text-sm text-muted">
+              {ko ? "발행 글 누적" : "published"}
+            </span>
+            {" · "}
+            <span className="tnum font-semibold">{published30d}</span>{" "}
+            <span className="text-sm text-muted">
+              {ko ? "최근 30일" : "last 30d"}
+            </span>
+          </p>
+        </div>
+        <ButtonLink href={`/business/${id}/blog`} variant="outline" size="sm">
+          {ko ? "블로그로 가기" : "Go to blog"}
+        </ButtonLink>
+      </Card>
+
+      {/* SEO 검색 확인 (구글·네이버) — 모든 플랜 노출 */}
+      <SeoSearchPanel posts={seoPosts} ko={ko} />
 
       {/* 기본(Free) 티어 — 상세 분석은 Basic 이상 안내 */}
       {!detailed && (
@@ -435,24 +448,6 @@ export default async function AnalyticsPage({
           </p>
         </Card>
       </div>
-
-      {/* 맞춤 제안 */}
-      {suggestions.length > 0 && (
-        <Card className="border-primary/25 bg-primary-soft/30">
-          <h2 className="mb-3 flex items-center gap-2 font-semibold tracking-tight">
-            <Icon.sparkles width={18} height={18} className="text-primary" />
-            {ko ? "맞춤 제안" : "Suggestions for you"}
-          </h2>
-          <ul className="space-y-2">
-            {suggestions.map((s, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm">
-                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
-                <span className="text-foreground/90">{s}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
 
       {/* 페이지별 조회 + 유입 경로 */}
       <div className="grid gap-5 lg:grid-cols-2">

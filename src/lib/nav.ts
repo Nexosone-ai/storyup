@@ -22,11 +22,6 @@ export function dashboardNav(
       icon: "briefcase",
     },
     {
-      label: ko ? "성과 리포트" : "Report",
-      href: "/dashboard/report",
-      icon: "chart",
-    },
-    {
       label: ko ? "문의/쿠폰관리" : "Inquiries & coupons",
       href: "/dashboard/inquiries",
       icon: "chat",

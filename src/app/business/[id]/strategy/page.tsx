@@ -4,7 +4,10 @@ import { getLocale } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/server";
 import { getPlanId } from "@/lib/subscription";
 import { getPlanById } from "@/lib/plans";
+import { getAnalytics, getCustomerInsights } from "@/lib/analytics";
+import { buildMarketingSuggestions } from "@/lib/suggestions";
 import { Card } from "@/components/ui/Card";
+import { Icon } from "@/components/ui/icons";
 import { ButtonLink } from "@/components/ui/Button";
 import { StrategyView } from "@/components/marketing/StrategyView";
 import type { MarketingStrategyResult } from "@/types/domain";
@@ -52,16 +55,38 @@ export default async function StrategyPage({
   }
 
   const supabase = await createClient();
-  const { data: latest } = await supabase
-    .from("marketing_strategies")
-    .select("content, created_at")
-    .eq("business_id", id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const [{ data: latest }, adata, insights] = await Promise.all([
+    supabase
+      .from("marketing_strategies")
+      .select("content, created_at")
+      .eq("business_id", id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    getAnalytics(id),
+    getCustomerInsights(id),
+  ]);
+  // 규칙 기반 맞춤 제안 — 애널리틱스에서 이곳(AI 전략)으로 이동.
+  const suggestions = buildMarketingSuggestions(adata, insights, ko);
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-2xl space-y-6">
+      {suggestions.length > 0 && (
+        <Card className="border-primary/25 bg-primary-soft/30">
+          <h2 className="mb-3 flex items-center gap-2 font-semibold tracking-tight">
+            <Icon.sparkles width={18} height={18} className="text-primary" />
+            {ko ? "맞춤 제안" : "Suggestions for you"}
+          </h2>
+          <ul className="space-y-2">
+            {suggestions.map((s, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm">
+                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
+                <span className="text-foreground/90">{s}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
       <StrategyView
         businessId={id}
         ko={ko}
