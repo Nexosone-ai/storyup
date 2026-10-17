@@ -34,16 +34,16 @@ export default async function AgentPage({
         <Card className="flex flex-col items-start gap-3 p-8">
           <p className="text-lg font-semibold">
             {ko
-              ? "AI 에이전트는 Pro 플랜에서 사용할 수 있어요."
-              : "The AI agent is available on the Pro plan."}
+              ? "AI 에이전트는 대행 파트너 전용 기능이에요."
+              : "The AI agent is available to partners only."}
           </p>
           <p className="text-sm text-muted">
             {ko
-              ? "내 사업을 아는 AI와 대화하며 블로그·카드뉴스 생성, 예약 발행을 바로 맡길 수 있어요. 대화 내용과 알려주신 정보는 기억됩니다."
-              : "Chat with an AI that knows your business — generate blogs, card news, and schedule publishing. It remembers what you tell it."}
+              ? "파트너(대행사)가 배정받은 고객 사업장에서 AI 에이전트로 블로그·카드뉴스·SNS를 대행합니다. 파트너 계약·문의는 관리자에게 연락해주세요."
+              : "Partners run the AI agent for assigned client businesses. Contact the admin about the partner program."}
           </p>
-          <ButtonLink href="/dashboard/plans">
-            {ko ? "Pro로 업그레이드" : "Upgrade to Pro"}
+          <ButtonLink href="/dashboard">
+            {ko ? "대시보드로" : "Back to dashboard"}
           </ButtonLink>
         </Card>
       </div>

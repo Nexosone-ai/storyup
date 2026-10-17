@@ -1,6 +1,24 @@
 import "server-only";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 
+/** 파트너 패킷(크레딧) 부족 — 에이전트 작업 차단. 관리자 충전 안내용. */
+export class InsufficientCreditsError extends Error {
+  constructor(ko = true) {
+    super(
+      ko
+        ? "파트너 패킷(크레딧)이 부족해요. 관리자에게 충전을 요청해주세요."
+        : "Not enough partner credits. Please ask the admin to top up.",
+    );
+    this.name = "InsufficientCreditsError";
+  }
+}
+
+export interface CreditCharge {
+  charged: number;
+  refund: () => Promise<void>;
+}
+const NOOP_CHARGE: CreditCharge = { charged: 0, refund: async () => {} };
+
 /**
  * 대행 파트너 — partner 플랜 계정이 관리자에게 배정받은 고객 사업장을 운영한다.
  * 파트너 여부는 '본인' 구독으로 판정한다(account_owner 해석 안 함 — 파트너가 고객
@@ -89,6 +107,102 @@ export interface PartnerAssignmentRow {
   partnerEmail: string | null;
   clientEmail: string | null;
   createdAt: string;
+}
+
+/** 파트너 크레딧(패킷) 잔액. */
+export async function getPartnerCreditBalance(
+  partnerUserId: string,
+): Promise<number> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("partner_credit_ledger")
+    .select("amount")
+    .eq("partner_user_id", partnerUserId);
+  return (data ?? []).reduce((s, r) => s + r.amount, 0);
+}
+
+/** 작업별 크레딧 단가(active & >0일 때만 유효, 그 외 0=무료). */
+export async function getCreditPrice(action: string): Promise<number> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("partner_credit_prices")
+    .select("credits, active")
+    .eq("action", action)
+    .maybeSingle();
+  if (!data || !data.active) return 0;
+  return Math.max(0, data.credits);
+}
+
+/**
+ * 에이전트 작업 실행 시 파트너 크레딧 차감. 단가 0이면 무차감.
+ * 잔액 부족 시 InsufficientCreditsError. 작업 실패 시 refund()로 복원.
+ */
+export async function chargePartnerCredits(
+  partnerUserId: string,
+  action: string,
+  refBusinessId?: string,
+  ko = true,
+): Promise<CreditCharge> {
+  const credits = await getCreditPrice(action);
+  if (credits <= 0) return NOOP_CHARGE;
+  const admin = createAdminClient();
+  const { error } = await admin.rpc("spend_partner_credits", {
+    p_partner: partnerUserId,
+    p_amount: credits,
+    p_reason: `agent:${action}`,
+    p_ref_business: refBusinessId ?? null,
+  });
+  if (error) {
+    if (/INSUFFICIENT_CREDITS/.test(error.message))
+      throw new InsufficientCreditsError(ko);
+    // 인프라 오류는 서비스 중단 대신 무차감 처리(로그).
+    console.error("[partner-credits]", error.message);
+    return NOOP_CHARGE;
+  }
+  return {
+    charged: credits,
+    refund: async () => {
+      await admin.from("partner_credit_ledger").insert({
+        partner_user_id: partnerUserId,
+        amount: credits,
+        reason: `refund:${action}`,
+        ref_type: "refund",
+        ref_business_id: refBusinessId ?? null,
+      });
+    },
+  };
+}
+
+/** 관리자 — 파트너에게 크레딧 지급(계약/충전). */
+export async function grantPartnerCredits(
+  partnerUserId: string,
+  amount: number,
+  reason: string,
+  createdBy: string | null,
+): Promise<void> {
+  const admin = createAdminClient();
+  await admin.from("partner_credit_ledger").insert({
+    partner_user_id: partnerUserId,
+    amount,
+    reason,
+    ref_type: "grant",
+    created_by: createdBy,
+  });
+}
+
+/** 이 고객(오너)을 대행하는 파트너의 user_id(첫 배정). 오토파일럿 과금 대상. */
+export async function partnerForClient(
+  clientUserId: string,
+): Promise<string | null> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("partner_clients")
+    .select("partner_user_id")
+    .eq("client_user_id", clientUserId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return data?.partner_user_id ?? null;
 }
 
 /** 관리자용 — 전체 파트너↔고객 배정 목록. */

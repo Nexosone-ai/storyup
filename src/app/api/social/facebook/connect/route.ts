@@ -34,7 +34,7 @@ export async function GET(request: Request) {
   if (!facebookConfigured()) return back("unconfigured");
 
   const planId = await getPlanId(user.id);
-  if (planId !== "pro") return back("not_pro");
+  if (planId !== "partner") return back("not_pro");
 
   const business = businessId ? await getBusiness(businessId) : null;
   if (!business) return back("no_business");

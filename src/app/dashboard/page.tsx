@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getUser, getProfileName, getDashboardData } from "@/lib/queries";
+import { isCurrentUserAdmin } from "@/lib/points";
+import { isCurrentUserPartner } from "@/lib/partner";
+import { isCurrentUserNetworkMember } from "@/lib/network";
 import { getGrowthOverview } from "@/lib/gamification/overview";
 import { getLocale } from "@/lib/i18n";
 import { SummaryCards } from "@/components/dashboard/SummaryCards";
@@ -22,6 +25,12 @@ function greeting(): string {
 export default async function DashboardPage() {
   const user = await getUser();
   if (!user) redirect("/login");
+
+  // 역할별 전용 진입경로로 보냄(관리자 > 파트너 > 마케터 우선).
+  if (await isCurrentUserAdmin()) redirect("/admin");
+  if (await isCurrentUserPartner()) redirect("/partner");
+  if (await isCurrentUserNetworkMember()) redirect("/marketer");
+
   const ko = (await getLocale()) === "ko";
   // 추천 링크(/join?ref=)로 가입한 경우 쿠키의 코드를 귀속 처리에 넘긴다
   const refCode = (await cookies()).get("su_ref")?.value ?? null;
