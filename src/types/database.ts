@@ -607,6 +607,7 @@ export interface Database {
           content: string;
           source: string | null;
           superseded: boolean;
+          embedding: string | null;
           created_at: string;
         };
         Insert: {
@@ -616,6 +617,7 @@ export interface Database {
           content: string;
           source?: string | null;
           superseded?: boolean;
+          embedding?: string | null;
           created_at?: string;
         };
         Update: Partial<
@@ -649,6 +651,72 @@ export interface Database {
         >;
         Relationships: [];
       };
+      agent_routines: {
+        Row: {
+          id: string;
+          business_id: string;
+          kind: "blog" | "cardnews" | "facebook";
+          cadence: "daily" | "weekly" | "biweekly" | "monthly";
+          params: Json;
+          enabled: boolean;
+          autonomy: "propose" | "auto";
+          max_per_day: number;
+          monthly_cap: number;
+          quiet_start: number | null;
+          quiet_end: number | null;
+          next_run_at: string;
+          last_run_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          kind: "blog" | "cardnews" | "facebook";
+          cadence?: "daily" | "weekly" | "biweekly" | "monthly";
+          params?: Json;
+          enabled?: boolean;
+          autonomy?: "propose" | "auto";
+          max_per_day?: number;
+          monthly_cap?: number;
+          quiet_start?: number | null;
+          quiet_end?: number | null;
+          next_run_at?: string;
+          last_run_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["agent_routines"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      agent_run_logs: {
+        Row: {
+          id: string;
+          business_id: string;
+          routine_id: string | null;
+          action: string;
+          status: string;
+          detail: Json | null;
+          charged: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          routine_id?: string | null;
+          action: string;
+          status: string;
+          detail?: Json | null;
+          charged?: number;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["agent_run_logs"]["Insert"]
+        >;
+        Relationships: [];
+      };
       youtube_connections: {
         Row: {
           user_id: string;
@@ -670,6 +738,80 @@ export interface Database {
         };
         Update: Partial<
           Database["public"]["Tables"]["youtube_connections"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      social_connections: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          business_id: string;
+          provider: "facebook_page" | "youtube";
+          external_id: string;
+          display_name: string | null;
+          access_token: string | null;
+          refresh_token: string | null;
+          token_expires_at: string | null;
+          scope: string | null;
+          meta: Json | null;
+          enabled: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          business_id: string;
+          provider: "facebook_page" | "youtube";
+          external_id: string;
+          display_name?: string | null;
+          access_token?: string | null;
+          refresh_token?: string | null;
+          token_expires_at?: string | null;
+          scope?: string | null;
+          meta?: Json | null;
+          enabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["social_connections"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      social_posts: {
+        Row: {
+          id: string;
+          business_id: string;
+          provider: string;
+          status: "pending" | "posted" | "failed";
+          message: string | null;
+          link: string | null;
+          media_url: string | null;
+          external_post_id: string | null;
+          scheduled_at: string | null;
+          posted_at: string | null;
+          error: string | null;
+          source: "manual" | "autopilot";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          provider: string;
+          status?: "pending" | "posted" | "failed";
+          message?: string | null;
+          link?: string | null;
+          media_url?: string | null;
+          external_post_id?: string | null;
+          scheduled_at?: string | null;
+          posted_at?: string | null;
+          error?: string | null;
+          source?: "manual" | "autopilot";
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["social_posts"]["Insert"]
         >;
         Relationships: [];
       };
@@ -2085,6 +2227,10 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      match_agent_memories: {
+        Args: { p_business: string; p_query: string; p_count?: number };
+        Returns: { content: string; similarity: number }[];
+      };
       bump_card_thanks: {
         Args: { p_id: string };
         Returns: number;

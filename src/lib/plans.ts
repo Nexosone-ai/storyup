@@ -244,7 +244,11 @@ export function planFeatureList(plan: Plan, ko: boolean): string[] {
   if (plan.aeo)
     out.push(ko ? "AEO/GEO 답변엔진 최적화(FAQ)" : "AEO/GEO (FAQ schema)");
   if (plan.aiAgent)
-    out.push(ko ? "AI 비즈니스 에이전트" : "AI business agent");
+    out.push(
+      ko
+        ? "AI 비즈니스 에이전트 + 오토파일럿(자동 마케팅)"
+        : "AI business agent + autopilot",
+    );
   if (plan.scheduledPublish)
     out.push(ko ? "콘텐츠 예약 발행" : "Scheduled publishing");
   if (plan.reservation)
