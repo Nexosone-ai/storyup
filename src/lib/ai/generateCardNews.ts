@@ -18,6 +18,8 @@ export async function generateAndSaveCardNews(args: {
   businessId: string;
   blogPostId: string;
   locale?: PromptLanguage;
+  /** 파트너 패킷(크레딧)으로 별도 과금하는 경우 기존 UP/쿼터 과금을 건너뛴다. */
+  skipBilling?: boolean;
 }): Promise<{ cardNewsId: string | null; cardNews: CardNewsResult }> {
   const { supabase, userId, businessId, blogPostId } = args;
 
@@ -42,7 +44,9 @@ export async function generateAndSaveCardNews(args: {
     .eq("business_id", businessId)
     .maybeSingle();
 
-  const billing = await chargeAiUsage(userId, "CARD_NEWS", "카드뉴스 생성");
+  const billing = args.skipBilling
+    ? { charged: 0, refund: async () => {} }
+    : await chargeAiUsage(userId, "CARD_NEWS", "카드뉴스 생성");
   try {
     const result = await getAIProvider().generateCardNews({
       businessName: business.name,

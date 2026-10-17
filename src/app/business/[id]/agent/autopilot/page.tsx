@@ -38,11 +38,11 @@ export default async function AutopilotPage({
         <Card className="flex flex-col items-start gap-3 p-8">
           <p className="text-lg font-semibold">
             {ko
-              ? "오토파일럿은 Pro 플랜에서 사용할 수 있어요."
-              : "Autopilot is available on the Pro plan."}
+              ? "오토파일럿은 대행 파트너 전용 기능이에요."
+              : "Autopilot is available to partners only."}
           </p>
-          <ButtonLink href="/dashboard/plans">
-            {ko ? "Pro로 업그레이드" : "Upgrade to Pro"}
+          <ButtonLink href="/dashboard">
+            {ko ? "대시보드로" : "Back to dashboard"}
           </ButtonLink>
         </Card>
       </div>

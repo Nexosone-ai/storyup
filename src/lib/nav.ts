@@ -7,6 +7,7 @@ export function dashboardNav(
   locale: Locale = "ko",
   unreadInquiries = 0,
   marketer = false,
+  partner = false,
 ): NavItem[] {
   const ko = locale === "ko";
   return [
@@ -63,11 +64,20 @@ export function dashboardNav(
       href: "/dashboard/plans",
       icon: "tag",
     },
+    ...(partner
+      ? [
+          {
+            label: ko ? "파트너 대행" : "Partner",
+            href: "/partner",
+            icon: "briefcase",
+          } as NavItem,
+        ]
+      : []),
     ...(marketer
       ? [
           {
             label: ko ? "마케터" : "Marketer",
-            href: "/dashboard/marketer",
+            href: "/marketer",
             icon: "megaphone",
           } as NavItem,
         ]
@@ -76,7 +86,7 @@ export function dashboardNav(
       ? [
           {
             label: ko ? "관리자페이지" : "Admin",
-            href: "/dashboard/admin",
+            href: "/admin",
             icon: "shield",
           } as NavItem,
         ]

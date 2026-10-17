@@ -10,12 +10,23 @@ import { postToFacebook } from "@/lib/social/facebook";
 import { InsufficientPointsError } from "@/lib/ai/billing";
 import { FreeBlogLimitError } from "@/lib/freeAccess";
 import {
+  chargePartnerCredits,
+  InsufficientCreditsError,
+  type CreditCharge,
+} from "@/lib/partner";
+import {
   getProposal,
   claimProposal,
   finishProposal,
 } from "@/lib/ai/agent/store";
 import type { BlogTone, BlogLength } from "@/types/domain";
 import type { Json } from "@/types/database";
+
+/** 제안 액션 → 파트너 크레딧 단가 키(없으면 무차감). */
+const CREDIT_ACTION: Record<string, string | undefined> = {
+  generate_blog_draft: "BLOG_BASIC",
+  generate_cardnews: "CARDNEWS_FULL",
+};
 
 export interface AgentActionState {
   ok?: boolean;
@@ -43,10 +54,26 @@ export async function executeAgentProposal(
     return {
       error: ko ? "이미 처리된 제안이에요." : "This proposal was already handled.",
     };
-  if (!(await claimProposal(supabase, proposalId)))
+
+  // 파트너 패킷(크레딧) 선차감 — 부족하면 제안은 pending 그대로 두고 중단.
+  const creditAction = CREDIT_ACTION[p.action];
+  let charge: CreditCharge | null = null;
+  if (creditAction) {
+    try {
+      charge = await chargePartnerCredits(user.id, creditAction, p.business_id, ko);
+    } catch (err) {
+      if (err instanceof InsufficientCreditsError)
+        return { error: err.message };
+      throw err;
+    }
+  }
+
+  if (!(await claimProposal(supabase, proposalId))) {
+    if (charge) await charge.refund();
     return {
       error: ko ? "이미 처리 중인 제안이에요." : "Proposal already in progress.",
     };
+  }
 
   const params = (p.params ?? {}) as Record<string, unknown>;
   const str = (v: unknown) => (typeof v === "string" ? v : "");
@@ -62,6 +89,7 @@ export async function executeAgentProposal(
         tone: (str(params.tone) || "Friendly") as BlogTone,
         length: (str(params.length) || "Medium") as BlogLength,
         locale: ko ? "ko" : "en",
+        skipBilling: true, // 파트너 크레딧으로 과금 — 기존 UP/쿼터 과금 생략
       });
       result = { postId, title };
     } else if (p.action === "generate_cardnews") {
@@ -71,6 +99,7 @@ export async function executeAgentProposal(
         businessId: p.business_id,
         blogPostId: str(params.blogPostId),
         locale: ko ? "ko" : "en",
+        skipBilling: true,
       });
       result = { cardNewsId };
     } else if (p.action === "schedule_publish") {
@@ -107,6 +136,7 @@ export async function executeAgentProposal(
     revalidatePath(`/business/${p.business_id}/blog`);
     return { ok: true, result };
   } catch (err) {
+    if (charge) await charge.refund(); // 실패 시 크레딧 복원
     await finishProposal(supabase, proposalId, "failed");
     if (err instanceof InsufficientPointsError || err instanceof FreeBlogLimitError)
       return { error: err.message };

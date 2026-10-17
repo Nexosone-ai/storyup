@@ -2,12 +2,22 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/types/database";
 import { createAdminClient } from "@/lib/supabase/server";
-import { getPlanById } from "@/lib/plans";
-import { getPlanId } from "@/lib/subscription";
 import { generateAndSaveBlog } from "@/lib/ai/generateBlog";
 import { generateAndSaveCardNews } from "@/lib/ai/generateCardNews";
 import { postToFacebook, getFacebookStatus } from "@/lib/social/facebook";
+import {
+  partnerForClient,
+  chargePartnerCredits,
+  InsufficientCreditsError,
+  type CreditCharge,
+} from "@/lib/partner";
 import type { BlogTone, BlogLength } from "@/types/domain";
+
+/** 루틴 종류 → 파트너 크레딧 단가 키(facebook 게시는 무차감). */
+const ROUTINE_CREDIT: Record<string, string | undefined> = {
+  blog: "BLOG_BASIC",
+  cardnews: "CARDNEWS_FULL",
+};
 
 /**
  * AI 오토파일럿 — enabled 루틴 중 next_run_at이 지난 것을 선점(claim)해 실행한다.
@@ -134,6 +144,7 @@ async function executeRoutine(
       tone: (str(params.tone) || "Friendly") as BlogTone,
       length: (str(params.length) || "Medium") as BlogLength,
       locale: "ko",
+      skipBilling: true, // 파트너 크레딧으로 과금
     });
     // auto 모드: 생성 후 바로 발행.
     await admin
@@ -157,6 +168,7 @@ async function executeRoutine(
       businessId: r.business_id,
       blogPostId: post.id,
       locale: "ko",
+      skipBilling: true, // 파트너 크레딧으로 과금
     });
     return { cardNewsId, from: post.id } as Json;
   }
@@ -272,10 +284,10 @@ export async function runDueRoutines(now = new Date()): Promise<AutopilotSummary
     }
     const ownerId = biz.user_id;
 
-    // Pro 게이트(다운그레이드 시 자동 중단).
-    const plan = getPlanById(await getPlanId(ownerId));
-    if (!plan.aiAgent) {
-      await log(admin, r, "skip", "not_pro");
+    // 대행 파트너 게이트 — 배정된 파트너가 있어야 동작(없으면 중단).
+    const partnerId = await partnerForClient(ownerId);
+    if (!partnerId) {
+      await log(admin, r, "skip", "no_partner");
       skipped++;
       continue;
     }
@@ -306,9 +318,33 @@ export async function runDueRoutines(now = new Date()): Promise<AutopilotSummary
           skipped++;
           continue;
         }
-        const detail = await executeRoutine(admin, r, ownerId, biz.name);
-        await log(admin, r, "done", "auto", detail);
-        executed++;
+        // 파트너 패킷(크레딧) 선차감 — 부족하면 실행 중단.
+        const creditAction = ROUTINE_CREDIT[r.kind];
+        let charge: CreditCharge | null = null;
+        if (creditAction) {
+          try {
+            charge = await chargePartnerCredits(
+              partnerId,
+              creditAction,
+              r.business_id,
+            );
+          } catch (e) {
+            if (e instanceof InsufficientCreditsError) {
+              await log(admin, r, "skip", "no_credits");
+              skipped++;
+              continue;
+            }
+            throw e;
+          }
+        }
+        try {
+          const detail = await executeRoutine(admin, r, ownerId, biz.name);
+          await log(admin, r, "done", "auto", detail);
+          executed++;
+        } catch (e) {
+          if (charge) await charge.refund();
+          throw e;
+        }
       } else {
         await proposeRoutine(admin, r, biz.name);
         await log(admin, r, "proposed", "propose");

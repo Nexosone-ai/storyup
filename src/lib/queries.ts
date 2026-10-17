@@ -189,14 +189,31 @@ export async function getBusiness(id: string): Promise<BusinessRow | null> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
-  const ownerId = await accountOwnerId(supabase, user.id);
+  const owners = await operableOwnerIds(supabase, user.id);
   const { data } = await supabase
     .from("businesses")
     .select("*")
     .eq("id", id)
-    .eq("user_id", ownerId)
+    .in("user_id", owners)
     .maybeSingle();
   return data ?? null;
+}
+
+/** 운영 가능한 '오너 user_id' 집합 — 본인(직원이면 소유자) + 대행 배정 고객들.
+ *  공개사이트 유출 방지를 위해 businesses 조회는 이 집합으로 명시 필터한다. */
+export async function operableOwnerIds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+): Promise<string[]> {
+  const owner = await accountOwnerId(supabase, userId);
+  const ids = new Set<string>([owner]);
+  // 파트너라면 배정된 고객(client_user_id)도 포함. (RLS: 본인 배정만 조회됨)
+  const { data } = await supabase
+    .from("partner_clients")
+    .select("client_user_id")
+    .eq("partner_user_id", userId);
+  for (const r of data ?? []) ids.add(r.client_user_id);
+  return [...ids];
 }
 
 /** 문의 1건 + 어느 랜딩페이지(비즈니스)로 왔는지 이름. */

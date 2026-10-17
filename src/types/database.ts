@@ -717,6 +717,72 @@ export interface Database {
         >;
         Relationships: [];
       };
+      partner_clients: {
+        Row: {
+          id: string;
+          partner_user_id: string;
+          client_user_id: string;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          partner_user_id: string;
+          client_user_id: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["partner_clients"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      partner_credit_ledger: {
+        Row: {
+          id: string;
+          partner_user_id: string;
+          amount: number;
+          reason: string | null;
+          ref_type: string | null;
+          ref_business_id: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          partner_user_id: string;
+          amount: number;
+          reason?: string | null;
+          ref_type?: string | null;
+          ref_business_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["partner_credit_ledger"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      partner_credit_prices: {
+        Row: {
+          action: string;
+          label: string;
+          credits: number;
+          active: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          action: string;
+          label: string;
+          credits?: number;
+          active?: boolean;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["partner_credit_prices"]["Insert"]
+        >;
+        Relationships: [];
+      };
       youtube_connections: {
         Row: {
           user_id: string;
@@ -2230,6 +2296,15 @@ export interface Database {
       match_agent_memories: {
         Args: { p_business: string; p_query: string; p_count?: number };
         Returns: { content: string; similarity: number }[];
+      };
+      spend_partner_credits: {
+        Args: {
+          p_partner: string;
+          p_amount: number;
+          p_reason: string;
+          p_ref_business?: string | null;
+        };
+        Returns: number;
       };
       bump_card_thanks: {
         Args: { p_id: string };
