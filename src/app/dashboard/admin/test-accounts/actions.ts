@@ -9,14 +9,23 @@ export interface TestAccountState {
   ok?: boolean;
   error?: string;
   message?: string;
+  /** 1회성 비밀번호 설정 링크(저장하지 않음 — 응답으로만 전달). */
+  link?: string;
 }
 
 const MAX_DAYS = 365;
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 function expiryIso(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() + Math.min(MAX_DAYS, Math.max(1, Math.round(days))));
   return d.toISOString();
+}
+
+/** 무작위 강력 비밀번호 — 계정을 유효하게 만들 뿐, 어디에도 저장·노출하지 않는다.
+ *  영업자는 발급된 재설정 링크로 자기 비밀번호를 직접 설정한다. */
+function randomSecret(): string {
+  return `${crypto.randomUUID()}${crypto.randomUUID()}Aa1!`;
 }
 
 /** Pro 구독(만료일 포함)을 설정한다. 만료 시 getPlanId가 자동으로 free 처리. */
@@ -38,14 +47,25 @@ async function setProSubscription(userId: string, expires: string) {
   );
 }
 
+/** 이메일로 비밀번호 설정(복구) 링크 1회 발급 — 저장하지 않고 반환만 한다. */
+async function makeResetLink(email: string): Promise<string | null> {
+  const admin = createAdminClient();
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: "recovery",
+    email,
+    options: { redirectTo: `${SITE_URL}/update-password` },
+  });
+  if (error) return null;
+  return data?.properties?.action_link ?? null;
+}
+
 /**
- * 영업용 테스트 계정 생성 — 아이디(이메일)·비밀번호 지정, Pro 플랜, 사용 기간(일).
- * 실제 계정은 Supabase Auth에 만들고(이메일 인증 완료 처리), Pro/만료는
- * subscriptions에 기록한다. test_accounts에 관리용 메타데이터를 남긴다.
+ * 영업용 테스트 계정 생성 — 아이디(이메일)·Pro 플랜·사용 기간(일).
+ * 비밀번호는 저장하지 않는다: 무작위 비번으로 계정을 만들고, 영업자가 직접
+ * 설정하도록 '비밀번호 설정 링크'를 1회 발급해 응답으로만 돌려준다.
  */
 export async function createTestAccountAction(input: {
   email: string;
-  password: string;
   days: number;
   label?: string;
 }): Promise<TestAccountState> {
@@ -53,21 +73,13 @@ export async function createTestAccountAction(input: {
   const me = await getUser();
 
   const email = input.email.trim().toLowerCase();
-  // 비밀번호 앞뒤 공백은 복붙 등으로 섞이면 로그인 불일치의 흔한 원인이라 제거한다.
-  const password = input.password.trim();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))
     return { error: "올바른 이메일(아이디)을 입력해주세요." };
-  if (!password || password.length < 8)
-    return { error: "비밀번호는 8자 이상이어야 합니다 (앞뒤 공백 제외)." };
-  if (/\s/.test(password))
-    return {
-      error: "비밀번호에 공백(띄어쓰기)은 넣을 수 없어요. 로그인 시 혼동됩니다.",
-    };
 
   const admin = createAdminClient();
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
     email,
-    password,
+    password: randomSecret(),
     email_confirm: true,
     user_metadata: { test_account: true, label: input.label?.trim() || null },
   });
@@ -85,7 +97,6 @@ export async function createTestAccountAction(input: {
 
   const { error: subErr } = await setProSubscription(userId, expires);
   if (subErr) {
-    // 구독 설정 실패 시 생성한 계정을 롤백한다.
     await admin.auth.admin.deleteUser(userId).catch(() => {});
     return { error: "Pro 설정에 실패했습니다. 다시 시도해주세요." };
   }
@@ -94,46 +105,41 @@ export async function createTestAccountAction(input: {
     user_id: userId,
     email,
     label: input.label?.trim() || null,
-    password, // 관리자 조회·전달용(테스트 계정 전용)
     expires_at: expires,
     created_by: me?.id ?? null,
   });
 
+  const link = await makeResetLink(email);
   revalidatePath("/dashboard/admin/test-accounts");
   return {
     ok: true,
-    message: `${email} 테스트 계정을 만들었어요 (Pro · ${new Date(expires).toLocaleDateString("ko-KR")}까지).`,
+    message: link
+      ? `${email} 생성 완료 (Pro · ${new Date(expires).toLocaleDateString("ko-KR")}까지). 아래 '비밀번호 설정 링크'를 영업자에게 전달하세요.`
+      : `${email} 생성 완료. 링크 발급에 실패했으니 '재설정 링크'를 다시 눌러주세요.`,
+    link: link ?? undefined,
   };
 }
 
-/** 테스트 계정 비밀번호 재설정 — Auth 비번 변경 + 조회용 보관값 갱신. */
-export async function resetTestAccountPasswordAction(
+/** 비밀번호 설정/재설정 링크를 1회 발급 — 저장하지 않고 응답으로만 전달. */
+export async function generateResetLinkAction(
   id: string,
-  newPassword: string,
 ): Promise<TestAccountState> {
   if (!(await isCurrentUserAdmin())) return { error: "권한이 없습니다." };
-  const password = (newPassword ?? "").trim();
-  if (password.length < 8)
-    return { error: "비밀번호는 8자 이상이어야 합니다 (앞뒤 공백 제외)." };
-  if (/\s/.test(password))
-    return { error: "비밀번호에 공백(띄어쓰기)은 넣을 수 없어요." };
-
   const admin = createAdminClient();
   const { data: row } = await admin
     .from("test_accounts")
-    .select("user_id")
+    .select("email")
     .eq("id", id)
     .maybeSingle();
-  if (!row) return { error: "테스트 계정을 찾을 수 없습니다." };
+  if (!row?.email) return { error: "테스트 계정을 찾을 수 없습니다." };
 
-  const { error } = await admin.auth.admin.updateUserById(row.user_id, {
-    password,
-  });
-  if (error) return { error: "비밀번호 변경에 실패했습니다." };
-  await admin.from("test_accounts").update({ password }).eq("id", id);
-
-  revalidatePath("/dashboard/admin/test-accounts");
-  return { ok: true, message: "비밀번호를 변경했어요." };
+  const link = await makeResetLink(row.email);
+  if (!link) return { error: "링크 발급에 실패했습니다. 다시 시도해주세요." };
+  return {
+    ok: true,
+    message: "비밀번호 설정 링크를 발급했어요. 영업자에게 전달하세요(1회성).",
+    link,
+  };
 }
 
 /** 사용 기간 연장 — subscriptions 만료일과 test_accounts.expires_at을 오늘+일수로 갱신. */
@@ -175,7 +181,6 @@ export async function deleteTestAccountAction(
     .maybeSingle();
   if (!row) return { error: "테스트 계정을 찾을 수 없습니다." };
 
-  // Auth 계정 삭제 — subscriptions 등 user_id FK는 cascade로 함께 정리된다.
   const { error } = await admin.auth.admin.deleteUser(row.user_id);
   if (error) return { error: "계정 삭제에 실패했습니다." };
   await admin.from("test_accounts").delete().eq("id", id);
