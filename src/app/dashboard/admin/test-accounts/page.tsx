@@ -15,7 +15,7 @@ export default async function AdminTestAccountsPage() {
   const admin = createAdminClient();
   const { data } = await admin
     .from("test_accounts")
-    .select("id, email, label, expires_at, created_at")
+    .select("id, email, label, password, expires_at, created_at")
     .order("created_at", { ascending: false })
     .limit(200);
 
@@ -23,6 +23,7 @@ export default async function AdminTestAccountsPage() {
     id: r.id,
     email: r.email,
     label: r.label,
+    password: r.password,
     expiresAt: r.expires_at,
     createdAt: r.created_at,
     expired: isPast(r.expires_at),

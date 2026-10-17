@@ -53,11 +53,16 @@ export async function createTestAccountAction(input: {
   const me = await getUser();
 
   const email = input.email.trim().toLowerCase();
-  const password = input.password;
+  // 비밀번호 앞뒤 공백은 복붙 등으로 섞이면 로그인 불일치의 흔한 원인이라 제거한다.
+  const password = input.password.trim();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))
     return { error: "올바른 이메일(아이디)을 입력해주세요." };
   if (!password || password.length < 8)
-    return { error: "비밀번호는 8자 이상이어야 합니다." };
+    return { error: "비밀번호는 8자 이상이어야 합니다 (앞뒤 공백 제외)." };
+  if (/\s/.test(password))
+    return {
+      error: "비밀번호에 공백(띄어쓰기)은 넣을 수 없어요. 로그인 시 혼동됩니다.",
+    };
 
   const admin = createAdminClient();
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
@@ -89,6 +94,7 @@ export async function createTestAccountAction(input: {
     user_id: userId,
     email,
     label: input.label?.trim() || null,
+    password, // 관리자 조회·전달용(테스트 계정 전용)
     expires_at: expires,
     created_by: me?.id ?? null,
   });
@@ -98,6 +104,36 @@ export async function createTestAccountAction(input: {
     ok: true,
     message: `${email} 테스트 계정을 만들었어요 (Pro · ${new Date(expires).toLocaleDateString("ko-KR")}까지).`,
   };
+}
+
+/** 테스트 계정 비밀번호 재설정 — Auth 비번 변경 + 조회용 보관값 갱신. */
+export async function resetTestAccountPasswordAction(
+  id: string,
+  newPassword: string,
+): Promise<TestAccountState> {
+  if (!(await isCurrentUserAdmin())) return { error: "권한이 없습니다." };
+  const password = (newPassword ?? "").trim();
+  if (password.length < 8)
+    return { error: "비밀번호는 8자 이상이어야 합니다 (앞뒤 공백 제외)." };
+  if (/\s/.test(password))
+    return { error: "비밀번호에 공백(띄어쓰기)은 넣을 수 없어요." };
+
+  const admin = createAdminClient();
+  const { data: row } = await admin
+    .from("test_accounts")
+    .select("user_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (!row) return { error: "테스트 계정을 찾을 수 없습니다." };
+
+  const { error } = await admin.auth.admin.updateUserById(row.user_id, {
+    password,
+  });
+  if (error) return { error: "비밀번호 변경에 실패했습니다." };
+  await admin.from("test_accounts").update({ password }).eq("id", id);
+
+  revalidatePath("/dashboard/admin/test-accounts");
+  return { ok: true, message: "비밀번호를 변경했어요." };
 }
 
 /** 사용 기간 연장 — subscriptions 만료일과 test_accounts.expires_at을 오늘+일수로 갱신. */

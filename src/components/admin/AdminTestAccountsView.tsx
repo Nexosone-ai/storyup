@@ -7,12 +7,14 @@ import {
   createTestAccountAction,
   extendTestAccountAction,
   deleteTestAccountAction,
+  resetTestAccountPasswordAction,
 } from "@/app/dashboard/admin/test-accounts/actions";
 
 export interface TestAccountRow {
   id: string;
   email: string | null;
   label: string | null;
+  password: string | null;
   expiresAt: string | null;
   createdAt: string;
   expired: boolean;
@@ -30,6 +32,35 @@ export function AdminTestAccountsView({ rows }: { rows: TestAccountRow[] }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [shown, setShown] = useState<Record<string, boolean>>({});
+  const [resetPw, setResetPw] = useState<Record<string, string>>({});
+
+  const copyText = (t: string) => {
+    navigator.clipboard?.writeText(t).catch(() => {});
+    setMsg("복사했어요.");
+  };
+
+  const doReset = (id: string) => {
+    const pw = (resetPw[id] ?? "").trim();
+    if (pw.length < 8) {
+      setError("새 비밀번호는 8자 이상이어야 합니다.");
+      return;
+    }
+    setBusyId(id);
+    setError(null);
+    setMsg(null);
+    startTransition(async () => {
+      const res = await resetTestAccountPasswordAction(id, pw);
+      if (res.error) setError(res.error);
+      else {
+        setMsg(res.message ?? "비밀번호를 변경했어요.");
+        setList((l) => l.map((r) => (r.id === id ? { ...r, password: pw } : r)));
+        setResetPw((m) => ({ ...m, [id]: "" }));
+        setShown((m) => ({ ...m, [id]: true }));
+      }
+      setBusyId(null);
+    });
+  };
 
   const create = () => {
     setError(null);
@@ -50,6 +81,7 @@ export function AdminTestAccountsView({ rows }: { rows: TestAccountRow[] }) {
           id: `tmp-${Date.now()}`,
           email: email.trim().toLowerCase(),
           label: label.trim() || null,
+          password: password.trim() || null,
           expiresAt: new Date(
             Date.now() + days * 86400000,
           ).toISOString(),
@@ -201,55 +233,111 @@ export function AdminTestAccountsView({ rows }: { rows: TestAccountRow[] }) {
             return (
               <li
                 key={r.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3"
+                className="flex flex-col gap-3 rounded-xl border border-border bg-surface px-4 py-3"
               >
-                <div className="min-w-0 text-sm">
-                  <p className="truncate font-medium">
-                    {r.email ?? r.id}
-                    {r.label && (
-                      <span className="ml-2 text-xs text-muted">{r.label}</span>
-                    )}
-                  </p>
-                  <p className="text-xs text-muted">
-                    Pro · {fmt(r.expiresAt)}까지
-                    {expired ? (
-                      <span className="ml-2 rounded-full bg-rose-50 px-2 py-0.5 font-semibold text-rose-600">
-                        만료됨
-                      </span>
-                    ) : (
-                      <span className="ml-2 rounded-full bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-600">
-                        사용중
-                      </span>
-                    )}
-                  </p>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0 text-sm">
+                    <p className="truncate font-medium">
+                      {r.email ?? r.id}
+                      {r.label && (
+                        <span className="ml-2 text-xs text-muted">{r.label}</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted">
+                      Pro · {fmt(r.expiresAt)}까지
+                      {expired ? (
+                        <span className="ml-2 rounded-full bg-rose-50 px-2 py-0.5 font-semibold text-rose-600">
+                          만료됨
+                        </span>
+                      ) : (
+                        <span className="ml-2 rounded-full bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-600">
+                          사용중
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  {!temp && (
+                    <div className="flex items-center gap-2">
+                      <select
+                        defaultValue=""
+                        onChange={(e) => {
+                          const v = Number(e.target.value);
+                          if (v > 0) extend(r.id, v);
+                          e.currentTarget.value = "";
+                        }}
+                        disabled={pending && busyId === r.id}
+                        className="rounded-lg border border-border bg-background px-2 py-1.5 text-xs outline-none focus:border-primary"
+                      >
+                        <option value="">기간 연장…</option>
+                        {DAY_OPTIONS.map((d) => (
+                          <option key={d} value={d}>
+                            오늘+{d}일
+                          </option>
+                        ))}
+                      </select>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => remove(r.id, r.email)}
+                        disabled={pending && busyId === r.id}
+                      >
+                        삭제
+                      </Button>
+                    </div>
+                  )}
                 </div>
+
                 {!temp && (
-                  <div className="flex items-center gap-2">
-                    <select
-                      defaultValue=""
-                      onChange={(e) => {
-                        const v = Number(e.target.value);
-                        if (v > 0) extend(r.id, v);
-                        e.currentTarget.value = "";
-                      }}
-                      disabled={pending && busyId === r.id}
-                      className="rounded-lg border border-border bg-background px-2 py-1.5 text-xs outline-none focus:border-primary"
-                    >
-                      <option value="">기간 연장…</option>
-                      {DAY_OPTIONS.map((d) => (
-                        <option key={d} value={d}>
-                          오늘+{d}일
-                        </option>
-                      ))}
-                    </select>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => remove(r.id, r.email)}
-                      disabled={pending && busyId === r.id}
-                    >
-                      삭제
-                    </Button>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border pt-3 text-xs">
+                    {/* 비밀번호 보기 */}
+                    <span className="text-muted">비밀번호</span>
+                    {r.password ? (
+                      <>
+                        <code className="rounded bg-surface-muted px-2 py-1 font-mono text-foreground">
+                          {shown[r.id] ? r.password : "•".repeat(10)}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setShown((m) => ({ ...m, [r.id]: !m[r.id] }))
+                          }
+                          className="text-muted underline-offset-2 hover:text-primary hover:underline"
+                        >
+                          {shown[r.id] ? "숨기기" : "보기"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => copyText(r.password as string)}
+                          className="text-muted underline-offset-2 hover:text-primary hover:underline"
+                        >
+                          복사
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-muted">
+                        저장된 비번 없음 — 아래에서 재설정하세요
+                      </span>
+                    )}
+                    {/* 비밀번호 재설정 */}
+                    <span className="ml-auto flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        value={resetPw[r.id] ?? ""}
+                        onChange={(e) =>
+                          setResetPw((m) => ({ ...m, [r.id]: e.target.value }))
+                        }
+                        placeholder="새 비밀번호(8자+)"
+                        className="w-40 rounded-lg border border-border bg-background px-2 py-1.5 outline-none focus:border-primary"
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => doReset(r.id)}
+                        disabled={pending && busyId === r.id}
+                      >
+                        변경
+                      </Button>
+                    </span>
                   </div>
                 )}
               </li>
