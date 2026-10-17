@@ -7,14 +7,13 @@ import {
   createTestAccountAction,
   extendTestAccountAction,
   deleteTestAccountAction,
-  resetTestAccountPasswordAction,
+  generateResetLinkAction,
 } from "@/app/dashboard/admin/test-accounts/actions";
 
 export interface TestAccountRow {
   id: string;
   email: string | null;
   label: string | null;
-  password: string | null;
   expiresAt: string | null;
   createdAt: string;
   expired: boolean;
@@ -22,74 +21,81 @@ export interface TestAccountRow {
 
 const DAY_OPTIONS = [7, 14, 30, 60, 90];
 
+/** 1회성 비밀번호 설정 링크 표시(저장하지 않는 값). */
+function LinkBox({ url, onCopy }: { url: string; onCopy: (t: string) => void }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary-soft/20 px-3 py-2 text-xs">
+      <span className="font-medium text-primary">비밀번호 설정 링크(1회성)</span>
+      <code className="min-w-0 flex-1 truncate font-mono text-foreground">
+        {url}
+      </code>
+      <button
+        type="button"
+        onClick={() => onCopy(url)}
+        className="shrink-0 font-medium text-primary underline-offset-2 hover:underline"
+      >
+        복사
+      </button>
+    </div>
+  );
+}
+
 export function AdminTestAccountsView({ rows }: { rows: TestAccountRow[] }) {
   const [list, setList] = useState(rows);
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [label, setLabel] = useState("");
   const [days, setDays] = useState(30);
   const [pending, startTransition] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
-  const [shown, setShown] = useState<Record<string, boolean>>({});
-  const [resetPw, setResetPw] = useState<Record<string, string>>({});
+  // 발급된 1회성 설정 링크(저장 안 함 — 화면에서만 잠깐 보여준다).
+  const [links, setLinks] = useState<Record<string, string>>({});
 
   const copyText = (t: string) => {
     navigator.clipboard?.writeText(t).catch(() => {});
     setMsg("복사했어요.");
   };
 
-  const doReset = (id: string) => {
-    const pw = (resetPw[id] ?? "").trim();
-    if (pw.length < 8) {
-      setError("새 비밀번호는 8자 이상이어야 합니다.");
-      return;
-    }
-    setBusyId(id);
-    setError(null);
-    setMsg(null);
-    startTransition(async () => {
-      const res = await resetTestAccountPasswordAction(id, pw);
-      if (res.error) setError(res.error);
-      else {
-        setMsg(res.message ?? "비밀번호를 변경했어요.");
-        setList((l) => l.map((r) => (r.id === id ? { ...r, password: pw } : r)));
-        setResetPw((m) => ({ ...m, [id]: "" }));
-        setShown((m) => ({ ...m, [id]: true }));
-      }
-      setBusyId(null);
-    });
-  };
-
   const create = () => {
     setError(null);
     setMsg(null);
     startTransition(async () => {
-      const res = await createTestAccountAction({ email, password, days, label });
+      const res = await createTestAccountAction({ email, days, label });
       if (res.error) {
         setError(res.error);
         return;
       }
       setMsg(res.message ?? "생성됐어요.");
+      if (res.link) setLinks((m) => ({ ...m, create: res.link as string }));
       setEmail("");
-      setPassword("");
       setLabel("");
-      // 새 항목을 목록 맨 위에 낙관적으로 추가(정확한 값은 새로고침 시 반영).
       setList((l) => [
         {
           id: `tmp-${Date.now()}`,
           email: email.trim().toLowerCase(),
           label: label.trim() || null,
-          password: password.trim() || null,
-          expiresAt: new Date(
-            Date.now() + days * 86400000,
-          ).toISOString(),
+          expiresAt: new Date(Date.now() + days * 86400000).toISOString(),
           createdAt: new Date().toISOString(),
           expired: false,
         },
         ...l,
       ]);
+    });
+  };
+
+  const genLink = (id: string) => {
+    setBusyId(id);
+    setError(null);
+    setMsg(null);
+    startTransition(async () => {
+      const res = await generateResetLinkAction(id);
+      if (res.error) setError(res.error);
+      else {
+        setMsg(res.message ?? "링크를 발급했어요.");
+        if (res.link) setLinks((m) => ({ ...m, [id]: res.link as string }));
+      }
+      setBusyId(null);
     });
   };
 
@@ -147,8 +153,10 @@ export function AdminTestAccountsView({ rows }: { rows: TestAccountRow[] }) {
       <div className="mb-6">
         <h2 className="text-lg font-semibold tracking-tight">테스트 계정 관리</h2>
         <p className="mt-1 text-sm text-muted">
-          영업자에게 줄 테스트 계정을 만듭니다. 아이디(이메일)·비밀번호를 지정하고
-          Pro 플랜으로 설정하며, 사용 기간이 끝나면 자동으로 일반(무료)로 전환됩니다.
+          영업자에게 줄 테스트 계정을 만듭니다. 아이디(이메일)와 사용 기간을
+          지정하면 Pro 플랜으로 설정되고, 기간이 끝나면 자동으로 일반(무료)으로
+          전환됩니다. 비밀번호는 저장하지 않고, 영업자가 직접 설정하도록{" "}
+          <strong>1회성 설정 링크</strong>를 발급해 전달합니다.
         </p>
       </div>
 
@@ -164,16 +172,6 @@ export function AdminTestAccountsView({ rows }: { rows: TestAccountRow[] }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="sales-test1@example.com"
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 outline-none focus:border-primary"
-            />
-          </label>
-          <label className="text-sm">
-            <span className="mb-1 block font-medium text-muted">비밀번호</span>
-            <input
-              type="text"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="8자 이상"
               className="w-full rounded-lg border border-border bg-background px-3 py-2 outline-none focus:border-primary"
             />
           </label>
@@ -213,6 +211,11 @@ export function AdminTestAccountsView({ rows }: { rows: TestAccountRow[] }) {
             생성 즉시 Pro로 {days}일간 이용할 수 있어요.
           </span>
         </div>
+        {links.create && (
+          <div className="mt-3">
+            <LinkBox url={links.create} onCopy={copyText} />
+          </div>
+        )}
         {error && <p className="mt-3 text-sm text-danger">{error}</p>}
         {msg && <p className="mt-3 text-sm text-primary">{msg}</p>}
       </div>
@@ -258,6 +261,14 @@ export function AdminTestAccountsView({ rows }: { rows: TestAccountRow[] }) {
                   </div>
                   {!temp && (
                     <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => genLink(r.id)}
+                        disabled={pending && busyId === r.id}
+                      >
+                        비밀번호 링크
+                      </Button>
                       <select
                         defaultValue=""
                         onChange={(e) => {
@@ -287,59 +298,7 @@ export function AdminTestAccountsView({ rows }: { rows: TestAccountRow[] }) {
                   )}
                 </div>
 
-                {!temp && (
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border pt-3 text-xs">
-                    {/* 비밀번호 보기 */}
-                    <span className="text-muted">비밀번호</span>
-                    {r.password ? (
-                      <>
-                        <code className="rounded bg-surface-muted px-2 py-1 font-mono text-foreground">
-                          {shown[r.id] ? r.password : "•".repeat(10)}
-                        </code>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setShown((m) => ({ ...m, [r.id]: !m[r.id] }))
-                          }
-                          className="text-muted underline-offset-2 hover:text-primary hover:underline"
-                        >
-                          {shown[r.id] ? "숨기기" : "보기"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => copyText(r.password as string)}
-                          className="text-muted underline-offset-2 hover:text-primary hover:underline"
-                        >
-                          복사
-                        </button>
-                      </>
-                    ) : (
-                      <span className="text-muted">
-                        저장된 비번 없음 — 아래에서 재설정하세요
-                      </span>
-                    )}
-                    {/* 비밀번호 재설정 */}
-                    <span className="ml-auto flex items-center gap-1.5">
-                      <input
-                        type="text"
-                        value={resetPw[r.id] ?? ""}
-                        onChange={(e) =>
-                          setResetPw((m) => ({ ...m, [r.id]: e.target.value }))
-                        }
-                        placeholder="새 비밀번호(8자+)"
-                        className="w-40 rounded-lg border border-border bg-background px-2 py-1.5 outline-none focus:border-primary"
-                      />
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => doReset(r.id)}
-                        disabled={pending && busyId === r.id}
-                      >
-                        변경
-                      </Button>
-                    </span>
-                  </div>
-                )}
+                {links[r.id] && <LinkBox url={links[r.id]} onCopy={copyText} />}
               </li>
             );
           })}

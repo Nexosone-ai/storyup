@@ -821,7 +821,6 @@ export interface Database {
           user_id: string;
           email: string | null;
           label: string | null;
-          password: string | null;
           expires_at: string | null;
           created_by: string | null;
           created_at: string;
@@ -831,7 +830,6 @@ export interface Database {
           user_id: string;
           email?: string | null;
           label?: string | null;
-          password?: string | null;
           expires_at?: string | null;
           created_by?: string | null;
           created_at?: string;
