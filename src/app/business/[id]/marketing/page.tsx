@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getBusiness, getBlogPosts, getWebsite } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
 import { getShortsQuota } from "@/lib/subscription";
+import { getYoutubeStatus } from "@/lib/youtube";
 import { getLocale } from "@/lib/i18n";
 import { MarketingHub } from "@/components/marketing/MarketingHub";
 import { CardNewsStudio } from "@/components/cards/CardNewsStudio";
@@ -27,6 +28,17 @@ export default async function MarketingPage({
     data: { user },
   } = await supabase.auth.getUser();
   const shortsQuota = user ? await getShortsQuota(user.id) : null;
+  const ytStatus = user ? await getYoutubeStatus(user.id) : null;
+  const proPlan =
+    shortsQuota?.planId === "pro" || shortsQuota?.planId === "partner";
+  const shortsYoutube = ytStatus
+    ? {
+        configured: ytStatus.configured,
+        connected: ytStatus.connected,
+        channelTitle: ytStatus.channelTitle,
+        canUse: proPlan,
+      }
+    : null;
 
   // Latest Instagram/Facebook text posts.
   const { data: textRows } = await supabase
@@ -172,6 +184,7 @@ export default async function MarketingPage({
           siteSlug={siteSlug}
           initial={initialCards}
           shorts={shortsQuota}
+          youtube={shortsYoutube}
         />
       </section>
     </div>

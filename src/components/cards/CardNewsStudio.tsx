@@ -8,7 +8,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { Icon } from "@/components/ui/icons";
 import { GuideSteps, CopyButton } from "@/components/ui/GuideCard";
 import { InstagramCard, toIGCards, cardImageSubject } from "./InstagramCard";
-import { ShortsPanel, type ShortsQuota } from "./ShortsPanel";
+import { ShortsPanel, type ShortsQuota, type ShortsYoutube } from "./ShortsPanel";
 import {
   uploadSiteImage,
   saveCardImagesAction,
@@ -70,6 +70,7 @@ export function CardNewsStudio({
   siteSlug,
   initial,
   shorts,
+  youtube,
 }: {
   businessId: string;
   posts: PostOption[];
@@ -86,6 +87,8 @@ export function CardNewsStudio({
   };
   /** 쇼츠 생성 쿼터(플랜·월 사용량) — 쇼츠 패널 게이팅/표시용. */
   shorts?: ShortsQuota | null;
+  /** 유튜브 연결 상태 — 쇼츠 자동 업로드용(Pro). */
+  youtube?: ShortsYoutube | null;
 }) {
   const ko = useLocale() === "ko";
   const [postId, setPostId] = useState(
@@ -798,6 +801,8 @@ export function CardNewsStudio({
                 renderCards={renderCardFiles}
                 guard={guardMissing}
                 quota={shorts ?? null}
+                youtube={youtube ?? null}
+                title={data?.cover.title}
               />
             )}
 

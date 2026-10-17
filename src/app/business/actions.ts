@@ -11,6 +11,11 @@ import {
   requestFreeReapply,
   FreeBlogLimitError,
 } from "@/lib/freeAccess";
+import {
+  getRefreshToken,
+  refreshAccessToken,
+  disconnect as disconnectYoutube,
+} from "@/lib/youtube";
 import { getPlanById } from "@/lib/plans";
 import { applyEventDefaultsToNewPost } from "@/lib/events";
 import { BUSINESS_CATEGORIES, INDUSTRY_IDS } from "@/types/domain";
@@ -1113,6 +1118,55 @@ export async function reserveShortsQuota(businessId: string): Promise<{
     return { error: ko ? "잠시 후 다시 시도해주세요." : "Please try again." };
   }
   return { ok: true, used: used + 1, limit };
+}
+
+/**
+ * 쇼츠 유튜브 업로드용 단기 access_token 발급(Pro 전용). refresh_token은 서버에만
+ * 두고, 브라우저는 이 토큰으로 유튜브에 영상을 직접 올린다(패킷 최소).
+ */
+export async function mintYoutubeUploadToken(): Promise<{
+  token?: string;
+  error?: string;
+}> {
+  const ko = (await getLocale()) === "ko";
+  const { user } = await requireUser();
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
+  const planId = await getPlanId(user.id);
+  if (planId !== "pro" && planId !== "partner")
+    return {
+      error: ko
+        ? "유튜브 업로드는 Pro 플랜에서 사용할 수 있어요."
+        : "YouTube upload is available on the Pro plan.",
+    };
+  const refresh = await getRefreshToken(user.id);
+  if (!refresh)
+    return {
+      error: ko
+        ? "먼저 구글 계정(유튜브)을 연결해주세요."
+        : "Connect your Google (YouTube) account first.",
+    };
+  try {
+    const token = await refreshAccessToken(refresh);
+    return { token };
+  } catch {
+    return {
+      error: ko
+        ? "유튜브 토큰 발급에 실패했어요. 계정을 다시 연결해주세요."
+        : "Could not get a YouTube token. Please reconnect your account.",
+    };
+  }
+}
+
+/** 유튜브 연결 해제. */
+export async function disconnectYoutubeAction(): Promise<{
+  ok?: true;
+  error?: string;
+}> {
+  const ko = (await getLocale()) === "ko";
+  const { user } = await requireUser();
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
+  await disconnectYoutube(user.id);
+  return { ok: true };
 }
 
 /** 무료 플랜 블로그 이용 '재신청' — 관리자 승인 대기 요청을 만든다. */

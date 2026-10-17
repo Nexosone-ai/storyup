@@ -553,6 +553,30 @@ export interface Database {
         >;
         Relationships: [];
       };
+      youtube_connections: {
+        Row: {
+          user_id: string;
+          refresh_token: string;
+          channel_id: string | null;
+          channel_title: string | null;
+          scope: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          refresh_token?: string;
+          channel_id?: string | null;
+          channel_title?: string | null;
+          scope?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["youtube_connections"]["Insert"]
+        >;
+        Relationships: [];
+      };
       test_accounts: {
         Row: {
           id: string;
