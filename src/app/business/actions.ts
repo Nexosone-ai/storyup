@@ -16,6 +16,7 @@ import {
   refreshAccessToken,
   disconnect as disconnectYoutube,
 } from "@/lib/youtube";
+import { SHORTS_ENABLED } from "@/lib/shorts/config";
 import { getPlanById } from "@/lib/plans";
 import { applyEventDefaultsToNewPost } from "@/lib/events";
 import { BUSINESS_CATEGORIES, INDUSTRY_IDS } from "@/types/domain";
@@ -1081,6 +1082,10 @@ export async function reserveShortsQuota(businessId: string): Promise<{
   error?: string;
 }> {
   const ko = (await getLocale()) === "ko";
+  if (!SHORTS_ENABLED)
+    return {
+      error: ko ? "쇼츠 기능은 준비 중입니다." : "Shorts are coming soon.",
+    };
   const { supabase, user } = await requireUser();
   if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
 

@@ -21,6 +21,7 @@ import {
   fileToImage,
   type ShortsMotion,
 } from "@/lib/shorts/render";
+import { SHORTS_ENABLED } from "@/lib/shorts/config";
 
 export interface ShortsQuota {
   planId: PlanId;
@@ -307,6 +308,28 @@ export function ShortsPanel({
       : ko
         ? `이번 달 ${used}/${limit}회 사용`
         : `${used}/${limit} used this month`;
+
+  // 준비중 — 기능 비활성화(NEXT_PUBLIC_SHORTS_ENABLED=true로 활성화).
+  if (!SHORTS_ENABLED) {
+    return (
+      <div className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="inline-flex items-center gap-2 text-sm font-semibold">
+            <FilmIcon />
+            {ko ? "쇼츠 만들기 (9:16)" : "Make a Short (9:16)"}
+          </span>
+          <span className="rounded-full bg-surface-muted px-2.5 py-0.5 text-xs font-semibold text-muted">
+            {ko ? "준비중" : "Coming soon"}
+          </span>
+        </div>
+        <p className="mt-1.5 text-xs leading-relaxed text-muted">
+          {ko
+            ? "쇼츠 동영상 만들기는 현재 준비 중이에요. 곧 제공될 예정입니다."
+            : "Shorts video creation is coming soon."}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-2xl border border-border bg-surface p-4 sm:p-5">

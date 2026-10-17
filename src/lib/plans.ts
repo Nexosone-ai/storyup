@@ -5,6 +5,8 @@
  * 1P = ₩1, 미사용 포인트는 이월, 구독은 자동 갱신.
  */
 
+import { SHORTS_ENABLED } from "@/lib/shorts/config";
+
 export type PlanId = "free" | "basic" | "pro" | "partner";
 
 export interface Plan {
@@ -189,12 +191,15 @@ export function planFeatureList(plan: Plan, ko: boolean): string[] {
         : `${l.cardNews} card news (${CARD_NEWS_PAGES} pages)${per}`,
   );
 
-  // 쇼츠(카드뉴스 배경 9:16 영상) — 제공 플랜만 표기.
+  // 쇼츠(카드뉴스 배경 9:16 영상) — 제공 플랜만 표기. 비활성(준비중)이면 꼬리표.
+  const shortsSoon = SHORTS_ENABLED ? "" : ko ? " (준비중)" : " (soon)";
   if (l.shorts === null) {
-    out.push(ko ? `쇼츠 생성 ${talk}` : `Shorts: ${talk}`);
+    out.push(ko ? `쇼츠 생성 ${talk}${shortsSoon}` : `Shorts: ${talk}${shortsSoon}`);
   } else if (l.shorts > 0) {
     out.push(
-      ko ? `쇼츠 생성 ${l.shorts}${per}` : `${l.shorts} shorts${per}`,
+      ko
+        ? `쇼츠 생성 ${l.shorts}${per}${shortsSoon}`
+        : `${l.shorts} shorts${per}${shortsSoon}`,
     );
   }
 
