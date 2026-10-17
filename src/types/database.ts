@@ -651,6 +651,72 @@ export interface Database {
         >;
         Relationships: [];
       };
+      agent_routines: {
+        Row: {
+          id: string;
+          business_id: string;
+          kind: "blog" | "cardnews" | "facebook";
+          cadence: "daily" | "weekly" | "biweekly" | "monthly";
+          params: Json;
+          enabled: boolean;
+          autonomy: "propose" | "auto";
+          max_per_day: number;
+          monthly_cap: number;
+          quiet_start: number | null;
+          quiet_end: number | null;
+          next_run_at: string;
+          last_run_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          kind: "blog" | "cardnews" | "facebook";
+          cadence?: "daily" | "weekly" | "biweekly" | "monthly";
+          params?: Json;
+          enabled?: boolean;
+          autonomy?: "propose" | "auto";
+          max_per_day?: number;
+          monthly_cap?: number;
+          quiet_start?: number | null;
+          quiet_end?: number | null;
+          next_run_at?: string;
+          last_run_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["agent_routines"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      agent_run_logs: {
+        Row: {
+          id: string;
+          business_id: string;
+          routine_id: string | null;
+          action: string;
+          status: string;
+          detail: Json | null;
+          charged: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          routine_id?: string | null;
+          action: string;
+          status: string;
+          detail?: Json | null;
+          charged?: number;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["agent_run_logs"]["Insert"]
+        >;
+        Relationships: [];
+      };
       youtube_connections: {
         Row: {
           user_id: string;
