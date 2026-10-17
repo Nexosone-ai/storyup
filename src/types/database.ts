@@ -553,6 +553,102 @@ export interface Database {
         >;
         Relationships: [];
       };
+      agent_conversations: {
+        Row: {
+          id: string;
+          business_id: string;
+          user_id: string | null;
+          title: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          user_id?: string | null;
+          title?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["agent_conversations"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      agent_messages: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          business_id: string;
+          role: "user" | "assistant";
+          content: string;
+          tool_json: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          conversation_id: string;
+          business_id: string;
+          role: "user" | "assistant";
+          content?: string;
+          tool_json?: Json | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["agent_messages"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      agent_memories: {
+        Row: {
+          id: string;
+          business_id: string;
+          kind: string;
+          content: string;
+          source: string | null;
+          superseded: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          kind?: string;
+          content: string;
+          source?: string | null;
+          superseded?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["agent_memories"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      agent_proposals: {
+        Row: {
+          id: string;
+          conversation_id: string | null;
+          business_id: string;
+          action: string;
+          params: Json;
+          status: "pending" | "approved" | "done" | "rejected" | "failed";
+          result: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          conversation_id?: string | null;
+          business_id: string;
+          action: string;
+          params?: Json;
+          status?: "pending" | "approved" | "done" | "rejected" | "failed";
+          result?: Json | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["agent_proposals"]["Insert"]
+        >;
+        Relationships: [];
+      };
       youtube_connections: {
         Row: {
           user_id: string;
