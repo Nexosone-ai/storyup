@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { DB, ChatMessage } from "./store";
 import { AGENT_TOOLS, runTool, type ToolCtx, type ProposalOut } from "./tools";
-import { loadMemories } from "./memory";
+import { searchMemories } from "./memory";
 
 /**
  * AI 에이전트 1턴 실행 — 시스템 프롬프트(브랜드+기억) + 대화 히스토리로 Claude를
@@ -9,8 +9,8 @@ import { loadMemories } from "./memory";
  * 최종 답변까지 루프를 돈다(최대 MAX_STEPS). 비스트리밍.
  */
 
-const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
-const MAX_STEPS = 5;
+export const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
+export const MAX_STEPS = 5;
 
 export interface AgentContext {
   name: string;
@@ -24,7 +24,7 @@ export interface AgentTurnResult {
   proposals: ProposalOut[];
 }
 
-function buildSystem(ctx: AgentContext, memories: string[]): string {
+export function buildSystem(ctx: AgentContext, memories: string[]): string {
   const mem = memories.length
     ? `\n\n[기억한 사실]\n- ${memories.join("\n- ")}`
     : "";
@@ -50,7 +50,11 @@ export async function runAgentTurn(args: {
   ko: boolean;
 }): Promise<AgentTurnResult> {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const memories = await loadMemories(args.supabase, args.businessId);
+  const memories = await searchMemories(
+    args.supabase,
+    args.businessId,
+    args.userMessage,
+  );
   const system = buildSystem(args.agent, memories);
   const toolCtx: ToolCtx = {
     supabase: args.supabase,

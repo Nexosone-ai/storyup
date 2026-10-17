@@ -10,7 +10,7 @@ import {
   loadMessages,
   saveMessage,
 } from "@/lib/ai/agent/store";
-import { runAgentTurn } from "@/lib/ai/agent/runner";
+import { runAgentTurnStream } from "@/lib/ai/agent/runnerStream";
 import type { Json } from "@/types/database";
 
 export const maxDuration = 60;
@@ -79,73 +79,92 @@ export async function POST(
     throw err;
   }
 
-  try {
-    const convId = await getOrCreateConversation(
-      supabase,
-      businessId,
-      user.id,
-      conversationId,
-    );
-    if (!convId) {
-      await billing.refund();
-      return NextResponse.json(
-        { error: ko ? "대화를 찾을 수 없습니다." : "Conversation not found." },
-        { status: 403 },
-      );
-    }
+  // 여기부터는 SSE 스트림으로 응답(text/event-stream). 과금은 위에서 1회 완료.
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (obj: unknown) =>
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
+      try {
+        const convId = await getOrCreateConversation(
+          supabase,
+          businessId,
+          user.id,
+          conversationId,
+        );
+        if (!convId) {
+          await billing.refund();
+          send({
+            type: "error",
+            error: ko ? "대화를 찾을 수 없습니다." : "Conversation not found.",
+          });
+          controller.close();
+          return;
+        }
 
-    const history = await loadMessages(supabase, convId);
-    await saveMessage(supabase, {
-      conversationId: convId,
-      businessId,
-      role: "user",
-      content: message,
-    });
+        const history = await loadMessages(supabase, convId);
+        await saveMessage(supabase, {
+          conversationId: convId,
+          businessId,
+          role: "user",
+          content: message,
+        });
 
-    const brand = await getBrandProfile(businessId);
-    const result = await runAgentTurn({
-      supabase,
-      userId: user.id,
-      businessId,
-      conversationId: convId,
-      history,
-      userMessage: message,
-      agent: {
-        name: business.name,
-        category: business.category,
-        brandStory: brand?.brand_story ?? null,
-        tone: brand?.tone ?? business.tone ?? null,
-      },
-      ko,
-    });
+        const brand = await getBrandProfile(businessId);
+        const result = await runAgentTurnStream(
+          {
+            supabase,
+            userId: user.id,
+            businessId,
+            conversationId: convId,
+            history,
+            userMessage: message,
+            agent: {
+              name: business.name,
+              category: business.category,
+              brandStory: brand?.brand_story ?? null,
+              tone: brand?.tone ?? business.tone ?? null,
+            },
+            ko,
+          },
+          (e) => send(e),
+        );
 
-    await saveMessage(supabase, {
-      conversationId: convId,
-      businessId,
-      role: "assistant",
-      content: result.text,
-      toolJson:
-        result.proposals.length > 0
-          ? ({ proposals: result.proposals } as unknown as Json)
-          : null,
-    });
+        await saveMessage(supabase, {
+          conversationId: convId,
+          businessId,
+          role: "assistant",
+          content: result.text,
+          toolJson:
+            result.proposals.length > 0
+              ? ({ proposals: result.proposals } as unknown as Json)
+              : null,
+        });
 
-    return NextResponse.json({
-      ok: true,
-      conversationId: convId,
-      text: result.text,
-      proposals: result.proposals,
-    });
-  } catch (err) {
-    await billing.refund();
-    console.error("[agent/chat]", err);
-    return NextResponse.json(
-      {
-        error: ko
-          ? "응답 생성 중 문제가 발생했어요. 다시 시도해주세요."
-          : "Something went wrong. Please try again.",
-      },
-      { status: 502 },
-    );
-  }
+        if (result.proposals.length > 0)
+          send({ type: "proposals", proposals: result.proposals });
+        send({ type: "done", conversationId: convId, text: result.text });
+        controller.close();
+      } catch (err) {
+        await billing.refund();
+        console.error("[agent/chat]", err);
+        send({
+          type: "error",
+          error: ko
+            ? "응답 생성 중 문제가 발생했어요. 다시 시도해주세요."
+            : "Something went wrong. Please try again.",
+        });
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    },
+  });
 }

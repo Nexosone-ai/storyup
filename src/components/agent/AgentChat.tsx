@@ -45,6 +45,11 @@ export function AgentChat({
 
   const key = () => Math.random().toString(36).slice(2);
 
+  const scrollToEnd = () =>
+    requestAnimationFrame(() =>
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }),
+    );
+
   const send = async () => {
     const text = input.trim();
     if (!text || busy) return;
@@ -52,39 +57,83 @@ export function AgentChat({
     setError(null);
     setMsgs((m) => [...m, { key: key(), role: "user", text }]);
     setBusy(true);
+
+    // 스트리밍 응답을 채워 넣을 빈 assistant 버블을 먼저 추가.
+    const aKey = key();
+    setMsgs((m) => [...m, { key: aKey, role: "assistant", text: "", proposals: [] }]);
+    const patch = (fn: (prev: Msg) => Msg) =>
+      setMsgs((m) => m.map((x) => (x.key === aKey ? fn(x) : x)));
+
     try {
       const res = await fetch(`/api/business/${businessId}/agent/chat`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ message: text, conversationId }),
       });
-      const j = await res.json();
-      if (!res.ok) {
+      // 스트림 시작 전 오류는 JSON으로 온다.
+      if (!res.ok || !res.body) {
+        const j = await res.json().catch(() => ({}));
         setError(j.error ?? (ko ? "오류가 발생했어요." : "Something went wrong."));
+        setMsgs((m) => m.filter((x) => x.key !== aKey));
         return;
       }
-      setConversationId(j.conversationId ?? conversationId);
-      setMsgs((m) => [
-        ...m,
-        {
-          key: key(),
-          role: "assistant",
-          text: j.text ?? "",
-          proposals: (j.proposals ?? []).map(
-            (p: { id: string; action: string; summary: string }) => ({
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      let acc = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const parts = buf.split("\n\n");
+        buf = parts.pop() ?? "";
+        for (const part of parts) {
+          const line = part.trim();
+          if (!line.startsWith("data:")) continue;
+          const payload = line.slice(5).trim();
+          if (!payload) continue;
+          let evt: {
+            type: string;
+            text?: string;
+            error?: string;
+            conversationId?: string;
+            proposals?: { id: string; action: string; summary: string }[];
+          };
+          try {
+            evt = JSON.parse(payload);
+          } catch {
+            continue;
+          }
+          if (evt.type === "delta") {
+            acc += evt.text ?? "";
+            patch((x) => ({ ...x, text: acc }));
+            scrollToEnd();
+          } else if (evt.type === "proposals") {
+            const props = (evt.proposals ?? []).map((p) => ({
               ...p,
               status: "pending" as const,
-            }),
-          ),
-        },
-      ]);
+            }));
+            patch((x) => ({ ...x, proposals: props }));
+          } else if (evt.type === "done") {
+            if (typeof evt.text === "string") {
+              acc = evt.text;
+              patch((x) => ({ ...x, text: acc }));
+            }
+            setConversationId(evt.conversationId ?? conversationId);
+          } else if (evt.type === "error") {
+            setError(evt.error ?? (ko ? "오류가 발생했어요." : "Error."));
+          }
+        }
+      }
+      // 아무 텍스트도 못 받았으면 빈 버블 제거.
+      if (!acc.trim()) setMsgs((m) => m.filter((x) => x.key !== aKey));
     } catch {
       setError(ko ? "네트워크 오류가 발생했어요." : "Network error.");
+      setMsgs((m) => m.filter((x) => x.key !== aKey));
     } finally {
       setBusy(false);
-      requestAnimationFrame(() =>
-        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }),
-      );
+      scrollToEnd();
     }
   };
 
@@ -213,12 +262,17 @@ export function AgentChat({
             </div>
           </div>
         ))}
-        {busy && (
-          <div className="flex items-center gap-2 text-sm text-muted">
-            <Spinner className="size-4" />
-            {ko ? "생각하는 중..." : "Thinking..."}
-          </div>
-        )}
+        {busy &&
+          (() => {
+            const last = msgs[msgs.length - 1];
+            const waiting = !last || last.role !== "assistant" || !last.text;
+            return waiting ? (
+              <div className="flex items-center gap-2 text-sm text-muted">
+                <Spinner className="size-4" />
+                {ko ? "생각하는 중..." : "Thinking..."}
+              </div>
+            ) : null;
+          })()}
       </div>
 
       {error && (

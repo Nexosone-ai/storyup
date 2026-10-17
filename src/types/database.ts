@@ -607,6 +607,7 @@ export interface Database {
           content: string;
           source: string | null;
           superseded: boolean;
+          embedding: string | null;
           created_at: string;
         };
         Insert: {
@@ -616,6 +617,7 @@ export interface Database {
           content: string;
           source?: string | null;
           superseded?: boolean;
+          embedding?: string | null;
           created_at?: string;
         };
         Update: Partial<
@@ -2085,6 +2087,10 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      match_agent_memories: {
+        Args: { p_business: string; p_query: string; p_count?: number };
+        Returns: { content: string; similarity: number }[];
+      };
       bump_card_thanks: {
         Args: { p_id: string };
         Returns: number;
