@@ -6,6 +6,9 @@ import { getPlanById } from "@/lib/plans";
 import { Card } from "@/components/ui/Card";
 import { ButtonLink } from "@/components/ui/Button";
 import { AgentChat } from "@/components/agent/AgentChat";
+import { SocialConnections } from "@/components/agent/SocialConnections";
+import { getFacebookStatus } from "@/lib/social/facebook";
+import { getYoutubeStatus } from "@/lib/youtube";
 
 export const metadata = { title: "AI 에이전트" };
 
@@ -47,6 +50,13 @@ export default async function AgentPage({
     );
   }
 
+  const [fb, yt] = await Promise.all([
+    getFacebookStatus(id),
+    user
+      ? getYoutubeStatus(user.id)
+      : Promise.resolve({ configured: false, connected: false, channelTitle: null }),
+  ]);
+
   return (
     <div className="space-y-5">
       <div>
@@ -56,11 +66,12 @@ export default async function AgentPage({
         </h1>
         <p className="mt-1.5 text-muted">
           {ko
-            ? "내 사업을 아는 AI와 대화하세요. 블로그·카드뉴스 생성과 예약 발행은 제안 후 승인하면 실행돼요."
-            : "Chat with your business AI. Blog/card generation and scheduling run after you approve a proposal."}
+            ? "내 사업을 아는 AI와 대화하세요. 블로그·카드뉴스 생성, 예약 발행, SNS 게시는 제안 후 승인하면 실행돼요."
+            : "Chat with your business AI. Blog/card generation, scheduling, and social posts run after you approve a proposal."}
         </p>
       </div>
       <AgentChat businessId={id} ko={ko} />
+      <SocialConnections businessId={id} ko={ko} fb={fb} yt={yt} />
     </div>
   );
 }

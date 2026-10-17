@@ -3,6 +3,7 @@ import type { Json } from "@/types/database";
 import type { DB } from "./store";
 import { createProposal } from "./store";
 import { saveMemory } from "./memory";
+import { getFacebookStatus } from "@/lib/social/facebook";
 
 /**
  * AI 에이전트 도구 — 읽기 도구는 즉시 실행, 비용/외부 작업은 proposal을 만들어
@@ -108,6 +109,19 @@ export const AGENT_TOOLS: Anthropic.Tool[] = [
         },
       },
       required: ["post_id", "scheduled_at"],
+    },
+  },
+  {
+    name: "publish_facebook",
+    description:
+      "연결된 Facebook 페이지에 게시물 게시를 '제안'한다(바로 게시하지 않음). 페이지가 연결돼 있어야 하며, 사용자 승인 후 게시된다. message는 한국어 게시 문구, link는 선택(블로그/사이트 URL).",
+    input_schema: {
+      type: "object",
+      properties: {
+        message: { type: "string", description: "게시 문구(한국어)" },
+        link: { type: "string", description: "선택: 함께 공유할 URL" },
+      },
+      required: ["message"],
     },
   },
 ];
@@ -259,6 +273,40 @@ export async function runTool(
           action: "schedule_publish",
           summary: `예약 발행: "${post.title}" → ${t.toLocaleString("ko-KR")}`,
           params: { postId, scheduledAt: t.toISOString() },
+        },
+      };
+    }
+
+    case "publish_facebook": {
+      const message = str(input.message).trim();
+      if (!message) return { result: "게시 문구가 필요합니다." };
+      const status = await getFacebookStatus(businessId);
+      if (!status.configured)
+        return {
+          result:
+            "Facebook 게시가 아직 설정되지 않았습니다(관리자 설정 필요). 게시를 제안하지 마세요.",
+        };
+      if (!status.connected)
+        return {
+          result:
+            "연결된 Facebook 페이지가 없습니다. 사용자에게 먼저 페이지 연결을 안내하세요.",
+        };
+      const link = str(input.link).trim();
+      const params = { message, link: link || null };
+      const id = await createProposal(supabase, {
+        conversationId: ctx.conversationId,
+        businessId,
+        action: "publish_facebook",
+        params: params as unknown as Json,
+      });
+      if (!id) return { result: "제안 생성에 실패했습니다." };
+      return {
+        result: "Facebook 페이지 게시를 제안했습니다(승인 대기).",
+        proposal: {
+          id,
+          action: "publish_facebook",
+          summary: `Facebook 게시: "${message.slice(0, 40)}${message.length > 40 ? "…" : ""}"`,
+          params: { message, link: link || undefined },
         },
       };
     }

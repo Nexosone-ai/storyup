@@ -6,6 +6,7 @@ import { getLocale } from "@/lib/i18n";
 import { generateAndSaveBlog } from "@/lib/ai/generateBlog";
 import { generateAndSaveCardNews } from "@/lib/ai/generateCardNews";
 import { scheduleBlogAction } from "@/app/business/actions";
+import { postToFacebook } from "@/lib/social/facebook";
 import { InsufficientPointsError } from "@/lib/ai/billing";
 import { FreeBlogLimitError } from "@/lib/freeAccess";
 import {
@@ -80,6 +81,24 @@ export async function executeAgentProposal(
       );
       if (res.error) throw new Error(res.error);
       result = { scheduled: true };
+    } else if (p.action === "publish_facebook") {
+      const message = str(params.message);
+      const link = str(params.link);
+      const posted = await postToFacebook(p.business_id, {
+        message,
+        link: link || undefined,
+      });
+      await supabase.from("social_posts").insert({
+        business_id: p.business_id,
+        provider: "facebook_page",
+        status: "posted",
+        message,
+        link: link || null,
+        external_post_id: posted.postId,
+        posted_at: new Date().toISOString(),
+        source: "manual",
+      });
+      result = { facebookPostId: posted.postId };
     } else {
       throw new Error("unknown action");
     }

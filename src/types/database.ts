@@ -675,6 +675,80 @@ export interface Database {
         >;
         Relationships: [];
       };
+      social_connections: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          business_id: string;
+          provider: "facebook_page" | "youtube";
+          external_id: string;
+          display_name: string | null;
+          access_token: string | null;
+          refresh_token: string | null;
+          token_expires_at: string | null;
+          scope: string | null;
+          meta: Json | null;
+          enabled: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          business_id: string;
+          provider: "facebook_page" | "youtube";
+          external_id: string;
+          display_name?: string | null;
+          access_token?: string | null;
+          refresh_token?: string | null;
+          token_expires_at?: string | null;
+          scope?: string | null;
+          meta?: Json | null;
+          enabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["social_connections"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      social_posts: {
+        Row: {
+          id: string;
+          business_id: string;
+          provider: string;
+          status: "pending" | "posted" | "failed";
+          message: string | null;
+          link: string | null;
+          media_url: string | null;
+          external_post_id: string | null;
+          scheduled_at: string | null;
+          posted_at: string | null;
+          error: string | null;
+          source: "manual" | "autopilot";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          provider: string;
+          status?: "pending" | "posted" | "failed";
+          message?: string | null;
+          link?: string | null;
+          media_url?: string | null;
+          external_post_id?: string | null;
+          scheduled_at?: string | null;
+          posted_at?: string | null;
+          error?: string | null;
+          source?: "manual" | "autopilot";
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["social_posts"]["Insert"]
+        >;
+        Relationships: [];
+      };
       test_accounts: {
         Row: {
           id: string;
