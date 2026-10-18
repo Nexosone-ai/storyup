@@ -5,6 +5,7 @@ import {
   resolveSellerByCode,
   accrueProductCommission,
 } from "@/lib/network";
+import { settleQuotePaid } from "@/lib/agency";
 import type { PlanId } from "@/lib/plans";
 import type { ProductRow, ProductOrderRow } from "@/types/database";
 
@@ -116,6 +117,66 @@ export async function createProductOrder(args: {
   };
 }
 
+/**
+ * 파트너 견적(결제코드) 주문 생성 — 금액은 서버가 견적(agency_quotes)에서 확정한다.
+ * product_id는 null(상품 없음), metadata.quote_id로 결제 후 정산을 연결한다.
+ */
+export async function createQuoteOrder(args: {
+  code: string;
+  buyer: Buyer;
+}): Promise<{ order?: CreatedOrder; error?: string }> {
+  const storeId = process.env.NEXT_PUBLIC_PORTONE_STORE_ID;
+  const channelKey = process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY;
+  if (!storeId || !channelKey || !process.env.PORTONE_API_SECRET)
+    return { error: "결제 설정이 완료되지 않았습니다. 잠시 후 다시 시도해주세요." };
+
+  const admin = createAdminClient();
+  const { data: quote } = await admin
+    .from("agency_quotes")
+    .select("id, service_key, client_price_krw, status")
+    .eq("code", args.code)
+    .maybeSingle();
+  if (!quote) return { error: "결제 정보를 찾을 수 없습니다." };
+  if (quote.status === "paid") return { error: "이미 결제된 건입니다." };
+  if (quote.status === "cancelled" || quote.status === "expired")
+    return { error: "만료되었거나 취소된 결제 코드입니다." };
+
+  const { data: svc } = await admin
+    .from("agency_services")
+    .select("label")
+    .eq("key", quote.service_key)
+    .maybeSingle();
+  const orderName = svc?.label ?? "대행 서비스";
+
+  const orderId = `ord_${randomUUID()}`;
+  const { error } = await admin.from("product_orders").insert({
+    order_id: orderId,
+    product_id: null,
+    product_name: orderName,
+    amount: quote.client_price_krw,
+    currency: "KRW",
+    buyer_name: args.buyer.name || null,
+    buyer_phone: args.buyer.phone || null,
+    buyer_email: args.buyer.email || null,
+    status: "PENDING",
+    metadata: { quote_id: quote.id },
+  });
+  if (error) {
+    console.error("[orders] create quote order failed", orderId, error);
+    return { error: "주문 생성에 실패했습니다. 잠시 후 다시 시도해주세요." };
+  }
+  return {
+    order: {
+      orderId,
+      orderName,
+      amount: quote.client_price_krw,
+      currency: "KRW",
+      storeId,
+      channelKey,
+    },
+  };
+}
+
 export interface OrderSyncResult {
   status: ProductOrderRow["status"];
   amount?: number;
@@ -198,6 +259,9 @@ export async function syncProductOrder(
     await accrueProductCommission(orderId);
     // 자동 이행 — 상품에 지급 플랜이 연결돼 있으면 구매자 계정에 플랜 부여 (멱등).
     await fulfillProductOrder(orderId);
+    // 대행 견적 결제면 정산(공급가 보유·파트너 마진 적립, 멱등).
+    const quoteId = (order.metadata as Record<string, unknown> | null)?.quote_id;
+    if (typeof quoteId === "string") await settleQuotePaid(quoteId, orderId);
 
     return { status: "PAID", productName: order.product_name, amount: order.amount };
   }
