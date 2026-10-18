@@ -4,6 +4,7 @@ import { getLocale } from "@/lib/i18n";
 import {
   listPartnerClients,
   getPartnerCreditBalance,
+  listCreditPrices,
 } from "@/lib/partner";
 import { listPartnerInquiries, getPartnerEarnings } from "@/lib/agency";
 import { getMySupporterProfile } from "@/lib/supporters";
@@ -29,13 +30,15 @@ export default async function PartnerPage() {
   const user = await getUser();
   if (!user) return null; // layout에서 이미 가드
 
-  const [clients, credits, inquiries, earnings, myProfile] = await Promise.all([
-    listPartnerClients(user.id),
-    getPartnerCreditBalance(user.id),
-    listPartnerInquiries(user.id),
-    getPartnerEarnings(user.id),
-    getMySupporterProfile(user.id),
-  ]);
+  const [clients, credits, inquiries, earnings, myProfile, creditPrices] =
+    await Promise.all([
+      listPartnerClients(user.id),
+      getPartnerCreditBalance(user.id),
+      listPartnerInquiries(user.id),
+      getPartnerEarnings(user.id),
+      getMySupporterProfile(user.id),
+      listCreditPrices(),
+    ]);
   const totalBiz = clients.reduce((s, c) => s + c.businesses.length, 0);
 
   return (
@@ -102,6 +105,54 @@ export default async function PartnerPage() {
           </ul>
         </Card>
       )}
+
+      {/* 파트너 전용 솔루션 안내 + 패킷 사용 안내 */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="p-4 sm:p-5">
+          <div className="flex items-center gap-2">
+            <Icon.sparkles className="size-4 text-primary" />
+            <h2 className="text-sm font-semibold">
+              {ko ? "AI 에이전트 · 영상제작 솔루션" : "AI agent & video tools"}
+            </h2>
+          </div>
+          <ul className="mt-2 space-y-1 text-sm text-muted">
+            <li>· AI 에이전트로 블로그·카드뉴스·SNS 생성과 예약 발행을 대행</li>
+            <li>· 오토파일럿으로 고객별 자동 마케팅(제안/자동 실행)</li>
+            <li>· 영상제작 솔루션으로 쇼츠·홍보영상 생성(패킷 차감)</li>
+          </ul>
+          <p className="mt-2 text-xs text-muted">
+            배정된 고객 사업장의 <strong>AI 에이전트</strong>에서 바로 사용할 수
+            있어요(아래 고객 목록).
+          </p>
+        </Card>
+
+        <Card className="p-4 sm:p-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold">
+              {ko ? "이용 패킷(크레딧) 안내" : "Packet usage"}
+            </h2>
+            <span className="text-xs text-muted">
+              보유 {credits.toLocaleString()}
+            </span>
+          </div>
+          <ul className="mt-2 space-y-1 text-sm">
+            {creditPrices.map((p) => (
+              <li
+                key={p.action}
+                className="flex items-center justify-between gap-2 text-muted"
+              >
+                <span className="truncate">{p.label}</span>
+                <span className="shrink-0 tabular-nums text-foreground">
+                  {p.credits === 0 ? "무료" : `${p.credits} 크레딧`}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-[11px] text-muted">
+            패킷은 관리자가 계약 시 지급합니다. 부족하면 충전을 요청하세요.
+          </p>
+        </Card>
+      </div>
 
       <PartnerProfileEditor
         action={savePartnerProfileAction}

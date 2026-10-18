@@ -201,6 +201,26 @@ export async function chargePartnerCredits(
   };
 }
 
+export interface CreditPriceInfo {
+  action: string;
+  label: string;
+  credits: number;
+}
+/** 작업별 크레딧 단가(활성) — 파트너에게 패킷 사용 안내로 표시. */
+export async function listCreditPrices(): Promise<CreditPriceInfo[]> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("partner_credit_prices")
+    .select("action, label, credits")
+    .eq("active", true)
+    .order("credits", { ascending: true });
+  return (data ?? []).map((r) => ({
+    action: r.action,
+    label: r.label,
+    credits: r.credits,
+  }));
+}
+
 /** 관리자 — 파트너에게 크레딧 지급(계약/충전). */
 export async function grantPartnerCredits(
   partnerUserId: string,
