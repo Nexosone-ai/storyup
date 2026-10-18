@@ -783,6 +783,136 @@ export interface Database {
         >;
         Relationships: [];
       };
+      agency_services: {
+        Row: {
+          key: string;
+          label: string;
+          description: string | null;
+          supply_price_krw: number;
+          active: boolean;
+          sort_order: number;
+          updated_at: string;
+        };
+        Insert: {
+          key: string;
+          label: string;
+          description?: string | null;
+          supply_price_krw?: number;
+          active?: boolean;
+          sort_order?: number;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["agency_services"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      agency_inquiries: {
+        Row: {
+          id: string;
+          business_id: string;
+          client_user_id: string;
+          partner_user_id: string | null;
+          service_key: string;
+          message: string | null;
+          status: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          client_user_id: string;
+          partner_user_id?: string | null;
+          service_key: string;
+          message?: string | null;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["agency_inquiries"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      agency_messages: {
+        Row: {
+          id: string;
+          inquiry_id: string;
+          sender_user_id: string;
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          inquiry_id: string;
+          sender_user_id: string;
+          body: string;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["agency_messages"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      agency_quotes: {
+        Row: {
+          id: string;
+          inquiry_id: string | null;
+          partner_user_id: string;
+          service_key: string;
+          supply_price_krw: number;
+          client_price_krw: number;
+          margin_krw: number;
+          code: string;
+          status: string;
+          order_id: string | null;
+          created_at: string;
+          expires_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          inquiry_id?: string | null;
+          partner_user_id: string;
+          service_key: string;
+          supply_price_krw: number;
+          client_price_krw: number;
+          margin_krw?: number;
+          code: string;
+          status?: string;
+          order_id?: string | null;
+          created_at?: string;
+          expires_at?: string | null;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["agency_quotes"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      partner_earnings: {
+        Row: {
+          id: string;
+          partner_user_id: string;
+          quote_id: string | null;
+          amount_krw: number;
+          status: string;
+          paid_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          partner_user_id: string;
+          quote_id?: string | null;
+          amount_krw: number;
+          status?: string;
+          paid_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["partner_earnings"]["Insert"]
+        >;
+        Relationships: [];
+      };
       youtube_connections: {
         Row: {
           user_id: string;

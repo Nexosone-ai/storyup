@@ -1,12 +1,23 @@
+import Link from "next/link";
 import { getUser } from "@/lib/queries";
 import { getLocale } from "@/lib/i18n";
 import {
   listPartnerClients,
   getPartnerCreditBalance,
 } from "@/lib/partner";
+import { listPartnerInquiries, getPartnerEarnings } from "@/lib/agency";
 import { Card } from "@/components/ui/Card";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/icons";
+
+const INQ_STATUS: Record<string, string> = {
+  open: "신규 문의",
+  quoted: "견적 발행",
+  paid: "결제 완료",
+  in_progress: "진행중",
+  done: "완료",
+  cancelled: "취소",
+};
 
 export const metadata = { title: "파트너 대행" };
 
@@ -15,9 +26,11 @@ export default async function PartnerPage() {
   const user = await getUser();
   if (!user) return null; // layout에서 이미 가드
 
-  const [clients, credits] = await Promise.all([
+  const [clients, credits, inquiries, earnings] = await Promise.all([
     listPartnerClients(user.id),
     getPartnerCreditBalance(user.id),
+    listPartnerInquiries(user.id),
+    getPartnerEarnings(user.id),
   ]);
   const totalBiz = clients.reduce((s, c) => s + c.businesses.length, 0);
 
@@ -48,7 +61,40 @@ export default async function PartnerPage() {
             </p>
           )}
         </Card>
+        <Card className="px-4 py-3 text-right">
+          <p className="text-xs text-muted">{ko ? "정산 예정 수익" : "Pending earnings"}</p>
+          <p className="text-2xl font-semibold tabular-nums">
+            {earnings.pendingKrw.toLocaleString()}
+            <span className="ml-0.5 text-sm">원</span>
+          </p>
+          {earnings.paidKrw > 0 && (
+            <p className="mt-1 text-xs text-muted">
+              누적 지급 {earnings.paidKrw.toLocaleString()}원
+            </p>
+          )}
+        </Card>
       </div>
+
+      {inquiries.length > 0 && (
+        <Card className="p-4 sm:p-5">
+          <h2 className="text-sm font-semibold">대행 문의</h2>
+          <ul className="mt-3 space-y-1.5">
+            {inquiries.map((i) => (
+              <li key={i.id}>
+                <Link
+                  href={`/dashboard/agency/${i.id}`}
+                  className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm hover:border-primary"
+                >
+                  <span className="truncate">{i.serviceLabel}</span>
+                  <span className="shrink-0 text-xs text-muted">
+                    {INQ_STATUS[i.status] ?? i.status}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       {clients.length === 0 ? (
         <Card className="flex flex-col items-start gap-2 p-8">
