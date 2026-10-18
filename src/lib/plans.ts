@@ -54,7 +54,7 @@ export interface Plan {
   analyticsTier: "basic" | "detailed" | "advanced";
   /** AEO/GEO — 답변엔진 최적화(FAQ·FAQPage 구조화 데이터). Pro 이상. */
   aeo?: boolean;
-  /** AI 비즈니스 에이전트(채팅·도구 실행·기억). Pro 전용. */
+  /** AI 비즈니스 에이전트(채팅·도구 실행·기억·오토파일럿). 대행 파트너 전용. */
   aiAgent?: boolean;
   /** 관리자/직원 총 계정 수(소유자 포함). null = 협의(무제한). 직원 초대 가능 수 = maxMembers-1. */
   maxMembers: number | null;
@@ -107,7 +107,6 @@ export const PLANS: Plan[] = [
     report: "weekly",
     analyticsTier: "advanced",
     aeo: true,
-    aiAgent: true,
   },
   {
     id: "partner",
@@ -127,6 +126,7 @@ export const PLANS: Plan[] = [
     report: "weekly",
     analyticsTier: "advanced",
     aeo: true,
+    aiAgent: true,
   },
 ];
 

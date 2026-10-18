@@ -11,6 +11,7 @@ import {
 } from "@/lib/queries";
 import { isCurrentUserAdmin } from "@/lib/points";
 import { isCurrentUserNetworkMember } from "@/lib/network";
+import { isCurrentUserPartner } from "@/lib/partner";
 import { dashboardNav, workspaceNav } from "@/lib/nav";
 import { getLocale } from "@/lib/i18n";
 import { getUnreadNotificationCount } from "@/lib/notifications";
@@ -35,6 +36,7 @@ export default async function DashboardLayout({
     name,
     admin,
     marketer,
+    partner,
     locale,
     business,
     unreadCount,
@@ -45,6 +47,7 @@ export default async function DashboardLayout({
     getProfileName(),
     isCurrentUserAdmin(),
     isCurrentUserNetworkMember(),
+    isCurrentUserPartner(),
     getLocale(),
     getPrimaryBusiness(),
     getUnreadNotificationCount(),
@@ -56,7 +59,7 @@ export default async function DashboardLayout({
   return (
     <LocaleProvider locale={locale}>
       <DashboardShell
-        nav={dashboardNav(admin, locale, unreadInquiries, marketer)}
+        nav={dashboardNav(admin, locale, unreadInquiries, marketer, partner)}
         workspace={
           business
             ? { name: business.name, items: workspaceNav(business.id, locale) }

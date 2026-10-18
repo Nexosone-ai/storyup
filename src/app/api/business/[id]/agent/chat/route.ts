@@ -4,7 +4,6 @@ import { getBusiness, getBrandProfile } from "@/lib/queries";
 import { getLocale } from "@/lib/i18n";
 import { getPlanId } from "@/lib/subscription";
 import { getPlanById } from "@/lib/plans";
-import { chargeAiUsage, InsufficientPointsError } from "@/lib/ai/billing";
 import {
   getOrCreateConversation,
   loadMessages,
@@ -33,7 +32,7 @@ export async function POST(
       { status: 401 },
     );
 
-  // 소유권 + Pro 게이트.
+  // 소유권/대행 접근 + 파트너 게이트. (대행 파트너 전용 기능)
   const business = await getBusiness(businessId);
   if (!business)
     return NextResponse.json(
@@ -45,8 +44,8 @@ export async function POST(
     return NextResponse.json(
       {
         error: ko
-          ? "AI 에이전트는 Pro 플랜에서 사용할 수 있어요."
-          : "The AI agent is available on the Pro plan.",
+          ? "AI 에이전트는 대행 파트너 전용 기능이에요."
+          : "The AI agent is available to partners only.",
       },
       { status: 403 },
     );
@@ -69,17 +68,8 @@ export async function POST(
       { status: 400 },
     );
 
-  // 메시지당 과금(관리자 단가 미설정 시 무료).
-  let billing;
-  try {
-    billing = await chargeAiUsage(user.id, "AI_AGENT_CHAT", "AI 에이전트 대화");
-  } catch (err) {
-    if (err instanceof InsufficientPointsError)
-      return NextResponse.json({ error: err.message }, { status: 402 });
-    throw err;
-  }
-
-  // 여기부터는 SSE 스트림으로 응답(text/event-stream). 과금은 위에서 1회 완료.
+  // 대화(채팅)는 무료 — 비용이 드는 생성/작업은 승인 시 파트너 패킷(크레딧)으로 차감.
+  // 여기부터는 SSE 스트림으로 응답(text/event-stream).
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -93,7 +83,6 @@ export async function POST(
           conversationId,
         );
         if (!convId) {
-          await billing.refund();
           send({
             type: "error",
             error: ko ? "대화를 찾을 수 없습니다." : "Conversation not found.",
@@ -146,7 +135,6 @@ export async function POST(
         send({ type: "done", conversationId: convId, text: result.text });
         controller.close();
       } catch (err) {
-        await billing.refund();
         console.error("[agent/chat]", err);
         send({
           type: "error",

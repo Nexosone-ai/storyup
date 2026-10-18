@@ -19,6 +19,8 @@ export async function generateAndSaveBlog(args: {
   tone?: BlogTone;
   length?: BlogLength;
   locale?: PromptLanguage;
+  /** 파트너 패킷(크레딧)으로 별도 과금하는 경우 기존 UP/쿼터 과금을 건너뛴다. */
+  skipBilling?: boolean;
 }): Promise<{ postId: string; title: string }> {
   const { supabase, userId, businessId, topic } = args;
 
@@ -35,7 +37,9 @@ export async function generateAndSaveBlog(args: {
     .eq("business_id", businessId)
     .maybeSingle();
 
-  const billing = await chargeAiUsage(userId, "AI_BLOG", "AI 블로그 생성");
+  const billing = args.skipBilling
+    ? { charged: 0, refund: async () => {} }
+    : await chargeAiUsage(userId, "AI_BLOG", "AI 블로그 생성");
   try {
     const article = await getAIProvider().generateBlog({
       businessName: business.name,
