@@ -378,10 +378,82 @@ export async function assignInquiryPartner(
   partnerUserId: string,
 ): Promise<void> {
   const admin = createAdminClient();
-  await admin
+  const { data: inq } = await admin
     .from("agency_inquiries")
     .update({ partner_user_id: partnerUserId, updated_at: new Date().toISOString() })
-    .eq("id", inquiryId);
+    .eq("id", inquiryId)
+    .select("business_id")
+    .maybeSingle();
+  // 파트너에게 고객 사업장 작업 권한(블로그 작성·영상 전달) 부여 — partner_clients 연결.
+  if (inq) {
+    const { data: biz } = await admin
+      .from("businesses")
+      .select("user_id")
+      .eq("id", inq.business_id)
+      .maybeSingle();
+    if (biz)
+      await admin
+        .from("partner_clients")
+        .upsert(
+          { partner_user_id: partnerUserId, client_user_id: biz.user_id },
+          { onConflict: "partner_user_id,client_user_id" },
+        );
+  }
+}
+
+// ---------------- 대행 산출물(영상 등) ----------------
+
+export interface Deliverable {
+  id: string;
+  kind: string;
+  title: string | null;
+  url: string;
+  createdAt: string;
+}
+
+/** 파트너가 산출물(영상 URL 등)을 고객 사업장에 전달. owns_business(RLS)로 권한 체크. */
+export async function addDeliverable(args: {
+  businessId: string;
+  inquiryId?: string | null;
+  kind?: string;
+  title?: string;
+  url: string;
+}): Promise<{ ok?: boolean; error?: string }> {
+  const url = args.url.trim();
+  if (!/^https?:\/\//i.test(url)) return { error: "올바른 URL(https://)을 입력해주세요." };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "로그인이 필요합니다." };
+  const { error } = await supabase.from("agency_deliverables").insert({
+    business_id: args.businessId,
+    inquiry_id: args.inquiryId ?? null,
+    kind: args.kind ?? "video",
+    title: args.title?.trim() || null,
+    url,
+    created_by: user.id,
+  });
+  if (error) return { error: "전달에 실패했습니다(권한 확인)." };
+  return { ok: true };
+}
+
+/** 사업장의 전달 산출물 목록(소유자·배정 파트너 RLS). */
+export async function listDeliverables(businessId: string): Promise<Deliverable[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("agency_deliverables")
+    .select("id, kind, title, url, created_at")
+    .eq("business_id", businessId)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  return (data ?? []).map((d) => ({
+    id: d.id,
+    kind: d.kind,
+    title: d.title,
+    url: d.url,
+    createdAt: d.created_at,
+  }));
 }
 
 export interface AdminEarningRow {
