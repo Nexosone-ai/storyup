@@ -6,9 +6,12 @@ import {
   getPartnerCreditBalance,
 } from "@/lib/partner";
 import { listPartnerInquiries, getPartnerEarnings } from "@/lib/agency";
+import { getMySupporterProfile } from "@/lib/supporters";
 import { Card } from "@/components/ui/Card";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/icons";
+import { PartnerProfileEditor } from "@/components/partner/PartnerProfileEditor";
+import { savePartnerProfileAction } from "@/app/partner/actions";
 
 const INQ_STATUS: Record<string, string> = {
   open: "신규 문의",
@@ -26,11 +29,12 @@ export default async function PartnerPage() {
   const user = await getUser();
   if (!user) return null; // layout에서 이미 가드
 
-  const [clients, credits, inquiries, earnings] = await Promise.all([
+  const [clients, credits, inquiries, earnings, myProfile] = await Promise.all([
     listPartnerClients(user.id),
     getPartnerCreditBalance(user.id),
     listPartnerInquiries(user.id),
     getPartnerEarnings(user.id),
+    getMySupporterProfile(user.id),
   ]);
   const totalBiz = clients.reduce((s, c) => s + c.businesses.length, 0);
 
@@ -72,6 +76,9 @@ export default async function PartnerPage() {
               누적 지급 {earnings.paidKrw.toLocaleString()}원
             </p>
           )}
+          <p className="mt-1 text-[11px] text-muted">
+            구매확정·입금확인 후 2주 내 정산
+          </p>
         </Card>
       </div>
 
@@ -95,6 +102,24 @@ export default async function PartnerPage() {
           </ul>
         </Card>
       )}
+
+      <PartnerProfileEditor
+        action={savePartnerProfileAction}
+        init={
+          myProfile
+            ? {
+                display_name: myProfile.display_name,
+                bio: myProfile.bio,
+                work_status: myProfile.work_status,
+                history: myProfile.history,
+                portfolio_url: myProfile.portfolio_url,
+                contact: myProfile.contact,
+                skills: myProfile.skills,
+                status: myProfile.status,
+              }
+            : null
+        }
+      />
 
       {clients.length === 0 ? (
         <Card className="flex flex-col items-start gap-2 p-8">

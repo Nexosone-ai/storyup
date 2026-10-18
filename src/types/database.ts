@@ -1957,6 +1957,9 @@ export interface Database {
           portfolio_url: string | null;
           contact: string | null;
           base_price_krw: number | null;
+          work_status: string | null;
+          history: string | null;
+          status: string;
           created_at: string;
           updated_at: string;
         };
@@ -1970,6 +1973,9 @@ export interface Database {
           portfolio_url?: string | null;
           contact?: string | null;
           base_price_krw?: number | null;
+          work_status?: string | null;
+          history?: string | null;
+          status?: string;
           created_at?: string;
           updated_at?: string;
         };

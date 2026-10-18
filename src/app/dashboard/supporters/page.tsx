@@ -6,6 +6,7 @@ import {
   getMySupporterProfile,
   getBusinessOptions,
   getMyProjects,
+  getAssignedPartnerProfile,
 } from "@/lib/supporters";
 import { listAgencyServices, listClientInquiries } from "@/lib/agency";
 import { SupportersView } from "@/components/supporters/SupportersView";
@@ -25,6 +26,7 @@ export default async function SupportersPage() {
     isAdmin,
     agencyServices,
     myInquiries,
+    assignedPartner,
   ] = await Promise.all([
     getSupporterDirectory(),
     getMySupporterProfile(user.id),
@@ -33,6 +35,7 @@ export default async function SupportersPage() {
     isCurrentUserAdmin(),
     listAgencyServices(),
     listClientInquiries(),
+    getAssignedPartnerProfile(user.id),
   ]);
 
   return (
@@ -45,6 +48,26 @@ export default async function SupportersPage() {
           serviceLabel: i.serviceLabel,
           status: i.status,
           createdAt: i.createdAt,
+        }))}
+        assignedPartner={
+          assignedPartner
+            ? {
+                display_name: assignedPartner.display_name,
+                work_status: assignedPartner.work_status,
+                history: assignedPartner.history,
+                bio: assignedPartner.bio,
+                portfolio_url: assignedPartner.portfolio_url,
+                skills: assignedPartner.skills,
+              }
+            : null
+        }
+        availableSupporters={directory.map((d) => ({
+          display_name: d.display_name,
+          work_status: d.work_status,
+          history: d.history,
+          bio: d.bio,
+          portfolio_url: d.portfolio_url,
+          skills: d.skills,
         }))}
       />
       <SupportersView

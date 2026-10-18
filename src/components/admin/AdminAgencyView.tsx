@@ -6,6 +6,7 @@ import {
   setSupplyPriceAction,
   assignInquiryAction,
   markEarningPaidAction,
+  reviewSupporterAction,
 } from "@/app/dashboard/admin/agency/actions";
 
 interface SupplyRow {
@@ -26,6 +27,21 @@ interface EarningRow {
   amountKrw: number;
   createdAt: string;
 }
+interface SupporterPending {
+  id: string;
+  displayName: string;
+  email: string | null;
+  workStatus: string | null;
+  history: string | null;
+  portfolioUrl: string | null;
+}
+
+/** 입금 확인(결제 완료) 기준 2주 내 정산 — 정산 기한. */
+function dueDate(createdAt: string): string {
+  return new Date(new Date(createdAt).getTime() + 14 * 86400000).toLocaleDateString(
+    "ko-KR",
+  );
+}
 
 const field =
   "rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary";
@@ -34,14 +50,17 @@ export function AdminAgencyView({
   services,
   inquiries,
   earnings,
+  pendingSupporters,
 }: {
   services: SupplyRow[];
   inquiries: InquiryRow[];
   earnings: EarningRow[];
+  pendingSupporters: SupporterPending[];
 }) {
   const [prices, setPrices] = useState(services);
   const [inqList, setInqList] = useState(inquiries);
   const [earnList, setEarnList] = useState(earnings);
+  const [supporters, setSupporters] = useState(pendingSupporters);
   const [assign, setAssign] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +88,74 @@ export function AdminAgencyView({
           {error ?? msg}
         </p>
       )}
+
+      {/* 0) 서포터즈 승인 */}
+      <section className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
+        <h3 className="text-sm font-semibold">
+          서포터즈 신청 승인 ({supporters.length})
+        </h3>
+        {supporters.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">승인 대기 중인 신청이 없습니다.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {supporters.map((s) => (
+              <li key={s.id} className="rounded-xl border border-border bg-background p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="min-w-0 text-sm">
+                    <span className="font-medium">{s.displayName}</span>
+                    {s.email && <span className="ml-2 text-xs text-muted">{s.email}</span>}
+                    {s.workStatus && (
+                      <span className="ml-2 text-xs text-primary">{s.workStatus}</span>
+                    )}
+                  </div>
+                  <span className="flex gap-1.5">
+                    <Button
+                      size="sm"
+                      disabled={pending}
+                      onClick={() =>
+                        run(async () => {
+                          const res = await reviewSupporterAction(s.id, true);
+                          if (res.ok) setSupporters((l) => l.filter((x) => x.id !== s.id));
+                          return res;
+                        })
+                      }
+                    >
+                      승인
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={pending}
+                      onClick={() =>
+                        run(async () => {
+                          const res = await reviewSupporterAction(s.id, false);
+                          if (res.ok) setSupporters((l) => l.filter((x) => x.id !== s.id));
+                          return res;
+                        })
+                      }
+                    >
+                      반려
+                    </Button>
+                  </span>
+                </div>
+                {s.history && (
+                  <p className="mt-1.5 whitespace-pre-wrap text-xs text-muted">{s.history}</p>
+                )}
+                {s.portfolioUrl && (
+                  <a
+                    href={s.portfolioUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 inline-block text-xs text-primary underline underline-offset-2"
+                  >
+                    포트폴리오
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {/* 1) 공급가 */}
       <section className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
@@ -155,6 +242,9 @@ export function AdminAgencyView({
       {/* 3) 정산 대기 */}
       <section className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
         <h3 className="text-sm font-semibold">3. 파트너 마진 정산 ({earnList.length})</h3>
+        <p className="mt-1 text-xs text-muted">
+          고객 구매 확정·입금 확인 후 <strong>2주 이내</strong> 지급(기한 표시).
+        </p>
         {earnList.length === 0 ? (
           <p className="mt-2 text-sm text-muted">정산 대기 중인 수익이 없습니다.</p>
         ) : (
@@ -164,6 +254,9 @@ export function AdminAgencyView({
                 <span className="min-w-0 truncate">
                   {e.partnerEmail ?? "?"} ·{" "}
                   <strong>{e.amountKrw.toLocaleString()}원</strong>
+                  <span className="ml-2 text-xs text-muted">
+                    정산기한 {dueDate(e.createdAt)}
+                  </span>
                 </span>
                 <Button
                   size="sm"
