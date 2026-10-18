@@ -7,6 +7,7 @@ import {
   assignInquiryAction,
   markEarningPaidAction,
   reviewSupporterAction,
+  revokeSupporterAction,
 } from "@/app/dashboard/admin/agency/actions";
 
 interface SupplyRow {
@@ -36,6 +37,27 @@ interface SupporterPending {
   portfolioUrl: string | null;
 }
 
+interface ActivePartner {
+  profileId: string;
+  userId: string;
+  displayName: string;
+  email: string | null;
+  workStatus: string | null;
+  credits: number;
+  inquiries: number;
+  paidWorks: number;
+  pendingKrw: number;
+  paidKrw: number;
+}
+interface EarningHistory {
+  id: string;
+  partnerEmail: string | null;
+  amountKrw: number;
+  status: string;
+  createdAt: string;
+  paidAt: string | null;
+}
+
 /** 입금 확인(결제 완료) 기준 2주 내 정산 — 정산 기한. */
 function dueDate(createdAt: string): string {
   return new Date(new Date(createdAt).getTime() + 14 * 86400000).toLocaleDateString(
@@ -51,16 +73,21 @@ export function AdminAgencyView({
   inquiries,
   earnings,
   pendingSupporters,
+  activePartners,
+  earningHistory,
 }: {
   services: SupplyRow[];
   inquiries: InquiryRow[];
   earnings: EarningRow[];
   pendingSupporters: SupporterPending[];
+  activePartners: ActivePartner[];
+  earningHistory: EarningHistory[];
 }) {
   const [prices, setPrices] = useState(services);
   const [inqList, setInqList] = useState(inquiries);
   const [earnList, setEarnList] = useState(earnings);
   const [supporters, setSupporters] = useState(pendingSupporters);
+  const [partners, setPartners] = useState(activePartners);
   const [assign, setAssign] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -151,6 +178,81 @@ export function AdminAgencyView({
                     포트폴리오
                   </a>
                 )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* 승인 파트너/서포터 현황 */}
+      <section className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
+        <h3 className="text-sm font-semibold">
+          승인 파트너·서포터 현황 ({partners.length})
+        </h3>
+        {partners.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">승인된 파트너가 없습니다.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {partners.map((p) => (
+              <li key={p.profileId} className="rounded-xl border border-border bg-background p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="min-w-0 text-sm">
+                    <span className="font-medium">{p.displayName}</span>
+                    {p.email && <span className="ml-2 text-xs text-muted">{p.email}</span>}
+                    {p.workStatus && (
+                      <span className="ml-2 text-xs text-primary">{p.workStatus}</span>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={pending}
+                    onClick={() =>
+                      run(async () => {
+                        const res = await revokeSupporterAction(p.profileId);
+                        if (res.ok)
+                          setPartners((l) => l.filter((x) => x.profileId !== p.profileId));
+                        return res;
+                      })
+                    }
+                  >
+                    승인 취소
+                  </Button>
+                </div>
+                <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+                  <span>문의 {p.inquiries}</span>
+                  <span>완료작업 {p.paidWorks}</span>
+                  <span>패킷 {p.credits.toLocaleString()}</span>
+                  <span>
+                    정산 대기 {p.pendingKrw.toLocaleString()}원 · 지급{" "}
+                    {p.paidKrw.toLocaleString()}원
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* 정산 내역(전체) */}
+      <section className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
+        <h3 className="text-sm font-semibold">정산 내역 ({earningHistory.length})</h3>
+        {earningHistory.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">정산 내역이 없습니다.</p>
+        ) : (
+          <ul className="mt-3 space-y-1.5 text-xs">
+            {earningHistory.map((e) => (
+              <li key={e.id} className="flex items-center justify-between gap-2 text-muted">
+                <span className="min-w-0 truncate">
+                  {e.partnerEmail ?? "?"} · {e.amountKrw.toLocaleString()}원
+                </span>
+                <span className="shrink-0">
+                  {e.status === "paid" ? (
+                    <span className="text-primary">지급완료 {e.paidAt ? new Date(e.paidAt).toLocaleDateString("ko-KR") : ""}</span>
+                  ) : (
+                    <span>대기 · 기한 {dueDate(e.createdAt)}</span>
+                  )}
+                </span>
               </li>
             ))}
           </ul>

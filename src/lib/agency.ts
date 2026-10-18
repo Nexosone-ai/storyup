@@ -412,6 +412,101 @@ export async function listPendingEarnings(): Promise<AdminEarningRow[]> {
   }));
 }
 
+export interface ActivePartnerRow {
+  profileId: string;
+  userId: string;
+  displayName: string;
+  email: string | null;
+  workStatus: string | null;
+  credits: number;
+  inquiries: number;
+  paidWorks: number;
+  pendingKrw: number;
+  paidKrw: number;
+}
+/** 승인된(active) 파트너/서포터 현황 + 작업·정산 지표(관리자). */
+export async function listActivePartners(): Promise<ActivePartnerRow[]> {
+  const admin = createAdminClient();
+  const { data: profs } = await admin
+    .from("supporter_profiles")
+    .select("id, user_id, display_name, work_status")
+    .eq("status", "active")
+    .order("updated_at", { ascending: false });
+  const rows = profs ?? [];
+  const ids = [...new Set(rows.map((r) => r.user_id))];
+  if (!ids.length) return [];
+
+  const [pr, ledger, earn, inq, quotes] = await Promise.all([
+    admin.from("profiles").select("user_id, email").in("user_id", ids),
+    admin.from("partner_credit_ledger").select("partner_user_id, amount").in("partner_user_id", ids),
+    admin.from("partner_earnings").select("partner_user_id, amount_krw, status").in("partner_user_id", ids),
+    admin.from("agency_inquiries").select("partner_user_id").in("partner_user_id", ids),
+    admin.from("agency_quotes").select("partner_user_id").eq("status", "paid").in("partner_user_id", ids),
+  ]);
+  const emailMap = new Map((pr.data ?? []).map((p) => [p.user_id, p.email]));
+  const credit = new Map<string, number>();
+  for (const l of ledger.data ?? [])
+    credit.set(l.partner_user_id, (credit.get(l.partner_user_id) ?? 0) + l.amount);
+  const pend = new Map<string, number>();
+  const paid = new Map<string, number>();
+  for (const e of earn.data ?? []) {
+    const m = e.status === "paid" ? paid : pend;
+    m.set(e.partner_user_id, (m.get(e.partner_user_id) ?? 0) + e.amount_krw);
+  }
+  const inqCount = new Map<string, number>();
+  for (const i of inq.data ?? [])
+    if (i.partner_user_id)
+      inqCount.set(i.partner_user_id, (inqCount.get(i.partner_user_id) ?? 0) + 1);
+  const paidWorks = new Map<string, number>();
+  for (const q of quotes.data ?? [])
+    paidWorks.set(q.partner_user_id, (paidWorks.get(q.partner_user_id) ?? 0) + 1);
+
+  return rows.map((r) => ({
+    profileId: r.id,
+    userId: r.user_id,
+    displayName: r.display_name,
+    email: emailMap.get(r.user_id) ?? null,
+    workStatus: r.work_status,
+    credits: credit.get(r.user_id) ?? 0,
+    inquiries: inqCount.get(r.user_id) ?? 0,
+    paidWorks: paidWorks.get(r.user_id) ?? 0,
+    pendingKrw: pend.get(r.user_id) ?? 0,
+    paidKrw: paid.get(r.user_id) ?? 0,
+  }));
+}
+
+export interface EarningHistoryRow {
+  id: string;
+  partnerEmail: string | null;
+  amountKrw: number;
+  status: string;
+  createdAt: string;
+  paidAt: string | null;
+}
+/** 전체 정산 내역(대기+완료, 관리자). */
+export async function listAllEarnings(limit = 200): Promise<EarningHistoryRow[]> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("partner_earnings")
+    .select("id, partner_user_id, amount_krw, status, created_at, paid_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  const rows = data ?? [];
+  const ids = [...new Set(rows.map((r) => r.partner_user_id))];
+  const { data: profiles } = ids.length
+    ? await admin.from("profiles").select("user_id, email").in("user_id", ids)
+    : { data: [] };
+  const emailMap = new Map((profiles ?? []).map((p) => [p.user_id, p.email]));
+  return rows.map((r) => ({
+    id: r.id,
+    partnerEmail: emailMap.get(r.partner_user_id) ?? null,
+    amountKrw: r.amount_krw,
+    status: r.status,
+    createdAt: r.created_at,
+    paidAt: r.paid_at,
+  }));
+}
+
 export async function markEarningPaid(id: string): Promise<void> {
   const admin = createAdminClient();
   await admin
