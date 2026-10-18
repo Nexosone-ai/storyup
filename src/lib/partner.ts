@@ -13,6 +13,21 @@ export class InsufficientCreditsError extends Error {
   }
 }
 
+/**
+ * 과금 자체를 처리하지 못함(가격 조회 실패·차감 인프라 오류 등). 과금 불가 시
+ * 무상 진행을 막기 위해(fail-closed) 작업을 차단한다. '부족'과는 구분.
+ */
+export class CreditChargeError extends Error {
+  constructor(ko = true) {
+    super(
+      ko
+        ? "크레딧 처리 중 문제가 발생했어요. 잠시 후 다시 시도해주세요."
+        : "Could not process credits. Please try again shortly.",
+    );
+    this.name = "CreditChargeError";
+  }
+}
+
 export interface CreditCharge {
   charged: number;
   refund: () => Promise<void>;
@@ -121,21 +136,29 @@ export async function getPartnerCreditBalance(
   return (data ?? []).reduce((s, r) => s + r.amount, 0);
 }
 
-/** 작업별 크레딧 단가(active & >0일 때만 유효, 그 외 0=무료). */
-export async function getCreditPrice(action: string): Promise<number> {
+/**
+ * 작업별 크레딧 단가. 반환값:
+ *  - 숫자(>=0): 설정된 단가(0 = 관리자가 명시적으로 무료 처리).
+ *  - null: 단가를 '확인할 수 없음'(행 없음·조회 오류) → 호출부가 fail-closed로 차단.
+ * active=false는 관리자가 과금을 끈 것으로 보고 0(무료)로 처리한다.
+ */
+export async function getCreditPrice(action: string): Promise<number | null> {
   const admin = createAdminClient();
-  const { data } = await admin
+  const { data, error } = await admin
     .from("partner_credit_prices")
     .select("credits, active")
     .eq("action", action)
     .maybeSingle();
-  if (!data || !data.active) return 0;
+  if (error) return null; // 조회 오류 → 알 수 없음(무상 통과 금지)
+  if (!data) return null; // 단가 행 없음 → 알 수 없음(무상 통과 금지)
+  if (!data.active) return 0; // 관리자가 과금 비활성 → 무료
   return Math.max(0, data.credits);
 }
 
 /**
  * 에이전트 작업 실행 시 파트너 크레딧 차감. 단가 0이면 무차감.
- * 잔액 부족 시 InsufficientCreditsError. 작업 실패 시 refund()로 복원.
+ * 잔액 부족 시 InsufficientCreditsError. 단가를 알 수 없거나 차감 인프라 오류면
+ * CreditChargeError로 '차단'한다(fail-closed — 무상 진행 금지). 실패 시 refund().
  */
 export async function chargePartnerCredits(
   partnerUserId: string,
@@ -144,7 +167,12 @@ export async function chargePartnerCredits(
   ko = true,
 ): Promise<CreditCharge> {
   const credits = await getCreditPrice(action);
-  if (credits <= 0) return NOOP_CHARGE;
+  if (credits === null) {
+    // 단가를 확인할 수 없음 — 무상 진행 금지.
+    console.error("[partner-credits] price unknown for action:", action);
+    throw new CreditChargeError(ko);
+  }
+  if (credits <= 0) return NOOP_CHARGE; // 명시적 무료(예: AGENT_CHAT)
   const admin = createAdminClient();
   const { error } = await admin.rpc("spend_partner_credits", {
     p_partner: partnerUserId,
@@ -155,9 +183,9 @@ export async function chargePartnerCredits(
   if (error) {
     if (/INSUFFICIENT_CREDITS/.test(error.message))
       throw new InsufficientCreditsError(ko);
-    // 인프라 오류는 서비스 중단 대신 무차감 처리(로그).
+    // 차감 인프라 오류 — 무상 진행 금지(fail-closed).
     console.error("[partner-credits]", error.message);
-    return NOOP_CHARGE;
+    throw new CreditChargeError(ko);
   }
   return {
     charged: credits,

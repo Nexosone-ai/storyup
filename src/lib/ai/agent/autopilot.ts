@@ -9,6 +9,7 @@ import {
   partnerForClient,
   chargePartnerCredits,
   InsufficientCreditsError,
+  CreditChargeError,
   type CreditCharge,
 } from "@/lib/partner";
 import type { BlogTone, BlogLength } from "@/types/domain";
@@ -331,6 +332,12 @@ export async function runDueRoutines(now = new Date()): Promise<AutopilotSummary
           } catch (e) {
             if (e instanceof InsufficientCreditsError) {
               await log(admin, r, "skip", "no_credits");
+              skipped++;
+              continue;
+            }
+            if (e instanceof CreditChargeError) {
+              // 과금 불가 → 무상 진행 금지(차단).
+              await log(admin, r, "skip", "charge_error");
               skipped++;
               continue;
             }

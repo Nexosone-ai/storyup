@@ -12,6 +12,7 @@ import { FreeBlogLimitError } from "@/lib/freeAccess";
 import {
   chargePartnerCredits,
   InsufficientCreditsError,
+  CreditChargeError,
   type CreditCharge,
 } from "@/lib/partner";
 import {
@@ -62,7 +63,11 @@ export async function executeAgentProposal(
     try {
       charge = await chargePartnerCredits(user.id, creditAction, p.business_id, ko);
     } catch (err) {
-      if (err instanceof InsufficientCreditsError)
+      // 부족·과금불가 모두 작업 차단(무상 진행 금지).
+      if (
+        err instanceof InsufficientCreditsError ||
+        err instanceof CreditChargeError
+      )
         return { error: err.message };
       throw err;
     }
