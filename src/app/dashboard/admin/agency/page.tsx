@@ -2,6 +2,8 @@ import {
   listAgencyServicesAdmin,
   listUnassignedInquiries,
   listPendingEarnings,
+  listActivePartners,
+  listAllEarnings,
 } from "@/lib/agency";
 import { listPendingSupporters } from "@/lib/supporters";
 import { AdminAgencyView } from "@/components/admin/AdminAgencyView";
@@ -9,11 +11,20 @@ import { AdminAgencyView } from "@/components/admin/AdminAgencyView";
 export const metadata = { title: "관리자 · 대행" };
 
 export default async function AdminAgencyPage() {
-  const [services, inquiries, earnings, pendingSupporters] = await Promise.all([
+  const [
+    services,
+    inquiries,
+    earnings,
+    pendingSupporters,
+    activePartners,
+    earningHistory,
+  ] = await Promise.all([
     listAgencyServicesAdmin(),
     listUnassignedInquiries(),
     listPendingEarnings(),
     listPendingSupporters(),
+    listActivePartners(),
+    listAllEarnings(),
   ]);
   return (
     <div className="mx-auto max-w-3xl">
@@ -29,6 +40,8 @@ export default async function AdminAgencyPage() {
           history: s.history,
           portfolioUrl: s.portfolio_url,
         }))}
+        activePartners={activePartners}
+        earningHistory={earningHistory}
       />
     </div>
   );

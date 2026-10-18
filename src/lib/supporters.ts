@@ -167,10 +167,10 @@ export async function listPendingSupporters(): Promise<PendingSupporter[]> {
   return rows.map((r) => ({ ...r, email: emailMap.get(r.user_id) ?? null }));
 }
 
-/** 서포터 신청 승인/반려(관리자). */
+/** 서포터 신청 승인/반려/승인취소(관리자). pending=승인취소(재검토). */
 export async function setSupporterStatus(
   id: string,
-  status: "active" | "rejected",
+  status: "active" | "rejected" | "pending",
 ): Promise<void> {
   const admin = createAdminClient();
   await admin

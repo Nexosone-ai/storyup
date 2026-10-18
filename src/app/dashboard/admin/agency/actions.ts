@@ -70,3 +70,13 @@ export async function reviewSupporterAction(
   revalidatePath("/dashboard/admin/agency");
   return { ok: true, message: approve ? "승인했어요." : "반려했어요." };
 }
+
+/** 승인 취소 — 다시 검토 대기(pending)로 되돌림. */
+export async function revokeSupporterAction(
+  id: string,
+): Promise<AgencyAdminState> {
+  if (!(await isCurrentUserAdmin())) return { error: "권한이 없습니다." };
+  await setSupporterStatus(id, "pending");
+  revalidatePath("/dashboard/admin/agency");
+  return { ok: true, message: "승인을 취소했어요(검토 대기)." };
+}
