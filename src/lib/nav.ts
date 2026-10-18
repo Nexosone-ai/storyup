@@ -99,8 +99,13 @@ export function dashboardNav(
   ];
 }
 
-/** 비즈니스 워크스페이스 메뉴 — STEP 순서대로 배치한다. */
-export function workspaceNav(businessId: string, locale: Locale = "ko"): NavItem[] {
+/** 비즈니스 워크스페이스 메뉴 — STEP 순서대로 배치한다.
+ *  AI 에이전트는 대행 파트너 전용이라 파트너일 때만 노출(유저 모드엔 숨김). */
+export function workspaceNav(
+  businessId: string,
+  locale: Locale = "ko",
+  isPartner = false,
+): NavItem[] {
   const ko = locale === "ko";
   const base = `/business/${businessId}`;
   return [
@@ -135,10 +140,15 @@ export function workspaceNav(businessId: string, locale: Locale = "ko"): NavItem
       href: `${base}/strategy`,
       icon: "sparkles",
     },
-    {
-      label: ko ? "AI 에이전트" : "AI agent",
-      href: `${base}/agent`,
-      icon: "chat",
-    },
+    // AI 에이전트 — 대행 파트너에게만 노출.
+    ...(isPartner
+      ? [
+          {
+            label: ko ? "AI 에이전트" : "AI agent",
+            href: `${base}/agent`,
+            icon: "chat",
+          } as NavItem,
+        ]
+      : []),
   ];
 }

@@ -62,7 +62,10 @@ export default async function DashboardLayout({
         nav={dashboardNav(admin, locale, unreadInquiries, marketer, partner)}
         workspace={
           business
-            ? { name: business.name, items: workspaceNav(business.id, locale) }
+            ? {
+                name: business.name,
+                items: workspaceNav(business.id, locale, partner),
+              }
             : undefined
         }
         userName={name}
