@@ -889,6 +889,32 @@ export interface Database {
         >;
         Relationships: [];
       };
+      agency_deliverables: {
+        Row: {
+          id: string;
+          business_id: string;
+          inquiry_id: string | null;
+          kind: string;
+          title: string | null;
+          url: string;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          inquiry_id?: string | null;
+          kind?: string;
+          title?: string | null;
+          url: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["agency_deliverables"]["Insert"]
+        >;
+        Relationships: [];
+      };
       partner_earnings: {
         Row: {
           id: string;

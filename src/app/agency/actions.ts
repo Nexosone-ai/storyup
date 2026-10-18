@@ -5,6 +5,7 @@ import {
   createAgencyInquiry,
   sendAgencyMessage,
   createQuote,
+  addDeliverable,
 } from "@/lib/agency";
 
 /** 클라이언트: 서포터즈에서 대행 문의 생성(배정 파트너 자동 매칭). */
@@ -35,5 +36,18 @@ export async function createQuoteAction(
 ): Promise<{ code?: string; error?: string }> {
   const res = await createQuote({ inquiryId, clientPriceKrw });
   if (res.code) revalidatePath(`/dashboard/agency/${inquiryId}`);
+  return res;
+}
+
+/** 파트너: 작업 산출물(영상 URL 등) 전달. */
+export async function addDeliverableAction(args: {
+  businessId: string;
+  inquiryId: string;
+  kind?: string;
+  title?: string;
+  url: string;
+}): Promise<{ ok?: boolean; error?: string }> {
+  const res = await addDeliverable(args);
+  if (res.ok) revalidatePath(`/dashboard/agency/${args.inquiryId}`);
   return res;
 }

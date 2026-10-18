@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getUser } from "@/lib/queries";
 import { getLocale } from "@/lib/i18n";
-import { loadThread, listAgencyServices } from "@/lib/agency";
+import { loadThread, listAgencyServices, listDeliverables } from "@/lib/agency";
 import { getSupporterProfileByUser } from "@/lib/supporters";
 import { AgencyThread } from "@/components/agency/AgencyThread";
 import { SupporterProfileCard } from "@/components/agency/SupporterProfileCard";
@@ -32,6 +32,8 @@ export default async function AgencyThreadPage({
       ? await getSupporterProfileByUser(inquiry.partnerUserId)
       : null;
 
+  const deliverables = await listDeliverables(inquiry.businessId);
+
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       {partnerProfile && (
@@ -53,6 +55,7 @@ export default async function AgencyThreadPage({
         meId={user.id}
         isPartnerView={isPartnerView}
         supplyPriceKrw={supply}
+        deliverables={deliverables}
         ko={ko}
       />
     </div>
