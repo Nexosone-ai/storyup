@@ -8,6 +8,7 @@ import {
   assignInquiryPartner,
   markEarningPaid,
 } from "@/lib/agency";
+import { setSupporterStatus } from "@/lib/supporters";
 
 export interface AgencyAdminState {
   ok?: boolean;
@@ -57,4 +58,15 @@ export async function markEarningPaidAction(
   await markEarningPaid(id);
   revalidatePath("/dashboard/admin/agency");
   return { ok: true, message: "지급 처리했어요." };
+}
+
+/** 서포터즈 신청 승인/반려(최종 승인은 관리자). */
+export async function reviewSupporterAction(
+  id: string,
+  approve: boolean,
+): Promise<AgencyAdminState> {
+  if (!(await isCurrentUserAdmin())) return { error: "권한이 없습니다." };
+  await setSupporterStatus(id, approve ? "active" : "rejected");
+  revalidatePath("/dashboard/admin/agency");
+  return { ok: true, message: approve ? "승인했어요." : "반려했어요." };
 }

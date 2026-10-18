@@ -4,6 +4,10 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { createInquiryAction } from "@/app/agency/actions";
+import {
+  SupporterProfileCard,
+  type SupporterProfileView,
+} from "@/components/agency/SupporterProfileCard";
 
 interface Service {
   key: string;
@@ -35,10 +39,14 @@ export function AgencySection({
   services,
   businesses,
   inquiries,
+  assignedPartner,
+  availableSupporters,
 }: {
   services: Service[];
   businesses: BizOption[];
   inquiries: Inquiry[];
+  assignedPartner: SupporterProfileView | null;
+  availableSupporters: SupporterProfileView[];
 }) {
   const [open, setOpen] = useState<string | null>(null);
   const [businessId, setBusinessId] = useState(businesses[0]?.id ?? "");
@@ -66,13 +74,25 @@ export function AgencySection({
 
   return (
     <section className="mb-8 space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold tracking-tight">전문가 대행 서비스</h2>
-        <p className="mt-1 text-sm text-muted">
-          블로그·영상 제작을 전담 파트너에게 맡기세요. 문의하면 담당 파트너와 바로
-          상담하고 맞춤 견적을 받을 수 있어요.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">전문가 대행 서비스</h2>
+          <p className="mt-1 text-sm text-muted">
+            블로그·영상 제작을 전담 파트너에게 맡기세요. 문의하면 담당 파트너와 바로
+            상담하고 맞춤 견적을 받을 수 있어요.
+          </p>
+        </div>
+        <Link
+          href="/dashboard/supporters/apply"
+          className="shrink-0 text-sm text-primary underline underline-offset-2"
+        >
+          서포터즈로 활동하기 →
+        </Link>
       </div>
+
+      {assignedPartner && (
+        <SupporterProfileCard profile={assignedPartner} heading="내 담당 파트너" />
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2">
         {services.map((s) => (
@@ -138,6 +158,17 @@ export function AgencySection({
             대화 열기
           </Link>
         </p>
+      )}
+
+      {!assignedPartner && availableSupporters.length > 0 && (
+        <div>
+          <h3 className="mb-2 text-sm font-semibold">활동 중인 서포터즈</h3>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {availableSupporters.slice(0, 4).map((s, i) => (
+              <SupporterProfileCard key={i} profile={s} heading="서포터" />
+            ))}
+          </div>
+        </div>
       )}
 
       {inquiries.length > 0 && (
