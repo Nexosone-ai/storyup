@@ -183,6 +183,7 @@ export function VideoStudio({
 
       {editing && (
         <VideoEditor
+          businessId={businessId}
           fileUrl={`/api/business/${businessId}/video/file?d=${editing.id}`}
           title={editing.title}
           ko={ko}
