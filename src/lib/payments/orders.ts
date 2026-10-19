@@ -329,9 +329,39 @@ export async function fulfillProductOrder(orderId: string): Promise<void> {
 
     const { data: product } = await admin
       .from("products")
-      .select("grants_plan, grant_days")
+      .select("grants_plan, grant_days, grants_video_credits")
       .eq("id", order.product_id)
       .maybeSingle();
+
+    // 영상 팩 — 구매자 계정에 영상 크레딧 지급(멱등).
+    if (product?.grants_video_credits && product.grants_video_credits > 0) {
+      const email = (order.buyer_email ?? "").trim();
+      let vresult = "no_account";
+      if (email) {
+        const { data: profile } = await admin
+          .from("profiles")
+          .select("user_id")
+          .eq("email", email)
+          .maybeSingle();
+        if (profile) {
+          const { grantVideoCredits } = await import("@/lib/video");
+          await grantVideoCredits(
+            profile.user_id,
+            product.grants_video_credits,
+            `pack:${orderId}`,
+          );
+          vresult = `granted:${product.grants_video_credits}`;
+        }
+      }
+      await admin
+        .from("product_orders")
+        .update({
+          metadata: { ...meta, fulfilled: true, fulfillment: `video_${vresult}` },
+        })
+        .eq("id", order.id);
+      return;
+    }
+
     // 지급 대상 상품이 아니면 아무 것도 하지 않는다 (플래그도 남기지 않음)
     if (!product?.grants_plan || !GRANTABLE_PLANS.has(product.grants_plan)) return;
 
