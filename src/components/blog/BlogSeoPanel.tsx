@@ -56,7 +56,8 @@ export function BlogSeoPanel({
 }: BlogSeoPanelProps) {
   const ko = useLocale() === "ko";
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  // 기본 펼침 — "AI로 진단하기" 버튼 등 진단·보강 UI가 바로 보이도록.
+  const [open, setOpen] = useState(true);
   const report = useMemo(() => computeSeoReport(input), [input]);
   const [analysis, setAnalysis] = useState<BlogSeoAnalysisCache | null>(
     initialAnalysis ?? null,
