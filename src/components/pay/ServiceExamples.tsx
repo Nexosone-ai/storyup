@@ -1,10 +1,14 @@
 import { Icon } from "@/components/ui/icons";
+import { getPlanById } from "@/lib/plans";
 
 /**
  * 결제 페이지 상품 상세 — 플랜별 소개 쇼케이스.
  * 이미지 한 장이 아니라 코드로 렌더링해 어떤 폭에서도 텍스트가 박스를 넘치지 않는다.
  * (플랜 상품(grants_plan)에 노출)
+ * 제공량 숫자는 plans.ts(단일 소스)에서 읽어 /pricing·대시보드와 항상 일치시킨다.
  */
+
+const fmt = (n: number) => n.toLocaleString("ko-KR");
 
 type IconName = keyof typeof Icon;
 type Feature = { icon: IconName; title: string; desc: string };
@@ -33,26 +37,32 @@ const BASIC_FEATURES: Feature[] = [
   },
 ];
 
-const PRO_FEATURES: Feature[] = [
+function proFeatures(sites: number, blog: number, card: number, video: number): Feature[] {
+  return [
   {
     icon: "globe",
-    title: "최대 5개의 AI 랜딩페이지",
-    desc: "상품·서비스·이벤트·캠페인별로 최대 5개의 랜딩페이지를 만들 수 있습니다. 목적과 고객에 따라 각각의 페이지로 더 효과적으로 브랜드를 소개하세요.",
+    title: `최대 ${sites}개의 AI 랜딩페이지`,
+    desc: `상품·서비스·이벤트·캠페인별로 최대 ${sites}개의 랜딩페이지를 만들 수 있습니다. 목적과 고객에 따라 각각의 페이지로 더 효과적으로 브랜드를 소개하세요.`,
   },
   {
     icon: "pen",
-    title: "월 90건의 AI 블로그 콘텐츠",
-    desc: "검색 고객에게 꾸준히 발견되도록 월 최대 90건의 블로그를 제작할 수 있습니다. 꾸준한 발행으로 브랜드 전문성과 콘텐츠 자산을 쌓아가세요.",
+    title: `월 ${blog}건의 AI 블로그 콘텐츠`,
+    desc: `검색 고객에게 꾸준히 발견되도록 월 최대 ${blog}건의 블로그를 제작할 수 있습니다. 꾸준한 발행으로 브랜드 전문성과 콘텐츠 자산을 쌓아가세요.`,
   },
   {
     icon: "megaphone",
-    title: "월 100건의 SNS 카드뉴스",
-    desc: "블로그에만 머물지 않고 SNS까지 확장하세요. 월 최대 100건의 카드뉴스로 다양한 채널에서 고객과 만날 수 있습니다.",
+    title: `월 ${card}건의 SNS 카드뉴스`,
+    desc: `블로그에만 머물지 않고 SNS까지 확장하세요. 월 최대 ${card}건의 카드뉴스로 다양한 채널에서 고객과 만날 수 있습니다.`,
+  },
+  {
+    icon: "video",
+    title: `월 ${video}편의 AI 영상 생성`,
+    desc: `프롬프트만 입력하면 AI가 짧은 영상을 만들어 드립니다. 월 ${video}편까지 무료로 만들고, 더 필요하면 영상 팩으로 추가할 수 있어요.`,
   },
   {
     icon: "image",
-    title: "월 70개의 AI 이미지 생성",
-    desc: "블로그·랜딩페이지·SNS에 필요한 이미지를 AI로 직접 생성합니다. 콘텐츠 주제와 브랜드에 어울리는 이미지를 손쉽게 만들어 활용하세요.",
+    title: "AI 이미지 생성 포함",
+    desc: "블로그·랜딩페이지·SNS에 필요한 이미지를 AI로 직접 생성합니다. 콘텐츠 제작에 포함되어 별도 수량 제한 없이 활용하세요.",
   },
   {
     icon: "link",
@@ -79,7 +89,8 @@ const PRO_FEATURES: Feature[] = [
     title: "만든 콘텐츠가 자산이 됩니다",
     desc: "제작된 랜딩페이지·블로그는 계정에 보관되어 계속 활용할 수 있습니다. 쓸수록 콘텐츠가 사라지지 않고 내 브랜드의 온라인 자산이 쌓여갑니다.",
   },
-];
+  ];
+}
 
 function FeatureCard({ f }: { f: Feature }) {
   const Glyph = Icon[f.icon];
@@ -184,6 +195,12 @@ function ContentExamples() {
 
 export function ServiceExamples({ plan }: { plan: "basic" | "pro" }) {
   const isPro = plan === "pro";
+  const p = getPlanById(plan);
+  const sites = p.limits.sites ?? 0;
+  const blog = p.limits.blogPosts ?? 0;
+  const card = p.limits.cardNews ?? 0;
+  const video = p.limits.video ?? 0;
+  const features = isPro ? proFeatures(sites, blog, card, video) : BASIC_FEATURES;
   return (
     <div className="space-y-8">
       {/* 인트로 */}
@@ -219,7 +236,7 @@ export function ServiceExamples({ plan }: { plan: "basic" | "pro" }) {
         <p className="text-sm font-bold text-foreground">
           {isPro ? "Pro가 드리는 것" : "콘텐츠를 넘어, 비즈니스 플랫폼"}
         </p>
-        {(isPro ? PRO_FEATURES : BASIC_FEATURES).map((f) => (
+        {features.map((f) => (
           <FeatureCard key={f.title} f={f} />
         ))}
       </section>
@@ -231,8 +248,8 @@ export function ServiceExamples({ plan }: { plan: "basic" | "pro" }) {
             STORYUP PRO
           </p>
           <p className="break-keep-kr mt-2 text-sm leading-relaxed text-foreground">
-            AI 브랜드 스토리 + 랜딩페이지 5개 + 블로그 90건/월 + SNS 카드뉴스 100건/월
-            + AI 이미지 70개/월
+            AI 브랜드 스토리 + 랜딩페이지 {sites}개 + 블로그 {blog}건/월 + SNS 카드뉴스{" "}
+            {card}건/월 + AI 영상 {video}편/월 + AI 이미지 포함
           </p>
           <p className="break-keep-kr mt-2 text-sm leading-relaxed text-muted">
             여기에{" "}
@@ -242,7 +259,9 @@ export function ServiceExamples({ plan }: { plan: "basic" | "pro" }) {
             </b>
             까지.
           </p>
-          <p className="tnum mt-3 text-2xl font-bold text-foreground">월 119,000원</p>
+          <p className="tnum mt-3 text-2xl font-bold text-foreground">
+            월 {fmt(p.priceKrw ?? 0)}원
+          </p>
           <p className="break-keep-kr mt-1 text-sm leading-relaxed text-muted">
             콘텐츠를 만들고, 검색되고, 고객을 확보하는 것까지. STORYUP Pro 하나로
             시작하세요.
