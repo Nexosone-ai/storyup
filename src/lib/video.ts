@@ -107,24 +107,37 @@ export async function consumeVideo(
   throw new NoVideoCreditsError(ko);
 }
 
-/** 영상 크레딧 지급(영상 팩 결제/관리자). */
+/** 영상 크레딧 지급(영상 팩 결제/관리자). reason 유니크(ref_type='grant')로 중복 지급 방지. */
 export async function grantVideoCredits(
   userId: string,
   amount: number,
   reason: string,
 ): Promise<void> {
   const admin = createAdminClient();
-  await admin
+  const { error } = await admin
     .from("video_credit_ledger")
     .insert({ user_id: userId, amount, reason, ref_type: "grant" });
+  // 23505 = unique_violation → 이미 지급됨(멱등), 무시.
+  if (error && error.code !== "23505") throw error;
 }
 
 // ---------------- fal.ai 영상 엔진(큐 + 폴링) ----------------
 
-const FAL_MODEL = process.env.FAL_VIDEO_MODEL || "fal-ai/ltx-video";
+const FAL_MODEL =
+  process.env.FAL_VIDEO_MODEL || "fal-ai/kling-video/v1.6/standard/text-to-video";
 
 export function videoEngineConfigured(): boolean {
   return !!process.env.FAL_KEY;
+}
+
+/** fal 도메인만 허용 — 서버가 fal 키를 임의 주소로 보내는 SSRF/키유출 방지. */
+function isFalUrl(u: string): boolean {
+  try {
+    const h = new URL(u).hostname.toLowerCase();
+    return h === "fal.run" || h === "queue.fal.run" || h.endsWith(".fal.run");
+  } catch {
+    return false;
+  }
 }
 
 export interface SubmitResult {
@@ -144,11 +157,21 @@ export async function submitVideo(prompt: string): Promise<SubmitResult> {
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
-    console.error("[fal-video] submit", res.status, json?.detail ?? json?.error);
+    const detail =
+      typeof json?.detail === "string"
+        ? json.detail
+        : Array.isArray(json?.detail)
+          ? JSON.stringify(json.detail).slice(0, 200)
+          : (json?.error ?? "");
+    console.error("[fal-video] submit", res.status, detail);
     throw new VideoEngineError(
       res.status === 429 || res.status >= 500
         ? "영상 서버가 혼잡합니다. 잠시 후 다시 시도해주세요."
-        : `영상 생성 요청 실패 (${res.status})`,
+        : res.status === 401 || res.status === 403
+          ? "영상 엔진 인증/잔액을 확인해주세요(fal 키·크레딧)."
+          : res.status === 404
+            ? `영상 모델을 찾을 수 없어요(FAL_VIDEO_MODEL 확인: ${FAL_MODEL}).`
+            : `영상 생성 요청 실패 (${res.status})${detail ? ` — ${detail}` : ""}`,
     );
   }
   const requestId = json.request_id as string;
@@ -156,6 +179,9 @@ export async function submitVideo(prompt: string): Promise<SubmitResult> {
   const responseUrl = (json.response_url as string) ?? "";
   if (!requestId || !statusUrl || !responseUrl)
     throw new VideoEngineError("영상 작업 생성에 실패했습니다.");
+  // SSRF 방지: fal이 돌려준 주소도 fal 도메인인지 확인 후 저장.
+  if (!isFalUrl(statusUrl) || !isFalUrl(responseUrl))
+    throw new VideoEngineError("영상 작업 주소가 올바르지 않습니다.");
   return { requestId, statusUrl, responseUrl };
 }
 
@@ -171,6 +197,11 @@ export async function pollVideo(
 ): Promise<VideoJobState> {
   const key = process.env.FAL_KEY;
   if (!key) return { status: "failed", error: "엔진 미설정" };
+  // SSRF 방지: fal 도메인이 아니면 키를 보내지 않는다.
+  if (!isFalUrl(statusUrl) || !isFalUrl(responseUrl)) {
+    console.error("[fal-video] non-fal job url blocked", statusUrl, responseUrl);
+    return { status: "failed", error: "잘못된 작업 주소입니다." };
+  }
   try {
     const sres = await fetch(statusUrl, { headers: { Authorization: `Key ${key}` } });
     const sjson = await sres.json().catch(() => ({}));
@@ -191,4 +222,59 @@ export async function pollVideo(
     console.error("[fal-video] poll", err);
     return { status: "processing" };
   }
+}
+
+export interface VideoJobRow {
+  id: string;
+  user_id: string;
+  business_id: string;
+  prompt: string;
+  status_url: string | null;
+  response_url: string | null;
+}
+
+/**
+ * 처리 중 작업을 확인해 완료/실패 처리(멱등). poll 액션·복구 크론 공용.
+ * 완료는 processing→done 원자적 전환으로 '단 한 번만' 과금·저장(동시 폴링·중복 차감 방지).
+ */
+export async function finalizeIfComplete(
+  job: VideoJobRow,
+): Promise<VideoJobState> {
+  const state = await pollVideo(job.status_url ?? "", job.response_url ?? "");
+  const admin = createAdminClient();
+  if (state.status === "processing") return state;
+
+  if (state.status === "failed") {
+    await admin
+      .from("video_jobs")
+      .update({ status: "failed", error: state.error })
+      .eq("id", job.id)
+      .eq("status", "processing");
+    return state;
+  }
+
+  // 완료 — 원자적 claim(한 번만 성공)한 경우에만 과금·저장.
+  const { data: claimed } = await admin
+    .from("video_jobs")
+    .update({ status: "done", video_url: state.videoUrl })
+    .eq("id", job.id)
+    .eq("status", "processing")
+    .select("id")
+    .maybeSingle();
+  if (claimed) {
+    try {
+      await consumeVideo(job.user_id);
+    } catch (err) {
+      if (!(err instanceof NoVideoCreditsError)) throw err;
+      console.warn("[video] completed but no credit to consume", job.id);
+    }
+    await admin.from("agency_deliverables").insert({
+      business_id: job.business_id,
+      kind: "video",
+      title: job.prompt.slice(0, 80),
+      url: state.videoUrl,
+      created_by: job.user_id,
+    });
+  }
+  return state;
 }
