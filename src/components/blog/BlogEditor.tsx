@@ -23,7 +23,7 @@ import {
   IMAGE_STYLE_META,
   type ImageStyleId,
 } from "@/lib/ai/image/style";
-import { SeoScorePanel } from "@/components/blog/SeoScorePanel";
+import { BlogSeoPanel } from "@/components/blog/BlogSeoPanel";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { resizeImage } from "@/components/website/templates/ImageSlot";
 import type { BlogPostRow } from "@/types/database";
@@ -35,6 +35,7 @@ export function BlogEditor({
   sitePublished,
   categories = [],
   schedulingAllowed = true,
+  seoAllowed = false,
 }: {
   businessId: string;
   post: BlogPostRow;
@@ -44,6 +45,8 @@ export function BlogEditor({
   categories?: string[];
   /** 예약 발행 가능 플랜(Pro+)인지. false면 예약 버튼이 업그레이드 안내로 동작. */
   schedulingAllowed?: boolean;
+  /** 글별 SEO AI 진단 가능 플랜(유료, plan.seoTools)인지. */
+  seoAllowed?: boolean;
 }) {
   const ko = useLocale() === "ko";
   const [title, setTitle] = useState(post.title);
@@ -666,8 +669,12 @@ export function BlogEditor({
           : "💡 What you see is what you get. Images show instantly, and you can change font size, alignment, and headings. Click an image to select it, then set its size (75/50/25%), alignment, or link. Paste a YouTube/music link to embed it. ‘AI image’ and ‘Expand’ apply at your cursor."}
       </p>
 
-      {/* 실시간 SEO 자가진단 */}
-      <SeoScorePanel
+      {/* 글별 SEO 진단·보강 (규칙 + AI 분석) */}
+      <BlogSeoPanel
+        businessId={businessId}
+        postId={post.id}
+        seoAllowed={seoAllowed}
+        initialAnalysis={post.seo_analysis}
         title={title}
         summary={summary}
         seoTitle={post.seo_title}
@@ -675,6 +682,7 @@ export function BlogEditor({
         keywords={post.keywords}
         content={content}
         hasCoverImage={!!cover}
+        faq={post.faq}
       />
     </div>
   );

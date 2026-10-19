@@ -420,6 +420,28 @@ export interface BlogFaqResult {
   faq: BlogFaqItem[];
 }
 
+// ---- 글별 SEO 진단·보강 (AI 분석 결과) ----
+
+export interface BlogSeoAnalysisResult {
+  /** 이 글의 구체적 약점(검색·AEO·네이버·LLM 노출 관점). */
+  weaknesses: string[];
+  /** 개선된 SEO 제목 제안(50~60자). */
+  seoTitle?: string;
+  /** 개선된 메타 설명 제안(150~160자). */
+  seoDescription?: string;
+  /** 결론 먼저(직답) 도입 문단 제안 — AEO/AI 답변 인용에 유리. */
+  firstParagraph?: string;
+  /** 보강 키워드 제안. */
+  keywords?: string[];
+  /** 추가하면 좋은 FAQ 아이디어. */
+  faqIdeas?: BlogFaqItem[];
+}
+
+/** blog_posts.seo_analysis에 저장되는 캐시(분석 결과 + 분석 시점). */
+export interface BlogSeoAnalysisCache extends BlogSeoAnalysisResult {
+  analyzedAt: string;
+}
+
 // ---- AI 마케팅 전략 (사용 분석 기반) ----
 
 export interface MarketingStrategyAction {
