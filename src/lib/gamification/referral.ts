@@ -1,7 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { award } from "./engine";
 import { checkReferralAchievements } from "./achievements";
-import { ensureTrialSubscription } from "@/lib/payments/billing";
 
 /**
  * 추천인 시스템 — 직접 추천만 (다단계 없음).
@@ -52,8 +51,6 @@ export async function ensureUserSetup(
   pendingRefCode?: string | null,
 ): Promise<void> {
   await award(userId, "signup", "signup");
-  // 베타 기간: 구독 행이 없는 신규 가입자에게 1개월 Pro 체험 자동 지급
-  await ensureTrialSubscription(userId);
   await ensureReferralCode(userId);
   // 쿠키 코드가 없어도 호출한다 — attributeReferral이 가입 시 저장된
   // user_metadata.ref_code로 폴백하고, 이미 귀속/기간초과면 즉시 빠져나온다.

@@ -21,43 +21,8 @@ import { accrueSubscriptionCommission } from "@/lib/network";
 const PAID_PLANS: PlanId[] = ["basic", "pro"];
 const MAX_BILLING_FAILURES = 3;
 
-/**
- * 베타 기간 신규 가입 자동 Pro 체험 — 2026-09-22 00:00(KST)부터 종료.
- * 이후 신규 가입은 구독 행 없이 시작하므로 getPlanId가 기본 Free를 반환한다.
- * 컷오프 전 가입자만 1개월 Pro 체험을 받는다 (결제 없음).
- */
-const AUTO_TRIAL_UNTIL = Date.parse("2026-09-22T00:00:00+09:00");
-const TRIAL_PLAN: PlanId = "pro";
-
-export async function ensureTrialSubscription(userId: string): Promise<void> {
-  if (Date.now() >= AUTO_TRIAL_UNTIL) return; // 컷오프 이후 신규 가입은 Free
-  try {
-    const admin = createAdminClient();
-    const { data, error } = await admin
-      .from("subscriptions")
-      .select("user_id")
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (error || data) return; // 조회 실패(마이그레이션 전) 또는 이미 구독/체험 있음
-
-    const end = new Date();
-    end.setMonth(end.getMonth() + 1);
-    // 동시 호출 대비: 이미 행이 생겼다면 조용히 무시
-    const { error: insErr } = await admin.from("subscriptions").upsert(
-      {
-        user_id: userId,
-        plan: TRIAL_PLAN,
-        status: "active",
-        current_period_end: end.toISOString(),
-        trial: true,
-      },
-      { ignoreDuplicates: true },
-    );
-    if (insErr) return;
-  } catch (err) {
-    console.error("[billing] ensureTrialSubscription failed", userId, err);
-  }
-}
+// 신규 가입 자동 Pro 체험 이벤트는 종료됨 — 가입은 구독 행 없이 시작하고
+// getPlanId가 기본 Free를 반환한다. (이전 ensureTrialSubscription 제거)
 
 export interface BillingResult {
   ok?: boolean;
