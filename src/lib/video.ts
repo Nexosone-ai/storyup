@@ -199,7 +199,7 @@ export async function submitVideo(prompt: string): Promise<SubmitResult> {
       res.status === 429 || res.status >= 500
         ? "영상 서버가 혼잡합니다. 잠시 후 다시 시도해주세요."
         : res.status === 401 || res.status === 403
-          ? "영상 엔진 인증/잔액을 확인해주세요(fal 키·크레딧)."
+          ? `영상 엔진 인증/잔액을 확인해주세요(fal 키·크레딧).${detail ? ` — ${redactKey(detail, key)}` : ""}`
           : res.status === 404
             ? `영상 모델을 찾을 수 없어요(FAL_VIDEO_MODEL 확인: ${FAL_MODEL}).`
             : `영상 생성 요청 실패 (${res.status})${detail ? ` — ${detail}` : ""}`,
