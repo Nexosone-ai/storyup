@@ -129,7 +129,27 @@ const FAL_MODEL =
   process.env.FAL_VIDEO_MODEL || "fal-ai/wan/v2.2-a14b/text-to-video";
 
 export function videoEngineConfigured(): boolean {
-  return !!process.env.FAL_KEY;
+  return !!(process.env.FAL_KEY || "").trim();
+}
+
+/**
+ * FAL_KEY를 안전하게 읽는다. 앞뒤 공백은 다듬고, 중간에 공백·줄바꿈 등
+ * HTTP 헤더에 못 쓰는 문자가 섞였으면 '키 값을 노출하지 않고' 차단한다.
+ * (붙여넣기 중 끼어든 공백/개행이 'invalid header value'로 터지는 걸 안전한 안내로 대체.)
+ */
+function falKey(): string {
+  const key = (process.env.FAL_KEY || "").trim();
+  if (!key) throw new VideoEngineError("영상 엔진이 설정되지 않았습니다. (FAL_KEY 누락)");
+  if (!/^[\x21-\x7e]+$/.test(key))
+    throw new VideoEngineError(
+      "영상 엔진 키 형식이 올바르지 않아요. Vercel의 FAL_KEY 값에 공백·줄바꿈이 섞이지 않았는지 확인해주세요.",
+    );
+  return key;
+}
+
+/** 오류 메시지에 키가 섞여 나오지 않도록 제거(키 유출 방지). */
+function redactKey(msg: string, key: string): string {
+  return key ? msg.split(key).join("***") : msg;
 }
 
 /** fal 도메인만 허용 — 서버가 fal 키를 임의 주소로 보내는 SSRF/키유출 방지. */
@@ -150,8 +170,7 @@ export interface SubmitResult {
 
 /** fal 큐에 영상 생성 제출 → request_id/status_url/response_url. */
 export async function submitVideo(prompt: string): Promise<SubmitResult> {
-  const key = process.env.FAL_KEY;
-  if (!key) throw new VideoEngineError("영상 엔진이 설정되지 않았습니다. (FAL_KEY 누락)");
+  const key = falKey();
   // 네트워크/DNS/타임아웃 등 fetch 자체 실패도 실제 사유를 노출(일반 오류로 가려지지 않게).
   let res: Response;
   try {
@@ -162,8 +181,9 @@ export async function submitVideo(prompt: string): Promise<SubmitResult> {
     });
   } catch (err) {
     console.error("[fal-video] submit network", err);
+    const raw = (err as Error)?.message ?? "네트워크 오류";
     throw new VideoEngineError(
-      `영상 서버에 연결하지 못했어요 — ${(err as Error)?.message ?? "네트워크 오류"}`,
+      `영상 서버에 연결하지 못했어요 — ${redactKey(raw, key)}`,
     );
   }
   const json = await res.json().catch(() => ({}));
@@ -206,8 +226,9 @@ export async function pollVideo(
   statusUrl: string,
   responseUrl: string,
 ): Promise<VideoJobState> {
-  const key = process.env.FAL_KEY;
-  if (!key) return { status: "failed", error: "엔진 미설정" };
+  const key = (process.env.FAL_KEY || "").trim();
+  // 키 미설정/형식오류(공백 등)면 영구 실패로 굳히지 않고 처리중 유지(복구 크론/다음 폴에 맡김).
+  if (!key || !/^[\x21-\x7e]+$/.test(key)) return { status: "processing" };
   // SSRF 방지: fal 도메인이 아니면 키를 보내지 않는다.
   if (!isFalUrl(statusUrl) || !isFalUrl(responseUrl)) {
     console.error("[fal-video] non-fal job url blocked", statusUrl, responseUrl);
