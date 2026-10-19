@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { submitVideoAction, pollVideoAction } from "@/app/business/[id]/video/actions";
+import { VideoEditor } from "@/components/video/VideoEditor";
 
 interface Quota {
   freeLimit: number | null;
@@ -38,6 +39,7 @@ export function VideoStudio({
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [editing, setEditing] = useState<VideoItem | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const freeRemaining =
@@ -164,12 +166,28 @@ export function VideoStudio({
                   >
                     {copied === v.url ? "복사됨" : "링크 복사"}
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditing(v)}
+                    className="font-medium text-primary underline underline-offset-2"
+                  >
+                    편집
+                  </button>
                   <span className="text-muted">랜딩·블로그·SNS에 붙여 사용</span>
                 </div>
               </li>
             ))}
           </ul>
         </div>
+      )}
+
+      {editing && (
+        <VideoEditor
+          fileUrl={`/api/business/${businessId}/video/file?d=${editing.id}`}
+          title={editing.title}
+          ko={ko}
+          onClose={() => setEditing(null)}
+        />
       )}
     </div>
   );
