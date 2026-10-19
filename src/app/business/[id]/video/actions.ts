@@ -6,12 +6,10 @@ import { getPlanId } from "@/lib/subscription";
 import { getPlanById } from "@/lib/plans";
 import {
   getVideoQuota,
-  consumeVideo,
   submitVideo,
-  pollVideo,
+  finalizeIfComplete,
   videoEngineConfigured,
   VideoEngineError,
-  NoVideoCreditsError,
 } from "@/lib/video";
 
 const MAX_CONCURRENT = 2;
@@ -59,7 +57,8 @@ export async function submitVideoAction(
 
   try {
     const sub = await submitVideo(text);
-    const { data: job } = await supabase
+    // video_jobs는 서비스롤만 쓰기(사용자가 status_url 등 변조 못 하게) — admin으로 기록.
+    const { data: job } = await admin
       .from("video_jobs")
       .insert({
         user_id: user.id,
@@ -93,9 +92,10 @@ export async function pollVideoAction(jobId: string): Promise<PollState> {
   } = await supabase.auth.getUser();
   if (!user) return { status: "failed", error: "로그인이 필요합니다." };
 
+  // RLS로 본인 사업장 작업만 조회됨.
   const { data: job } = await supabase
     .from("video_jobs")
-    .select("*")
+    .select("id, user_id, business_id, prompt, status, video_url, error, status_url, response_url")
     .eq("id", jobId)
     .maybeSingle();
   if (!job) return { status: "failed", error: "작업을 찾을 수 없습니다." };
@@ -104,36 +104,16 @@ export async function pollVideoAction(jobId: string): Promise<PollState> {
   if (job.status === "failed")
     return { status: "failed", error: job.error ?? "실패" };
 
-  const state = await pollVideo(job.status_url ?? "", job.response_url ?? "");
-  if (state.status === "processing") return { status: "processing" };
-
-  const admin = createAdminClient();
-  if (state.status === "failed") {
-    await admin
-      .from("video_jobs")
-      .update({ status: "failed", error: state.error })
-      .eq("id", jobId);
-    return { status: "failed", error: state.error };
-  }
-
-  // 완료 — 과금(완료분만), 작업 갱신, 영상 라이브러리(agency_deliverables) 저장.
-  try {
-    await consumeVideo(user.id);
-  } catch (err) {
-    if (!(err instanceof NoVideoCreditsError)) throw err;
-    // 제출 시 가용했으므로 완료본은 전달(회계는 로그만).
-    console.warn("[video] consume at completion found no credit", jobId);
-  }
-  await admin
-    .from("video_jobs")
-    .update({ status: "done", video_url: state.videoUrl })
-    .eq("id", jobId);
-  await admin.from("agency_deliverables").insert({
+  // 완료/실패 판정·과금·저장은 멱등 공용 함수(원자적 claim)로 단 한 번만.
+  const state = await finalizeIfComplete({
+    id: job.id,
+    user_id: job.user_id,
     business_id: job.business_id,
-    kind: "video",
-    title: job.prompt.slice(0, 80),
-    url: state.videoUrl,
-    created_by: user.id,
+    prompt: job.prompt,
+    status_url: job.status_url,
+    response_url: job.response_url,
   });
-  return { status: "done", videoUrl: state.videoUrl };
+  if (state.status === "done") return { status: "done", videoUrl: state.videoUrl };
+  if (state.status === "failed") return { status: "failed", error: state.error };
+  return { status: "processing" };
 }
