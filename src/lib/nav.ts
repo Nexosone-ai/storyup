@@ -124,6 +124,7 @@ export function workspaceNav(
     },
     { label: ko ? "블로그" : "Blog", href: `${base}/blog`, icon: "pen", step: 3 },
     { label: "SNS", href: `${base}/marketing`, icon: "megaphone", step: 4 },
+    { label: ko ? "AI 영상" : "AI video", href: `${base}/video`, icon: "megaphone" },
     {
       label: ko ? "광고" : "Ads",
       href: `${base}/ads`,

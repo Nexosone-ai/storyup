@@ -939,6 +939,58 @@ export interface Database {
         >;
         Relationships: [];
       };
+      video_credit_ledger: {
+        Row: {
+          id: string;
+          user_id: string;
+          amount: number;
+          reason: string | null;
+          ref_type: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          amount: number;
+          reason?: string | null;
+          ref_type?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["video_credit_ledger"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      video_jobs: {
+        Row: {
+          id: string;
+          user_id: string;
+          business_id: string;
+          prompt: string;
+          status: "processing" | "done" | "failed";
+          request_id: string | null;
+          status_url: string | null;
+          response_url: string | null;
+          video_url: string | null;
+          error: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          business_id: string;
+          prompt: string;
+          status?: "processing" | "done" | "failed";
+          request_id?: string | null;
+          status_url?: string | null;
+          response_url?: string | null;
+          video_url?: string | null;
+          error?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["video_jobs"]["Insert"]>;
+        Relationships: [];
+      };
       youtube_connections: {
         Row: {
           user_id: string;
@@ -1379,6 +1431,8 @@ export interface Database {
           grants_plan: string | null;
           /** 지급 기간(일) (0025) */
           grant_days: number;
+          /** 지급 영상 크레딧 (0074) */
+          grants_video_credits: number;
           created_at: string;
           updated_at: string;
         };
@@ -1394,6 +1448,7 @@ export interface Database {
           sort_order?: number;
           grants_plan?: string | null;
           grant_days?: number;
+          grants_video_credits?: number;
           created_at?: string;
           updated_at?: string;
         };

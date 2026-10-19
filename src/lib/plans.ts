@@ -23,6 +23,8 @@ export interface Plan {
     cardNews: number | null;
     /** 쇼츠(카드뉴스 배경 9:16 영상) 생성 건/월. 0 = 미제공(Free), null = 협의(무제한) */
     shorts: number | null;
+    /** AI 영상 생성 월 무료 편수. 0 = 미제공(Free), null = 협의(무제한) */
+    video: number | null;
     /**
      * (레거시) 과거 월 이미지 제공량. 이미지는 이제 딜리버리(랜딩·블로그·카드뉴스)에
      * 포함되어 무과금이라 이 값은 청구/표기에 쓰지 않는다. null = 협의(Partner) 구분용으로만 유지.
@@ -65,7 +67,7 @@ export const PLANS: Plan[] = [
     id: "free",
     name: { ko: "Free", en: "Free" },
     priceKrw: 0,
-    limits: { sites: 1, blogPosts: 30, cardNews: 1, shorts: 0, aiImages: 30 }, // 블로그: 하루 1개·월 30개(월 재신청), aiImages: 미사용
+    limits: { sites: 1, blogPosts: 30, cardNews: 1, shorts: 0, video: 0, aiImages: 30 }, // 블로그: 하루 1개·월 30개(월 재신청), aiImages: 미사용
     maxBusinesses: 1,
     maxMembers: 1,
     siteLayouts: 1,
@@ -76,7 +78,7 @@ export const PLANS: Plan[] = [
     id: "basic",
     name: { ko: "Basic", en: "Basic" },
     priceKrw: 59000,
-    limits: { sites: 3, blogPosts: 100, cardNews: 30, shorts: 30, aiImages: 50 },
+    limits: { sites: 3, blogPosts: 100, cardNews: 30, shorts: 30, video: 8, aiImages: 50 },
     maxBusinesses: 3,
     maxMembers: 1,
     siteLayouts: 3,
@@ -92,7 +94,7 @@ export const PLANS: Plan[] = [
     id: "pro",
     name: { ko: "Pro", en: "Pro" },
     priceKrw: 119000,
-    limits: { sites: 6, blogPosts: 300, cardNews: 90, shorts: 90, aiImages: 90 },
+    limits: { sites: 6, blogPosts: 300, cardNews: 90, shorts: 90, video: 10, aiImages: 90 },
     maxBusinesses: 6,
     maxMembers: 3,
     siteLayouts: 9,
@@ -112,7 +114,7 @@ export const PLANS: Plan[] = [
     id: "partner",
     name: { ko: "Partner", en: "Partner" },
     priceKrw: null,
-    limits: { sites: null, blogPosts: null, cardNews: null, shorts: null, aiImages: null },
+    limits: { sites: null, blogPosts: null, cardNews: null, shorts: null, video: null, aiImages: null },
     maxBusinesses: null,
     maxMembers: null,
     domain: "custom",
@@ -203,6 +205,15 @@ export function planFeatureList(plan: Plan, ko: boolean): string[] {
       ko
         ? `쇼츠 생성 ${l.shorts}${per}${shortsSoon}`
         : `${l.shorts} shorts${per}${shortsSoon}`,
+    );
+  }
+
+  // AI 영상 — 월 무료 편수(초과분은 영상 팩 구매).
+  if (l.video === null) {
+    out.push(ko ? `AI 영상 ${talk}` : `AI video: ${talk}`);
+  } else if (l.video > 0) {
+    out.push(
+      ko ? `AI 영상 ${l.video}편${per}` : `${l.video} AI videos${per}`,
     );
   }
 
