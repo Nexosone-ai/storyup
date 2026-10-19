@@ -1,13 +1,19 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
+import { createClient } from "@/lib/supabase/client";
 import {
   createMusicBed,
   SHORTS_MOODS,
   type ShortsMood,
 } from "@/lib/shorts/music";
+import {
+  createEditedVideoUploadUrl,
+  registerEditedVideo,
+} from "@/app/business/[id]/video/actions";
 
 /**
  * 브라우저 영상 편집기 — 완성된 AI 영상을 자르기·자막·배경음악·비율로 다듬어
@@ -144,16 +150,19 @@ const fmt = (s: number) => {
 };
 
 export function VideoEditor({
+  businessId,
   fileUrl,
   title,
   ko,
   onClose,
 }: {
+  businessId: string;
   fileUrl: string;
   title: string | null;
   ko: boolean;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [duration, setDuration] = useState(0);
   const [start, setStart] = useState(0);
@@ -164,6 +173,8 @@ export function VideoEditor({
   const [mood, setMood] = useState<ShortsMood>("none");
   const [keepOriginal, setKeepOriginal] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
@@ -176,13 +187,14 @@ export function VideoEditor({
     setStart(0);
   };
 
-  const exportVideo = async () => {
+  const run = async (after: (blob: Blob, ext: string) => Promise<void>) => {
     const v = videoRef.current;
     if (!v || busy) return;
     const dur = Math.max(0.3, end - start);
     setBusy(true);
     setProgress(0);
     setError(null);
+    setSaved(false);
 
     let actx: AudioContext | null = null;
     let bed: ReturnType<typeof createMusicBed> | null = null;
@@ -264,13 +276,7 @@ export function VideoEditor({
         }
       }, 120);
       const blob = await finished;
-
-      const base =
-        (title?.trim() || "storyup-video")
-          .replace(/[^\w가-힣\- ]+/g, "")
-          .trim()
-          .slice(0, 40) || "storyup-video";
-      downloadBlob(blob, `${base}-편집.${ext}`);
+      await after(blob, ext);
       setProgress(1);
     } catch (e) {
       setError(e instanceof Error ? e.message : "편집 중 오류가 발생했어요.");
@@ -282,6 +288,45 @@ export function VideoEditor({
       setBusy(false);
     }
   };
+
+  const baseName = () =>
+    (title?.trim() || "storyup-video")
+      .replace(/[^\w가-힣\- ]+/g, "")
+      .trim()
+      .slice(0, 40) || "storyup-video";
+
+  const handleDownload = () =>
+    run(async (blob, ext) => {
+      downloadBlob(blob, `${baseName()}-편집.${ext}`);
+    });
+
+  const handleSave = () =>
+    run(async (blob, ext) => {
+      setSaving(true);
+      try {
+        const ticket = await createEditedVideoUploadUrl(businessId, ext);
+        if (ticket.error || !ticket.path || !ticket.token)
+          throw new Error(ticket.error ?? "업로드 준비에 실패했어요.");
+        const supabase = createClient();
+        const { error: upErr } = await supabase.storage
+          .from("site-images")
+          .uploadToSignedUrl(ticket.path, ticket.token, blob, {
+            contentType: blob.type || "video/mp4",
+          });
+        if (upErr) throw new Error("업로드에 실패했어요. 다시 시도해주세요.");
+        const reg = await registerEditedVideo(
+          businessId,
+          ticket.path,
+          `${title?.trim() || "영상"} (편집본)`,
+        );
+        if (reg.error) throw new Error(reg.error);
+        setSaved(true);
+        router.refresh();
+        setTimeout(() => onClose(), 1000);
+      } finally {
+        setSaving(false);
+      }
+    });
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:items-center">
@@ -442,25 +487,47 @@ export function VideoEditor({
 
         {error && <p className="mb-3 text-sm text-danger">{error}</p>}
 
-        <div className="flex items-center gap-3">
-          <Button onClick={exportVideo} disabled={busy || !duration}>
-            {busy ? <Spinner className="size-4" /> : ko ? "편집본 내보내기" : "Export"}
+        <div className="flex flex-wrap items-center gap-3">
+          <Button onClick={handleSave} disabled={busy || !duration}>
+            {busy && saving ? (
+              <Spinner className="size-4" />
+            ) : ko ? (
+              "내 영상에 저장"
+            ) : (
+              "Save to my videos"
+            )}
+          </Button>
+          <Button variant="outline" onClick={handleDownload} disabled={busy || !duration}>
+            {busy && !saving ? (
+              <Spinner className="size-4" />
+            ) : ko ? (
+              "다운로드"
+            ) : (
+              "Download"
+            )}
           </Button>
           {busy && (
             <span className="text-sm text-muted">
-              {ko ? "만드는 중" : "Rendering"} {Math.round(progress * 100)}%
+              {saving
+                ? ko
+                  ? "저장 중"
+                  : "Saving"
+                : ko
+                  ? "만드는 중"
+                  : "Rendering"}{" "}
+              {Math.round(progress * 100)}%
             </span>
           )}
-          {!busy && progress === 1 && (
+          {!busy && saved && (
             <span className="text-sm text-primary">
-              {ko ? "완료 — 다운로드됨" : "Done — downloaded"}
+              {ko ? "내 영상에 저장됐어요" : "Saved to my videos"}
             </span>
           )}
         </div>
         <p className="mt-3 text-xs text-muted">
           {ko
-            ? "편집은 브라우저에서 처리되어 추가 비용이 들지 않아요. 결과 파일이 기기에 저장됩니다."
-            : "Editing runs in your browser at no extra cost. The file saves to your device."}
+            ? "편집은 브라우저에서 처리되어 추가 비용이 들지 않아요. '내 영상에 저장'하면 랜딩·블로그·SNS에 바로 쓸 수 있고, '다운로드'는 기기에 저장합니다."
+            : "Editing runs in your browser at no extra cost. Save to reuse it anywhere, or download to your device."}
         </p>
       </div>
     </div>

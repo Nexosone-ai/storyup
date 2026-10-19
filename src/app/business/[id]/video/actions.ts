@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getBusiness } from "@/lib/queries";
 import { getPlanId } from "@/lib/subscription";
@@ -13,6 +14,7 @@ import {
 } from "@/lib/video";
 
 const MAX_CONCURRENT = 2;
+const VIDEO_BUCKET = "site-images"; // 공개 버킷(원본 제공) — 편집본은 edited-videos/ 하위.
 
 export interface SubmitState {
   jobId?: string;
@@ -116,4 +118,82 @@ export async function pollVideoAction(jobId: string): Promise<PollState> {
   if (state.status === "done") return { status: "done", videoUrl: state.videoUrl };
   if (state.status === "failed") return { status: "failed", error: state.error };
   return { status: "processing" };
+}
+
+// ---------------- 편집본 저장(내 영상에 추가) ----------------
+
+export interface UploadTicketState {
+  path?: string;
+  token?: string;
+  error?: string;
+}
+
+/**
+ * 편집본 업로드용 서명 URL 발급 — 영상 바이트는 서버(Vercel 본문 한도)를 거치지 않고
+ * 브라우저가 Storage에 직접 올린다. 소유자만, 공개 버킷의 edited-videos/ 하위.
+ */
+export async function createEditedVideoUploadUrl(
+  businessId: string,
+  ext: string,
+): Promise<UploadTicketState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "로그인이 필요합니다." };
+  const business = await getBusiness(businessId);
+  if (!business) return { error: "권한이 없습니다." };
+
+  const safeExt = /^(mp4|webm)$/i.test(ext) ? ext.toLowerCase() : "mp4";
+  const admin = createAdminClient();
+  const path = `${businessId}/edited-videos/${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}.${safeExt}`;
+  const { data, error } = await admin.storage
+    .from(VIDEO_BUCKET)
+    .createSignedUploadUrl(path);
+  if (error || !data) return { error: "업로드 준비에 실패했습니다." };
+  return { path: data.path, token: data.token };
+}
+
+export interface RegisterVideoState {
+  ok?: boolean;
+  url?: string;
+  error?: string;
+}
+
+/** 업로드된 편집본을 '내 영상'(agency_deliverables)에 등록. */
+export async function registerEditedVideo(
+  businessId: string,
+  path: string,
+  title: string,
+): Promise<RegisterVideoState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "로그인이 필요합니다." };
+  const business = await getBusiness(businessId);
+  if (!business) return { error: "권한이 없습니다." };
+
+  // 경로 변조 방지 — 반드시 이 사업장의 edited-videos/ 하위여야 한다.
+  if (!path.startsWith(`${businessId}/edited-videos/`))
+    return { error: "잘못된 경로입니다." };
+
+  const admin = createAdminClient();
+  const {
+    data: { publicUrl },
+  } = admin.storage.from(VIDEO_BUCKET).getPublicUrl(path);
+
+  const { error } = await supabase.from("agency_deliverables").insert({
+    business_id: businessId,
+    kind: "video",
+    title: title.slice(0, 80) || "편집 영상",
+    url: publicUrl,
+    created_by: user.id,
+  });
+  if (error) return { error: "저장에 실패했습니다(권한 확인)." };
+
+  revalidatePath(`/business/${businessId}/video`);
+  return { ok: true, url: publicUrl };
 }

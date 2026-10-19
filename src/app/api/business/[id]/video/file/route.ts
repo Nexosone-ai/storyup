@@ -2,15 +2,24 @@ import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-/** fal 미디어/큐 도메인만 허용 — 임의 주소로의 서버 요청(SSRF) 방지. */
-function isFalMediaUrl(u: string): boolean {
+// 우리 Supabase 스토리지 호스트(편집본 저장 위치) — 임의 주소 요청(SSRF) 방지용 허용 목록.
+let SUPABASE_HOST = "";
+try {
+  SUPABASE_HOST = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").hostname.toLowerCase();
+} catch {
+  /* 미설정 시 fal 도메인만 허용 */
+}
+
+/** fal 미디어/큐 + 우리 Supabase 스토리지만 허용 — SSRF 방지. */
+function isAllowedVideoUrl(u: string): boolean {
   try {
     const h = new URL(u).hostname.toLowerCase();
     return (
       h === "fal.media" ||
       h.endsWith(".fal.media") ||
       h === "fal.run" ||
-      h.endsWith(".fal.run")
+      h.endsWith(".fal.run") ||
+      (!!SUPABASE_HOST && h === SUPABASE_HOST)
     );
   } catch {
     return false;
@@ -45,7 +54,7 @@ export async function GET(
     .maybeSingle();
   if (!row || row.kind !== "video" || !row.url)
     return new Response("not found", { status: 404 });
-  if (!isFalMediaUrl(row.url)) return new Response("forbidden", { status: 403 });
+  if (!isAllowedVideoUrl(row.url)) return new Response("forbidden", { status: 403 });
 
   const upstream = await fetch(row.url);
   if (!upstream.ok || !upstream.body)
