@@ -123,8 +123,10 @@ export async function grantVideoCredits(
 
 // ---------------- fal.ai 영상 엔진(큐 + 폴링) ----------------
 
+// 기본값은 현행 지원 모델이어야 함(과거 kling v1.6 standard는 fal 지원 종료).
+// Wan 2.2 A14B: 상업용·prompt만으로 호출 가능·저가(~$0.1/초, 기본 ≈5초).
 const FAL_MODEL =
-  process.env.FAL_VIDEO_MODEL || "fal-ai/kling-video/v1.6/standard/text-to-video";
+  process.env.FAL_VIDEO_MODEL || "fal-ai/wan/v2.2-a14b/text-to-video";
 
 export function videoEngineConfigured(): boolean {
   return !!process.env.FAL_KEY;
@@ -150,11 +152,20 @@ export interface SubmitResult {
 export async function submitVideo(prompt: string): Promise<SubmitResult> {
   const key = process.env.FAL_KEY;
   if (!key) throw new VideoEngineError("영상 엔진이 설정되지 않았습니다. (FAL_KEY 누락)");
-  const res = await fetch(`https://queue.fal.run/${FAL_MODEL}`, {
-    method: "POST",
-    headers: { Authorization: `Key ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt }),
-  });
+  // 네트워크/DNS/타임아웃 등 fetch 자체 실패도 실제 사유를 노출(일반 오류로 가려지지 않게).
+  let res: Response;
+  try {
+    res = await fetch(`https://queue.fal.run/${FAL_MODEL}`, {
+      method: "POST",
+      headers: { Authorization: `Key ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt }),
+    });
+  } catch (err) {
+    console.error("[fal-video] submit network", err);
+    throw new VideoEngineError(
+      `영상 서버에 연결하지 못했어요 — ${(err as Error)?.message ?? "네트워크 오류"}`,
+    );
+  }
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
     const detail =
