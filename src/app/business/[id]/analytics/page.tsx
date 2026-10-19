@@ -11,7 +11,6 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/icons";
 import { SeoAudit, type SeoAuditItem } from "@/components/blog/SeoAudit";
 import { TrendChart } from "@/components/analytics/TrendChart";
-import { SeoSearchPanel } from "@/components/analytics/SeoSearchPanel";
 
 export const metadata = { title: "애널리틱스" };
 
@@ -139,11 +138,11 @@ export default async function AnalyticsPage({
 
   // 방문자 분석 수준 (플랜별): basic=핵심지표, detailed=+유입·쿠폰·고객, advanced=+SEO 진단.
   const user = await getUser();
-  const tier = user
-    ? getPlanById(await getPlanId(user.id)).analyticsTier
-    : "basic";
+  const plan = user ? getPlanById(await getPlanId(user.id)) : null;
+  const tier = plan?.analyticsTier ?? "basic";
   const detailed = tier === "detailed" || tier === "advanced";
-  const advanced = tier === "advanced";
+  // 글별 SEO 진단은 유료 플랜 전체(plan.seoTools: Basic·Pro·Partner).
+  const seoAllowed = plan?.seoTools === true;
 
   // 글별 SEO 자가진단
   const seoItems: SeoAuditItem[] = posts.map((p) => ({
@@ -159,26 +158,13 @@ export default async function AnalyticsPage({
       keywords: p.keywords ?? [],
       content: p.content ?? "",
       hasCoverImage: !!p.cover_image_url,
+      faq: p.faq ?? [],
     }),
   }));
 
   // 콘텐츠 발행 지표(성과 리포트 통합) — 발행 글 수.
   const publishedPosts = posts.filter((p) => p.status === "published");
   const published30d = countPublishedSince(posts, 30);
-
-  // SEO 검색 확인용 — 발행 글 + 공개 URL.
-  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "storyup.me";
-  const siteBase =
-    published && website?.slug
-      ? `https://${appDomain}/site/${website.slug}`
-      : null;
-  const seoPosts = publishedPosts.map((p) => ({
-    id: p.id,
-    title: p.title,
-    slug: p.slug,
-    keywords: p.keywords ?? [],
-    url: siteBase ? `${siteBase}/blog/${p.slug}` : null,
-  }));
 
   return (
     <div className="space-y-8">
@@ -303,9 +289,6 @@ export default async function AnalyticsPage({
           {ko ? "블로그로 가기" : "Go to blog"}
         </ButtonLink>
       </Card>
-
-      {/* SEO 검색 확인 (구글·네이버) — 모든 플랜 노출 */}
-      <SeoSearchPanel posts={seoPosts} ko={ko} />
 
       {/* 기본(Free) 티어 — 상세 분석은 Basic 이상 안내 */}
       {!detailed && (
@@ -569,16 +552,16 @@ export default async function AnalyticsPage({
         </>
       )}
 
-      {/* 글별 SEO 진단 — Pro(고급) 전용 */}
-      {advanced && (
+      {/* 글별 SEO 진단 — 유료 플랜 전체 */}
+      {seoAllowed && (
       <Card>
         <h2 className="mb-1 font-semibold tracking-tight">
           {ko ? "블로그 SEO 진단" : "Blog SEO audit"}
         </h2>
         <p className="mb-5 text-sm text-muted">
           {ko
-            ? "글마다 검색 최적화 점수와 개선할 항목을 정리했어요. 점수가 낮은 글부터 손보면 좋아요."
-            : "Per-post SEO scores and what to fix. Start with the lowest-scoring posts."}
+            ? "글마다 검색·AI 답변 노출 점수와 개선할 항목을 정리했어요. 점수가 낮은 글부터 손보면 좋아요. 각 글에서 'AI 보강 분석'으로 개선 문구도 받을 수 있어요."
+            : "Per-post search & AI-answer scores and what to fix. Open a post for AI suggestions."}
         </p>
         <SeoAudit items={seoItems} />
       </Card>

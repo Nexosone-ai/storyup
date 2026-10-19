@@ -3,6 +3,7 @@ import type {
   PublishStatus,
   MarketingStrategyResult,
   BlogFaqItem,
+  BlogSeoAnalysisCache,
 } from "./domain";
 
 // Hand-maintained to match supabase/migrations/0001_init.sql.
@@ -251,6 +252,9 @@ export interface Database {
           scheduled_at: string | null;
           /** AEO FAQ (0043). Pro 이상에서 생성 — 공개 글에 FAQPage 구조화 데이터로 노출. */
           faq: BlogFaqItem[];
+          /** 글별 SEO 진단·보강 AI 분석 캐시 (0076). 유료 플랜. */
+          seo_analysis: BlogSeoAnalysisCache | null;
+          seo_analyzed_at: string | null;
         } & Timestamps;
         Insert: {
           id?: string;
@@ -270,6 +274,8 @@ export interface Database {
           published_at?: string | null;
           scheduled_at?: string | null;
           faq?: BlogFaqItem[];
+          seo_analysis?: BlogSeoAnalysisCache | null;
+          seo_analyzed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };

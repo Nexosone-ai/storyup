@@ -4,12 +4,14 @@ import type {
   MarketingContentResult,
   MarketingStrategyResult,
   BlogFaqResult,
+  BlogSeoAnalysisResult,
   CardNewsResult,
   WebsiteContent,
   BusinessInterviewInput,
 } from "@/types/domain";
 import type { MarketingStrategyPromptInput } from "./prompts/strategy";
 import type { BlogFaqPromptInput } from "./prompts/faq";
+import type { BlogSeoPromptInput } from "./prompts/seo";
 import type {
   BlogPromptInput,
   BlogTranscriptPromptInput,
@@ -75,6 +77,11 @@ export interface AIProvider {
 
   /** 블로그 글에서 답변엔진(AEO)용 FAQ를 생성한다. */
   generateBlogFaq(input: BlogFaqPromptInput): Promise<BlogFaqResult>;
+
+  /** 글별 SEO·AEO 노출 진단 + 개선 문구 제안. */
+  generateBlogSeoAnalysis(
+    input: BlogSeoPromptInput,
+  ): Promise<BlogSeoAnalysisResult>;
 
   generateCardNews(input: CardNewsPromptInput): Promise<CardNewsResult>;
 

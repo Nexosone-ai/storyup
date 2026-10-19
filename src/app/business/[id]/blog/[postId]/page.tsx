@@ -50,6 +50,7 @@ export default async function BlogEditorPage({
   const reservationAllowed = plan?.reservation === true;
   const schedulingAllowed = plan?.scheduledPublish === true;
   const aeoAllowed = plan?.aeo === true;
+  const seoAllowed = plan?.seoTools === true;
 
   return (
     <div className="space-y-8">
@@ -60,6 +61,7 @@ export default async function BlogEditorPage({
         sitePublished={website?.status === "published"}
         categories={categories}
         schedulingAllowed={schedulingAllowed}
+        seoAllowed={seoAllowed}
       />
       <EventEditor
         businessId={id}

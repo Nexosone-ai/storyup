@@ -10,6 +10,7 @@ import type {
   MarketingContentResult,
   MarketingStrategyResult,
   BlogFaqResult,
+  BlogSeoAnalysisResult,
   CardNewsResult,
   WebsiteContent,
   BusinessInterviewInput,
@@ -41,6 +42,7 @@ import {
   type MarketingStrategyPromptInput,
 } from "./prompts/strategy";
 import { blogFaqPrompt, type BlogFaqPromptInput } from "./prompts/faq";
+import { blogSeoPrompt, type BlogSeoPromptInput } from "./prompts/seo";
 import { cardNewsPrompt, type CardNewsPromptInput } from "./prompts/card-news";
 import type { PdfLandingExtract } from "@/lib/pdfImport";
 import { normalizeLandingExtract } from "@/lib/pdfImport";
@@ -201,6 +203,10 @@ export class ClaudeProvider implements AIProvider {
 
   generateBlogFaq(input: BlogFaqPromptInput) {
     return this.complete<BlogFaqResult>(blogFaqPrompt(input), 1200);
+  }
+
+  generateBlogSeoAnalysis(input: BlogSeoPromptInput) {
+    return this.complete<BlogSeoAnalysisResult>(blogSeoPrompt(input), 1600);
   }
 
   generateCardNews(input: CardNewsPromptInput) {

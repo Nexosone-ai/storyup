@@ -8,6 +8,9 @@ import { contentToPlainText, looksLikeHtml } from "@/utils/markdown";
 
 export type SeoCheckStatus = "pass" | "warn" | "fail";
 
+/** 노출 레인 — seo(구글/네이버 검색) · aeo(AI 답변·FAQ 인용). */
+export type SeoLane = "seo" | "aeo";
+
 export interface SeoCheck {
   id: string;
   status: SeoCheckStatus;
@@ -16,7 +19,12 @@ export interface SeoCheck {
   /** 미통과 시 개선 힌트 */
   hint?: { ko: string; en: string };
   weight: number;
+  /** 어떤 노출 레인에 해당하는지(기본 seo). */
+  lane: SeoLane;
 }
+
+// AEO(답변엔진) 레인에 속하는 체크 id.
+const AEO_IDS = new Set(["direct-answer", "faq"]);
 
 export interface SeoReport {
   score: number; // 0~100
@@ -31,6 +39,8 @@ export interface SeoInput {
   keywords: string[];
   content: string;
   hasCoverImage: boolean;
+  /** AEO FAQ (있으면 답변엔진 인용에 유리). */
+  faq?: { q: string; a: string }[];
 }
 
 function check(
@@ -40,7 +50,14 @@ function check(
   label: SeoCheck["label"],
   hint?: SeoCheck["hint"],
 ): SeoCheck {
-  return { id, status, weight, label, ...(status === "pass" ? {} : { hint }) };
+  return {
+    id,
+    status,
+    weight,
+    label,
+    lane: AEO_IDS.has(id) ? "aeo" : "seo",
+    ...(status === "pass" ? {} : { hint }),
+  };
 }
 
 export function computeSeoReport(input: SeoInput): SeoReport {
@@ -238,6 +255,41 @@ export function computeSeoReport(input: SeoInput): SeoReport {
       {
         ko: "관련 글이나 출처 링크가 있으면 신뢰도에 도움이 됩니다. 발행하면 '관련 콘텐츠'는 자동으로 연결됩니다.",
         en: "Reference or related links add credibility. Related posts are linked automatically on publish.",
+      },
+    ),
+  );
+
+  // 11. (AEO) 결론 먼저 — 도입부가 짧고 직접적인 답변으로 시작하는지.
+  //     AI 답변·검색 스니펫이 인용하기 좋은 첫 문단 신호.
+  const firstSentence = (plain.split(/(?<=[.!?。])\s|\n/)[0] ?? "").trim();
+  checks.push(
+    check(
+      "direct-answer",
+      !firstSentence
+        ? "fail"
+        : firstSentence.length >= 10 && firstSentence.length <= 120
+          ? "pass"
+          : "warn",
+      10,
+      { ko: "결론 먼저(도입 직답)", en: "Direct answer up front" },
+      {
+        ko: "첫 문단을 '결론 먼저' 한두 문장(직접적인 답)으로 시작하면 AI 답변·검색 스니펫에 인용되기 쉽습니다.",
+        en: "Open with a direct 1–2 sentence answer so AI answers and snippets can cite it.",
+      },
+    ),
+  );
+
+  // 12. (AEO) FAQ — 답변엔진이 인용하는 Q&A 구조화 데이터.
+  const faqCount = input.faq?.length ?? 0;
+  checks.push(
+    check(
+      "faq",
+      faqCount >= 2 ? "pass" : faqCount === 1 ? "warn" : "fail",
+      10,
+      { ko: "FAQ(답변엔진용)", en: "FAQ (for answer engines)" },
+      {
+        ko: "자주 묻는 질문 2개 이상을 추가하면 FAQPage 구조화 데이터로 노출되어 AI 답변 인용에 유리합니다. (아래 FAQ 생성 사용)",
+        en: "Add 2+ FAQs — they publish as FAQPage structured data for answer engines.",
       },
     ),
   );
