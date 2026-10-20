@@ -39,6 +39,20 @@ export default async function TemplateEditPage({
   const schema = parsed.ok && parsed.schema ? parsed.schema : emptyPageSchema();
   const aiPrice = await getServicePrice(DESIGN_AI_SERVICE);
 
+  // 적용 가능한(지침형) 보관함 Skill — 디자인 AI 패치로 적용(RLS 본인 것만).
+  const { data: skillRows } = await supabase
+    .from("skill_sources")
+    .select("id, skill_name, description")
+    .eq("support_level", "instructions")
+    .eq("status", "imported")
+    .order("created_at", { ascending: false })
+    .limit(50);
+  const skills = (skillRows ?? []).map((s) => ({
+    id: s.id,
+    name: s.skill_name,
+    description: s.description,
+  }));
+
   return (
     <TemplateEditor
       versionId={ver.id}
@@ -46,6 +60,7 @@ export default async function TemplateEditPage({
       status={ver.status}
       initialSchema={schema}
       aiPrice={aiPrice}
+      skills={skills}
     />
   );
 }

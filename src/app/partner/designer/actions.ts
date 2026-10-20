@@ -161,6 +161,85 @@ export async function aiEditSchemaAction(
   }
 }
 
+/**
+ * 가져온 Skill을 현재 디자인에 '적용' — Skill의 SKILL.md 지침을 AI 디자인 수정 지시로
+ * 변환해 수정 제안을 돌려준다(저장 안 함). 원본 스크립트는 실행하지 않는다(안전).
+ * - instructions 지원 Skill만 적용 가능. adapter(스크립트 필요)·blocked는 거부.
+ * - UP 선차감(DESIGN_AI_EDIT) 후 AI 호출, 실패/검증불가면 환급. 적용은 클라이언트가.
+ */
+export async function applySkillToSchemaAction(
+  skillId: string,
+  currentSchema: PageSchema,
+  extraInstruction?: string,
+): Promise<AiEditState> {
+  const ctx = await requireDesigner();
+  if ("error" in ctx) return { error: ctx.error };
+  const { supabase, user } = ctx;
+
+  const base = validatePageSchema(currentSchema);
+  if (!base.ok || !base.schema) return { error: "현재 디자인을 읽지 못했어요." };
+
+  // RLS로 본인 소유 Skill만 조회됨.
+  const { data: skill } = await supabase
+    .from("skill_sources")
+    .select("id, skill_name, description, support_level, status, manifest")
+    .eq("id", skillId)
+    .maybeSingle();
+  if (!skill) return { error: "Skill을 찾을 수 없어요." };
+  if (skill.status !== "imported") return { error: "사용할 수 없는 Skill이에요." };
+  if (skill.support_level === "blocked")
+    return { error: "이 Skill은 안전상 적용할 수 없어요(차단됨)." };
+  if (skill.support_level === "adapter")
+    return {
+      error:
+        "이 Skill은 스크립트·도구 실행이 필요해 아직 적용할 수 없어요(어댑터 준비 중). 지침형 Skill만 지원해요.",
+    };
+
+  const manifest = (skill.manifest ?? {}) as { bodyExcerpt?: string };
+  const guide = (manifest.bodyExcerpt ?? "").slice(0, 4000).trim();
+  const extra = (extraInstruction ?? "").trim().slice(0, 300);
+  // Skill 지침을 '수정 지시'로 구성 — 원문 지침은 참고 자료일 뿐 실행 대상이 아니다.
+  const instruction = [
+    `다음 디자인 가이드(Skill "${skill.skill_name}"${skill.description ? ` — ${skill.description}` : ""})의 원칙과 톤을 현재 페이지에 반영해 다시 디자인해줘.`,
+    guide ? `가이드 내용:\n${guide}` : "",
+    extra ? `추가 요청: ${extra}` : "",
+    "구조 슬롯과 사실(가격·수치·후기)은 지어내지 말고, 허용 컴포넌트·토큰만 사용해.",
+  ]
+    .filter(Boolean)
+    .join("\n\n")
+    .slice(0, 5000);
+
+  const ko = (await getLocale()) === "ko";
+
+  // UP 선차감 — 잔액 부족이면 호출하지 않음.
+  let billing;
+  try {
+    billing = await chargeAiUsage(user.id, DESIGN_AI_SERVICE, `AI 디자인(Skill: ${skill.skill_name})`);
+  } catch (err) {
+    if (err instanceof InsufficientPointsError) return { error: err.message };
+    return { error: "과금 처리 중 문제가 발생했어요." };
+  }
+
+  try {
+    const raw = await getAIProvider().editDesignSchema({
+      schema: base.schema,
+      instruction,
+      language: ko ? "ko" : "en",
+    });
+    const res = validatePageSchema(raw);
+    if (!res.ok || !res.schema) {
+      await billing.refund();
+      return { error: "Skill 적용 결과가 올바르지 않아 적용하지 못했어요. 다시 시도해주세요." };
+    }
+    return { ok: true, schema: res.schema };
+  } catch (err) {
+    await billing.refund();
+    return {
+      error: err instanceof AIGenerationError ? err.message : "Skill 적용 중 문제가 발생했어요.",
+    };
+  }
+}
+
 /** V2 문서(전문 편집 엔진) 저장 — 초안만, 검증 통과분만. */
 export async function saveTemplateDocument(
   versionId: string,
