@@ -54,7 +54,8 @@ type AddableSection =
   | "testimonials"
   | "faq"
   | "stats"
-  | "cta";
+  | "cta"
+  | "postList";
 
 /** '섹션 추가'로 넣는 섹션의 시작 템플릿(언어별 예시 내용). */
 function makeStarterSection(type: AddableSection, ko: boolean): SiteSection {
@@ -86,6 +87,12 @@ function makeStarterSection(type: AddableSection, ko: boolean): SiteSection {
         ? "궁금한 점이 있으면 편하게 문의해주세요."
         : "Have a question? Reach out anytime.",
       ctaLabel: ko ? "문의하기" : "Contact us",
+    };
+  if (type === "postList")
+    return {
+      type: "postList",
+      title: ko ? "최근 블로그" : "Latest posts",
+      category: "",
     };
   if (type === "pricing")
     return {
@@ -449,10 +456,23 @@ export function WebsiteEditor({
       ),
     }));
   const removeHomeSection = (sectionIndex: number) =>
-    setContent((c) => ({
-      ...c,
-      sections: (c.sections ?? []).filter((_, k) => k !== sectionIndex),
-    }));
+    setContent((c) => {
+      const list = c.sections ?? [];
+      const target = list[sectionIndex];
+      // 블로그 섹션(postList)은 필수 — 마지막 하나는 삭제하지 못하게 막는다.
+      if (
+        target?.type === "postList" &&
+        list.filter((s) => s.type === "postList").length <= 1
+      ) {
+        setNote(
+          ko
+            ? "블로그 섹션은 홈페이지 필수 구성이라 삭제할 수 없어요."
+            : "The blog section is required and cannot be removed.",
+        );
+        return c;
+      }
+      return { ...c, sections: list.filter((_, k) => k !== sectionIndex) };
+    });
 
   /** '섹션 추가' — 선택한 시작 템플릿을 메인 섹션(content.sections)에 추가한다. */
   const addHomeSection = (type: AddableSection) => {
@@ -1257,6 +1277,7 @@ export function WebsiteEditor({
               ["faq", "FAQ"],
               ["stats", ko ? "통계" : "Stats"],
               ["cta", ko ? "CTA(행동 유도)" : "CTA"],
+              ["postList", ko ? "블로그 글목록" : "Blog list"],
             ] as const
           ).map(([t, label]) => (
             <button
