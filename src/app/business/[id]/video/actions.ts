@@ -6,12 +6,13 @@ import { getBusiness } from "@/lib/queries";
 import { getPlanId } from "@/lib/subscription";
 import { getPlanById } from "@/lib/plans";
 import {
-  getVideoQuota,
   submitVideo,
   finalizeIfComplete,
   videoEngineConfigured,
   VideoEngineError,
+  VIDEO_SERVICE,
 } from "@/lib/video";
+import { chargeAiUsage, InsufficientPointsError } from "@/lib/ai/billing";
 
 const MAX_CONCURRENT = 2;
 const VIDEO_BUCKET = "site-images"; // 공개 버킷(원본 제공) — 편집본은 edited-videos/ 하위.
@@ -21,7 +22,7 @@ export interface SubmitState {
   error?: string;
 }
 
-/** AI 영상 생성 제출 — 유료 게이트 + 쿼터 확인 후 fal 큐에 제출(과금은 완료 시). */
+/** AI 영상 생성 제출 — 유료 게이트 + UP 선차감 후 fal 큐에 제출(실패 시 환급). */
 export async function submitVideoAction(
   businessId: string,
   prompt: string,
@@ -43,24 +44,30 @@ export async function submitVideoAction(
   if (!videoEngineConfigured())
     return { error: "영상 엔진이 아직 설정되지 않았어요(관리자 설정 필요)." };
 
-  // 쿼터: 처리 중 작업까지 포함해 가용분을 넘지 않도록(제출 남발 방지).
-  const q = await getVideoQuota(user.id);
+  // 동시 처리 제한(제출 남발 방지).
   const admin = createAdminClient();
   const { count: processing } = await admin
     .from("video_jobs")
     .select("id", { count: "exact", head: true })
     .eq("user_id", user.id)
     .eq("status", "processing");
-  const proc = processing ?? 0;
-  if (proc >= MAX_CONCURRENT)
+  if ((processing ?? 0) >= MAX_CONCURRENT)
     return { error: "처리 중인 영상이 있어요. 잠시 후 다시 시도해주세요." };
-  if (q.available !== null && q.available - proc <= 0)
-    return { error: "이번 달 무료 영상을 모두 사용했어요. 영상 팩을 구매해주세요." };
+
+  // UP 선차감 — 잔액 부족이면 생성하지 않고 안내(차감 없음).
+  let billing;
+  try {
+    billing = await chargeAiUsage(user.id, VIDEO_SERVICE, "AI 영상 생성");
+  } catch (err) {
+    if (err instanceof InsufficientPointsError) return { error: err.message };
+    console.error("[video] charge failed", err);
+    return { error: "과금 처리 중 문제가 발생했어요. 잠시 후 다시 시도해주세요." };
+  }
 
   try {
     const sub = await submitVideo(text);
     // video_jobs는 서비스롤만 쓰기(사용자가 status_url 등 변조 못 하게) — admin으로 기록.
-    const { data: job } = await admin
+    const { data: job, error: insErr } = await admin
       .from("video_jobs")
       .insert({
         user_id: user.id,
@@ -70,11 +77,15 @@ export async function submitVideoAction(
         request_id: sub.requestId,
         status_url: sub.statusUrl,
         response_url: sub.responseUrl,
+        charged: billing.charged,
       })
       .select("id")
       .single();
-    return { jobId: job?.id };
+    if (insErr || !job) throw new Error("작업 기록에 실패했어요.");
+    return { jobId: job.id };
   } catch (err) {
+    // 제출/기록 실패 → 선차감 UP 환급.
+    await billing.refund();
     if (err instanceof VideoEngineError) return { error: err.message };
     return { error: "영상 생성 요청에 실패했어요." };
   }
@@ -86,7 +97,7 @@ export interface PollState {
   error?: string;
 }
 
-/** 작업 상태 폴링 — 완료 시 과금(완료분만)·영상 라이브러리 저장. */
+/** 작업 상태 폴링 — 완료 시 라이브러리 저장, 실패 시 선차감 UP 환급(멱등). */
 export async function pollVideoAction(jobId: string): Promise<PollState> {
   const supabase = await createClient();
   const {
@@ -97,7 +108,9 @@ export async function pollVideoAction(jobId: string): Promise<PollState> {
   // RLS로 본인 사업장 작업만 조회됨.
   const { data: job } = await supabase
     .from("video_jobs")
-    .select("id, user_id, business_id, prompt, status, video_url, error, status_url, response_url")
+    .select(
+      "id, user_id, business_id, prompt, status, video_url, error, status_url, response_url, charged",
+    )
     .eq("id", jobId)
     .maybeSingle();
   if (!job) return { status: "failed", error: "작업을 찾을 수 없습니다." };
@@ -106,7 +119,7 @@ export async function pollVideoAction(jobId: string): Promise<PollState> {
   if (job.status === "failed")
     return { status: "failed", error: job.error ?? "실패" };
 
-  // 완료/실패 판정·과금·저장은 멱등 공용 함수(원자적 claim)로 단 한 번만.
+  // 완료/실패 판정·저장·환급은 멱등 공용 함수(원자적 claim)로 단 한 번만.
   const state = await finalizeIfComplete({
     id: job.id,
     user_id: job.user_id,
@@ -114,6 +127,7 @@ export async function pollVideoAction(jobId: string): Promise<PollState> {
     prompt: job.prompt,
     status_url: job.status_url,
     response_url: job.response_url,
+    charged: job.charged ?? 0,
   });
   if (state.status === "done") return { status: "done", videoUrl: state.videoUrl };
   if (state.status === "failed") return { status: "failed", error: state.error };

@@ -7,11 +7,11 @@ import { Spinner } from "@/components/ui/Spinner";
 import { submitVideoAction, pollVideoAction } from "@/app/business/[id]/video/actions";
 import { VideoEditor } from "@/components/video/VideoEditor";
 
-interface Quota {
-  freeLimit: number | null;
-  freeUsed: number;
-  purchased: number;
-  available: number | null;
+interface Pricing {
+  /** 영상 1편당 UP 단가. 0 = 무료. */
+  price: number;
+  /** 사용자 보유 UP. */
+  balance: number;
 }
 interface VideoItem {
   id: string;
@@ -22,13 +22,13 @@ interface VideoItem {
 
 export function VideoStudio({
   businessId,
-  quota,
+  pricing,
   engineReady,
   videos,
   ko,
 }: {
   businessId: string;
-  quota: Quota;
+  pricing: Pricing;
   engineReady: boolean;
   videos: VideoItem[];
   ko: boolean;
@@ -42,10 +42,7 @@ export function VideoStudio({
   const [editing, setEditing] = useState<VideoItem | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const freeRemaining =
-    quota.freeLimit === null
-      ? null
-      : Math.max(0, quota.freeLimit - quota.freeUsed);
+  const notEnough = pricing.price > 0 && pricing.balance < pricing.price;
 
   const poll = (jobId: string) => {
     let tries = 0;
@@ -99,21 +96,34 @@ export function VideoStudio({
 
   return (
     <div className="space-y-5">
-      {/* 쿼터 */}
+      {/* 과금 안내 — 1편당 UP 차감 + 보유 UP */}
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border bg-surface p-4">
         <p className="text-sm">
-          {ko ? "이번 달 무료" : "Free this month"}:{" "}
+          {ko ? "영상 1편당" : "Per video"}:{" "}
           <strong>
-            {freeRemaining === null ? "무제한" : `${freeRemaining}편`}
+            {pricing.price > 0
+              ? `${pricing.price.toLocaleString()} UP`
+              : ko
+                ? "무료"
+                : "Free"}
           </strong>
-          {quota.purchased > 0 && (
-            <span className="text-muted"> · 구매 {quota.purchased}편</span>
-          )}
+          <span className="text-muted">
+            {" · "}
+            {ko ? "보유" : "Balance"} {pricing.balance.toLocaleString()} UP
+          </span>
         </p>
-        <ButtonLink size="sm" variant="outline" href="/pay/video-pack-10">
-          {ko ? "영상 팩 구매" : "Buy pack"}
+        <ButtonLink size="sm" variant="outline" href="/dashboard/points">
+          {ko ? "UP 충전" : "Get UP"}
         </ButtonLink>
       </div>
+
+      {notEnough && (
+        <p className="rounded-xl border border-warning/40 bg-warning/5 px-4 py-3 text-sm text-warning">
+          {ko
+            ? `UP이 부족해요. 영상 1편에 ${pricing.price.toLocaleString()} UP이 필요합니다.`
+            : `Not enough UP. Each video costs ${pricing.price.toLocaleString()} UP.`}
+        </p>
+      )}
 
       {!engineReady && (
         <p className="rounded-xl border border-border bg-surface-muted/40 px-4 py-3 text-sm text-muted">

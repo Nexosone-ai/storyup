@@ -979,6 +979,8 @@ export interface Database {
           response_url: string | null;
           video_url: string | null;
           error: string | null;
+          /** 제출 시 선차감한 UP(0077). 실패 시 환급 대상. */
+          charged: number;
           created_at: string;
         };
         Insert: {
@@ -992,6 +994,7 @@ export interface Database {
           response_url?: string | null;
           video_url?: string | null;
           error?: string | null;
+          charged?: number;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["video_jobs"]["Insert"]>;
