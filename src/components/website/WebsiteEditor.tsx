@@ -532,6 +532,36 @@ export function WebsiteEditor({
       return { ...c, sections: list };
     });
 
+  /** 메인 슬라이드 섹션에 슬라이드 한 장 추가. */
+  const addSlide = (sectionIndex: number) =>
+    setContent((c) => {
+      const list = [...(c.sections ?? [])];
+      const sec = list[sectionIndex];
+      if (sec?.type !== "slider") return c;
+      list[sectionIndex] = {
+        ...sec,
+        items: [...sec.items, { title: ko ? "새 슬라이드" : "New slide" }],
+      };
+      return { ...c, sections: list };
+    });
+
+  /** 메인 슬라이드 섹션에서 슬라이드 삭제(최소 1장 유지). */
+  const removeSlide = (sectionIndex: number, slideIndex: number) =>
+    setContent((c) => {
+      const list = [...(c.sections ?? [])];
+      const sec = list[sectionIndex];
+      if (sec?.type !== "slider") return c;
+      if (sec.items.length <= 1) {
+        setNote(ko ? "슬라이드는 최소 1장 필요해요." : "At least one slide is required.");
+        return c;
+      }
+      list[sectionIndex] = {
+        ...sec,
+        items: sec.items.filter((_, k) => k !== slideIndex),
+      };
+      return { ...c, sections: list };
+    });
+
   /** '전문 레이아웃 채우기' — 핵심 섹션(히어로·메인슬라이드·핵심기능·블로그·CTA) 중
    *  없는 것만 추가해 전문 홈페이지 골격을 한 번에 구성(기존 섹션은 보존). */
   const scaffoldProLayout = () =>
@@ -1419,47 +1449,74 @@ export function WebsiteEditor({
                 SITE_SECTION_LABELS[s.type as keyof typeof SITE_SECTION_LABELS];
               const name = label ? (ko ? label.ko : label.en) : s.type;
               return (
-                <li
-                  key={i}
-                  className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-1.5 text-sm"
-                >
-                  <span className="truncate">
-                    <span className="mr-1.5 text-xs text-muted">{i + 1}.</span>
-                    {name}
-                    {s.type === "postList" && (
-                      <span className="ml-1.5 text-xs text-primary">
-                        {ko ? "(필수)" : "(required)"}
-                      </span>
-                    )}
-                  </span>
-                  <span className="flex shrink-0 items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => moveHomeSection(i, -1)}
-                      disabled={i === 0}
-                      aria-label={ko ? "위로" : "Up"}
-                      className="rounded border border-border px-1.5 py-0.5 text-xs text-muted hover:text-primary disabled:opacity-40"
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => moveHomeSection(i, 1)}
-                      disabled={i === (content.sections ?? []).length - 1}
-                      aria-label={ko ? "아래로" : "Down"}
-                      className="rounded border border-border px-1.5 py-0.5 text-xs text-muted hover:text-primary disabled:opacity-40"
-                    >
-                      ↓
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeHomeSection(i)}
-                      aria-label={ko ? "삭제" : "Delete"}
-                      className="rounded border border-border px-1.5 py-0.5 text-xs text-muted hover:text-danger"
-                    >
-                      ✕
-                    </button>
-                  </span>
+                <li key={i} className="rounded-lg border border-border px-3 py-1.5 text-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate">
+                      <span className="mr-1.5 text-xs text-muted">{i + 1}.</span>
+                      {name}
+                      {s.type === "postList" && (
+                        <span className="ml-1.5 text-xs text-primary">
+                          {ko ? "(필수)" : "(required)"}
+                        </span>
+                      )}
+                      {s.type === "slider" && (
+                        <span className="ml-1.5 text-xs text-muted">
+                          {ko ? `· 슬라이드 ${s.items.length}장` : `· ${s.items.length} slides`}
+                        </span>
+                      )}
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => moveHomeSection(i, -1)}
+                        disabled={i === 0}
+                        aria-label={ko ? "위로" : "Up"}
+                        className="rounded border border-border px-1.5 py-0.5 text-xs text-muted hover:text-primary disabled:opacity-40"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveHomeSection(i, 1)}
+                        disabled={i === (content.sections ?? []).length - 1}
+                        aria-label={ko ? "아래로" : "Down"}
+                        className="rounded border border-border px-1.5 py-0.5 text-xs text-muted hover:text-primary disabled:opacity-40"
+                      >
+                        ↓
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeHomeSection(i)}
+                        aria-label={ko ? "삭제" : "Delete"}
+                        className="rounded border border-border px-1.5 py-0.5 text-xs text-muted hover:text-danger"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  </div>
+                  {/* 메인 슬라이드: 슬라이드 추가/삭제(최소 1장) */}
+                  {s.type === "slider" && (
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border pt-2">
+                      {s.items.map((_, k) => (
+                        <button
+                          key={k}
+                          type="button"
+                          onClick={() => removeSlide(i, k)}
+                          className="rounded border border-border px-2 py-0.5 text-xs text-muted hover:border-danger/50 hover:text-danger"
+                          title={ko ? `슬라이드 ${k + 1} 삭제` : `Delete slide ${k + 1}`}
+                        >
+                          {k + 1} ✕
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => addSlide(i)}
+                        className="rounded border border-border-strong px-2 py-0.5 text-xs font-medium text-primary hover:bg-primary-soft"
+                      >
+                        {ko ? "+ 슬라이드" : "+ Slide"}
+                      </button>
+                    </div>
+                  )}
                 </li>
               );
             })}
