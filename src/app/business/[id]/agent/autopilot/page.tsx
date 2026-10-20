@@ -79,16 +79,21 @@ export default async function AutopilotPage({
 
   return (
     <div className="space-y-5">
-      <div>
-        <p className="eyebrow mb-2">{ko ? "AI 오토파일럿" : "AI autopilot"}</p>
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          {ko ? "자동 마케팅 루틴" : "Autonomous marketing routines"}
-        </h1>
-        <p className="mt-1.5 text-muted">
-          {ko
-            ? "정해진 주기로 블로그·카드뉴스·SNS 게시를 자동으로 준비해요. 기본은 '제안'이며, '자동 실행'은 하루·월 한도 안에서만 동작합니다. 언제든 끌 수 있어요."
-            : "Prepares blog/card/social posts on a schedule. Defaults to proposals; 'auto' runs only within daily/monthly caps. Turn off anytime."}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="eyebrow mb-2">{ko ? "AI 오토파일럿" : "AI autopilot"}</p>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            {ko ? "자동 마케팅 루틴" : "Autonomous marketing routines"}
+          </h1>
+          <p className="mt-1.5 text-muted">
+            {ko
+              ? "정해진 주기로 블로그·카드뉴스·SNS 게시를 자동으로 준비해요. 기본은 '제안'이며, '자동 실행'은 하루·월 한도 안에서만 동작합니다. 언제든 끌 수 있어요."
+              : "Prepares blog/card/social posts on a schedule. Defaults to proposals; 'auto' runs only within daily/monthly caps. Turn off anytime."}
+          </p>
+        </div>
+        <ButtonLink variant="outline" href={`/business/${id}/agent`}>
+          {ko ? "AI 에이전트" : "AI agent"}
+        </ButtonLink>
       </div>
       <AutopilotSettings
         businessId={id}
