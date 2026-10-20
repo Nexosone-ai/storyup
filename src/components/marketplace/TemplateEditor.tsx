@@ -25,6 +25,7 @@ import {
   type ComponentType,
   type PageSchema,
 } from "@/lib/marketplace/pageSchema";
+import { UXUI_PROMPTS } from "@/lib/marketplace/prompts";
 import {
   saveTemplateVersion,
   submitTemplateVersion,
@@ -243,6 +244,18 @@ export function TemplateEditor({
       setAiProposed(res.schema);
     });
   };
+  // 프롬프트 프리셋 — 빈 캔버스 대신 박스를 눌러 섹션을 AI로 구성(제안 미리보기).
+  const runPreset = (prompt: string) => {
+    setAiMsg(null);
+    startAi(async () => {
+      const res = await aiEditSchemaAction(prompt, schema);
+      if (res.error || !res.schema) {
+        setAiMsg(res.error ?? "구성에 실패했어요.");
+        return;
+      }
+      setAiProposed(res.schema);
+    });
+  };
   // Skill 적용 — 보관함의 지침형 Skill을 현재 디자인에 AI 패치로 반영(제안 미리보기).
   const runSkill = () => {
     if (!skillId) return;
@@ -362,6 +375,25 @@ export function TemplateEditor({
               </Button>
             </div>
           )}
+          {/* 프롬프트로 구성 — 박스를 눌러 섹션을 AI로 추가(빈 캔버스 대안) */}
+          <div className="mt-2 border-t border-border pt-2">
+            <p className="mb-1.5 text-xs font-medium text-muted">프롬프트로 구성</p>
+            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+              {UXUI_PROMPTS.map((p) => (
+                <button
+                  key={p.key}
+                  type="button"
+                  onClick={() => runPreset(p.prompt)}
+                  disabled={aiBusy || !!aiProposed}
+                  title={p.hint}
+                  className="rounded-lg border border-border bg-background px-2.5 py-2 text-left transition-colors hover:border-primary/60 hover:bg-surface disabled:opacity-60"
+                >
+                  <span className="block truncate text-xs font-semibold">{p.title}</span>
+                  <span className="mt-0.5 block truncate text-[11px] text-muted">{p.hint}</span>
+                </button>
+              ))}
+            </div>
+          </div>
           <p className="mt-1.5 text-xs text-muted">
             {aiPrice > 0
               ? `요청 1건당 ${aiPrice.toLocaleString()} UP 차감(실패 시 환급). `
