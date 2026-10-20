@@ -1836,6 +1836,8 @@ export function WebsiteEditor({
                 Img={editImgRenderer}
                 Gallery={editGallery}
                 cards={cards}
+                sectionPosts={posts}
+                categories={categories}
                 editable
                 scoped
                 onDeleteSection={removeHomeSection}

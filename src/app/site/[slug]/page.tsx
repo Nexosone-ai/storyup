@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import {
   getPublishedSite,
   getPublishedPosts,
+  getBlogCategories,
   getUser,
   getSiteCards,
 } from "@/lib/queries";
@@ -59,6 +60,17 @@ export default async function PublicSitePage({
     publishedAt: p.published_at,
     keyword: p.keywords[0],
   }));
+  // 블로그 연결 섹션(postList 등)용 — 이 사업장 공개 글 전체(카테고리 포함).
+  const sectionPosts = posts.map((p) => ({
+    slug: p.slug,
+    title: p.title,
+    summary: p.summary,
+    coverImageUrl: p.cover_image_url,
+    publishedAt: p.published_at,
+    keyword: p.keywords[0],
+    category: p.category ?? null,
+  }));
+  const blogCategories = await getBlogCategories(site.business.id);
 
   const c = site.website.content;
   // 랜딩페이지 "카드뉴스" 섹션 — 이 가게가 만든 카드뉴스(최신순).
@@ -97,6 +109,8 @@ export default async function PublicSitePage({
         content={site.website.content}
         blogHref={blogHref}
         latestPosts={latestPosts}
+        sectionPosts={sectionPosts}
+        categories={blogCategories}
         cards={cards}
         siteSlug={slug}
         editHref={editHref}

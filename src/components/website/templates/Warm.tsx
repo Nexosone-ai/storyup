@@ -75,7 +75,7 @@ export function WarmTemplate(props: TemplateProps) {
       </section>
     ),
     sections: (
-      <SiteSections sections={content.sections} T={T} Img={Img} editable={editable} onDelete={props.onDeleteSection} />
+      <SiteSections sections={content.sections} T={T} Img={Img} editable={editable} onDelete={props.onDeleteSection} posts={props.sectionPosts} categories={props.categories} />
     ),
     gallery: <GalleryBlock {...props} heading={h} />,
     blog: <BlogBlock {...props} heading={h} />,

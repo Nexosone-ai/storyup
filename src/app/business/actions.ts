@@ -1193,6 +1193,18 @@ export async function deleteBlogAction(
   const { supabase, user } = await requireUser();
   if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
 
+  // 삭제 전 글 slug·사이트 slug 확보(삭제 후 공개 사이트 재검증용).
+  const { data: post } = await supabase
+    .from("blog_posts")
+    .select("slug")
+    .eq("id", postId)
+    .maybeSingle();
+  const { data: web } = await supabase
+    .from("websites")
+    .select("slug")
+    .eq("business_id", businessId)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("blog_posts")
     .delete()
@@ -1202,5 +1214,12 @@ export async function deleteBlogAction(
     return { error: ko ? "삭제에 실패했습니다." : "Failed to delete." };
 
   revalidatePath(`/business/${businessId}/blog`);
+  // 삭제가 공개 홈페이지·블로그 섹션에도 즉시 반영되도록 재검증.
+  revalidatePath("/sitemap.xml");
+  if (web?.slug) {
+    revalidatePath(`/site/${web.slug}`);
+    revalidatePath(`/site/${web.slug}/blog`);
+    if (post?.slug) revalidatePath(`/site/${web.slug}/blog/${post.slug}`);
+  }
   return { ok: true };
 }
