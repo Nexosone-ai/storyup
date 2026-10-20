@@ -202,9 +202,18 @@ export interface SiteStatItem {
   value: string;
   label: string;
 }
+/** 메인 슬라이드(캐러셀)의 한 장 — 배경 이미지 + 오버레이 문구·CTA. */
+export interface SiteSlideItem {
+  image?: string;
+  title?: string;
+  subtitle?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+}
 
 export const SITE_SECTION_TYPES = [
   "hero",
+  "slider",
   "features",
   "pricing",
   "steps",
@@ -248,6 +257,8 @@ export interface SiteBanner {
 export type SiteSection = { image?: string } & (
   // 섹션형 히어로 — 배지(subtitle)·큰 제목·버튼. image는 배경으로 쓰인다.
   | { type: "hero"; title: string; subtitle?: string; ctaLabel?: string; ctaHref?: string }
+  // 메인 슬라이드 — 여러 장의 배경 이미지 + 오버레이 문구/CTA(공개는 자동 캐러셀).
+  | { type: "slider"; title?: string; items: SiteSlideItem[] }
   | { type: "features"; title: string; subtitle?: string; items: SiteFeatureItem[] }
   | { type: "pricing"; title: string; subtitle?: string; items: SitePricingItem[] }
   | { type: "steps"; title: string; subtitle?: string; items: SiteStepItem[] }

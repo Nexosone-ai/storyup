@@ -41,6 +41,22 @@ export function normalizeSiteSections(raw: unknown): SiteSection[] {
           out.push({ type, title, subtitle, ctaLabel, image });
         break;
       }
+      case "slider": {
+        const its = items
+          .map((i) => {
+            const x = (i ?? {}) as Record<string, unknown>;
+            return {
+              image: str(x.image, 600) || undefined,
+              title: str(x.title, 120) || undefined,
+              subtitle: str(x.subtitle, 240) || undefined,
+              ctaLabel: str(x.ctaLabel, 40) || undefined,
+              ctaHref: str(x.ctaHref, 600) || undefined,
+            };
+          })
+          .filter((i) => i.image || i.title || i.subtitle);
+        if (its.length) out.push({ type, title: title || undefined, items: its });
+        break;
+      }
       case "features": {
         const its = items
           .map((i) => {
