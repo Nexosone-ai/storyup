@@ -10,6 +10,8 @@ import {
   saveMessage,
 } from "@/lib/ai/agent/store";
 import { runAgentTurnStream } from "@/lib/ai/agent/runnerStream";
+import { getFacebookStatus } from "@/lib/social/facebook";
+import { getYoutubeStatus } from "@/lib/youtube";
 import type { Json } from "@/types/database";
 
 export const maxDuration = 60;
@@ -99,7 +101,11 @@ export async function POST(
           content: message,
         });
 
-        const brand = await getBrandProfile(businessId);
+        const [brand, fbStatus, ytStatus] = await Promise.all([
+          getBrandProfile(businessId),
+          getFacebookStatus(businessId),
+          getYoutubeStatus(user.id),
+        ]);
         const result = await runAgentTurnStream(
           {
             supabase,
@@ -113,6 +119,16 @@ export async function POST(
               category: business.category,
               brandStory: brand?.brand_story ?? null,
               tone: brand?.tone ?? business.tone ?? null,
+              social: {
+                facebook: {
+                  configured: fbStatus.configured,
+                  connected: fbStatus.connected,
+                },
+                youtube: {
+                  configured: ytStatus.configured,
+                  connected: ytStatus.connected,
+                },
+              },
             },
             ko,
           },
