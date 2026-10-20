@@ -1,6 +1,9 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { getUser, getProfileName, getDashboardData } from "@/lib/queries";
+import { getUser, getProfileName, getDashboardData, accountOwnerId } from "@/lib/queries";
+import { createClient } from "@/lib/supabase/server";
+import { listOwnerShares } from "@/lib/accountShare";
 import { isCurrentUserAdmin } from "@/lib/points";
 import { isCurrentUserPartner } from "@/lib/partner";
 import { isCurrentUserNetworkMember } from "@/lib/network";
@@ -34,10 +37,13 @@ export default async function DashboardPage() {
   const ko = (await getLocale()) === "ko";
   // 추천 링크(/join?ref=)로 가입한 경우 쿠키의 코드를 귀속 처리에 넘긴다
   const refCode = (await cookies()).get("su_ref")?.value ?? null;
-  const [name, data, growth] = await Promise.all([
+  const supabase = await createClient();
+  const ownerId = await accountOwnerId(supabase, user.id);
+  const [name, data, growth, partnerShares] = await Promise.all([
     getProfileName(),
     getDashboardData(user.id),
     getGrowthOverview(user.id, refCode),
+    listOwnerShares(ownerId),
   ]);
 
   return (
@@ -72,6 +78,45 @@ export default async function DashboardPage() {
       <GrowthSection g={growth} ko={ko} />
 
       <SummaryCards totals={data.totals} />
+
+      {/* 현재 공유 중인 파트너 요약 */}
+      {partnerShares.length > 0 && (
+        <section className="rounded-2xl border border-border bg-surface p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-lg font-semibold tracking-tight">
+              {ko ? "현재 파트너 현황" : "Partners"}
+            </h2>
+            <Link href="/dashboard/share" className="text-sm font-medium text-primary hover:underline">
+              {ko ? "계정 공유 관리 →" : "Manage →"}
+            </Link>
+          </div>
+          <ul className="divide-y divide-border">
+            {partnerShares.map((s) => (
+              <li key={s.id} className="flex items-center justify-between gap-2 py-2 text-sm">
+                <span className="min-w-0 truncate">
+                  <span className="font-medium">{s.partnerName || s.partnerEmail}</span>
+                  {s.partnerName && <span className="text-muted"> · {s.partnerEmail}</span>}
+                </span>
+                <span
+                  className={`shrink-0 rounded-full border px-2 py-0.5 text-xs ${
+                    s.status === "accepted"
+                      ? "border-success/40 text-success"
+                      : "border-border text-muted"
+                  }`}
+                >
+                  {s.status === "accepted"
+                    ? ko
+                      ? "접근중"
+                      : "Active"
+                    : ko
+                      ? "수락 대기"
+                      : "Pending"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section>
         <h2 className="mb-4 text-lg font-semibold tracking-tight">
