@@ -7,6 +7,9 @@
 export const MARKETPLACE_ENABLED =
   process.env.NEXT_PUBLIC_MARKETPLACE_ENABLED === "true";
 
+/** AI 디자인 수정 과금 서비스 키(service_prices). */
+export const DESIGN_AI_SERVICE = "DESIGN_AI_EDIT";
+
 /** Page Schema 안전 한도 — 검증기와 에디터가 공유. */
 export const SCHEMA_LIMITS = {
   maxSections: 40,
