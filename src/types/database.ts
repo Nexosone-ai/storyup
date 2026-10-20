@@ -1221,6 +1221,30 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["skill_catalog"]["Insert"]>;
         Relationships: [];
       };
+      homepage_templates: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          title: string;
+          description: string | null;
+          content: Record<string, unknown>;
+          is_listed: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          title?: string;
+          description?: string | null;
+          content: Record<string, unknown>;
+          is_listed?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["homepage_templates"]["Insert"]>;
+        Relationships: [];
+      };
       design_prompts: {
         Row: {
           id: string;

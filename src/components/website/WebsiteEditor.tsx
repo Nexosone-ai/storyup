@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import {
   DndContext,
   closestCenter,
@@ -44,6 +51,12 @@ import type { PlaceImportData } from "@/lib/placeImport";
 import type { PdfImportData } from "@/lib/pdfImport";
 import { SITE_FONTS, SITE_PALETTES, siteStyleVars } from "./siteStyle";
 import { INDUSTRY_PRESETS } from "@/lib/website/industryPresets";
+import {
+  saveHomepageTemplateAction,
+  listHomepageTemplates,
+  installHomepageTemplateAction,
+  type HomepageTemplateRow,
+} from "@/app/business/[id]/website/template-actions";
 import { normalizeAdsensePublisherId } from "@/lib/adsense";
 import { slugify } from "@/utils/slug";
 import {
@@ -336,6 +349,40 @@ export function WebsiteEditor({
     error: boolean;
   } | null>(null);
   const [adsenseSaving, startAdsense] = useTransition();
+
+  // 디자인 템플릿(재사용/판매용) — 현재 디자인 저장 + 내 템플릿에서 초안 설치.
+  const [tplBusy, startTpl] = useTransition();
+  const [tplList, setTplList] = useState<HomepageTemplateRow[]>([]);
+  const [tplTitle, setTplTitle] = useState("");
+  const [selTpl, setSelTpl] = useState("");
+  useEffect(() => {
+    listHomepageTemplates()
+      .then(setTplList)
+      .catch(() => setTplList([]));
+  }, []);
+  const saveAsTemplate = () =>
+    startTpl(async () => {
+      setNote(null);
+      const res = await saveHomepageTemplateAction(businessId, tplTitle);
+      setNote(res.error ?? res.message ?? null);
+      if (res.ok) {
+        setTplTitle("");
+        listHomepageTemplates().then(setTplList).catch(() => {});
+      }
+    });
+  const installTemplate = () => {
+    if (!selTpl) return;
+    startTpl(async () => {
+      setNote(null);
+      const res = await installHomepageTemplateAction(businessId, selTpl);
+      if (res.error) {
+        setNote(res.error);
+        return;
+      }
+      // 설치로 서버 콘텐츠가 바뀌었으므로 편집기를 새로 로드한다.
+      window.location.reload();
+    });
+  };
 
   const template = content.template ?? "classic";
 
@@ -1594,6 +1641,50 @@ export function WebsiteEditor({
             {ko
               ? "기존 섹션 구성을 이 디자인으로 바꿔요(글 원문은 그대로). 적용 후 박스를 눌러 수정하세요."
               : "Replaces your section layout (post content stays intact)."}
+          </p>
+        </div>
+        {/* 디자인 템플릿 — 현재 디자인 저장(판매자 데이터 제거) + 내 템플릿에서 초안 설치 */}
+        <div className="rounded-lg bg-surface p-3">
+          <p className="mb-1 text-xs font-semibold text-muted">
+            {ko ? "디자인 템플릿(재사용·판매)" : "Design templates"}
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="text"
+              value={tplTitle}
+              onChange={(e) => setTplTitle(e.target.value)}
+              placeholder={ko ? "템플릿 이름" : "Template name"}
+              disabled={tplBusy}
+              className="min-w-0 flex-1 rounded border border-border bg-background px-2 py-1.5 text-sm"
+            />
+            <Button size="sm" variant="outline" onClick={saveAsTemplate} disabled={tplBusy}>
+              {tplBusy ? <Spinner className="size-4" /> : ko ? "이 디자인 저장" : "Save design"}
+            </Button>
+          </div>
+          {tplList.length > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <select
+                value={selTpl}
+                onChange={(e) => setSelTpl(e.target.value)}
+                disabled={tplBusy}
+                className="min-w-0 flex-1 rounded border border-border bg-background px-2 py-1.5 text-sm"
+              >
+                <option value="">{ko ? "내 템플릿 선택…" : "Choose a template…"}</option>
+                {tplList.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.title}
+                  </option>
+                ))}
+              </select>
+              <Button size="sm" onClick={installTemplate} disabled={tplBusy || !selTpl}>
+                {ko ? "설치(초안)" : "Install (draft)"}
+              </Button>
+            </div>
+          )}
+          <p className="mt-1.5 text-xs text-muted">
+            {ko
+              ? "저장 시 연락처·이미지·실제 글 등 내 데이터는 빠지고 디자인과 블로그 연결 규칙만 담겨요. 설치하면 내 블로그로 자동 연결되고 초안으로 저장됩니다."
+              : "Saving strips your data (contact/images/posts) — only design + blog rules remain. Install connects to your own blog as a draft."}
           </p>
         </div>
         {(content.sections ?? []).length > 0 && (
