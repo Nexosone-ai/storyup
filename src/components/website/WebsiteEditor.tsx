@@ -43,6 +43,7 @@ import { useLocale } from "@/components/i18n/LocaleProvider";
 import type { PlaceImportData } from "@/lib/placeImport";
 import type { PdfImportData } from "@/lib/pdfImport";
 import { SITE_FONTS, SITE_PALETTES, siteStyleVars } from "./siteStyle";
+import { INDUSTRY_PRESETS } from "@/lib/website/industryPresets";
 import { normalizeAdsensePublisherId } from "@/lib/adsense";
 import { slugify } from "@/utils/slug";
 import {
@@ -670,6 +671,24 @@ export function WebsiteEditor({
       };
       return { ...c, sections: list };
     });
+
+  /** 업종별 블로그 연동 디자인 프리셋 적용 — 템플릿·팔레트·폰트 + 섹션 골격을 교체. */
+  const applyIndustryPreset = (key: string) => {
+    const preset = INDUSTRY_PRESETS.find((p) => p.key === key);
+    if (!preset) return;
+    setContent((c) => ({
+      ...c,
+      template: preset.template,
+      style: { ...(c.style ?? {}), palette: preset.palette, font: preset.font },
+      sections: preset.build(ko),
+      hiddenSections: (c.hiddenSections ?? []).filter((k) => k !== "sections"),
+    }));
+    setNote(
+      ko
+        ? `'${preset.label}' 디자인을 적용했어요. 블로그 글은 자동 연결됩니다. 각 박스를 눌러 편집하세요.`
+        : `Applied '${preset.label}'. Blog posts connect automatically.`,
+    );
+  };
 
   /** '전문 레이아웃 채우기' — 핵심 섹션(히어로·메인슬라이드·핵심기능·블로그·CTA) 중
    *  없는 것만 추가해 전문 홈페이지 골격을 한 번에 구성(기존 섹션은 보존). */
@@ -1551,6 +1570,31 @@ export function WebsiteEditor({
           <Button variant="outline" size="sm" onClick={scaffoldProLayout}>
             {ko ? "전문 레이아웃 채우기" : "Scaffold pro layout"}
           </Button>
+        </div>
+        {/* 업종별 블로그 연동 디자인 프리셋 — 한 번에 레이아웃+블로그 섹션 구성 */}
+        <div className="rounded-lg bg-surface p-3">
+          <p className="mb-1 text-xs font-semibold text-muted">
+            {ko ? "업종 디자인으로 시작(블로그 자동 연결)" : "Start from an industry design"}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {INDUSTRY_PRESETS.map((p) => (
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => applyIndustryPreset(p.key)}
+                title={p.description}
+                className="rounded-lg border border-border-strong px-3 py-1.5 text-left text-sm font-medium text-muted transition-colors hover:border-primary/50 hover:bg-primary-soft hover:text-primary"
+              >
+                {p.label}
+                <span className="ml-1 hidden text-xs text-muted sm:inline">· {p.description}</span>
+              </button>
+            ))}
+          </div>
+          <p className="mt-1.5 text-xs text-muted">
+            {ko
+              ? "기존 섹션 구성을 이 디자인으로 바꿔요(글 원문은 그대로). 적용 후 박스를 눌러 수정하세요."
+              : "Replaces your section layout (post content stays intact)."}
+          </p>
         </div>
         {(content.sections ?? []).length > 0 && (
           <DndContext
