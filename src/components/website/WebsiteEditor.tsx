@@ -38,6 +38,7 @@ import {
   type WebsiteTemplateId,
   type SitePage,
   type LandingSectionKey,
+  type SiteSectionType,
   type SiteBanner,
   type SiteSection,
 } from "@/types/domain";
@@ -185,6 +186,21 @@ const SECTION_LABELS: Record<LandingSectionKey, { ko: string; en: string }> = {
   cards: { ko: "카드뉴스", en: "Card news" },
   map: { ko: "오시는 길", en: "Location" },
   contact: { ko: "연락처·문의", en: "Contact" },
+};
+
+/** 리치 섹션(content.sections) 유형별 표시 이름 — 순서 변경 목록용. */
+const SITE_SECTION_LABELS: Record<SiteSectionType, { ko: string; en: string }> = {
+  hero: { ko: "히어로", en: "Hero" },
+  slider: { ko: "메인 슬라이드", en: "Main slider" },
+  features: { ko: "핵심 기능", en: "Features" },
+  pricing: { ko: "가격표", en: "Pricing" },
+  steps: { ko: "진행 단계", en: "Steps" },
+  postList: { ko: "블로그 글목록", en: "Blog list" },
+  faq: { ko: "자주 묻는 질문", en: "FAQ" },
+  testimonials: { ko: "고객 후기", en: "Testimonials" },
+  stats: { ko: "핵심 지표", en: "Stats" },
+  cta: { ko: "CTA(행동 유도)", en: "CTA" },
+  richText: { ko: "본문 텍스트", en: "Rich text" },
 };
 
 /** 저장된 순서를 정규화 — 저장값 우선, 빠진 키는 기본 순서로 뒤에 붙인다. */
@@ -505,6 +521,47 @@ export function WebsiteEditor({
       hiddenSections: (c.hiddenSections ?? []).filter((k) => k !== "sections"),
     }));
   };
+
+  /** 리치 섹션(박스) 순서 변경 — content.sections 배열 안에서 위/아래로 이동. */
+  const moveHomeSection = (index: number, dir: -1 | 1) =>
+    setContent((c) => {
+      const list = [...(c.sections ?? [])];
+      const j = index + dir;
+      if (j < 0 || j >= list.length) return c;
+      [list[index], list[j]] = [list[j], list[index]];
+      return { ...c, sections: list };
+    });
+
+  /** '전문 레이아웃 채우기' — 핵심 섹션(히어로·메인슬라이드·핵심기능·블로그·CTA) 중
+   *  없는 것만 추가해 전문 홈페이지 골격을 한 번에 구성(기존 섹션은 보존). */
+  const scaffoldProLayout = () =>
+    setContent((c) => {
+      const list = [...(c.sections ?? [])];
+      const has = (t: AddableSection) => list.some((s) => s.type === t);
+      const order: AddableSection[] = [
+        "hero",
+        "slider",
+        "pricing",
+        "testimonials",
+        "postList",
+        "cta",
+      ];
+      // 전문 골격 핵심만 보강(가격/후기는 선택이라 제외, 기능·블로그·CTA·히어로·슬라이드 위주).
+      const wanted: AddableSection[] = ["hero", "slider", "postList", "cta"];
+      for (const t of wanted) if (!has(t)) list.push(makeStarterSection(t, ko));
+      // 타입 우선순위대로 정렬(히어로/슬라이드 상단, CTA/블로그 하단 근처).
+      list.sort(
+        (a, b) =>
+          (order.indexOf(a.type as AddableSection) + 1 || 99) -
+          (order.indexOf(b.type as AddableSection) + 1 || 99),
+      );
+      setNote(ko ? "전문 레이아웃 골격을 채웠어요. 각 박스를 눌러 편집하세요." : "Pro layout scaffolded.");
+      return {
+        ...c,
+        sections: list,
+        hiddenSections: (c.hiddenSections ?? []).filter((k) => k !== "sections"),
+      };
+    });
 
   /** 구글 지도에서 가져온 정보를 콘텐츠에 병합한다 — 가져온 값이 있으면 우선. */
   const applyGoogleImport = useCallback((d: PlaceImportData) => {
@@ -1338,6 +1395,76 @@ export function WebsiteEditor({
             </button>
           ))}
         </div>
+      </div>
+
+      {/* 전문 레이아웃 + 섹션 순서(박스 배치) — 핵심 섹션 골격을 한 번에 채우고 순서를 바꾼다. */}
+      <div className="space-y-3 rounded-xl border border-border bg-surface p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <span className="eyebrow mr-1">{ko ? "레이아웃 구성" : "Layout"}</span>
+            <span className="text-xs text-muted">
+              {ko
+                ? "핵심 섹션(히어로·메인 슬라이드·블로그·CTA)을 한 번에 채우고, 아래에서 박스 순서를 바꿔요."
+                : "Scaffold key sections at once, then reorder the boxes below."}
+            </span>
+          </div>
+          <Button variant="outline" size="sm" onClick={scaffoldProLayout}>
+            {ko ? "전문 레이아웃 채우기" : "Scaffold pro layout"}
+          </Button>
+        </div>
+        {(content.sections ?? []).length > 0 && (
+          <ul className="space-y-1.5">
+            {(content.sections ?? []).map((s, i) => {
+              const label =
+                SITE_SECTION_LABELS[s.type as keyof typeof SITE_SECTION_LABELS];
+              const name = label ? (ko ? label.ko : label.en) : s.type;
+              return (
+                <li
+                  key={i}
+                  className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-1.5 text-sm"
+                >
+                  <span className="truncate">
+                    <span className="mr-1.5 text-xs text-muted">{i + 1}.</span>
+                    {name}
+                    {s.type === "postList" && (
+                      <span className="ml-1.5 text-xs text-primary">
+                        {ko ? "(필수)" : "(required)"}
+                      </span>
+                    )}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => moveHomeSection(i, -1)}
+                      disabled={i === 0}
+                      aria-label={ko ? "위로" : "Up"}
+                      className="rounded border border-border px-1.5 py-0.5 text-xs text-muted hover:text-primary disabled:opacity-40"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveHomeSection(i, 1)}
+                      disabled={i === (content.sections ?? []).length - 1}
+                      aria-label={ko ? "아래로" : "Down"}
+                      className="rounded border border-border px-1.5 py-0.5 text-xs text-muted hover:text-primary disabled:opacity-40"
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeHomeSection(i)}
+                      aria-label={ko ? "삭제" : "Delete"}
+                      className="rounded border border-border px-1.5 py-0.5 text-xs text-muted hover:text-danger"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
 
       {/* 배너 관리 — 랜딩/블로그에 노출할 이미지 배너(문구·버튼·AI 이미지·사이즈). */}
