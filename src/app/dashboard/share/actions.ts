@@ -61,14 +61,21 @@ export async function revokeShareAction(id: string): Promise<ShareActionState> {
     return { error: "공유를 찾을 수 없어요." };
 
   const admin = createAdminClient();
+  // 접근 권한(partner_clients) 삭제를 '먼저' 하고 실패하면 중단 — 권한이 남은 채
+  // 공유행만 지워지는(화면엔 성공) 상황을 막는다.
   if (share.partner_user_id) {
-    await admin
+    const { error: linkErr } = await admin
       .from("partner_clients")
       .delete()
       .eq("partner_user_id", share.partner_user_id)
       .eq("client_user_id", user.id);
+    if (linkErr) {
+      console.error("[share] revoke link delete failed", id, linkErr);
+      return { error: "접근 권한 해제에 실패했어요. 잠시 후 다시 시도해주세요." };
+    }
   }
-  await admin.from("account_shares").delete().eq("id", id);
+  const { error: shareErr } = await admin.from("account_shares").delete().eq("id", id);
+  if (shareErr) return { error: "공유 해제에 실패했어요." };
 
   revalidatePath("/dashboard/share");
   return { ok: true };
@@ -129,13 +136,18 @@ export async function declineShareAction(id: string): Promise<ShareActionState> 
     return { error: "초대를 찾을 수 없어요." };
 
   if (share.partner_user_id) {
-    await admin
+    const { error: linkErr } = await admin
       .from("partner_clients")
       .delete()
       .eq("partner_user_id", share.partner_user_id)
       .eq("client_user_id", share.owner_user_id);
+    if (linkErr) {
+      console.error("[share] decline link delete failed", id, linkErr);
+      return { error: "접근 권한 해제에 실패했어요. 잠시 후 다시 시도해주세요." };
+    }
   }
-  await admin.from("account_shares").delete().eq("id", id);
+  const { error: shareErr } = await admin.from("account_shares").delete().eq("id", id);
+  if (shareErr) return { error: "처리에 실패했어요." };
 
   revalidatePath("/dashboard/share");
   revalidatePath("/dashboard");
