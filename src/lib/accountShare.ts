@@ -78,6 +78,50 @@ export async function listIncomingShares(email: string): Promise<IncomingShareRo
   }));
 }
 
+export interface AdminShareRow {
+  id: string;
+  ownerName: string | null;
+  ownerEmail: string | null;
+  partnerName: string | null;
+  partnerEmail: string;
+  status: "pending" | "accepted" | "revoked";
+  createdAt: string;
+}
+
+/** (관리자) 전체 계정 공유 현황 — 소유자→파트너, 상태. */
+export async function listAllAccountShares(): Promise<AdminShareRow[]> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("account_shares")
+    .select("id, owner_user_id, partner_user_id, partner_email, status, created_at")
+    .neq("status", "revoked")
+    .order("created_at", { ascending: false })
+    .limit(500);
+  const rows = data ?? [];
+  const uids = [
+    ...new Set(
+      rows.flatMap((r) => [r.owner_user_id, r.partner_user_id].filter((v): v is string => !!v)),
+    ),
+  ];
+  const info = new Map<string, { name: string | null; email: string | null }>();
+  if (uids.length) {
+    const { data: profs } = await admin
+      .from("profiles")
+      .select("user_id, name, email")
+      .in("user_id", uids);
+    (profs ?? []).forEach((p) => info.set(p.user_id, { name: p.name, email: p.email }));
+  }
+  return rows.map((r) => ({
+    id: r.id,
+    ownerName: info.get(r.owner_user_id)?.name ?? null,
+    ownerEmail: info.get(r.owner_user_id)?.email ?? null,
+    partnerName: r.partner_user_id ? (info.get(r.partner_user_id)?.name ?? null) : null,
+    partnerEmail: r.partner_email,
+    status: r.status,
+    createdAt: r.created_at,
+  }));
+}
+
 export interface SharedAccount {
   ownerUserId: string;
   ownerName: string | null;

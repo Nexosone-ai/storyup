@@ -10,6 +10,7 @@ import {
   setCreditPriceAction,
 } from "@/app/dashboard/admin/partners/actions";
 import type { PartnerAssignmentRow } from "@/lib/partner";
+import type { AdminShareRow } from "@/lib/accountShare";
 
 export interface CreditPriceRow {
   action: string;
@@ -24,9 +25,11 @@ const field =
 export function AdminPartnersView({
   assignments,
   prices,
+  accountShares = [],
 }: {
   assignments: PartnerAssignmentRow[];
   prices: CreditPriceRow[];
+  accountShares?: AdminShareRow[];
 }) {
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
@@ -63,6 +66,46 @@ export function AdminPartnersView({
         <p className={`text-sm ${error ? "text-danger" : "text-primary"}`}>
           {error ?? msg}
         </p>
+      )}
+
+      {/* 계정 공유 현황(소유자가 직접 초대한 파트너 위임 접근) */}
+      {accountShares.length > 0 && (
+        <section className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
+          <h3 className="text-sm font-semibold">계정 공유 현황 (소유자 → 파트너)</h3>
+          <p className="mt-1 text-xs text-muted">
+            고객(소유자)이 직접 파트너를 초대해 사업장 작업 권한을 위임한 현황입니다. (파트너 배정과 별개)
+          </p>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full min-w-[520px] text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs text-muted">
+                  <th className="py-1.5 pr-3">소유자</th>
+                  <th className="py-1.5 pr-3">파트너</th>
+                  <th className="py-1.5">상태</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {accountShares.map((s) => (
+                  <tr key={s.id}>
+                    <td className="py-1.5 pr-3">{s.ownerName || s.ownerEmail || "—"}</td>
+                    <td className="py-1.5 pr-3">{s.partnerName || s.partnerEmail}</td>
+                    <td className="py-1.5">
+                      <span
+                        className={`rounded-full border px-2 py-0.5 text-xs ${
+                          s.status === "accepted"
+                            ? "border-success/40 text-success"
+                            : "border-border text-muted"
+                        }`}
+                      >
+                        {s.status === "accepted" ? "접근중" : "수락 대기"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
 
       {/* 1) 파트너 자격 부여 */}
