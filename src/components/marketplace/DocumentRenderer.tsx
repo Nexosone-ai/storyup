@@ -13,10 +13,12 @@ import type {
  * 생성된 <style>(미디어쿼리)로 적용한다. 검증된 문서만 받는다(임의 코드 미실행).
  */
 
+// 컨테이너 쿼리 — 뷰포트가 아니라 '렌더 컨테이너(미리보기 프레임/페이지) 폭' 기준.
+// 에디터의 375px 프레임에서도 모바일 규칙이 실제로 적용된다. 루트에 container-type 설정.
 const MQ = {
-  mobile: "@media (max-width:767px)",
-  tablet: "@media (min-width:768px) and (max-width:1023px)",
-  desktop: "@media (min-width:1024px)",
+  mobile: "@container (max-width:767px)",
+  tablet: "@container (min-width:768px) and (max-width:1023px)",
+  desktop: "@container (min-width:1024px)",
 } as const;
 
 const JUSTIFY: Record<string, string> = {
@@ -91,25 +93,16 @@ function styleDecls(s: Partial<StyleProps>, tokens: DesignTokens): Record<string
   return d;
 }
 
-const declsToInline = (d: Record<string, string>): CSSProperties => {
-  const o: Record<string, string> = {};
-  for (const [k, v] of Object.entries(d)) {
-    const camel = k.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-    o[camel] = v;
-  }
-  return o as CSSProperties;
-};
 const declsToCss = (d: Record<string, string>): string =>
   Object.entries(d)
     .map(([k, v]) => `${k}:${v}`)
     .join(";");
 
-/** 노드의 base 인라인 스타일. */
-function baseInline(node: DocNode, tokens: DesignTokens): CSSProperties {
-  return declsToInline(styleDecls(node.style?.base ?? {}, tokens));
-}
-
-/** 루트에서 트리를 순회(인스턴스는 원본으로 확장)하며 기기별 오버라이드 CSS 생성. */
+/**
+ * 루트에서 트리를 순회(인스턴스는 원본으로 확장)하며 노드 스타일을 전부 CSS로 만든다.
+ * base는 무조건 규칙, 기기별은 컨테이너 쿼리. 인라인을 쓰지 않아 모바일 오버라이드가
+ * base를 실제로 덮는다(인라인은 명시도가 높아 CSS를 못 덮던 문제 해결).
+ */
 function collectResponsiveCss(doc: DesignDocument): string {
   const out: string[] = [];
   const walk = (nodes: Record<NodeId, DocNode>, id: NodeId, prefix: string): void => {
@@ -122,6 +115,8 @@ function collectResponsiveCss(doc: DesignDocument): string {
     }
     const st = node.style;
     if (st) {
+      const baseDecls = declsToCss(styleDecls(st.base ?? {}, doc.tokens));
+      if (baseDecls) out.push(`[data-n="${prefix}${id}"]{${baseDecls}}`);
       (["mobile", "tablet", "desktop"] as const).forEach((dev) => {
         const over = st[dev];
         if (over && Object.keys(over).length) {
@@ -227,13 +222,12 @@ function NodeView({
     );
   }
 
-  const inline = baseInline(node, doc.tokens);
+  // 노드 스타일은 전부 생성 CSS([data-n])로 적용 — 인라인 미사용(모바일 오버라이드가 base를 덮게).
   const dataN = `${prefix}${id}`;
 
   if (node.type === "page" || node.type === "section" || node.type === "container") {
-    const style: CSSProperties = { display: inline.display ?? "block", ...inline };
     return (
-      <div data-n={dataN} style={style}>
+      <div data-n={dataN}>
         {(node.children ?? []).map((cid) => (
           <NodeView key={cid} doc={doc} nodes={nodes} id={cid} prefix={prefix} overrides={overrides} />
         ))}
@@ -246,7 +240,7 @@ function NodeView({
       ? { ...node, props: { ...(node.props ?? {}), ...overrides[node.slot] } }
       : node;
   return (
-    <div data-n={dataN} style={inline}>
+    <div data-n={dataN}>
       <Leaf node={effNode} tokens={doc.tokens} />
     </div>
   );
@@ -257,6 +251,8 @@ export function DocumentRenderer({ doc }: { doc: DesignDocument }) {
   return (
     <div
       style={{
+        // 컨테이너 쿼리 기준 — 이 폭(미리보기 프레임/페이지)으로 반응형이 결정된다.
+        containerType: "inline-size",
         color: colorOf("text", doc.tokens) ?? "#111827",
         background: colorOf("bg", doc.tokens) ?? "#fff",
         fontFamily: doc.tokens.fontFamily,
