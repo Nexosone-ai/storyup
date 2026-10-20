@@ -645,6 +645,29 @@ export function WebsiteEditor({
   const clearLogo = () =>
     setContent((c) => ({ ...c, hero: { ...c.hero, logo: undefined } }));
 
+  /** AI 로고(심볼 마크) 생성 → hero.logo에 반영 (저장 버튼으로 확정). */
+  const generateLogo = async () => {
+    setLogoBusy(true);
+    setNote(null);
+    try {
+      const res = await fetch("/api/ai/site-logo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessId, hint: content.hero?.headline ?? "" }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        setNote(data.error ?? (ko ? "로고 생성에 실패했습니다." : "Logo generation failed."));
+        return;
+      }
+      setContent((c) => ({ ...c, hero: { ...c.hero, logo: data.url } }));
+    } catch {
+      setNote(ko ? "로고 생성 중 문제가 발생했습니다." : "Something went wrong.");
+    } finally {
+      setLogoBusy(false);
+    }
+  };
+
   const save = () =>
     startSave(async () => {
       setNote(null);
@@ -1092,6 +1115,9 @@ export function WebsiteEditor({
             "Upload logo"
           )}
         </Button>
+        <Button variant="outline" size="sm" onClick={generateLogo} disabled={logoBusy}>
+          {logoBusy ? <Spinner className="size-4" /> : ko ? "AI 로고 생성" : "Generate with AI"}
+        </Button>
         {content.hero.logo && (
           <Button variant="ghost" size="sm" onClick={clearLogo} disabled={logoBusy}>
             {ko ? "로고 제거" : "Remove logo"}
@@ -1099,8 +1125,8 @@ export function WebsiteEditor({
         )}
         <p className="w-full text-xs text-muted">
           {ko
-            ? "배경이 투명한 PNG를 권장해요. 변경 후 '저장'을 눌러야 반영됩니다."
-            : "A transparent PNG works best. Press Save to apply the change."}
+            ? "AI 로고는 상호가 들어간 심볼 마크를 만들어요(글자 없이). 업로드는 투명 PNG 권장. 변경 후 '저장'을 눌러야 반영됩니다."
+            : "AI creates a text-free symbol mark; uploads work best as a transparent PNG. Press Save to apply."}
         </p>
       </div>
 

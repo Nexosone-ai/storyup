@@ -82,6 +82,24 @@ export function buildBlogImagePrompt(
     .join(" ");
 }
 
+const LOGO_FRAMING =
+  "Minimal modern vector logo emblem: a single simple iconic symbol mark, clean geometric flat shapes, " +
+  "one or two harmonious brand colors, centered with generous padding, isolated on a plain solid white background, " +
+  "crisp high contrast, scalable app-icon style, flat design, no photorealism, no 3D bevels, no busy detail.";
+
+/**
+ * 브랜드 로고(심볼 마크) 프롬프트 — 글자 없는 '아이콘' 로고를 만든다.
+ * STORYUP이 상호 텍스트를 옆에 얹으므로 로고는 심볼만. scene은 영문 상징 묘사.
+ */
+export function buildLogoPrompt(category: string, scene: string): string {
+  return [
+    `A professional brand logo symbol mark for a ${category} business:`,
+    `${scene.trim().slice(0, 180)}.`,
+    LOGO_FRAMING,
+    NO_TEXT,
+  ].join(" ");
+}
+
 /** Builds a photographic image prompt for a card backdrop. scene은 영문 피사체 묘사. */
 export function buildCardImagePrompt(category: string, scene: string): string {
   return [
