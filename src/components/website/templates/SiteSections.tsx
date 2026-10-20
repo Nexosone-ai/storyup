@@ -5,6 +5,8 @@ import { BlogPreviewCards, type SiteSectionPost } from "./BlogPreview";
 import { LucianFaq } from "./LucianFaq";
 import { LucianStats } from "./LucianStats";
 import { HeroSlider } from "./HeroSlider";
+import { BlogSectionBlock } from "./BlogSectionBlock";
+import { resolveBlogBlock } from "@/lib/website/blogBinding";
 
 /* 가입 유도 버튼 — Lucian UX/UI #211(테두리 빛이 도는 가입 유도 버튼)의 회전
  * 글로우 테두리를 브랜드 색으로 포팅. 순수 CSS(@property) — JS 불필요.
@@ -660,6 +662,49 @@ function SectionBlock({
                   : "표시할 공개 글이 없습니다. 블로그 글을 발행해보세요."}
               </p>
             ) : null}
+          </div>
+        </section>
+      );
+    }
+
+    // 블로그 연결 섹션 — 바인딩 규칙으로 공개 글을 골라 비균일 레이아웃으로.
+    case "blogSection": {
+      const selected = resolveBlogBlock(s.binding, posts ?? []);
+      const src =
+        s.binding.source === "category"
+          ? `카테고리${s.binding.category ? `: ${s.binding.category}` : ""}`
+          : s.binding.source === "manual"
+            ? "수동 선택"
+            : "최신";
+      const LAYOUT_LABEL: Record<string, string> = {
+        spotlight: "대표 글",
+        feature: "1 큰 글 + 2 작은 글",
+        magazine: "매거진 그리드",
+        list: "타이포 목록",
+        cards: "카드",
+      };
+      return (
+        <section className={WRAP}>
+          <div className={INNER}>
+            <SectionHeader
+              title={s.title}
+              subtitle={s.subtitle}
+              base={base}
+              T={T}
+              center={false}
+            />
+            {editable && (
+              <p className="mb-5 text-xs text-muted">
+                블로그 연결 · 레이아웃 「{LAYOUT_LABEL[s.layout] ?? s.layout}」 · {src} ·{" "}
+                {selected.length}개 표시. 자세한 설정은 좌측 ‘섹션 순서’ 목록에서 바꿔요.
+              </p>
+            )}
+            <BlogSectionBlock
+              layout={s.layout}
+              posts={selected}
+              blogHref={blogHref ?? "#"}
+              lang={lang}
+            />
           </div>
         </section>
       );

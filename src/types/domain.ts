@@ -211,6 +211,24 @@ export interface SiteSlideItem {
   ctaHref?: string;
 }
 
+/**
+ * 블로그 연결 블록의 추상 바인딩 규칙 — 디자인과 분리된 데이터 연결만 저장한다.
+ * 실제 글은 저장하지 않고, 공개 글(런타임 조회)에 규칙을 적용해 고른다.
+ */
+export type BlogSource = "latest" | "category" | "manual";
+export type BlogSort = "recent" | "oldest";
+export interface BlogBinding {
+  source?: BlogSource;
+  category?: string;
+  slugs?: string[];
+  pinnedSlugs?: string[];
+  excludeSlugs?: string[];
+  count?: number;
+  sort?: BlogSort;
+}
+/** 블로그 섹션 표현 — 균일 카드 탈피를 위한 비균일 레이아웃. */
+export type BlogLayout = "spotlight" | "feature" | "magazine" | "list" | "cards";
+
 export const SITE_SECTION_TYPES = [
   "hero",
   "slider",
@@ -218,6 +236,7 @@ export const SITE_SECTION_TYPES = [
   "pricing",
   "steps",
   "postList",
+  "blogSection",
   "faq",
   "testimonials",
   "stats",
@@ -272,8 +291,16 @@ export type SiteSection = { image?: string } & (
   | { type: "stats"; title?: string; items: SiteStatItem[] }
   | { type: "cta"; title: string; body?: string; ctaLabel?: string; ctaHref?: string }
   | { type: "richText"; title: string; body: string }
-  // 블로그 글 목록 — category(블로그 카테고리)로 자동 필터해 카드로 노출. 비우면 전체.
+  // 블로그 글 목록(레거시) — category로 자동 필터해 카드로 노출. 비우면 전체.
   | { type: "postList"; title?: string; category?: string }
+  // 블로그 연결 섹션 — 추상 바인딩 규칙 + 비균일 레이아웃(글은 런타임 조회).
+  | {
+      type: "blogSection";
+      title?: string;
+      subtitle?: string;
+      layout: BlogLayout;
+      binding: BlogBinding;
+    }
 );
 
 /**
