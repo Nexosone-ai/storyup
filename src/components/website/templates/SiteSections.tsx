@@ -4,6 +4,7 @@ import { safeCtaHref } from "./shared";
 import { BlogPreviewCards, type SiteSectionPost } from "./BlogPreview";
 import { LucianFaq } from "./LucianFaq";
 import { LucianStats } from "./LucianStats";
+import { HeroSlider } from "./HeroSlider";
 
 /* 가입 유도 버튼 — Lucian UX/UI #211(테두리 빛이 도는 가입 유도 버튼)의 회전
  * 글로우 테두리를 브랜드 색으로 포팅. 순수 CSS(@property) — JS 불필요.
@@ -129,6 +130,7 @@ export function SiteSections({
             {Img &&
               s.type !== "postList" &&
               s.type !== "hero" &&
+              s.type !== "slider" &&
               (editable || s.image) && (
               <div className="mx-auto max-w-5xl px-5 pt-12">
                 <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl border border-border bg-surface-muted/40">
@@ -144,6 +146,7 @@ export function SiteSections({
               section={s}
               base={base}
               T={T}
+              Img={Img}
               editable={editable}
               onSetHref={onSetHref}
               posts={posts}
@@ -196,6 +199,7 @@ function SectionBlock({
   section: s,
   base,
   T,
+  Img,
   editable = false,
   onSetHref,
   posts,
@@ -206,6 +210,7 @@ function SectionBlock({
   section: SiteSection;
   base: string;
   T: TextRenderer;
+  Img?: ImageRenderer;
   editable?: boolean;
   onSetHref?: (path: string, value: string) => void;
   posts?: SiteSectionPost[];
@@ -242,6 +247,57 @@ function SectionBlock({
           </div>
         </section>
       );
+
+    // 메인 슬라이드 — 공개는 자동 캐러셀, 에디터는 슬라이드별 이미지·문구를 세로로 편집.
+    case "slider": {
+      if (!editable) return <HeroSlider slides={s.items} />;
+      return (
+        <section className={WRAP}>
+          <div className={INNER}>
+            <SectionHeader title={s.title} base={base} T={T} />
+            <p className="-mt-4 mb-6 text-center text-xs text-muted">
+              각 슬라이드의 이미지와 문구를 편집하세요. 공개 사이트에선 자동으로 넘어가는 캐러셀로 보여요.
+            </p>
+            <div className="space-y-5">
+              {s.items.map((sl, j) => (
+                <div key={j} className="rounded-2xl border border-border bg-surface p-4">
+                  <p className="mb-2 text-xs font-semibold text-muted">
+                    슬라이드 {j + 1}
+                  </p>
+                  {Img && (
+                    <div className="relative mb-3 aspect-[16/9] w-full overflow-hidden rounded-xl border border-border bg-surface-muted/40">
+                      {Img({ path: `${base}.items.${j}.image`, value: sl.image, aspect: "16:9" })}
+                    </div>
+                  )}
+                  {T({
+                    path: `${base}.items.${j}.title`,
+                    value: sl.title ?? "",
+                    as: "h3",
+                    className: "font-semibold",
+                  })}
+                  {T({
+                    path: `${base}.items.${j}.subtitle`,
+                    value: sl.subtitle ?? "",
+                    as: "p",
+                    className: "mt-1 text-sm text-muted",
+                  })}
+                  <div className="mt-3">
+                    <GlowCta
+                      base={`${base}.items.${j}`}
+                      label={sl.ctaLabel || "자세히 보기"}
+                      href={sl.ctaHref}
+                      T={T}
+                      editable={editable}
+                      onSetHref={onSetHref}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    }
 
     case "features":
       return (

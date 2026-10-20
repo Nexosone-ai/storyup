@@ -50,6 +50,7 @@ type Device = "desktop" | "mobile";
 
 type AddableSection =
   | "hero"
+  | "slider"
   | "pricing"
   | "testimonials"
   | "faq"
@@ -93,6 +94,26 @@ function makeStarterSection(type: AddableSection, ko: boolean): SiteSection {
       type: "postList",
       title: ko ? "최근 블로그" : "Latest posts",
       category: "",
+    };
+  if (type === "slider")
+    return {
+      type: "slider",
+      items: [
+        {
+          title: ko ? "첫 번째 슬라이드" : "First slide",
+          subtitle: ko ? "핵심 메시지를 적어주세요." : "Your key message here.",
+          ctaLabel: ko ? "자세히 보기" : "Learn more",
+        },
+        {
+          title: ko ? "두 번째 슬라이드" : "Second slide",
+          subtitle: ko ? "강점을 한 줄로 소개하세요." : "Highlight a strength.",
+        },
+        {
+          title: ko ? "세 번째 슬라이드" : "Third slide",
+          subtitle: ko ? "행동을 유도하세요." : "Invite them to act.",
+          ctaLabel: ko ? "문의하기" : "Contact us",
+        },
+      ],
     };
   if (type === "pricing")
     return {
@@ -1298,6 +1319,7 @@ export function WebsiteEditor({
           {(
             [
               ["hero", ko ? "히어로" : "Hero"],
+              ["slider", ko ? "메인 슬라이드" : "Main slider"],
               ["pricing", ko ? "가격표" : "Pricing"],
               ["testimonials", ko ? "후기" : "Testimonials"],
               ["faq", "FAQ"],
