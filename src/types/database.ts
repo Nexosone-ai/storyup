@@ -1153,6 +1153,48 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["template_versions"]["Insert"]>;
         Relationships: [];
       };
+      skill_sources: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          repo: string;
+          ref: string | null;
+          commit_sha: string;
+          skill_path: string;
+          skill_name: string;
+          description: string | null;
+          license: string | null;
+          compatibility: string | null;
+          skill_type: "A" | "B" | "C" | "D";
+          support_level: "instructions" | "adapter" | "blocked";
+          support_reason: string | null;
+          files: Record<string, unknown>[];
+          manifest: Record<string, unknown> | null;
+          status: "imported" | "disabled";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          repo: string;
+          ref?: string | null;
+          commit_sha: string;
+          skill_path?: string;
+          skill_name: string;
+          description?: string | null;
+          license?: string | null;
+          compatibility?: string | null;
+          skill_type: "A" | "B" | "C" | "D";
+          support_level: "instructions" | "adapter" | "blocked";
+          support_reason?: string | null;
+          files?: Record<string, unknown>[];
+          manifest?: Record<string, unknown> | null;
+          status?: "imported" | "disabled";
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["skill_sources"]["Insert"]>;
+        Relationships: [];
+      };
       youtube_connections: {
         Row: {
           user_id: string;
