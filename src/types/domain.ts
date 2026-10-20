@@ -247,7 +247,7 @@ export interface SiteBanner {
 
 export type SiteSection = { image?: string } & (
   // 섹션형 히어로 — 배지(subtitle)·큰 제목·버튼. image는 배경으로 쓰인다.
-  | { type: "hero"; title: string; subtitle?: string; ctaLabel?: string }
+  | { type: "hero"; title: string; subtitle?: string; ctaLabel?: string; ctaHref?: string }
   | { type: "features"; title: string; subtitle?: string; items: SiteFeatureItem[] }
   | { type: "pricing"; title: string; subtitle?: string; items: SitePricingItem[] }
   | { type: "steps"; title: string; subtitle?: string; items: SiteStepItem[] }
@@ -259,7 +259,7 @@ export type SiteSection = { image?: string } & (
       items: SiteTestimonialItem[];
     }
   | { type: "stats"; title?: string; items: SiteStatItem[] }
-  | { type: "cta"; title: string; body?: string; ctaLabel?: string }
+  | { type: "cta"; title: string; body?: string; ctaLabel?: string; ctaHref?: string }
   | { type: "richText"; title: string; body: string }
   // 블로그 글 목록 — category(블로그 카테고리)로 자동 필터해 카드로 노출. 비우면 전체.
   | { type: "postList"; title?: string; category?: string }
@@ -318,6 +318,8 @@ export interface WebsiteContent {
     headline: string;
     shortDescription: string;
     ctaLabel: string;
+    /** CTA 버튼 링크. 비우면 문의 섹션(#contact)으로 이동. */
+    ctaHref?: string;
     image?: string;
     /** 직접 업로드한 가게 로고 — 있으면 사이트 헤더에 이름과 함께 표시된다. */
     logo?: string;

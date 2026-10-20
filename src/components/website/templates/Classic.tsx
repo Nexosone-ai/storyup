@@ -4,6 +4,7 @@ import {
   SiteLogo,
   siteLang,
   type TemplateProps,
+  safeCtaHref,
 } from "./shared";
 import { SiteNav } from "./SiteNav";
 import { SiteSections } from "./SiteSections";
@@ -129,7 +130,7 @@ export function ClassicTemplate(props: TemplateProps) {
           {T({ path: "hero.headline", value: hero.headline, as: "h1", className: "text-4xl font-semibold leading-[1.08] tracking-tight text-balance sm:text-5xl" })}
           {T({ path: "hero.shortDescription", value: hero.shortDescription, as: "p", className: `mx-auto mt-5 max-w-xl text-lg leading-relaxed text-pretty ${heroPhoto ? "text-white/85" : "text-muted"}` })}
           {showContact && (
-            <a href="#contact" className="mt-9 inline-flex rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground shadow-xs">
+            <a href={safeCtaHref(hero.ctaHref)} className="mt-9 inline-flex rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground shadow-xs">
               {T({ path: "hero.ctaLabel", value: hero.ctaLabel || L.inquire, as: "span" })}
             </a>
           )}

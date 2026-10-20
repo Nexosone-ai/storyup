@@ -16,6 +16,16 @@ export interface TextArgs {
 /** Renders a content string — either static text or an inline-editable field. */
 export type TextRenderer = (args: TextArgs) => ReactNode;
 
+/**
+ * CTA 버튼 링크를 안전하게 정규화한다. 비어 있으면 fallback(기본 #contact=문의 섹션).
+ * http(s)·상대경로·앵커(#)·mailto·tel만 허용(javascript:·data: 차단).
+ */
+export function safeCtaHref(href?: string, fallback = "#contact"): string {
+  const h = (href ?? "").trim();
+  if (!h || /[\u0000-\u001f]/.test(h)) return fallback;
+  return /^(https?:\/\/|\/|#|mailto:|tel:)/i.test(h) ? h : fallback;
+}
+
 /** AI 생성 시 요청할 이미지 비율 — 표시 박스에 맞춰 지정한다. */
 export type GenAspect = "1:1" | "3:4" | "4:3" | "16:9" | "9:16";
 

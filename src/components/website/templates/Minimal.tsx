@@ -8,6 +8,7 @@ import {
   SiteMap,
   siteLang,
   type TemplateProps,
+  safeCtaHref,
 } from "./shared";
 import { SiteNav } from "./SiteNav";
 import { BlogPreviewCards } from "./BlogPreview";
@@ -233,7 +234,7 @@ export function MinimalTemplate(props: TemplateProps) {
         {T({ path: "hero.headline", value: hero.headline, as: "h1", className: "text-[2.75rem] font-semibold leading-[1.06] tracking-tight text-balance sm:text-[3.75rem]" })}
         {T({ path: "hero.shortDescription", value: hero.shortDescription, as: "p", className: "mt-8 text-xl leading-relaxed text-muted text-pretty" })}
         {showContact && (
-          <a href="#contact" className="mt-8 inline-block border-b-2 border-primary pb-0.5 font-medium text-primary">
+          <a href={safeCtaHref(hero.ctaHref)} className="mt-8 inline-block border-b-2 border-primary pb-0.5 font-medium text-primary">
             {T({ path: "hero.ctaLabel", value: hero.ctaLabel || L.inquire, as: "span" })}
           </a>
         )}

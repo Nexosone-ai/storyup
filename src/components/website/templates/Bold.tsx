@@ -4,6 +4,7 @@ import {
   SiteLogo,
   siteLang,
   type TemplateProps,
+  safeCtaHref,
 } from "./shared";
 import { SiteNav } from "./SiteNav";
 import { SiteSections } from "./SiteSections";
@@ -104,7 +105,7 @@ export function BoldTemplate(props: TemplateProps) {
           {T({ path: "hero.headline", value: hero.headline, as: "h1", className: "max-w-3xl text-5xl font-extrabold leading-[1.02] tracking-tight text-balance sm:text-7xl" })}
           {T({ path: "hero.shortDescription", value: hero.shortDescription, as: "p", className: "mt-6 max-w-xl text-lg leading-relaxed text-white/75" })}
           {showContact && (
-            <a href="#contact" className="mt-10 inline-flex rounded-full bg-primary px-8 py-3.5 text-base font-bold text-primary-foreground">
+            <a href={safeCtaHref(hero.ctaHref)} className="mt-10 inline-flex rounded-full bg-primary px-8 py-3.5 text-base font-bold text-primary-foreground">
               {T({ path: "hero.ctaLabel", value: hero.ctaLabel || L.inquire, as: "span" })}
             </a>
           )}

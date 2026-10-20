@@ -4,6 +4,7 @@ import {
   SiteLogo,
   siteLang,
   type TemplateProps,
+  safeCtaHref,
 } from "./shared";
 import { SiteNav } from "./SiteNav";
 import { SiteSections } from "./SiteSections";
@@ -110,7 +111,7 @@ export function MagazineTemplate(props: TemplateProps) {
           {T({ path: "hero.headline", value: hero.headline, as: "h1", className: "max-w-3xl text-4xl font-bold leading-[1.05] tracking-tight text-balance sm:text-6xl" })}
           {T({ path: "hero.shortDescription", value: hero.shortDescription, as: "p", className: "mt-5 max-w-xl text-lg leading-relaxed text-white/85" })}
           {showContact && (
-            <a href="#contact" className="mt-8 inline-flex w-fit border border-white px-7 py-3 text-sm font-semibold uppercase tracking-wider hover:bg-white hover:text-foreground">
+            <a href={safeCtaHref(hero.ctaHref)} className="mt-8 inline-flex w-fit border border-white px-7 py-3 text-sm font-semibold uppercase tracking-wider hover:bg-white hover:text-foreground">
               {T({ path: "hero.ctaLabel", value: hero.ctaLabel || L.inquire, as: "span" })}
             </a>
           )}

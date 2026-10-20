@@ -4,6 +4,7 @@ import {
   SiteLogo,
   siteLang,
   type TemplateProps,
+  safeCtaHref,
 } from "./shared";
 import { SiteNav } from "./SiteNav";
 import { SiteSections } from "./SiteSections";
@@ -100,7 +101,7 @@ export function ElegantTemplate(props: TemplateProps) {
         {T({ path: "hero.headline", value: hero.headline, as: "h1", className: "text-4xl leading-[1.15] tracking-tight text-balance sm:text-5xl", style: serif })}
         {T({ path: "hero.shortDescription", value: hero.shortDescription, as: "p", className: "mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted" })}
         {showContact && (
-          <a href="#contact" className="mt-9 inline-flex border border-foreground px-8 py-3 text-sm uppercase tracking-[0.15em] hover:bg-foreground hover:text-white">
+          <a href={safeCtaHref(hero.ctaHref)} className="mt-9 inline-flex border border-foreground px-8 py-3 text-sm uppercase tracking-[0.15em] hover:bg-foreground hover:text-white">
             {T({ path: "hero.ctaLabel", value: hero.ctaLabel || L.inquire, as: "span" })}
           </a>
         )}

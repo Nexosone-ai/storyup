@@ -1,5 +1,6 @@
 import type { SiteSection } from "@/types/domain";
 import type { TextRenderer, ImageRenderer, SiteLang } from "./shared";
+import { safeCtaHref } from "./shared";
 import { BlogPreviewCards, type SiteSectionPost } from "./BlogPreview";
 import { LucianFaq } from "./LucianFaq";
 import { LucianStats } from "./LucianStats";
@@ -19,20 +20,26 @@ const GLOW_CSS = `
 @media (prefers-reduced-motion:reduce){.lxcta::before{animation:none}}
 `;
 
-/** 글로우 테두리 CTA 버튼(#contact로 이동). 라벨은 T로 인라인 편집 가능. */
+/** 글로우 테두리 CTA 버튼. href 비우면 #contact(문의 섹션). 라벨·링크 인라인 편집. */
 function GlowCta({
   base,
   label,
+  href,
   T,
+  editable,
+  onSetHref,
 }: {
   base: string;
   label: string;
+  href?: string;
   T: TextRenderer;
+  editable?: boolean;
+  onSetHref?: (path: string, value: string) => void;
 }) {
   return (
     <>
       <style>{GLOW_CSS}</style>
-      <a href="#contact" className="lxcta">
+      <a href={safeCtaHref(href)} className="lxcta">
         {T({ path: `${base}.ctaLabel`, value: label, as: "span" })}
         <svg
           className="lxcta-ar"
@@ -49,6 +56,18 @@ function GlowCta({
           <path d="M3 7h8M7.5 3.5 11 7l-3.5 3.5" />
         </svg>
       </a>
+      {editable && onSetHref && (
+        <label className="mt-3 block w-full max-w-sm text-left text-[11px] text-muted">
+          🔗 버튼 링크 (선택 · 비우면 문의하기 섹션으로 이동)
+          <input
+            type="text"
+            defaultValue={href ?? ""}
+            placeholder="https://… / tel:010… / #contact"
+            onBlur={(e) => onSetHref(`${base}.ctaHref`, e.target.value.trim())}
+            className="mt-0.5 w-full rounded border border-border bg-background px-2 py-1 text-xs text-foreground"
+          />
+        </label>
+      )}
     </>
   );
 }
@@ -65,6 +84,7 @@ export function SiteSections({
   pathPrefix = "",
   editable = false,
   onDelete,
+  onSetHref,
   posts,
   blogHref,
   lang = "ko",
@@ -79,6 +99,8 @@ export function SiteSections({
   editable?: boolean;
   /** 에디터에서 해당 섹션(단락)을 삭제. */
   onDelete?: (index: number) => void;
+  /** (에디터) CTA 버튼 링크 등 값 설정 — setPath 경로 기반. */
+  onSetHref?: (path: string, value: string) => void;
   /** 글 목록(postList) 섹션용 — 이 사이트의 공개 글(카테고리 포함). */
   posts?: SiteSectionPost[];
   /** 블로그 글 링크 베이스 (예: /site/{slug}/blog). */
@@ -123,6 +145,7 @@ export function SiteSections({
               base={base}
               T={T}
               editable={editable}
+              onSetHref={onSetHref}
               posts={posts}
               blogHref={blogHref}
               lang={lang}
@@ -174,6 +197,7 @@ function SectionBlock({
   base,
   T,
   editable = false,
+  onSetHref,
   posts,
   blogHref,
   lang = "ko",
@@ -183,6 +207,7 @@ function SectionBlock({
   base: string;
   T: TextRenderer;
   editable?: boolean;
+  onSetHref?: (path: string, value: string) => void;
   posts?: SiteSectionPost[];
   blogHref?: string;
   lang?: SiteLang;
@@ -211,7 +236,7 @@ function SectionBlock({
               : null}
             {(s.ctaLabel || editable) && (
               <div className="mt-9 flex justify-center">
-                <GlowCta base={base} label={s.ctaLabel || "문의하기"} T={T} />
+                <GlowCta base={base} label={s.ctaLabel || "문의하기"} href={s.ctaHref} T={T} editable={editable} onSetHref={onSetHref} />
               </div>
             )}
           </div>
@@ -499,7 +524,7 @@ function SectionBlock({
                 })
               : null}
             <div className="mt-8 flex justify-center">
-              <GlowCta base={base} label={s.ctaLabel || "문의하기"} T={T} />
+              <GlowCta base={base} label={s.ctaLabel || "문의하기"} href={s.ctaHref} T={T} editable={editable} onSetHref={onSetHref} />
             </div>
           </div>
         </section>
