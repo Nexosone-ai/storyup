@@ -1637,6 +1637,8 @@ export interface Database {
           grant_days: number;
           /** 지급 영상 크레딧 (0074) */
           grants_video_credits: number;
+          /** 결제 시 소유권을 줄 템플릿 버전 id (0084). null = 템플릿 판매 아님 */
+          grants_template_version: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -1653,10 +1655,95 @@ export interface Database {
           grants_plan?: string | null;
           grant_days?: number;
           grants_video_credits?: number;
+          grants_template_version?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["products"]["Insert"]>;
+        Relationships: [];
+      };
+      template_listings: {
+        Row: {
+          id: string;
+          template_id: string;
+          version_id: string;
+          designer_user_id: string;
+          product_id: string | null;
+          title: string;
+          summary: string | null;
+          price_krw: number;
+          commission_pct: number;
+          status: "active" | "paused";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          template_id: string;
+          version_id: string;
+          designer_user_id: string;
+          product_id?: string | null;
+          title?: string;
+          summary?: string | null;
+          price_krw: number;
+          commission_pct?: number;
+          status?: "active" | "paused";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["template_listings"]["Insert"]>;
+        Relationships: [];
+      };
+      template_sales: {
+        Row: {
+          id: string;
+          buyer_user_id: string | null;
+          buyer_email: string | null;
+          listing_id: string | null;
+          template_version_id: string | null;
+          order_id: string;
+          amount_krw: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          buyer_user_id?: string | null;
+          buyer_email?: string | null;
+          listing_id?: string | null;
+          template_version_id?: string | null;
+          order_id: string;
+          amount_krw: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["template_sales"]["Insert"]>;
+        Relationships: [];
+      };
+      designer_earnings: {
+        Row: {
+          id: string;
+          designer_user_id: string;
+          purchase_id: string | null;
+          listing_id: string | null;
+          gross_krw: number;
+          commission_pct: number;
+          net_krw: number;
+          status: "pending" | "paid";
+          paid_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          designer_user_id: string;
+          purchase_id?: string | null;
+          listing_id?: string | null;
+          gross_krw: number;
+          commission_pct: number;
+          net_krw: number;
+          status?: "pending" | "paid";
+          paid_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["designer_earnings"]["Insert"]>;
         Relationships: [];
       };
       product_orders: {

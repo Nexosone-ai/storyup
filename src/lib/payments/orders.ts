@@ -329,9 +329,29 @@ export async function fulfillProductOrder(orderId: string): Promise<void> {
 
     const { data: product } = await admin
       .from("products")
-      .select("grants_plan, grant_days, grants_video_credits")
+      .select("grants_plan, grant_days, grants_video_credits, grants_template_version")
       .eq("id", order.product_id)
       .maybeSingle();
+
+    // 디자이너 템플릿 판매 — 소유권 기록 + 디자이너 정산 적립(멱등). 플랜/영상과 독립.
+    if (product?.grants_template_version) {
+      const { fulfillTemplateOrder } = await import("@/lib/marketplace/sales");
+      let tresult = "no_listing";
+      try {
+        const done = await fulfillTemplateOrder(orderId, product.grants_template_version);
+        tresult = done ? "granted" : "no_listing";
+      } catch (err) {
+        console.error("[orders] template fulfill failed", orderId, err);
+        tresult = "error";
+      }
+      await admin
+        .from("product_orders")
+        .update({
+          metadata: { ...meta, fulfilled: true, fulfillment: `template_${tresult}` },
+        })
+        .eq("id", order.id);
+      return;
+    }
 
     // 영상 팩(레거시) — 영상 생성이 UP 과금으로 바뀌어, 지급도 '영상 크레딧'이 아니라
     // 'UP'으로 한다(1편 = AI_VIDEO 단가). 멱등(meta.fulfilled)로 중복 지급 방지.
