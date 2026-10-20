@@ -5,6 +5,7 @@ import type {
   DesignerRow,
   ReviewRow,
   ListingRow,
+  CatalogRow,
 } from "@/components/admin/AdminDesignerView";
 
 export const metadata = { title: "관리자 · 디자이너 마켓" };
@@ -12,7 +13,7 @@ export const metadata = { title: "관리자 · 디자이너 마켓" };
 export default async function AdminDesignerPage() {
   const admin = createAdminClient();
 
-  const [permsRes, reviewRes, listingRes, earnings] = await Promise.all([
+  const [permsRes, reviewRes, listingRes, earnings, catalogRes] = await Promise.all([
     admin
       .from("designer_permissions")
       .select("user_id, status, created_at")
@@ -31,11 +32,25 @@ export default async function AdminDesignerPage() {
       .order("created_at", { ascending: false })
       .limit(100),
     listPendingDesignerEarnings(),
+    admin
+      .from("skill_catalog")
+      .select("id, repo_url, title, description, tag, active, sort_order")
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: false })
+      .limit(200),
   ]);
 
   const perms = permsRes.data ?? [];
   const reviews = reviewRes.data ?? [];
   const listings = listingRes.data ?? [];
+  const catalog: CatalogRow[] = (catalogRes.data ?? []).map((c) => ({
+    id: c.id,
+    repoUrl: c.repo_url,
+    title: c.title,
+    description: c.description,
+    tag: c.tag,
+    active: c.active,
+  }));
 
   // 템플릿 제목 먼저 조회(소유자 id 확보용).
   const templateIds = [...new Set(reviews.map((r) => r.template_id))];
@@ -105,6 +120,7 @@ export default async function AdminDesignerPage() {
         reviews={reviewRows}
         listings={listingRows}
         earnings={earnings}
+        catalog={catalog}
       />
     </div>
   );

@@ -14,6 +14,9 @@ import {
   publishTemplateAction,
   pauseListingAction,
   markDesignerEarningPaidAction,
+  addSkillCatalogAction,
+  toggleSkillCatalogAction,
+  removeSkillCatalogAction,
 } from "@/app/dashboard/admin/designer/actions";
 
 export interface DesignerRow {
@@ -38,6 +41,14 @@ export interface ListingRow {
   status: string;
   sales: number;
 }
+export interface CatalogRow {
+  id: string;
+  repoUrl: string;
+  title: string;
+  description: string | null;
+  tag: string | null;
+  active: boolean;
+}
 
 const won = (n: number) => `₩${n.toLocaleString()}`;
 
@@ -46,16 +57,24 @@ export function AdminDesignerView({
   reviews,
   listings,
   earnings,
+  catalog,
 }: {
   designers: DesignerRow[];
   reviews: ReviewRow[];
   listings: ListingRow[];
   earnings: PendingEarningRow[];
+  catalog: CatalogRow[];
 }) {
   const router = useRouter();
   const [busy, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
   const [email, setEmail] = useState("");
+
+  // 추천 스킬 입력.
+  const [cUrl, setCUrl] = useState("");
+  const [cTitle, setCTitle] = useState("");
+  const [cDesc, setCDesc] = useState("");
+  const [cTag, setCTag] = useState("");
 
   // 발행 폼 상태(버전별).
   const [pubFor, setPubFor] = useState<string | null>(null);
@@ -295,6 +314,103 @@ export function AdminDesignerView({
               </li>
             ))}
           </ul>
+        )}
+      </Card>
+
+      {/* 추천 스킬 카탈로그 */}
+      <Card className="space-y-3 p-4">
+        <div>
+          <h3 className="font-semibold">추천 스킬 카탈로그</h3>
+          <p className="mt-1 text-xs text-muted">
+            공개 GitHub 스킬을 등록하면, 파트너가 Skill 보관함에서 원클릭으로 가져올 수 있어요(실행 아님, 지침 참고용).
+          </p>
+        </div>
+        <div className="space-y-2 rounded-lg bg-surface p-3">
+          <div>
+            <Label htmlFor="c-url">GitHub URL</Label>
+            <Input
+              id="c-url"
+              type="url"
+              value={cUrl}
+              onChange={(e) => setCUrl(e.target.value)}
+              placeholder="https://github.com/owner/repo"
+            />
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="c-title">제목</Label>
+              <Input id="c-title" value={cTitle} onChange={(e) => setCTitle(e.target.value)} />
+            </div>
+            <div>
+              <Label htmlFor="c-tag">분류(선택)</Label>
+              <Input id="c-tag" value={cTag} onChange={(e) => setCTag(e.target.value)} placeholder="예: 영상, 디자인" />
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="c-desc">소개(선택)</Label>
+            <Input id="c-desc" value={cDesc} onChange={(e) => setCDesc(e.target.value)} />
+          </div>
+          <Button
+            size="sm"
+            disabled={busy || !cUrl.trim() || !cTitle.trim()}
+            onClick={() =>
+              run(() =>
+                addSkillCatalogAction({
+                  repoUrl: cUrl,
+                  title: cTitle,
+                  description: cDesc,
+                  tag: cTag,
+                  sortOrder: 0,
+                }).then((r) => {
+                  if (r.ok) {
+                    setCUrl("");
+                    setCTitle("");
+                    setCDesc("");
+                    setCTag("");
+                  }
+                  return r;
+                }),
+              )
+            }
+          >
+            {busy ? <Spinner className="size-4" /> : "추천 스킬 추가"}
+          </Button>
+        </div>
+        {catalog.length > 0 ? (
+          <ul className="divide-y divide-border rounded-lg border border-border">
+            {catalog.map((c) => (
+              <li key={c.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">
+                    {c.title}
+                    {c.tag && <span className="ml-2 text-xs text-muted">· {c.tag}</span>}
+                    {!c.active && <span className="ml-2 text-xs text-muted">(숨김)</span>}
+                  </p>
+                  <p className="truncate text-xs text-muted">{c.repoUrl}</p>
+                </div>
+                <div className="flex shrink-0 gap-3">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => run(() => toggleSkillCatalogAction(c.id, !c.active))}
+                    className="text-xs text-muted underline underline-offset-2 hover:text-primary"
+                  >
+                    {c.active ? "숨기기" : "노출"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => run(() => removeSkillCatalogAction(c.id))}
+                    className="text-xs text-muted underline underline-offset-2 hover:text-danger"
+                  >
+                    삭제
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted">아직 등록한 추천 스킬이 없어요.</p>
         )}
       </Card>
     </div>

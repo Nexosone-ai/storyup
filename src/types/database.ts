@@ -1195,6 +1195,32 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["skill_sources"]["Insert"]>;
         Relationships: [];
       };
+      skill_catalog: {
+        Row: {
+          id: string;
+          repo_url: string;
+          title: string;
+          description: string | null;
+          tag: string | null;
+          sort_order: number;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          repo_url: string;
+          title: string;
+          description?: string | null;
+          tag?: string | null;
+          sort_order?: number;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["skill_catalog"]["Insert"]>;
+        Relationships: [];
+      };
       youtube_connections: {
         Row: {
           user_id: string;
