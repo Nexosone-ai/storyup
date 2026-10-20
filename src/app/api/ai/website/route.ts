@@ -150,6 +150,19 @@ export async function POST(request: Request) {
 
     // 풍부한 섹션 정규화(깨진 JSON 방지) + 컨셉(template/palette/font) 허용값 검증.
     content.sections = normalizeSiteSections(content.sections);
+    // 블로그 섹션 필수 — 생성 결과에 블로그 글목록(postList)이 없으면 항상 추가한다.
+    if (rich || multiPage) {
+      const hasBlog = (content.sections ?? []).some((s) => s.type === "postList");
+      if (!hasBlog)
+        content.sections = [
+          ...(content.sections ?? []),
+          {
+            type: "postList",
+            title: locale === "ko" ? "최근 블로그" : "Latest posts",
+            category: "",
+          },
+        ];
+    }
     // 멀티페이지일 때만 pages 정규화, 아니면 비운다(단일 페이지 재생성 시 잔재 방지).
     content.pages = multiPage ? normalizeSitePages(content.pages) : [];
     if (
