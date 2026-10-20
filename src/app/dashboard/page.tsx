@@ -5,8 +5,6 @@ import { getUser, getProfileName, getDashboardData, accountOwnerId } from "@/lib
 import { createClient } from "@/lib/supabase/server";
 import { listOwnerShares } from "@/lib/accountShare";
 import { isCurrentUserAdmin } from "@/lib/points";
-import { isCurrentUserPartner } from "@/lib/partner";
-import { isCurrentUserNetworkMember } from "@/lib/network";
 import { getGrowthOverview } from "@/lib/gamification/overview";
 import { getLocale } from "@/lib/i18n";
 import { SummaryCards } from "@/components/dashboard/SummaryCards";
@@ -29,10 +27,11 @@ export default async function DashboardPage() {
   const user = await getUser();
   if (!user) redirect("/login");
 
-  // 역할별 전용 진입경로로 보냄(관리자 > 파트너 > 마케터 우선).
+  // 관리자만 전용 콘솔로 보낸다. 파트너·총판(네트워크)은 '자신의 대시보드'에
+  // 그대로 들어올 수 있게 강제 이동하지 않는다(한 계정이 파트너이자 총판일 수 있어
+  // 역할 우선순위로 한쪽에 가두면 다른 역할/본인 대시보드에 접근 불가). 역할 전용
+  // 영역(/partner·/marketer)은 좌측 내비게이션 링크로 이동한다.
   if (await isCurrentUserAdmin()) redirect("/admin");
-  if (await isCurrentUserPartner()) redirect("/partner");
-  if (await isCurrentUserNetworkMember()) redirect("/marketer");
 
   const ko = (await getLocale()) === "ko";
   // 추천 링크(/join?ref=)로 가입한 경우 쿠키의 코드를 귀속 처리에 넘긴다
