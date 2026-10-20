@@ -80,12 +80,20 @@ export function DesignerDashboard({ templates }: { templates: TemplateRow[] }) {
                   {STATUS_LABEL[tpl.status] ?? tpl.status}
                 </span>
               </div>
-              <Link
-                href={`/partner/designer/templates/${tpl.id}/edit`}
-                className="mt-3 inline-block text-sm font-medium text-primary underline underline-offset-2"
-              >
-                편집
-              </Link>
+              <div className="mt-3 flex gap-3 text-sm">
+                <Link
+                  href={`/partner/designer/templates/${tpl.id}/editor`}
+                  className="font-medium text-primary underline underline-offset-2"
+                >
+                  전문 편집(V2)
+                </Link>
+                <Link
+                  href={`/partner/designer/templates/${tpl.id}/edit`}
+                  className="text-muted underline underline-offset-2 hover:text-primary"
+                >
+                  기본 편집
+                </Link>
+              </div>
             </li>
           ))}
         </ul>
