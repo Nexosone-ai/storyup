@@ -1000,6 +1000,28 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["video_jobs"]["Insert"]>;
         Relationships: [];
       };
+      account_shares: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          partner_email: string;
+          partner_user_id: string | null;
+          status: "pending" | "accepted" | "revoked";
+          created_at: string;
+          accepted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          partner_email: string;
+          partner_user_id?: string | null;
+          status?: "pending" | "accepted" | "revoked";
+          created_at?: string;
+          accepted_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["account_shares"]["Insert"]>;
+        Relationships: [];
+      };
       designer_permissions: {
         Row: {
           user_id: string;
