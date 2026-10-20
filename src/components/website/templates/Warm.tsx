@@ -4,6 +4,7 @@ import {
   SiteLogo,
   siteLang,
   type TemplateProps,
+  safeCtaHref,
 } from "./shared";
 import { SiteNav } from "./SiteNav";
 import { SiteSections } from "./SiteSections";
@@ -101,7 +102,7 @@ export function WarmTemplate(props: TemplateProps) {
           {T({ path: "hero.headline", value: hero.headline, as: "h1", className: "text-4xl font-bold leading-[1.1] tracking-tight text-balance sm:text-5xl" })}
           {T({ path: "hero.shortDescription", value: hero.shortDescription, as: "p", className: "mt-5 max-w-md text-lg leading-relaxed text-foreground/70" })}
           {showContact && (
-            <a href="#contact" className="mt-8 inline-flex rounded-full bg-primary px-7 py-3 font-semibold text-primary-foreground">
+            <a href={safeCtaHref(hero.ctaHref)} className="mt-8 inline-flex rounded-full bg-primary px-7 py-3 font-semibold text-primary-foreground">
               {T({ path: "hero.ctaLabel", value: hero.ctaLabel || L.inquire, as: "span" })}
             </a>
           )}

@@ -8,6 +8,7 @@ import {
   SiteMap,
   siteLang,
   type TemplateProps,
+  safeCtaHref,
 } from "./shared";
 import { SiteNav } from "./SiteNav";
 import { BlogPreviewCards } from "./BlogPreview";
@@ -234,7 +235,7 @@ export function SplitTemplate(props: TemplateProps) {
             {T({ path: "hero.headline", value: hero.headline, as: "h1", className: "text-4xl font-semibold leading-[1.05] tracking-tight text-balance sm:text-6xl" })}
             {T({ path: "hero.shortDescription", value: hero.shortDescription, as: "p", className: "mt-6 max-w-lg text-lg leading-relaxed text-muted text-pretty" })}
             {showContact && (
-              <a href="#contact" className="mt-8 inline-flex rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground shadow-xs">
+              <a href={safeCtaHref(hero.ctaHref)} className="mt-8 inline-flex rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground shadow-xs">
                 {T({ path: "hero.ctaLabel", value: hero.ctaLabel || L.inquire, as: "span" })}
               </a>
             )}

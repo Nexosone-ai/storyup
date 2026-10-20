@@ -1124,6 +1124,45 @@ export function WebsiteEditor({
         </div>
       </div>
 
+      {/* CTA 버튼 링크 — 메인 히어로 + 상세 홈페이지의 CTA/히어로 섹션 버튼 주소. */}
+      <div className="space-y-2 rounded-xl border border-border bg-surface p-3">
+        <div className="flex flex-wrap items-baseline gap-2">
+          <span className="eyebrow mr-1">{ko ? "CTA 버튼 링크" : "CTA button link"}</span>
+          <span className="text-xs text-muted">
+            {ko
+              ? "버튼을 누르면 이동할 주소예요. 비우면 문의하기 섹션으로 이동해요. (예: https://… · tel:01012345678 · #contact)"
+              : "Where each button links. Empty = scroll to the contact section."}
+          </span>
+        </div>
+        <label className="block">
+          <span className="text-xs text-muted">{ko ? "메인 히어로 버튼" : "Main hero button"}</span>
+          <input
+            type="text"
+            defaultValue={content.hero.ctaHref ?? ""}
+            placeholder="https://… / tel:… / #contact"
+            onBlur={(e) => onEdit("hero.ctaHref", e.target.value.trim())}
+            className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+          />
+        </label>
+        {(content.sections ?? []).map((s, i) =>
+          s.type === "cta" || s.type === "hero" ? (
+            <label key={i} className="block">
+              <span className="text-xs text-muted">
+                {ko ? "섹션 버튼" : "Section button"}:{" "}
+                {"title" in s && s.title ? s.title : s.type}
+              </span>
+              <input
+                type="text"
+                defaultValue={(s as { ctaHref?: string }).ctaHref ?? ""}
+                placeholder="https://… / tel:… / #contact"
+                onBlur={(e) => onEdit(`sections.${i}.ctaHref`, e.target.value.trim())}
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+              />
+            </label>
+          ) : null,
+        )}
+      </div>
+
       {/* 메인 섹션 배치/순서 — 히어로와 푸터 사이 블록을 원하는 순서로 바꾸고 숨길 수 있다. */}
       <div className="space-y-2 rounded-xl border border-border bg-surface p-3">
         <div className="flex flex-wrap items-baseline gap-2">

@@ -4,6 +4,7 @@ import {
   SiteLogo,
   siteLang,
   type TemplateProps,
+  safeCtaHref,
 } from "./shared";
 import { SiteNav } from "./SiteNav";
 import { SiteSections } from "./SiteSections";
@@ -100,7 +101,7 @@ export function VibrantTemplate(props: TemplateProps) {
             {T({ path: "hero.headline", value: hero.headline, as: "h1", className: "mt-5 text-4xl font-extrabold leading-[1.08] tracking-tight text-balance sm:text-5xl" })}
             {T({ path: "hero.shortDescription", value: hero.shortDescription, as: "p", className: "mt-5 max-w-md text-lg leading-relaxed text-muted" })}
             {showContact && (
-              <a href="#contact" className="mt-8 inline-flex rounded-full bg-primary px-7 py-3 font-bold text-primary-foreground shadow-lg shadow-primary/25">
+              <a href={safeCtaHref(hero.ctaHref)} className="mt-8 inline-flex rounded-full bg-primary px-7 py-3 font-bold text-primary-foreground shadow-lg shadow-primary/25">
                 {T({ path: "hero.ctaLabel", value: hero.ctaLabel || L.inquire, as: "span" })}
               </a>
             )}

@@ -4,6 +4,7 @@ import {
   SiteLogo,
   siteLang,
   type TemplateProps,
+  safeCtaHref,
 } from "./shared";
 import { SiteNav } from "./SiteNav";
 import { SiteSections } from "./SiteSections";
@@ -113,7 +114,7 @@ export function ModernTemplate(props: TemplateProps) {
             {T({ path: "hero.headline", value: hero.headline, as: "h1", className: "text-4xl font-semibold leading-[1.05] tracking-tight text-balance sm:text-5xl" })}
             {T({ path: "hero.shortDescription", value: hero.shortDescription, as: "p", className: "mt-6 max-w-md text-lg leading-relaxed text-muted" })}
             {showContact && (
-              <a href="#contact" className="mt-8 inline-flex w-fit items-center gap-2 bg-foreground px-7 py-3 text-sm font-semibold text-white hover:bg-primary">
+              <a href={safeCtaHref(hero.ctaHref)} className="mt-8 inline-flex w-fit items-center gap-2 bg-foreground px-7 py-3 text-sm font-semibold text-white hover:bg-primary">
                 {T({ path: "hero.ctaLabel", value: hero.ctaLabel || L.inquire, as: "span" })}
                 <span aria-hidden>→</span>
               </a>
