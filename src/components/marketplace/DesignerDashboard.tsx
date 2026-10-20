@@ -44,12 +44,20 @@ export function DesignerDashboard({ templates }: { templates: TemplateRow[] }) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="eyebrow mb-2">디자이너 스튜디오</p>
-        <h1 className="text-2xl font-semibold tracking-tight">내 템플릿</h1>
-        <p className="mt-1.5 text-sm text-muted">
-          Skill로 템플릿을 만들어 편집·미리보기하고 심사를 요청하세요.
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="eyebrow mb-2">디자이너 스튜디오</p>
+          <h1 className="text-2xl font-semibold tracking-tight">내 템플릿</h1>
+          <p className="mt-1.5 text-sm text-muted">
+            Skill로 템플릿을 만들어 편집·미리보기하고 심사를 요청하세요.
+          </p>
+        </div>
+        <Link
+          href="/partner/designer/skills"
+          className="shrink-0 rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-primary hover:bg-surface"
+        >
+          Skill 보관함
+        </Link>
       </div>
 
       <div className="rounded-2xl border border-border bg-surface p-4">
