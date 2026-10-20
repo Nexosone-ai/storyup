@@ -12,6 +12,7 @@ import type {
 import type { MarketingStrategyPromptInput } from "./prompts/strategy";
 import type { BlogFaqPromptInput } from "./prompts/faq";
 import type { BlogSeoPromptInput } from "./prompts/seo";
+import type { DesignEditPromptInput } from "./prompts/design";
 import type {
   BlogPromptInput,
   BlogTranscriptPromptInput,
@@ -82,6 +83,11 @@ export interface AIProvider {
   generateBlogSeoAnalysis(
     input: BlogSeoPromptInput,
   ): Promise<BlogSeoAnalysisResult>;
+
+  /** Page Schema를 자연어 요청대로 수정 — 전체 스키마 JSON 반환(서버가 재검증). */
+  editDesignSchema(
+    input: DesignEditPromptInput,
+  ): Promise<Record<string, unknown>>;
 
   generateCardNews(input: CardNewsPromptInput): Promise<CardNewsResult>;
 

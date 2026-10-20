@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { MARKETPLACE_ENABLED } from "@/lib/marketplace/config";
+import { MARKETPLACE_ENABLED, DESIGN_AI_SERVICE } from "@/lib/marketplace/config";
 import { isCurrentUserDesigner } from "@/lib/marketplace/designer";
 import { validatePageSchema } from "@/lib/marketplace/validate";
 import { emptyPageSchema } from "@/lib/marketplace/pageSchema";
+import { getServicePrice } from "@/lib/payments/prices";
 import { TemplateEditor } from "@/components/marketplace/TemplateEditor";
 
 export const metadata = { title: "템플릿 편집" };
@@ -36,6 +37,7 @@ export default async function TemplateEditPage({
   // 저장된 스키마를 검증·정규화해 안전한 값만 에디터로 전달.
   const parsed = validatePageSchema(ver.page_schema);
   const schema = parsed.ok && parsed.schema ? parsed.schema : emptyPageSchema();
+  const aiPrice = await getServicePrice(DESIGN_AI_SERVICE);
 
   return (
     <TemplateEditor
@@ -43,6 +45,7 @@ export default async function TemplateEditPage({
       title={tpl.title}
       status={ver.status}
       initialSchema={schema}
+      aiPrice={aiPrice}
     />
   );
 }

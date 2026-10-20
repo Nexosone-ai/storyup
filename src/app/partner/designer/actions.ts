@@ -2,12 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { MARKETPLACE_ENABLED } from "@/lib/marketplace/config";
+import { MARKETPLACE_ENABLED, DESIGN_AI_SERVICE } from "@/lib/marketplace/config";
 import { isCurrentUserDesigner } from "@/lib/marketplace/designer";
 import { SAMPLE_SKILLS, SAMPLE_SKILL_LIST } from "@/lib/marketplace/samples";
 import { instantiateSkill } from "@/lib/marketplace/skill";
 import { validatePageSchema } from "@/lib/marketplace/validate";
 import type { PageSchema } from "@/lib/marketplace/pageSchema";
+import { getAIProvider, AIGenerationError } from "@/lib/ai";
+import { chargeAiUsage, InsufficientPointsError } from "@/lib/ai/billing";
+import { getLocale } from "@/lib/i18n";
 
 export interface StudioState {
   ok?: boolean;
@@ -97,6 +100,63 @@ export async function saveTemplateVersion(
   if (error) return { error: "저장에 실패했어요." };
 
   return { ok: true };
+}
+
+export interface AiEditState {
+  ok?: boolean;
+  error?: string;
+  schema?: PageSchema;
+}
+
+/**
+ * AI 디자인 수정 — 현재 스키마를 자연어 요청대로 수정해 '제안'을 돌려준다(저장 안 함).
+ * UP 선차감(DESIGN_AI_EDIT) 후 AI 호출, 결과가 검증 실패/오류면 환급. 적용은 클라이언트가.
+ */
+export async function aiEditSchemaAction(
+  instruction: string,
+  currentSchema: PageSchema,
+): Promise<AiEditState> {
+  const ctx = await requireDesigner();
+  if ("error" in ctx) return { error: ctx.error };
+  const { user } = ctx;
+
+  const text = instruction.trim().slice(0, 500);
+  if (!text) return { error: "수정 요청을 입력해주세요." };
+
+  // 입력 스키마가 유효해야 수정 가능.
+  const base = validatePageSchema(currentSchema);
+  if (!base.ok || !base.schema) return { error: "현재 디자인을 읽지 못했어요." };
+
+  const ko = (await getLocale()) === "ko";
+
+  // UP 선차감 — 잔액 부족이면 호출하지 않음.
+  let billing;
+  try {
+    billing = await chargeAiUsage(user.id, DESIGN_AI_SERVICE, "AI 디자인 수정");
+  } catch (err) {
+    if (err instanceof InsufficientPointsError) return { error: err.message };
+    return { error: "과금 처리 중 문제가 발생했어요." };
+  }
+
+  try {
+    const raw = await getAIProvider().editDesignSchema({
+      schema: base.schema,
+      instruction: text,
+      language: ko ? "ko" : "en",
+    });
+    const res = validatePageSchema(raw);
+    if (!res.ok || !res.schema) {
+      await billing.refund();
+      return { error: "AI 수정 결과가 올바르지 않아 적용하지 못했어요. 다시 시도해주세요." };
+    }
+    return { ok: true, schema: res.schema };
+  } catch (err) {
+    await billing.refund();
+    return {
+      error:
+        err instanceof AIGenerationError ? err.message : "AI 수정 중 문제가 발생했어요.",
+    };
+  }
 }
 
 /** 심사 요청 — 초안을 submitted로(원자적). */

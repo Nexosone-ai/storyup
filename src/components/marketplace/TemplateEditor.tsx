@@ -2,6 +2,21 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { PageSchemaRenderer } from "@/components/marketplace/PageSchemaRenderer";
@@ -13,6 +28,7 @@ import {
 import {
   saveTemplateVersion,
   submitTemplateVersion,
+  aiEditSchemaAction,
 } from "@/app/partner/designer/actions";
 
 type Sel = { s: number; r: number; c: number; i: number } | null;
@@ -56,16 +72,51 @@ const clone = (s: PageSchema): PageSchema =>
     ? structuredClone(s)
     : (JSON.parse(JSON.stringify(s)) as PageSchema);
 
+function SortableSectionItem({
+  id,
+  disabled,
+  children,
+}: {
+  id: string;
+  disabled: boolean;
+  children: React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id, disabled });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 }}
+      className="rounded-lg border border-border p-2"
+    >
+      {!disabled && (
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="mb-1 cursor-grab text-[11px] text-muted"
+          aria-label="섹션 드래그로 이동"
+        >
+          ⠿ 드래그로 이동
+        </button>
+      )}
+      {children}
+    </div>
+  );
+}
+
 export function TemplateEditor({
   versionId,
   title,
   status,
   initialSchema,
+  aiPrice = 0,
 }: {
   versionId: string;
   title: string;
   status: string;
   initialSchema: PageSchema;
+  aiPrice?: number;
 }) {
   const router = useRouter();
   const [schema, setSchema] = useState<PageSchema>(initialSchema);
@@ -74,6 +125,27 @@ export function TemplateEditor({
   const [busy, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
   const readOnly = status !== "draft";
+
+  // AI 수정: 제안(aiProposed)을 미리보기로 보여주고 승인 시 적용. beforeAi로 롤백.
+  const [aiInput, setAiInput] = useState("");
+  const [aiBusy, startAi] = useTransition();
+  const [aiProposed, setAiProposed] = useState<PageSchema | null>(null);
+  const [beforeAi, setBeforeAi] = useState<PageSchema | null>(null);
+  const [aiMsg, setAiMsg] = useState<string | null>(null);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const onDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setSchema((prev) => {
+      const from = prev.sections.findIndex((s) => s.id === active.id);
+      const to = prev.sections.findIndex((s) => s.id === over.id);
+      if (from < 0 || to < 0) return prev;
+      const next = clone(prev);
+      next.sections = arrayMove(next.sections, from, to);
+      return next;
+    });
+  };
 
   const tokenKeys = Object.keys(schema.tokens.colors);
   const selected =
@@ -147,7 +219,43 @@ export function TemplateEditor({
     });
   };
 
+  // AI 수정 — 제안 생성(저장 안 함) → 미리보기 → 적용/취소.
+  const runAi = () => {
+    const text = aiInput.trim();
+    if (!text) return;
+    setAiMsg(null);
+    startAi(async () => {
+      const res = await aiEditSchemaAction(text, schema);
+      if (res.error || !res.schema) {
+        setAiMsg(res.error ?? "수정에 실패했어요.");
+        return;
+      }
+      setAiProposed(res.schema);
+    });
+  };
+  const applyAi = () => {
+    if (!aiProposed) return;
+    setBeforeAi(schema);
+    setSchema(aiProposed);
+    setAiProposed(null);
+    setAiInput("");
+    setSel(null);
+    setAiMsg("AI 수정을 적용했어요. '저장'을 눌러 반영하세요.");
+  };
+  const cancelAi = () => {
+    setAiProposed(null);
+    setAiMsg(null);
+  };
+  const rollbackAi = () => {
+    if (!beforeAi) return;
+    setSchema(beforeAi);
+    setBeforeAi(null);
+    setSel(null);
+    setAiMsg("이전 디자인으로 되돌렸어요.");
+  };
+
   const frameW = DEVICE_W[device];
+  const previewSchema = aiProposed ?? schema;
 
   return (
     <div className="space-y-3">
@@ -183,6 +291,50 @@ export function TemplateEditor({
       )}
       {msg && <p className="text-sm text-primary">{msg}</p>}
 
+      {/* AI 수정 패널 */}
+      {!readOnly && (
+        <div className="rounded-xl border border-border bg-surface p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="text"
+              value={aiInput}
+              onChange={(e) => setAiInput(e.target.value)}
+              placeholder="AI에게 수정 요청 (예: 카페용 따뜻한 톤으로, 모바일 CTA 강조)"
+              disabled={aiBusy || !!aiProposed}
+              className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-60"
+            />
+            <Button size="sm" onClick={runAi} disabled={aiBusy || !!aiProposed || !aiInput.trim()}>
+              {aiBusy ? <Spinner className="size-4" /> : "AI로 수정"}
+            </Button>
+            {beforeAi && !aiProposed && (
+              <Button size="sm" variant="outline" onClick={rollbackAi} disabled={aiBusy}>
+                이전으로 되돌리기
+              </Button>
+            )}
+          </div>
+          <p className="mt-1.5 text-xs text-muted">
+            {aiPrice > 0
+              ? `요청 1건당 ${aiPrice.toLocaleString()} UP 차감(실패 시 환급). `
+              : ""}
+            제안을 미리보기로 확인한 뒤 적용하며, 적용 후 되돌릴 수 있어요.
+          </p>
+          {aiMsg && <p className="mt-1 text-xs text-primary">{aiMsg}</p>}
+        </div>
+      )}
+
+      {/* AI 제안 미리보기 바 */}
+      {aiProposed && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/40 bg-primary/5 px-3 py-2">
+          <span className="text-sm font-medium text-primary">
+            AI 제안을 미리보기 중이에요. 적용할까요?
+          </span>
+          <span className="flex gap-2">
+            <Button size="sm" onClick={applyAi}>적용</Button>
+            <Button size="sm" variant="outline" onClick={cancelAi}>취소</Button>
+          </span>
+        </div>
+      )}
+
       <div className="grid gap-3 lg:grid-cols-[220px_1fr_240px]">
         {/* 좌: 구조 트리 */}
         <div className="space-y-2 rounded-xl border border-border bg-surface p-3 text-sm">
@@ -197,8 +349,13 @@ export function TemplateEditor({
               + 섹션
             </button>
           </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+          <SortableContext
+            items={schema.sections.map((sc) => sc.id)}
+            strategy={verticalListSortingStrategy}
+          >
           {schema.sections.map((sec, s) => (
-            <div key={sec.id} className="rounded-lg border border-border p-2">
+            <SortableSectionItem key={sec.id} id={sec.id} disabled={readOnly}>
               <div className="mb-1 flex items-center justify-between text-xs">
                 <span className="text-muted">섹션 {s + 1}</span>
                 <span className="flex gap-1">
@@ -254,8 +411,10 @@ export function TemplateEditor({
                   </select>
                 </label>
               )}
-            </div>
+            </SortableSectionItem>
           ))}
+          </SortableContext>
+          </DndContext>
         </div>
 
         {/* 중: 미리보기 */}
@@ -264,7 +423,7 @@ export function TemplateEditor({
             className="mx-auto overflow-hidden rounded-lg border border-border bg-white shadow-sm"
             style={{ width: frameW ?? "100%", maxWidth: "100%" }}
           >
-            <PageSchemaRenderer schema={schema} />
+            <PageSchemaRenderer schema={previewSchema} />
           </div>
         </div>
 

@@ -39,6 +39,7 @@ import {
 } from "./prompts/strategy";
 import { blogFaqPrompt, type BlogFaqPromptInput } from "./prompts/faq";
 import { blogSeoPrompt, type BlogSeoPromptInput } from "./prompts/seo";
+import { designEditPrompt, type DesignEditPromptInput } from "./prompts/design";
 import { cardNewsPrompt, type CardNewsPromptInput } from "./prompts/card-news";
 import type { PdfLandingExtract } from "@/lib/pdfImport";
 import { normalizeLandingExtract } from "@/lib/pdfImport";
@@ -210,6 +211,10 @@ export class OpenAIProvider implements AIProvider {
 
   generateBlogSeoAnalysis(input: BlogSeoPromptInput) {
     return this.complete<BlogSeoAnalysisResult>(blogSeoPrompt(input), 1600);
+  }
+
+  editDesignSchema(input: DesignEditPromptInput) {
+    return this.complete<Record<string, unknown>>(designEditPrompt(input), 4000);
   }
 
   generateCardNews(input: CardNewsPromptInput) {
