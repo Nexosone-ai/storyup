@@ -60,6 +60,11 @@ export function dashboardNav(
       icon: "users",
     },
     {
+      label: ko ? "계정 공유" : "Account sharing",
+      href: "/dashboard/share",
+      icon: "link",
+    },
+    {
       label: ko ? "구독 플랜" : "Plans",
       href: "/dashboard/plans",
       icon: "tag",
