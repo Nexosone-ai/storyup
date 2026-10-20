@@ -1221,6 +1221,32 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["skill_catalog"]["Insert"]>;
         Relationships: [];
       };
+      design_prompts: {
+        Row: {
+          id: string;
+          title: string;
+          tag: string | null;
+          hint: string | null;
+          prompt: string;
+          sort_order: number;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          tag?: string | null;
+          hint?: string | null;
+          prompt: string;
+          sort_order?: number;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["design_prompts"]["Insert"]>;
+        Relationships: [];
+      };
       youtube_connections: {
         Row: {
           user_id: string;

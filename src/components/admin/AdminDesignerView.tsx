@@ -17,6 +17,9 @@ import {
   addSkillCatalogAction,
   toggleSkillCatalogAction,
   removeSkillCatalogAction,
+  upsertDesignPromptAction,
+  toggleDesignPromptAction,
+  removeDesignPromptAction,
 } from "@/app/dashboard/admin/designer/actions";
 
 export interface DesignerRow {
@@ -49,6 +52,15 @@ export interface CatalogRow {
   tag: string | null;
   active: boolean;
 }
+export interface PromptRow {
+  id: string;
+  title: string;
+  tag: string | null;
+  hint: string | null;
+  prompt: string;
+  active: boolean;
+  sortOrder: number;
+}
 
 const won = (n: number) => `₩${n.toLocaleString()}`;
 
@@ -58,12 +70,14 @@ export function AdminDesignerView({
   listings,
   earnings,
   catalog,
+  prompts,
 }: {
   designers: DesignerRow[];
   reviews: ReviewRow[];
   listings: ListingRow[];
   earnings: PendingEarningRow[];
   catalog: CatalogRow[];
+  prompts: PromptRow[];
 }) {
   const router = useRouter();
   const [busy, start] = useTransition();
@@ -75,6 +89,31 @@ export function AdminDesignerView({
   const [cTitle, setCTitle] = useState("");
   const [cDesc, setCDesc] = useState("");
   const [cTag, setCTag] = useState("");
+
+  // 프롬프트 프리셋 입력(id 있으면 수정).
+  const [pId, setPId] = useState<string | null>(null);
+  const [pTitle, setPTitle] = useState("");
+  const [pTag, setPTag] = useState("");
+  const [pHint, setPHint] = useState("");
+  const [pPrompt, setPPrompt] = useState("");
+  const [pSort, setPSort] = useState("0");
+  const resetPrompt = () => {
+    setPId(null);
+    setPTitle("");
+    setPTag("");
+    setPHint("");
+    setPPrompt("");
+    setPSort("0");
+  };
+  const editPrompt = (p: PromptRow) => {
+    setPId(p.id);
+    setPTitle(p.title);
+    setPTag(p.tag ?? "");
+    setPHint(p.hint ?? "");
+    setPPrompt(p.prompt);
+    setPSort(String(p.sortOrder));
+    setMsg(null);
+  };
 
   // 발행 폼 상태(버전별).
   const [pubFor, setPubFor] = useState<string | null>(null);
@@ -411,6 +450,120 @@ export function AdminDesignerView({
           </ul>
         ) : (
           <p className="text-sm text-muted">아직 등록한 추천 스킬이 없어요.</p>
+        )}
+      </Card>
+
+      {/* 디자인 프롬프트 프리셋 */}
+      <Card className="space-y-3 p-4">
+        <div>
+          <h3 className="font-semibold">프롬프트 프리셋(편집기 ‘프롬프트로 구성’)</h3>
+          <p className="mt-1 text-xs text-muted">
+            파트너 편집기의 ‘프롬프트로 구성’ 박스를 관리해요. 등록한 프리셋이 없으면 기본 내장 프리셋이 표시됩니다.
+          </p>
+        </div>
+        <div className="space-y-2 rounded-lg bg-surface p-3">
+          <div className="grid gap-2 sm:grid-cols-3">
+            <div>
+              <Label htmlFor="p-title">제목</Label>
+              <Input id="p-title" value={pTitle} onChange={(e) => setPTitle(e.target.value)} placeholder="예: 히어로 섹션" />
+            </div>
+            <div>
+              <Label htmlFor="p-tag">분류(선택)</Label>
+              <Input id="p-tag" value={pTag} onChange={(e) => setPTag(e.target.value)} placeholder="예: 시작" />
+            </div>
+            <div>
+              <Label htmlFor="p-sort">정렬</Label>
+              <Input id="p-sort" type="number" value={pSort} onChange={(e) => setPSort(e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="p-hint">한 줄 설명(선택)</Label>
+            <Input id="p-hint" value={pHint} onChange={(e) => setPHint(e.target.value)} placeholder="박스에 표시될 힌트" />
+          </div>
+          <div>
+            <Label htmlFor="p-prompt">프롬프트</Label>
+            <textarea
+              id="p-prompt"
+              value={pPrompt}
+              onChange={(e) => setPPrompt(e.target.value)}
+              rows={3}
+              placeholder="AI에게 보낼 지시 (예: 페이지 맨 위에 히어로 섹션을 추가해줘…)"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              disabled={busy || !pTitle.trim() || !pPrompt.trim()}
+              onClick={() =>
+                run(() =>
+                  upsertDesignPromptAction({
+                    id: pId ?? undefined,
+                    title: pTitle,
+                    tag: pTag,
+                    hint: pHint,
+                    prompt: pPrompt,
+                    sortOrder: Math.trunc(Number(pSort) || 0),
+                    active: true,
+                  }).then((r) => {
+                    if (r.ok) resetPrompt();
+                    return r;
+                  }),
+                )
+              }
+            >
+              {busy ? <Spinner className="size-4" /> : pId ? "수정 저장" : "프롬프트 추가"}
+            </Button>
+            {pId && (
+              <Button size="sm" variant="outline" onClick={resetPrompt} disabled={busy}>
+                새로 입력
+              </Button>
+            )}
+          </div>
+        </div>
+        {prompts.length > 0 ? (
+          <ul className="divide-y divide-border rounded-lg border border-border">
+            {prompts.map((p) => (
+              <li key={p.id} className="flex items-start justify-between gap-2 px-3 py-2 text-sm">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">
+                    {p.title}
+                    {p.tag && <span className="ml-2 text-xs text-muted">· {p.tag}</span>}
+                    {!p.active && <span className="ml-2 text-xs text-muted">(숨김)</span>}
+                  </p>
+                  <p className="truncate text-xs text-muted">{p.hint || p.prompt}</p>
+                </div>
+                <div className="flex shrink-0 gap-3">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => editPrompt(p)}
+                    className="text-xs text-muted underline underline-offset-2 hover:text-primary"
+                  >
+                    편집
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => run(() => toggleDesignPromptAction(p.id, !p.active))}
+                    className="text-xs text-muted underline underline-offset-2 hover:text-primary"
+                  >
+                    {p.active ? "숨기기" : "노출"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => run(() => removeDesignPromptAction(p.id))}
+                    className="text-xs text-muted underline underline-offset-2 hover:text-danger"
+                  >
+                    삭제
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted">등록한 프리셋이 없어요(기본 내장 프리셋이 편집기에 표시됩니다).</p>
         )}
       </Card>
     </div>

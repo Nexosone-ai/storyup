@@ -25,7 +25,7 @@ import {
   type ComponentType,
   type PageSchema,
 } from "@/lib/marketplace/pageSchema";
-import { UXUI_PROMPTS } from "@/lib/marketplace/prompts";
+import { UXUI_PROMPTS, type UxUiPrompt } from "@/lib/marketplace/prompts";
 import {
   saveTemplateVersion,
   submitTemplateVersion,
@@ -120,6 +120,7 @@ export function TemplateEditor({
   initialSchema,
   aiPrice = 0,
   skills = [],
+  presets = [],
 }: {
   versionId: string;
   title: string;
@@ -127,8 +128,11 @@ export function TemplateEditor({
   initialSchema: PageSchema;
   aiPrice?: number;
   skills?: EditorSkill[];
+  presets?: UxUiPrompt[];
 }) {
   const router = useRouter();
+  // 관리자 큐레이션 프리셋이 있으면 그걸, 없으면 내장 기본 프리셋.
+  const promptList = presets.length ? presets : UXUI_PROMPTS;
   const [schema, setSchema] = useState<PageSchema>(initialSchema);
   const [sel, setSel] = useState<Sel>(null);
   const [device, setDevice] = useState<Device>("desktop");
@@ -379,7 +383,7 @@ export function TemplateEditor({
           <div className="mt-2 border-t border-border pt-2">
             <p className="mb-1.5 text-xs font-medium text-muted">프롬프트로 구성</p>
             <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-              {UXUI_PROMPTS.map((p) => (
+              {promptList.map((p) => (
                 <button
                   key={p.key}
                   type="button"

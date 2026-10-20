@@ -319,3 +319,74 @@ export async function removeSkillCatalogAction(id: string): Promise<DesignerAdmi
   revalidatePath("/partner/designer/skills");
   return { ok: true };
 }
+
+// ---------------- 디자인 프롬프트 프리셋(편집기 '프롬프트로 구성') ----------------
+
+export interface DesignPromptInput {
+  id?: string;
+  title: string;
+  tag: string;
+  hint: string;
+  prompt: string;
+  sortOrder: number;
+  active: boolean;
+}
+
+/** 프롬프트 프리셋 추가/수정(id 있으면 수정). */
+export async function upsertDesignPromptAction(
+  input: DesignPromptInput,
+): Promise<DesignerAdminState> {
+  const { admin } = await requireAdmin();
+  if (!admin) return { error: "권한이 없습니다." };
+
+  const title = input.title.trim();
+  const prompt = input.prompt.trim();
+  if (!title) return { error: "제목을 입력해주세요." };
+  if (!prompt) return { error: "프롬프트를 입력해주세요." };
+
+  const adminc = createAdminClient();
+  const row = {
+    title,
+    tag: input.tag.trim() || null,
+    hint: input.hint.trim() || null,
+    prompt,
+    sort_order: Number.isFinite(input.sortOrder) ? Math.trunc(input.sortOrder) : 0,
+    active: input.active,
+    updated_at: new Date().toISOString(),
+  };
+  const { error } = input.id
+    ? await adminc.from("design_prompts").update(row).eq("id", input.id)
+    : await adminc.from("design_prompts").insert(row);
+  if (error) {
+    console.error("[designer] prompt upsert failed", error);
+    return { error: "저장에 실패했어요." };
+  }
+  revalidatePath("/dashboard/admin/designer");
+  return { ok: true, message: input.id ? "수정했어요." : "프롬프트를 추가했어요." };
+}
+
+/** 노출/숨김 토글. */
+export async function toggleDesignPromptAction(
+  id: string,
+  active: boolean,
+): Promise<DesignerAdminState> {
+  const { admin } = await requireAdmin();
+  if (!admin) return { error: "권한이 없습니다." };
+  const adminc = createAdminClient();
+  await adminc
+    .from("design_prompts")
+    .update({ active, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  revalidatePath("/dashboard/admin/designer");
+  return { ok: true };
+}
+
+/** 삭제. */
+export async function removeDesignPromptAction(id: string): Promise<DesignerAdminState> {
+  const { admin } = await requireAdmin();
+  if (!admin) return { error: "권한이 없습니다." };
+  const adminc = createAdminClient();
+  await adminc.from("design_prompts").delete().eq("id", id);
+  revalidatePath("/dashboard/admin/designer");
+  return { ok: true };
+}
