@@ -52,6 +52,10 @@ export interface TemplateProps {
   blogHref?: string;
   /** 랜딩페이지 하단에 보여줄 최신 블로그 글 (최대 3개). */
   latestPosts?: import("./BlogPreview").SitePostPreview[];
+  /** 블로그 연결 섹션(postList 등)용 — 이 사업장의 공개 글 전체(카테고리 포함). */
+  sectionPosts?: import("./BlogPreview").SiteSectionPost[];
+  /** 블로그 연결 섹션용 — 사용 중인 블로그 카테고리 목록. */
+  categories?: string[];
   /** 랜딩페이지에 보여줄 이 가게의 카드뉴스 (최신순). */
   cards?: import("@/components/marketing/showcaseData").ShowcaseCardItem[];
   scoped?: boolean;
