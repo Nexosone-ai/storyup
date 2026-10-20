@@ -21,7 +21,8 @@ export type NodeType =
   | "list"
   | "card"
   | "spacer"
-  | "divider";
+  | "divider"
+  | "instance";
 
 /** 자식을 가질 수 있는 노드(레이아웃 컨테이너). */
 export const CONTAINER_TYPES: NodeType[] = ["page", "section", "container"];
@@ -93,10 +94,20 @@ export interface DocNode {
   children?: NodeId[];
   /** 잠금 — Skill/AI가 변경하지 못한다(사용자 규칙 우선). */
   locked?: boolean;
-  /** 재사용 컴포넌트 인스턴스 참조(후속 단계). */
+  /** type='instance'일 때 참조하는 컴포넌트 정의 id. */
   componentRef?: string;
-  /** 콘텐츠 슬롯 키(판매 템플릿의 편집 가능 필드). */
+  /** 인스턴스별 콘텐츠 오버라이드: 슬롯키 → props 패치(연결 인스턴스). */
+  overrides?: Record<string, Record<string, unknown>>;
+  /** 콘텐츠 슬롯 키(판매 템플릿·인스턴스 오버라이드의 편집 가능 필드). */
   slot?: string;
+}
+
+/** 재사용 컴포넌트 정의 — 자기완결 서브트리(인스턴스가 참조해 '연결'됨). */
+export interface ComponentDef {
+  id: string;
+  name: string;
+  root: NodeId;
+  nodes: Record<NodeId, DocNode>;
 }
 
 export interface DesignDocument {
@@ -106,6 +117,8 @@ export interface DesignDocument {
   root: NodeId;
   /** 평면 노드맵(안정 id). */
   nodes: Record<NodeId, DocNode>;
+  /** 재사용 컴포넌트 정의(연결 인스턴스의 원본). */
+  components?: Record<string, ComponentDef>;
   /** 낙관적 동시편집·Patch 기준용 revision. */
   revision: number;
 }

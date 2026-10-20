@@ -32,7 +32,24 @@ export interface DocValidation {
 
 const HEX = /^#([0-9a-fA-F]{3,8})$/;
 const RGB = /^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*(0|1|0?\.\d+)\s*)?\)$/;
-const ALL_TYPES: NodeType[] = [...CONTAINER_TYPES, ...LEAF_TYPES];
+const ALL_TYPES: NodeType[] = [...CONTAINER_TYPES, ...LEAF_TYPES, "instance"];
+
+/** 인스턴스 콘텐츠 오버라이드 정규화(슬롯키→props, 문자열 새니타이즈). */
+function cleanOverrides(o: unknown): Record<string, Record<string, unknown>> | undefined {
+  if (!o || typeof o !== "object") return undefined;
+  const out: Record<string, Record<string, unknown>> = {};
+  for (const [slot, patch] of Object.entries(o as Record<string, unknown>)) {
+    if (!patch || typeof patch !== "object") continue;
+    const p: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(patch as Record<string, unknown>)) {
+      if (typeof v === "string") p[k] = sanitizeInlineHtml(v.slice(0, DOC_LIMITS.maxText));
+      else if (typeof v === "number" || typeof v === "boolean") p[k] = v;
+      else if (Array.isArray(v)) p[k] = v.slice(0, 50).map((x) => sanitizeInlineHtml(String(x).slice(0, 2000)));
+    }
+    out[String(slot).slice(0, 60)] = p;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
 
 function isColor(v: string | undefined, tokens: DesignTokens): boolean {
   if (v == null) return true;
@@ -194,13 +211,55 @@ export function validateDocument(input: unknown): DocValidation {
     nodes[id] = {
       id,
       type: n.type,
-      props: cleanProps(n, errors, `node ${id}`),
+      props: n.type === "instance" ? undefined : cleanProps(n, errors, `node ${id}`),
       style,
       children: isContainer ? childIds : undefined,
       locked: n.locked === true || undefined,
       slot: typeof n.slot === "string" ? n.slot.slice(0, 60) : undefined,
       componentRef: typeof n.componentRef === "string" ? n.componentRef : undefined,
+      overrides: n.type === "instance" ? cleanOverrides(n.overrides) : undefined,
     };
+  }
+
+  // 컴포넌트 정의 검증(각 def = 작은 서브트리).
+  const components: Record<string, import("./document").ComponentDef> = {};
+  const compsIn = raw.components && typeof raw.components === "object" ? raw.components : {};
+  for (const [cid, defRaw] of Object.entries(compsIn)) {
+    const def = defRaw as { id?: string; name?: string; root?: string; nodes?: Record<string, DocNode> };
+    const dnodesIn = def?.nodes && typeof def.nodes === "object" ? def.nodes : {};
+    if (!def?.root || !dnodesIn[def.root]) {
+      errors.push(`component ${cid}: 루트 없음`);
+      continue;
+    }
+    const dnodes: Record<NodeId, DocNode> = {};
+    for (const nid of Object.keys(dnodesIn)) {
+      const dn = dnodesIn[nid];
+      if (!dn || dn.id !== nid || !ALL_TYPES.includes(dn.type) || dn.type === "instance") {
+        errors.push(`component ${cid}.${nid}: 형식 오류`);
+        continue;
+      }
+      const dIsC = CONTAINER_TYPES.includes(dn.type);
+      const dchild = Array.isArray(dn.children) ? dn.children.filter((c) => typeof c === "string" && !!dnodesIn[c]) : [];
+      dnodes[nid] = {
+        id: nid,
+        type: dn.type,
+        props: cleanProps(dn, errors, `component ${cid}.${nid}`),
+        style: {
+          base: cleanStyle(dn.style?.base, tokens, errors, `component ${cid}.${nid}`),
+          mobile: cleanStyle(dn.style?.mobile, tokens, errors, `component ${cid}.${nid}`),
+          tablet: cleanStyle(dn.style?.tablet, tokens, errors, `component ${cid}.${nid}`),
+          desktop: cleanStyle(dn.style?.desktop, tokens, errors, `component ${cid}.${nid}`),
+        },
+        children: dIsC ? dchild : undefined,
+        slot: typeof dn.slot === "string" ? dn.slot.slice(0, 60) : undefined,
+      };
+    }
+    components[cid] = { id: cid, name: String(def.name ?? "컴포넌트").slice(0, 80), root: def.root, nodes: dnodes };
+  }
+  // 인스턴스 참조 유효성.
+  for (const nd of Object.values(nodes)) {
+    if (nd.type === "instance" && (!nd.componentRef || !components[nd.componentRef]))
+      errors.push(`instance ${nd.id}: 컴포넌트 참조 오류`);
   }
 
   // 순환 검출 + 깊이(루트에서 DFS)
@@ -232,6 +291,13 @@ export function validateDocument(input: unknown): DocValidation {
   return {
     ok: true,
     errors: [],
-    doc: { version: 2, tokens, root: rootId, nodes, revision: Number.isFinite(raw.revision) ? Number(raw.revision) : 1 },
+    doc: {
+      version: 2,
+      tokens,
+      root: rootId,
+      nodes,
+      components: Object.keys(components).length ? components : undefined,
+      revision: Number.isFinite(raw.revision) ? Number(raw.revision) : 1,
+    },
   };
 }

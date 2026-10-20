@@ -109,20 +109,30 @@ function baseInline(node: DocNode, tokens: DesignTokens): CSSProperties {
   return declsToInline(styleDecls(node.style?.base ?? {}, tokens));
 }
 
-/** 문서 전체를 먼저 순회해 기기별 오버라이드 CSS를 만든다(렌더 전 계산). */
+/** 루트에서 트리를 순회(인스턴스는 원본으로 확장)하며 기기별 오버라이드 CSS 생성. */
 function collectResponsiveCss(doc: DesignDocument): string {
   const out: string[] = [];
-  for (const node of Object.values(doc.nodes)) {
+  const walk = (nodes: Record<NodeId, DocNode>, id: NodeId, prefix: string): void => {
+    const node = nodes[id];
+    if (!node) return;
+    if (node.type === "instance") {
+      const def = node.componentRef ? doc.components?.[node.componentRef] : undefined;
+      if (def) walk(def.nodes, def.root, `${prefix}${id}/`);
+      return;
+    }
     const st = node.style;
-    if (!st) continue;
-    (["mobile", "tablet", "desktop"] as const).forEach((dev) => {
-      const over = st[dev];
-      if (over && Object.keys(over).length) {
-        const decls = declsToCss(styleDecls(over, doc.tokens));
-        if (decls) out.push(`${MQ[dev]}{[data-n="${node.id}"]{${decls}}}`);
-      }
-    });
-  }
+    if (st) {
+      (["mobile", "tablet", "desktop"] as const).forEach((dev) => {
+        const over = st[dev];
+        if (over && Object.keys(over).length) {
+          const decls = declsToCss(styleDecls(over, doc.tokens));
+          if (decls) out.push(`${MQ[dev]}{[data-n="${prefix}${id}"]{${decls}}}`);
+        }
+      });
+    }
+    for (const c of node.children ?? []) walk(nodes, c, prefix);
+  };
+  walk(doc.nodes, doc.root, "");
   return out.join("");
 }
 
@@ -192,25 +202,52 @@ function Leaf({ node, tokens }: { node: DocNode; tokens: DesignTokens }) {
   }
 }
 
-function NodeView({ doc, id }: { doc: DesignDocument; id: NodeId }) {
-  const node = doc.nodes[id];
+function NodeView({
+  doc,
+  nodes,
+  id,
+  prefix,
+  overrides,
+}: {
+  doc: DesignDocument;
+  nodes: Record<NodeId, DocNode>;
+  id: NodeId;
+  prefix: string;
+  overrides?: Record<string, Record<string, unknown>>;
+}) {
+  const node = nodes[id];
   if (!node) return null;
+
+  // 인스턴스 — 원본 컴포넌트를 확장(오버라이드 전달·접두사로 id 분리).
+  if (node.type === "instance") {
+    const def = node.componentRef ? doc.components?.[node.componentRef] : undefined;
+    if (!def) return null;
+    return (
+      <NodeView doc={doc} nodes={def.nodes} id={def.root} prefix={`${prefix}${id}/`} overrides={node.overrides} />
+    );
+  }
+
   const inline = baseInline(node, doc.tokens);
+  const dataN = `${prefix}${id}`;
 
   if (node.type === "page" || node.type === "section" || node.type === "container") {
-    // 컨테이너 — 기본 세로 흐름, 스타일로 flex/grid 지정.
     const style: CSSProperties = { display: inline.display ?? "block", ...inline };
     return (
-      <div data-n={id} style={style}>
+      <div data-n={dataN} style={style}>
         {(node.children ?? []).map((cid) => (
-          <NodeView key={cid} doc={doc} id={cid} />
+          <NodeView key={cid} doc={doc} nodes={nodes} id={cid} prefix={prefix} overrides={overrides} />
         ))}
       </div>
     );
   }
+  // 잎 — 인스턴스 오버라이드(슬롯 매칭) 적용.
+  const effNode =
+    node.slot && overrides?.[node.slot]
+      ? { ...node, props: { ...(node.props ?? {}), ...overrides[node.slot] } }
+      : node;
   return (
-    <div data-n={id} style={inline}>
-      <Leaf node={node} tokens={doc.tokens} />
+    <div data-n={dataN} style={inline}>
+      <Leaf node={effNode} tokens={doc.tokens} />
     </div>
   );
 }
@@ -226,7 +263,7 @@ export function DocumentRenderer({ doc }: { doc: DesignDocument }) {
       }}
     >
       {css && <style dangerouslySetInnerHTML={{ __html: css }} />}
-      <NodeView doc={doc} id={doc.root} />
+      <NodeView doc={doc} nodes={doc.nodes} id={doc.root} prefix="" />
     </div>
   );
 }

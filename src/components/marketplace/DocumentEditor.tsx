@@ -23,6 +23,10 @@ import {
   moveChild,
   duplicateNode,
   parentId,
+  defineComponent,
+  insertInstance,
+  detachInstance,
+  setInstanceOverride,
 } from "@/lib/marketplace/docOps";
 import { saveTemplateDocument } from "@/app/partner/designer/actions";
 
@@ -121,6 +125,31 @@ export function DocumentEditor({
     const n = kind === "container" || kind === "section" ? newContainer(kind) : newLeaf(kind);
     apply(insertNode(doc, parent, n));
     setSel(n.id);
+  };
+
+  const components = doc.components ?? {};
+  const makeComponent = () => {
+    if (!node || readOnly || node.id === doc.root || node.type === "instance") return;
+    const name = `컴포넌트 ${Object.keys(components).length + 1}`;
+    const r = defineComponent(doc, node.id, name);
+    if (!r.compId) return;
+    apply(r.doc);
+    setSel(r.instanceId);
+  };
+  const addInstance = (compId: string) => {
+    if (readOnly) return;
+    const target = node && isContainer ? node.id : doc.root;
+    const r = insertInstance(doc, target, compId);
+    if (r.instanceId) {
+      apply(r.doc);
+      setSel(r.instanceId);
+    }
+  };
+  const detach = () => {
+    if (!node || readOnly || node.type !== "instance") return;
+    const r = detachInstance(doc, node.id);
+    apply(r.doc);
+    setSel(r.newId);
   };
 
   // 선택 노드의 현재 device 레이어 스타일 값(없으면 base 상속).
@@ -277,36 +306,75 @@ export function DocumentEditor({
                 </span>
               </div>
 
-              {/* 컨테이너: 자식 추가 */}
-              {isContainer && !readOnly && (
-                <div className="rounded-lg border border-border p-2">
-                  <p className="mb-1 text-[11px] text-muted">자식 추가</p>
-                  <div className="flex flex-wrap gap-1">
-                    <button type="button" onClick={() => addTo(node.id, "container")} className="rounded border border-border px-1.5 py-0.5 text-[11px]">+ 박스</button>
-                    {node.type === "page" && (
-                      <button type="button" onClick={() => addTo(node.id, "section")} className="rounded border border-border px-1.5 py-0.5 text-[11px]">+ 섹션</button>
-                    )}
-                    {ADD_LEAF.map((a) => (
-                      <button key={a.type} type="button" onClick={() => addTo(node.id, a.type)} className="rounded border border-border px-1.5 py-0.5 text-[11px]">+ {a.label}</button>
-                    ))}
-                  </div>
-                </div>
+              {node.type === "instance" ? (
+                <InstancePanel
+                  doc={doc}
+                  node={node}
+                  readOnly={readOnly}
+                  onDetach={detach}
+                  onOverride={(slot, patch) => apply(setInstanceOverride(doc, node.id, slot, patch))}
+                />
+              ) : (
+                <>
+                  {/* 컨테이너: 자식 추가 */}
+                  {isContainer && !readOnly && (
+                    <div className="rounded-lg border border-border p-2">
+                      <p className="mb-1 text-[11px] text-muted">자식 추가</p>
+                      <div className="flex flex-wrap gap-1">
+                        <button type="button" onClick={() => addTo(node.id, "container")} className="rounded border border-border px-1.5 py-0.5 text-[11px]">+ 박스</button>
+                        {node.type === "page" && (
+                          <button type="button" onClick={() => addTo(node.id, "section")} className="rounded border border-border px-1.5 py-0.5 text-[11px]">+ 섹션</button>
+                        )}
+                        {ADD_LEAF.map((a) => (
+                          <button key={a.type} type="button" onClick={() => addTo(node.id, a.type)} className="rounded border border-border px-1.5 py-0.5 text-[11px]">+ {a.label}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <ContentProps node={node} readOnly={readOnly} onSet={setProp} />
+                  <StylePanel
+                    node={node}
+                    isContainer={isContainer}
+                    device={device}
+                    readOnly={readOnly}
+                    tokenKeys={Object.keys(doc.tokens.colors)}
+                    sval={sval}
+                    overridden={overridden}
+                    onSet={setStyle}
+                  />
+
+                  {!readOnly && node.id !== doc.root && (
+                    <button
+                      type="button"
+                      onClick={makeComponent}
+                      className="w-full rounded-lg border border-primary/40 px-2 py-1.5 text-xs font-medium text-primary"
+                    >
+                      ＋ 재사용 컴포넌트로 만들기
+                    </button>
+                  )}
+                </>
               )}
 
-              {/* 콘텐츠 속성 */}
-              <ContentProps node={node} readOnly={readOnly} onSet={setProp} />
-
-              {/* 레이아웃/스타일 (device 레이어) */}
-              <StylePanel
-                node={node}
-                isContainer={isContainer}
-                device={device}
-                readOnly={readOnly}
-                tokenKeys={Object.keys(doc.tokens.colors)}
-                sval={sval}
-                overridden={overridden}
-                onSet={setStyle}
-              />
+              {/* 컴포넌트 라이브러리(삽입) */}
+              {!readOnly && Object.keys(components).length > 0 && (
+                <div className="rounded-lg border border-border p-2">
+                  <p className="mb-1 text-[11px] font-medium text-foreground">컴포넌트 삽입</p>
+                  <div className="space-y-1">
+                    {Object.values(components).map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => addInstance(c.id)}
+                        className="block w-full truncate rounded border border-border px-2 py-1 text-left text-[11px] hover:border-primary/50"
+                      >
+                        ＋ {c.name}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-1 text-[10px] text-muted">선택한 컨테이너(또는 페이지)에 연결 인스턴스로 삽입돼요.</p>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -514,6 +582,71 @@ function StylePanel({
             </select>
           </Field>
         </>
+      )}
+    </div>
+  );
+}
+
+const SLOT_KEY: Record<string, string> = {
+  heading: "text",
+  text: "html",
+  image: "src",
+  button: "label",
+  card: "body",
+  list: "items",
+};
+
+function InstancePanel({
+  doc,
+  node,
+  readOnly,
+  onDetach,
+  onOverride,
+}: {
+  doc: DesignDocument;
+  node: DocNode;
+  readOnly: boolean;
+  onDetach: () => void;
+  onOverride: (slot: string, patch: Record<string, unknown>) => void;
+}) {
+  const def = node.componentRef ? doc.components?.[node.componentRef] : undefined;
+  const slots = def
+    ? Object.values(def.nodes).filter((n): n is DocNode & { slot: string } => !!n.slot)
+    : [];
+  return (
+    <div className="space-y-2 rounded-lg border border-border p-2">
+      <p className="text-xs">
+        연결 컴포넌트: <b>{def?.name ?? "—"}</b>
+      </p>
+      <p className="text-[11px] text-muted">원본을 고치면 모든 인스턴스에 반영돼요. 이 인스턴스만 바꾸려면 아래 슬롯을 덮어쓰거나 ‘분리’하세요.</p>
+      {slots.length > 0 ? (
+        slots.map((s) => {
+          const key = SLOT_KEY[s.type] ?? "text";
+          const cur = node.overrides?.[s.slot]?.[key] ?? (s.props?.[key] as unknown) ?? "";
+          const val = Array.isArray(cur) ? (cur as string[]).join("\n") : String(cur);
+          return (
+            <Field key={s.slot} label={`슬롯: ${s.slot}`}>
+              <input
+                disabled={readOnly}
+                value={val}
+                onChange={(e) =>
+                  onOverride(
+                    s.slot,
+                    key === "items" ? { items: e.target.value.split("\n") } : { [key]: e.target.value },
+                  )
+                }
+                className={inputCls}
+              />
+            </Field>
+          );
+        })
+      ) : (
+        <p className="text-[11px] text-muted">덮어쓸 슬롯이 없어요(원본에 slot 지정 필요).</p>
+      )}
+      {!readOnly && (
+        <button type="button" onClick={onDetach} className="text-xs text-primary hover:underline">
+          분리(detach) — 이 인스턴스를 독립 복사본으로
+        </button>
       )}
     </div>
   );
