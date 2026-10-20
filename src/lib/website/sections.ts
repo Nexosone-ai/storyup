@@ -3,6 +3,10 @@ import {
   type SiteSection,
   type SiteSectionType,
   type SitePage,
+  type BlogBinding,
+  type BlogLayout,
+  type BlogSource,
+  type BlogSort,
 } from "@/types/domain";
 import { slugify } from "@/utils/slug";
 
@@ -39,6 +43,42 @@ export function normalizeSiteSections(raw: unknown): SiteSection[] {
         const image = str(o.image, 600) || undefined;
         if (title || subtitle || ctaLabel)
           out.push({ type, title, subtitle, ctaLabel, image });
+        break;
+      }
+      case "blogSection": {
+        const LAYOUTS: BlogLayout[] = ["spotlight", "feature", "magazine", "list", "cards"];
+        const SOURCES: BlogSource[] = ["latest", "category", "manual"];
+        const o2 = o as Record<string, unknown>;
+        const rawBinding = (o2.binding ?? {}) as Record<string, unknown>;
+        const slugArr = (v: unknown) =>
+          arr(v)
+            .map((x) => str(x, 200))
+            .filter(Boolean)
+            .slice(0, 50);
+        const binding: BlogBinding = {
+          source: SOURCES.includes(rawBinding.source as BlogSource)
+            ? (rawBinding.source as BlogSource)
+            : "latest",
+          category: str(rawBinding.category, 80) || undefined,
+          slugs: slugArr(rawBinding.slugs),
+          pinnedSlugs: slugArr(rawBinding.pinnedSlugs),
+          excludeSlugs: slugArr(rawBinding.excludeSlugs),
+          count:
+            Number.isFinite(rawBinding.count) && (rawBinding.count as number) > 0
+              ? Math.min(Math.trunc(rawBinding.count as number), 24)
+              : 6,
+          sort: (rawBinding.sort as BlogSort) === "oldest" ? "oldest" : "recent",
+        };
+        const layout = LAYOUTS.includes(o2.layout as BlogLayout)
+          ? (o2.layout as BlogLayout)
+          : "cards";
+        out.push({
+          type,
+          title: title || undefined,
+          subtitle,
+          layout,
+          binding,
+        });
         break;
       }
       case "slider": {

@@ -54,6 +54,8 @@ import {
   type SitePage,
   type LandingSectionKey,
   type SiteSectionType,
+  type BlogLayout,
+  type BlogBinding,
   type SiteBanner,
   type SiteSection,
 } from "@/types/domain";
@@ -72,7 +74,8 @@ type AddableSection =
   | "faq"
   | "stats"
   | "cta"
-  | "postList";
+  | "postList"
+  | "blogSection";
 
 /** '섹션 추가'로 넣는 섹션의 시작 템플릿(언어별 예시 내용). */
 function makeStarterSection(type: AddableSection, ko: boolean): SiteSection {
@@ -110,6 +113,13 @@ function makeStarterSection(type: AddableSection, ko: boolean): SiteSection {
       type: "postList",
       title: ko ? "최근 블로그" : "Latest posts",
       category: "",
+    };
+  if (type === "blogSection")
+    return {
+      type: "blogSection",
+      title: ko ? "브랜드 이야기" : "Our stories",
+      layout: "spotlight",
+      binding: { source: "latest", count: 6, sort: "recent" },
     };
   if (type === "slider")
     return {
@@ -242,6 +252,7 @@ const SITE_SECTION_LABELS: Record<SiteSectionType, { ko: string; en: string }> =
   pricing: { ko: "가격표", en: "Pricing" },
   steps: { ko: "진행 단계", en: "Steps" },
   postList: { ko: "블로그 글목록", en: "Blog list" },
+  blogSection: { ko: "블로그 연결 섹션", en: "Blog section" },
   faq: { ko: "자주 묻는 질문", en: "FAQ" },
   testimonials: { ko: "고객 후기", en: "Testimonials" },
   stats: { ko: "핵심 지표", en: "Stats" },
@@ -605,6 +616,41 @@ export function WebsiteEditor({
         ...sec,
         items: [...sec.items, { title: ko ? "새 슬라이드" : "New slide" }],
       };
+      return { ...c, sections: list };
+    });
+
+  /** 블로그 연결 섹션의 레이아웃/바인딩 수정. */
+  const updateBlogSection = (
+    index: number,
+    patch: { layout?: BlogLayout; binding?: Partial<BlogBinding> },
+  ) =>
+    setContent((c) => {
+      const list = [...(c.sections ?? [])];
+      const sec = list[index];
+      if (sec?.type !== "blogSection") return c;
+      list[index] = {
+        ...sec,
+        ...(patch.layout ? { layout: patch.layout } : {}),
+        binding: { ...sec.binding, ...(patch.binding ?? {}) },
+      };
+      return { ...c, sections: list };
+    });
+
+  /** 블로그 섹션의 slug 배열(수동 선택/고정) 토글. */
+  const toggleBlogSlug = (
+    index: number,
+    key: "slugs" | "pinnedSlugs",
+    slug: string,
+  ) =>
+    setContent((c) => {
+      const list = [...(c.sections ?? [])];
+      const sec = list[index];
+      if (sec?.type !== "blogSection") return c;
+      const cur = sec.binding[key] ?? [];
+      const next = cur.includes(slug)
+        ? cur.filter((s) => s !== slug)
+        : [...cur, slug];
+      list[index] = { ...sec, binding: { ...sec.binding, [key]: next } };
       return { ...c, sections: list };
     });
 
@@ -1475,7 +1521,8 @@ export function WebsiteEditor({
               ["faq", "FAQ"],
               ["stats", ko ? "통계" : "Stats"],
               ["cta", ko ? "CTA(행동 유도)" : "CTA"],
-              ["postList", ko ? "블로그 글목록" : "Blog list"],
+              ["blogSection", ko ? "블로그 연결 섹션" : "Blog section"],
+              ["postList", ko ? "블로그 글목록(기본)" : "Blog list"],
             ] as const
           ).map(([t, label]) => (
             <button
@@ -1598,6 +1645,117 @@ export function WebsiteEditor({
                       >
                         {ko ? "+ 슬라이드" : "+ Slide"}
                       </button>
+                    </div>
+                  )}
+                  {/* 블로그 연결 섹션: 레이아웃·바인딩 설정 */}
+                  {s.type === "blogSection" && (
+                    <div className="mt-2 space-y-2 border-t border-border pt-2 text-xs">
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <label className="block">
+                          <span className="text-muted">레이아웃</span>
+                          <select
+                            value={s.layout}
+                            onChange={(e) =>
+                              updateBlogSection(i, { layout: e.target.value as BlogLayout })
+                            }
+                            className="mt-0.5 w-full rounded border border-border bg-background px-2 py-1"
+                          >
+                            <option value="spotlight">대표 글(크게)</option>
+                            <option value="feature">1 큰 글 + 2 작은 글</option>
+                            <option value="magazine">매거진 그리드</option>
+                            <option value="list">타이포 목록</option>
+                            <option value="cards">카드</option>
+                          </select>
+                        </label>
+                        <label className="block">
+                          <span className="text-muted">글 선택</span>
+                          <select
+                            value={s.binding.source ?? "latest"}
+                            onChange={(e) =>
+                              updateBlogSection(i, {
+                                binding: { source: e.target.value as BlogBinding["source"] },
+                              })
+                            }
+                            className="mt-0.5 w-full rounded border border-border bg-background px-2 py-1"
+                          >
+                            <option value="latest">최신 글</option>
+                            <option value="category">카테고리별</option>
+                            <option value="manual">수동 선택</option>
+                          </select>
+                        </label>
+                        {s.binding.source === "category" && (
+                          <label className="block">
+                            <span className="text-muted">카테고리</span>
+                            <select
+                              value={s.binding.category ?? ""}
+                              onChange={(e) =>
+                                updateBlogSection(i, { binding: { category: e.target.value } })
+                              }
+                              className="mt-0.5 w-full rounded border border-border bg-background px-2 py-1"
+                            >
+                              <option value="">전체</option>
+                              {categories.map((c) => (
+                                <option key={c} value={c}>
+                                  {c}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        )}
+                        <label className="block">
+                          <span className="text-muted">글 수 / 정렬</span>
+                          <div className="mt-0.5 flex gap-1">
+                            <input
+                              type="number"
+                              min={1}
+                              max={24}
+                              value={s.binding.count ?? 6}
+                              onChange={(e) =>
+                                updateBlogSection(i, {
+                                  binding: { count: Math.trunc(Number(e.target.value) || 6) },
+                                })
+                              }
+                              className="w-16 rounded border border-border bg-background px-2 py-1"
+                            />
+                            <select
+                              value={s.binding.sort ?? "recent"}
+                              onChange={(e) =>
+                                updateBlogSection(i, {
+                                  binding: { sort: e.target.value as BlogBinding["sort"] },
+                                })
+                              }
+                              className="flex-1 rounded border border-border bg-background px-2 py-1"
+                            >
+                              <option value="recent">최신순</option>
+                              <option value="oldest">오래된순</option>
+                            </select>
+                          </div>
+                        </label>
+                      </div>
+                      {/* 글 선택: 수동=표시할 글, 그 외=고정할 글 */}
+                      {posts.length > 0 && (
+                        <div>
+                          <span className="text-muted">
+                            {s.binding.source === "manual" ? "표시할 글 선택" : "맨 앞에 고정할 글(선택)"}
+                          </span>
+                          <div className="mt-0.5 max-h-32 space-y-1 overflow-y-auto rounded border border-border p-2">
+                            {posts.map((p) => {
+                              const key = s.binding.source === "manual" ? "slugs" : "pinnedSlugs";
+                              const checked = (s.binding[key] ?? []).includes(p.slug);
+                              return (
+                                <label key={p.slug} className="flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => toggleBlogSlug(i, key, p.slug)}
+                                  />
+                                  <span className="truncate">{p.title}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                         </>

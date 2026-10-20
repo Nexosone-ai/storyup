@@ -1,29 +1,11 @@
 import type { SiteSectionPost } from "@/components/website/templates/BlogPreview";
+import type { BlogBinding } from "@/types/domain";
 
 /**
- * 블로그 연결 블록의 "추상 바인딩 규칙" — 디자인과 분리된 데이터 연결만 저장한다.
- * 실제 글은 저장하지 않고, 공개된 글 목록(런타임 조회)에 이 규칙을 적용해 고른다.
- * 판매 템플릿에도 이 규칙만 들어가 구매자 자신의 블로그로 연결된다(판매자 글 미복사).
+ * 블로그 연결 블록의 "추상 바인딩 규칙"(타입은 @/types/domain) 해석기.
+ * 실제 글은 저장하지 않고, 공개된 글 목록(런타임 조회)에 규칙을 적용해 고른다.
+ * 판매 템플릿에도 규칙만 들어가 구매자 자신의 블로그로 연결된다(판매자 글 미복사).
  */
-export type BlogSource = "latest" | "category" | "manual";
-export type BlogSort = "recent" | "oldest";
-
-export interface BlogBinding {
-  /** 글 선택 방식: 최신 / 카테고리 / 수동 선택. */
-  source?: BlogSource;
-  /** source=category일 때 필터할 카테고리(비면 전체). */
-  category?: string;
-  /** source=manual일 때 고를 글 slug(이 순서 유지). */
-  slugs?: string[];
-  /** 항상 맨 앞에 고정할 글 slug(latest/category에서). */
-  pinnedSlugs?: string[];
-  /** 제외할 글 slug(중복 방지·특정 글 숨김). */
-  excludeSlugs?: string[];
-  /** 최대 글 수(기본 6). */
-  count?: number;
-  /** 정렬(기본 recent). manual은 slugs 순서를 우선한다. */
-  sort?: BlogSort;
-}
 
 const DEFAULT_COUNT = 6;
 
