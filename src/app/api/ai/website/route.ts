@@ -20,6 +20,8 @@ import {
   type BusinessInterviewInput,
   type BrandStoryResult,
   type BrandTone,
+  type SiteSection,
+  type WebsiteContent,
 } from "@/types/domain";
 
 export const maxDuration = 60;
@@ -150,9 +152,31 @@ export async function POST(request: Request) {
 
     // 풍부한 섹션 정규화(깨진 JSON 방지) + 컨셉(template/palette/font) 허용값 검증.
     content.sections = normalizeSiteSections(content.sections);
-    // 블로그 섹션 필수 — 생성 결과에 블로그 글목록(postList)이 없으면 항상 추가한다.
+    // Skill/AI 디자인 재생성이 사용자가 구성한 '블로그 연결 섹션(blogSection)'을
+    // 지우지 않도록 보존한다 — 새 생성 결과에 blogSection이 없으면 기존 것을 이어붙인다.
+    // (블로그 블록은 바인딩 규칙만 저장 → 원문/동적목록은 그대로, 가짜 고정카드로 치환 불가)
     if (rich || multiPage) {
-      const hasBlog = (content.sections ?? []).some((s) => s.type === "postList");
+      const { data: prev } = await supabase
+        .from("websites")
+        .select("content")
+        .eq("business_id", businessId)
+        .maybeSingle();
+      const prevSections =
+        (prev?.content as WebsiteContent | null)?.sections ?? [];
+      const prevBlogSections = prevSections.filter(
+        (s): s is SiteSection => s.type === "blogSection",
+      );
+      const hasBlogSection = (content.sections ?? []).some(
+        (s) => s.type === "blogSection",
+      );
+      if (prevBlogSections.length > 0 && !hasBlogSection)
+        content.sections = [...(content.sections ?? []), ...prevBlogSections];
+    }
+    // 블로그 섹션 필수 — 생성 결과에 블로그 글목록(postList/blogSection)이 없으면 추가한다.
+    if (rich || multiPage) {
+      const hasBlog = (content.sections ?? []).some(
+        (s) => s.type === "postList" || s.type === "blogSection",
+      );
       if (!hasBlog)
         content.sections = [
           ...(content.sections ?? []),
