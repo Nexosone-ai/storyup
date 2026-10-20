@@ -1000,6 +1000,134 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["video_jobs"]["Insert"]>;
         Relationships: [];
       };
+      designer_permissions: {
+        Row: {
+          user_id: string;
+          granted_by: string | null;
+          status: "active" | "revoked";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          granted_by?: string | null;
+          status?: "active" | "revoked";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["designer_permissions"]["Insert"]>;
+        Relationships: [];
+      };
+      design_skills: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          key: string;
+          title: string;
+          status: "draft" | "active" | "archived";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          key: string;
+          title?: string;
+          status?: "draft" | "active" | "archived";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["design_skills"]["Insert"]>;
+        Relationships: [];
+      };
+      skill_versions: {
+        Row: {
+          id: string;
+          skill_id: string;
+          version: string;
+          manifest: Record<string, unknown>;
+          tokens: Record<string, unknown>;
+          page_schema: Record<string, unknown>;
+          slots: unknown[];
+          sample_content: Record<string, unknown>;
+          checks: Record<string, unknown>;
+          status: "draft" | "active" | "archived";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          skill_id: string;
+          version: string;
+          manifest?: Record<string, unknown>;
+          tokens?: Record<string, unknown>;
+          page_schema?: Record<string, unknown>;
+          slots?: unknown[];
+          sample_content?: Record<string, unknown>;
+          checks?: Record<string, unknown>;
+          status?: "draft" | "active" | "archived";
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["skill_versions"]["Insert"]>;
+        Relationships: [];
+      };
+      design_templates: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          skill_id: string | null;
+          title: string;
+          status: "draft" | "active" | "suspended" | "archived";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          skill_id?: string | null;
+          title?: string;
+          status?: "draft" | "active" | "suspended" | "archived";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["design_templates"]["Insert"]>;
+        Relationships: [];
+      };
+      template_versions: {
+        Row: {
+          id: string;
+          template_id: string;
+          version: number;
+          page_schema: Record<string, unknown>;
+          tokens: Record<string, unknown>;
+          status:
+            | "draft"
+            | "submitted"
+            | "approved"
+            | "published"
+            | "rejected"
+            | "suspended"
+            | "archived";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          template_id: string;
+          version?: number;
+          page_schema?: Record<string, unknown>;
+          tokens?: Record<string, unknown>;
+          status?:
+            | "draft"
+            | "submitted"
+            | "approved"
+            | "published"
+            | "rejected"
+            | "suspended"
+            | "archived";
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["template_versions"]["Insert"]>;
+        Relationships: [];
+      };
       youtube_connections: {
         Row: {
           user_id: string;
