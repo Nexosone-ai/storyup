@@ -1121,6 +1121,8 @@ export interface Database {
           version: number;
           page_schema: Record<string, unknown>;
           tokens: Record<string, unknown>;
+          /** V2 전문 편집 문서(0082). null이면 page_schema(V1)에서 변환. */
+          document: Record<string, unknown> | null;
           status:
             | "draft"
             | "submitted"
@@ -1137,6 +1139,7 @@ export interface Database {
           version?: number;
           page_schema?: Record<string, unknown>;
           tokens?: Record<string, unknown>;
+          document?: Record<string, unknown> | null;
           status?:
             | "draft"
             | "submitted"

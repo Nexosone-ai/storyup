@@ -7,7 +7,9 @@ import { isCurrentUserDesigner } from "@/lib/marketplace/designer";
 import { SAMPLE_SKILLS, SAMPLE_SKILL_LIST } from "@/lib/marketplace/samples";
 import { instantiateSkill } from "@/lib/marketplace/skill";
 import { validatePageSchema } from "@/lib/marketplace/validate";
+import { validateDocument } from "@/lib/marketplace/validateDocument";
 import type { PageSchema } from "@/lib/marketplace/pageSchema";
+import type { DesignDocument } from "@/lib/marketplace/document";
 import { getAIProvider, AIGenerationError } from "@/lib/ai";
 import { chargeAiUsage, InsufficientPointsError } from "@/lib/ai/billing";
 import { getLocale } from "@/lib/i18n";
@@ -157,6 +159,37 @@ export async function aiEditSchemaAction(
         err instanceof AIGenerationError ? err.message : "AI 수정 중 문제가 발생했어요.",
     };
   }
+}
+
+/** V2 문서(전문 편집 엔진) 저장 — 초안만, 검증 통과분만. */
+export async function saveTemplateDocument(
+  versionId: string,
+  document: DesignDocument,
+): Promise<StudioState> {
+  const ctx = await requireDesigner();
+  if ("error" in ctx) return { error: ctx.error };
+  const { supabase } = ctx;
+
+  const { data: v } = await supabase
+    .from("template_versions")
+    .select("id, status")
+    .eq("id", versionId)
+    .maybeSingle();
+  if (!v) return { error: "버전을 찾을 수 없어요." };
+  if (v.status !== "draft")
+    return { error: "심사 중이거나 확정된 버전은 수정할 수 없어요." };
+
+  const res = validateDocument(document);
+  if (!res.ok || !res.doc)
+    return { error: "문서 검증에 실패했어요.", errors: res.errors };
+
+  const { error } = await supabase
+    .from("template_versions")
+    .update({ document: res.doc as unknown as Record<string, unknown> })
+    .eq("id", versionId)
+    .eq("status", "draft");
+  if (error) return { error: "저장에 실패했어요." };
+  return { ok: true };
 }
 
 /** 심사 요청 — 초안을 submitted로(원자적). */
