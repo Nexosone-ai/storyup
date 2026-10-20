@@ -187,6 +187,131 @@ export function reparent(doc: DesignDocument, id: NodeId, newParent: NodeId, ind
   return bump(d);
 }
 
+// ---------------- 디자인 시스템: 재사용 컴포넌트 / 연결 인스턴스 ----------------
+
+/** 특정 노드맵에서 rootId 서브트리의 모든 노드 id를 수집. */
+function subtreeIds(nodes: Record<NodeId, DocNode>, rootId: NodeId): NodeId[] {
+  const out: NodeId[] = [];
+  const stack = [rootId];
+  while (stack.length) {
+    const cur = stack.pop()!;
+    if (!nodes[cur]) continue;
+    out.push(cur);
+    if (nodes[cur].children) stack.push(...nodes[cur].children!);
+  }
+  return out;
+}
+
+/** 서브트리를 새 id로 깊은 복제 → {nodes, root}. */
+function copySubtree(
+  srcNodes: Record<NodeId, DocNode>,
+  srcRoot: NodeId,
+): { nodes: Record<NodeId, DocNode>; root: NodeId } {
+  const nodes: Record<NodeId, DocNode> = {};
+  const copy = (sid: NodeId): NodeId => {
+    const src = srcNodes[sid];
+    const nid = newId(src.type.slice(0, 3));
+    const children = src.children?.map((c) => copy(c));
+    nodes[nid] = { ...structuredClone(src), id: nid, children };
+    return nid;
+  };
+  return { nodes, root: copy(srcRoot) };
+}
+
+/**
+ * 선택 노드를 '재사용 컴포넌트'로 승격 — 서브트리를 doc.components로 옮기고
+ * 그 자리에 연결 인스턴스를 둔다. 이후 원본을 고치면 모든 인스턴스에 반영된다.
+ */
+export function defineComponent(
+  doc: DesignDocument,
+  nodeId: NodeId,
+  name = "컴포넌트",
+): { doc: DesignDocument; compId: string; instanceId: NodeId } {
+  if (nodeId === doc.root || doc.nodes[nodeId]?.type === "instance")
+    return { doc, compId: "", instanceId: nodeId };
+  const d = cloneDoc(doc);
+  const ids = subtreeIds(d.nodes, nodeId);
+  const defNodes: Record<NodeId, DocNode> = {};
+  for (const id of ids) {
+    defNodes[id] = d.nodes[id];
+    delete d.nodes[id];
+  }
+  const compId = newId("cmp");
+  d.components = d.components ?? {};
+  d.components[compId] = { id: compId, name, root: nodeId, nodes: defNodes };
+
+  // 원본 자리에 인스턴스 배치.
+  const instId = newId("inst");
+  const inst: DocNode = { id: instId, type: "instance", componentRef: compId };
+  const pid = parentId(d, nodeId); // 이미 nodes에서 제거됐으니 부모의 children만 존재
+  // parentId는 nodes 기준이라 못 찾음 → 부모를 직접 탐색.
+  let parent: NodeId | null = null;
+  for (const n of Object.values(d.nodes)) {
+    if (n.children?.includes(nodeId)) {
+      parent = n.id;
+      break;
+    }
+  }
+  void pid;
+  if (!parent) return { doc, compId: "", instanceId: nodeId };
+  d.nodes[instId] = inst;
+  const arr = d.nodes[parent].children!;
+  arr.splice(arr.indexOf(nodeId), 1, instId);
+  return { doc: bump(d), compId, instanceId: instId };
+}
+
+/** 컴포넌트 인스턴스를 parent에 삽입. */
+export function insertInstance(doc: DesignDocument, parent: NodeId, compId: string): { doc: DesignDocument; instanceId: NodeId } {
+  if (!doc.components?.[compId]) return { doc, instanceId: "" };
+  const inst: DocNode = { id: newId("inst"), type: "instance", componentRef: compId };
+  return { doc: insertNode(doc, parent, inst), instanceId: inst.id };
+}
+
+/** 인스턴스의 콘텐츠 오버라이드(슬롯키→props). */
+export function setInstanceOverride(
+  doc: DesignDocument,
+  instanceId: NodeId,
+  slot: string,
+  patch: Record<string, unknown>,
+): DesignDocument {
+  const d = cloneDoc(doc);
+  const n = d.nodes[instanceId];
+  if (!n || n.type !== "instance") return doc;
+  n.overrides = n.overrides ?? {};
+  n.overrides[slot] = { ...(n.overrides[slot] ?? {}), ...patch };
+  return bump(d);
+}
+
+/** 인스턴스를 '분리' — 원본의 복사본(새 id)을 인라인하고 오버라이드를 적용. */
+export function detachInstance(doc: DesignDocument, instanceId: NodeId): { doc: DesignDocument; newId: NodeId } {
+  const inst = doc.nodes[instanceId];
+  const def = inst?.componentRef ? doc.components?.[inst.componentRef] : undefined;
+  if (!inst || inst.type !== "instance" || !def) return { doc, newId: instanceId };
+  const d = cloneDoc(doc);
+  const { nodes: copied, root } = copySubtree(def.nodes, def.root);
+  // 오버라이드 적용(슬롯 매칭).
+  for (const node of Object.values(copied)) {
+    if (node.slot && inst.overrides?.[node.slot]) {
+      node.props = { ...(node.props ?? {}), ...inst.overrides[node.slot] };
+    }
+  }
+  Object.assign(d.nodes, copied);
+  // 인스턴스 자리에 복사 루트 삽입, 인스턴스 제거.
+  let parent: NodeId | null = null;
+  for (const n of Object.values(d.nodes)) {
+    if (n.children?.includes(instanceId)) {
+      parent = n.id;
+      break;
+    }
+  }
+  if (parent) {
+    const arr = d.nodes[parent].children!;
+    arr.splice(arr.indexOf(instanceId), 1, root);
+  }
+  delete d.nodes[instanceId];
+  return { doc: bump(d), newId: root };
+}
+
 /** 서브트리 깊은 복제(새 id) → 원본 바로 뒤에 삽입. 새 선택 id 반환. */
 export function duplicateNode(doc: DesignDocument, id: NodeId): { doc: DesignDocument; newId: NodeId } {
   if (id === doc.root) return { doc, newId: id };
