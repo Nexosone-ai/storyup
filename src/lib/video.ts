@@ -1,24 +1,15 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/server";
-import { getPlanId, currentPeriod } from "@/lib/subscription";
-import { getPlanById } from "@/lib/plans";
+import { getServicePrice } from "@/lib/payments/prices";
 
 /**
- * 유료고객 AI 영상 — 월 무료 패킷(횟수) + 구매 크레딧. 실제 생성은 fal.ai(큐+폴링).
- * 무료는 usage_events(kind='video', charged 0), 초과는 video_credit_ledger(−1).
- * 운영 비용은 플랜 무료 횟수(Basic 8/Pro 10)로 상한. 서버 전용.
+ * 유료고객 AI 영상 — 생성 1편당 UP 포인트 차감(관리자 단가 service_prices 'AI_VIDEO').
+ * 제출 시 선차감(spend_points)하고 video_jobs.charged에 기록 → 생성 실패 시 환급한다.
+ * 실제 생성은 fal.ai(큐+폴링). 서버 전용.
  */
 
-export class NoVideoCreditsError extends Error {
-  constructor(ko = true) {
-    super(
-      ko
-        ? "이번 달 무료 영상을 모두 사용했어요. 영상 팩을 구매해주세요."
-        : "No video credits left. Please buy a video pack.",
-    );
-    this.name = "NoVideoCreditsError";
-  }
-}
+export const VIDEO_SERVICE = "AI_VIDEO";
+
 export class VideoEngineError extends Error {
   constructor(message: string) {
     super(message);
@@ -26,88 +17,51 @@ export class VideoEngineError extends Error {
   }
 }
 
-export interface VideoQuota {
-  planId: string;
-  freeLimit: number | null; // null = 무제한(Partner)
-  freeUsed: number;
-  purchased: number;
-  available: number | null; // null = 무제한
+export interface VideoPricing {
+  /** 영상 1편당 UP 단가(관리자 설정). 0 = 무료. */
+  price: number;
+  /** 사용자 보유 UP. */
+  balance: number;
 }
 
-export async function getPurchasedVideoCredits(userId: string): Promise<number> {
+/** 사용자 보유 UP 잔액. */
+export async function getPointsBalance(userId: string): Promise<number> {
   const admin = createAdminClient();
   const { data } = await admin
-    .from("video_credit_ledger")
+    .from("point_transactions")
     .select("amount")
     .eq("user_id", userId);
-  return (data ?? []).reduce((s, r) => s + r.amount, 0);
+  return (data ?? []).reduce((s, t) => s + t.amount, 0);
 }
 
-export async function getVideoQuota(userId: string): Promise<VideoQuota> {
-  const planId = await getPlanId(userId);
-  const freeLimit = getPlanById(planId).limits.video;
-  const admin = createAdminClient();
-  const { count } = await admin
-    .from("usage_events")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("kind", "video")
-    .gte("created_at", currentPeriod().startIso);
-  const freeUsed = count ?? 0;
-  const purchased = await getPurchasedVideoCredits(userId);
-  const freeRemaining = freeLimit === null ? null : Math.max(0, freeLimit - freeUsed);
-  const available = freeRemaining === null ? null : freeRemaining + purchased;
-  return { planId, freeLimit, freeUsed, purchased, available };
+/** 영상 생성 UP 단가 + 사용자 잔액. */
+export async function getVideoPricing(userId: string): Promise<VideoPricing> {
+  const [price, balance] = await Promise.all([
+    getServicePrice(VIDEO_SERVICE),
+    getPointsBalance(userId),
+  ]);
+  return { price, balance };
 }
 
-export interface VideoCharge {
-  refund: () => Promise<void>;
-}
-
-/** 영상 1편 차감 — 무료 잔여 우선, 없으면 구매 크레딧. 둘 다 없으면 차단. */
-export async function consumeVideo(
+/** 생성 실패 시 선차감한 UP을 환급(REFUND 트랜잭션). amount<=0이면 아무 것도 안 함. */
+export async function refundVideoPoints(
   userId: string,
-  ko = true,
-): Promise<VideoCharge> {
+  amount: number,
+  reason = "AI 영상 생성 실패 — 환급",
+): Promise<void> {
+  if (amount <= 0) return;
   const admin = createAdminClient();
-  const q = await getVideoQuota(userId);
-
-  // 무료(무제한 포함) 잔여가 있으면 usage_events로 기록.
-  const freeRemaining =
-    q.freeLimit === null ? Infinity : Math.max(0, q.freeLimit - q.freeUsed);
-  if (freeRemaining > 0) {
-    const { data } = await admin
-      .from("usage_events")
-      .insert({ user_id: userId, kind: "video", charged: 0 })
-      .select("id")
-      .single();
-    const id = data?.id;
-    return {
-      refund: async () => {
-        if (id) await admin.from("usage_events").delete().eq("id", id);
-      },
-    };
-  }
-
-  // 구매 크레딧 차감.
-  if (q.purchased > 0) {
-    const { data } = await admin
-      .from("video_credit_ledger")
-      .insert({ user_id: userId, amount: -1, reason: "video", ref_type: "use" })
-      .select("id")
-      .single();
-    const id = data?.id;
-    return {
-      refund: async () => {
-        if (id) await admin.from("video_credit_ledger").delete().eq("id", id);
-      },
-    };
-  }
-
-  throw new NoVideoCreditsError(ko);
+  const { error } = await admin.from("point_transactions").insert({
+    user_id: userId,
+    amount,
+    reason,
+    type: "REFUND",
+    ref_type: "video_refund",
+  });
+  if (error) console.error("[video] refund failed", userId, error);
 }
 
-/** 영상 크레딧 지급(영상 팩 결제/관리자). reason 유니크(ref_type='grant')로 중복 지급 방지. */
+/** (레거시) 영상 크레딧 지급 — 영상 팩 결제 fulfillment 호환용. reason 유니크로 멱등. */
 export async function grantVideoCredits(
   userId: string,
   amount: number,
@@ -263,11 +217,14 @@ export interface VideoJobRow {
   prompt: string;
   status_url: string | null;
   response_url: string | null;
+  /** 제출 시 선차감한 UP(실패 시 환급 대상). */
+  charged: number;
 }
 
 /**
  * 처리 중 작업을 확인해 완료/실패 처리(멱등). poll 액션·복구 크론 공용.
- * 완료는 processing→done 원자적 전환으로 '단 한 번만' 과금·저장(동시 폴링·중복 차감 방지).
+ * UP은 제출 시 선차감했으므로, 완료는 저장만 / 실패는 환급한다.
+ * processing→done·failed 원자적 전환으로 '단 한 번만' 처리(중복 환급 방지).
  */
 export async function finalizeIfComplete(
   job: VideoJobRow,
@@ -277,15 +234,19 @@ export async function finalizeIfComplete(
   if (state.status === "processing") return state;
 
   if (state.status === "failed") {
-    await admin
+    // 원자적 claim(한 번만)한 경우에만 선차감 UP 환급.
+    const { data: claimed } = await admin
       .from("video_jobs")
       .update({ status: "failed", error: state.error })
       .eq("id", job.id)
-      .eq("status", "processing");
+      .eq("status", "processing")
+      .select("id")
+      .maybeSingle();
+    if (claimed) await refundVideoPoints(job.user_id, job.charged);
     return state;
   }
 
-  // 완료 — 원자적 claim(한 번만 성공)한 경우에만 과금·저장.
+  // 완료 — 원자적 claim(한 번만 성공)한 경우에만 저장(UP은 제출 시 차감됨).
   const { data: claimed } = await admin
     .from("video_jobs")
     .update({ status: "done", video_url: state.videoUrl })
@@ -294,12 +255,6 @@ export async function finalizeIfComplete(
     .select("id")
     .maybeSingle();
   if (claimed) {
-    try {
-      await consumeVideo(job.user_id);
-    } catch (err) {
-      if (!(err instanceof NoVideoCreditsError)) throw err;
-      console.warn("[video] completed but no credit to consume", job.id);
-    }
     await admin.from("agency_deliverables").insert({
       business_id: job.business_id,
       kind: "video",

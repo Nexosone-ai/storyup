@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   const since = new Date(Date.now() - 24 * 3600_000).toISOString();
   const { data: jobs } = await admin
     .from("video_jobs")
-    .select("id, user_id, business_id, prompt, status_url, response_url")
+    .select("id, user_id, business_id, prompt, status_url, response_url, charged")
     .eq("status", "processing")
     .gte("created_at", since)
     .order("created_at", { ascending: true })

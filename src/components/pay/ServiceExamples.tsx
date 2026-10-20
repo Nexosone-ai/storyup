@@ -37,7 +37,7 @@ const BASIC_FEATURES: Feature[] = [
   },
 ];
 
-function proFeatures(sites: number, blog: number, card: number, video: number): Feature[] {
+function proFeatures(sites: number, blog: number, card: number): Feature[] {
   return [
   {
     icon: "globe",
@@ -56,8 +56,8 @@ function proFeatures(sites: number, blog: number, card: number, video: number): 
   },
   {
     icon: "video",
-    title: `월 ${video}편의 AI 영상 생성`,
-    desc: `프롬프트만 입력하면 AI가 짧은 영상을 만들어 드립니다. 월 ${video}편까지 무료로 만들고, 더 필요하면 영상 팩으로 추가할 수 있어요.`,
+    title: `AI 영상 생성`,
+    desc: `프롬프트만 입력하면 AI가 짧은 영상을 만들어 드립니다. 생성 1편당 UP 포인트가 차감되며, 만든 영상은 랜딩·블로그·SNS에 바로 쓸 수 있어요.`,
   },
   {
     icon: "image",
@@ -199,8 +199,7 @@ export function ServiceExamples({ plan }: { plan: "basic" | "pro" }) {
   const sites = p.limits.sites ?? 0;
   const blog = p.limits.blogPosts ?? 0;
   const card = p.limits.cardNews ?? 0;
-  const video = p.limits.video ?? 0;
-  const features = isPro ? proFeatures(sites, blog, card, video) : BASIC_FEATURES;
+  const features = isPro ? proFeatures(sites, blog, card) : BASIC_FEATURES;
   return (
     <div className="space-y-8">
       {/* 인트로 */}
@@ -249,7 +248,7 @@ export function ServiceExamples({ plan }: { plan: "basic" | "pro" }) {
           </p>
           <p className="break-keep-kr mt-2 text-sm leading-relaxed text-foreground">
             AI 브랜드 스토리 + 랜딩페이지 {sites}개 + 블로그 {blog}건/월 + SNS 카드뉴스{" "}
-            {card}건/월 + AI 영상 {video}편/월 + AI 이미지 포함
+            {card}건/월 + AI 영상 생성(UP 차감) + AI 이미지 포함
           </p>
           <p className="break-keep-kr mt-2 text-sm leading-relaxed text-muted">
             여기에{" "}

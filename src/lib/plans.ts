@@ -208,13 +208,11 @@ export function planFeatureList(plan: Plan, ko: boolean): string[] {
     );
   }
 
-  // AI 영상 — 월 무료 편수(초과분은 영상 팩 구매).
+  // AI 영상 — 생성 1편당 UP 포인트 차감(관리자 단가).
   if (l.video === null) {
     out.push(ko ? `AI 영상 ${talk}` : `AI video: ${talk}`);
   } else if (l.video > 0) {
-    out.push(
-      ko ? `AI 영상 ${l.video}편${per}` : `${l.video} AI videos${per}`,
-    );
+    out.push(ko ? "AI 영상 생성 (UP 차감)" : "AI video (UP points)");
   }
 
   // AI 이미지 — 딜리버리(랜딩·블로그·카드뉴스)에 포함되어 별도 제공량/과금 없음.

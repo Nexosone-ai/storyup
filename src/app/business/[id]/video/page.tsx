@@ -3,7 +3,7 @@ import { getUser, getBusiness } from "@/lib/queries";
 import { getLocale } from "@/lib/i18n";
 import { getPlanId } from "@/lib/subscription";
 import { getPlanById } from "@/lib/plans";
-import { getVideoQuota, videoEngineConfigured } from "@/lib/video";
+import { getVideoPricing, videoEngineConfigured } from "@/lib/video";
 import { listDeliverables } from "@/lib/agency";
 import { Card } from "@/components/ui/Card";
 import { ButtonLink } from "@/components/ui/Button";
@@ -37,8 +37,8 @@ export default async function VideoPage({
           </p>
           <p className="text-sm text-muted">
             {ko
-              ? "Basic은 월 8편, Pro는 월 10편의 영상을 무료로 만들 수 있어요. 더 필요하면 영상 팩을 구매하세요."
-              : "Basic: 8/mo, Pro: 10/mo free. Buy packs for more."}
+              ? "AI 영상은 생성 1편당 UP 포인트가 차감됩니다. 유료 플랜에서 사용할 수 있어요."
+              : "AI video costs UP points per generation, available on paid plans."}
           </p>
           <ButtonLink href="/dashboard/plans">
             {ko ? "플랜 업그레이드" : "Upgrade"}
@@ -48,8 +48,8 @@ export default async function VideoPage({
     );
   }
 
-  const [quota, deliverables] = await Promise.all([
-    getVideoQuota(user!.id),
+  const [pricing, deliverables] = await Promise.all([
+    getVideoPricing(user!.id),
     listDeliverables(id),
   ]);
   const videos = deliverables.filter((d) => d.kind === "video");
@@ -69,12 +69,7 @@ export default async function VideoPage({
       </div>
       <VideoStudio
         businessId={id}
-        quota={{
-          freeLimit: quota.freeLimit,
-          freeUsed: quota.freeUsed,
-          purchased: quota.purchased,
-          available: quota.available,
-        }}
+        pricing={{ price: pricing.price, balance: pricing.balance }}
         engineReady={videoEngineConfigured()}
         videos={videos}
         ko={ko}
