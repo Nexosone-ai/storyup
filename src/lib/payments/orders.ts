@@ -333,7 +333,8 @@ export async function fulfillProductOrder(orderId: string): Promise<void> {
       .eq("id", order.product_id)
       .maybeSingle();
 
-    // 영상 팩 — 구매자 계정에 영상 크레딧 지급(멱등).
+    // 영상 팩(레거시) — 영상 생성이 UP 과금으로 바뀌어, 지급도 '영상 크레딧'이 아니라
+    // 'UP'으로 한다(1편 = AI_VIDEO 단가). 멱등(meta.fulfilled)로 중복 지급 방지.
     if (product?.grants_video_credits && product.grants_video_credits > 0) {
       const email = (order.buyer_email ?? "").trim();
       let vresult = "no_account";
@@ -344,19 +345,26 @@ export async function fulfillProductOrder(orderId: string): Promise<void> {
           .eq("email", email)
           .maybeSingle();
         if (profile) {
-          const { grantVideoCredits } = await import("@/lib/video");
-          await grantVideoCredits(
-            profile.user_id,
-            product.grants_video_credits,
-            `pack:${orderId}`,
-          );
-          vresult = `granted:${product.grants_video_credits}`;
+          const { getServicePrice } = await import("@/lib/payments/prices");
+          const perVideo = await getServicePrice("AI_VIDEO");
+          const unit = perVideo > 0 ? perVideo : 1000;
+          const up = product.grants_video_credits * unit;
+          const { error: grantErr } = await admin.from("point_transactions").insert({
+            user_id: profile.user_id,
+            amount: up,
+            reason: `AI 영상 팩(${product.grants_video_credits}편) — UP 지급`,
+            type: "PURCHASE",
+            ref_type: "video_pack",
+          });
+          if (grantErr)
+            console.error("[orders] video pack UP grant failed", orderId, grantErr);
+          vresult = `up:${up}`;
         }
       }
       await admin
         .from("product_orders")
         .update({
-          metadata: { ...meta, fulfilled: true, fulfillment: `video_${vresult}` },
+          metadata: { ...meta, fulfilled: true, fulfillment: `videopack_${vresult}` },
         })
         .eq("id", order.id);
       return;
