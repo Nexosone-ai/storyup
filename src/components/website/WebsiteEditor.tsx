@@ -1,6 +1,21 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState, useTransition } from "react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Field";
@@ -187,6 +202,37 @@ const SECTION_LABELS: Record<LandingSectionKey, { ko: string; en: string }> = {
   map: { ko: "오시는 길", en: "Location" },
   contact: { ko: "연락처·문의", en: "Contact" },
 };
+
+/** 드래그로 순서를 바꾸는 섹션 행 — 핸들(⠿)만 드래그, 나머지 버튼은 클릭 유지. */
+function SortableSectionRow({
+  id,
+  children,
+}: {
+  id: string;
+  children: (handle: {
+    attributes: React.HTMLAttributes<HTMLButtonElement>;
+    listeners: Record<string, unknown> | undefined;
+  }) => React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id });
+  return (
+    <li
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.6 : 1,
+      }}
+      className="rounded-lg border border-border px-3 py-1.5 text-sm"
+    >
+      {children({
+        attributes: attributes as React.HTMLAttributes<HTMLButtonElement>,
+        listeners,
+      })}
+    </li>
+  );
+}
 
 /** 리치 섹션(content.sections) 유형별 표시 이름 — 순서 변경 목록용. */
 const SITE_SECTION_LABELS: Record<SiteSectionType, { ko: string; en: string }> = {
@@ -531,6 +577,23 @@ export function WebsiteEditor({
       [list[index], list[j]] = [list[j], list[index]];
       return { ...c, sections: list };
     });
+
+  // 섹션 박스 드래그&드롭 순서 변경 — 인덱스를 id로 사용(드롭 시 커밋).
+  const sectionSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
+  const onSectionDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const from = Number(active.id);
+    const to = Number(over.id);
+    if (Number.isNaN(from) || Number.isNaN(to)) return;
+    setContent((c) => {
+      const list = c.sections ?? [];
+      if (from < 0 || to < 0 || from >= list.length || to >= list.length) return c;
+      return { ...c, sections: arrayMove(list, from, to) };
+    });
+  };
 
   /** 메인 슬라이드 섹션에 슬라이드 한 장 추가. */
   const addSlide = (sectionIndex: number) =>
@@ -1443,16 +1506,36 @@ export function WebsiteEditor({
           </Button>
         </div>
         {(content.sections ?? []).length > 0 && (
-          <ul className="space-y-1.5">
-            {(content.sections ?? []).map((s, i) => {
-              const label =
-                SITE_SECTION_LABELS[s.type as keyof typeof SITE_SECTION_LABELS];
-              const name = label ? (ko ? label.ko : label.en) : s.type;
-              return (
-                <li key={i} className="rounded-lg border border-border px-3 py-1.5 text-sm">
+          <DndContext
+            sensors={sectionSensors}
+            collisionDetection={closestCenter}
+            onDragEnd={onSectionDragEnd}
+          >
+            <SortableContext
+              items={(content.sections ?? []).map((_, i) => String(i))}
+              strategy={verticalListSortingStrategy}
+            >
+              <ul className="space-y-1.5">
+                {(content.sections ?? []).map((s, i) => {
+                  const label =
+                    SITE_SECTION_LABELS[s.type as keyof typeof SITE_SECTION_LABELS];
+                  const name = label ? (ko ? label.ko : label.en) : s.type;
+                  return (
+                    <SortableSectionRow key={i} id={String(i)}>
+                      {(handle) => (
+                        <>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="truncate">
-                      <span className="mr-1.5 text-xs text-muted">{i + 1}.</span>
+                    <span className="flex min-w-0 items-center gap-1.5 truncate">
+                      <button
+                        type="button"
+                        {...handle.attributes}
+                        {...handle.listeners}
+                        aria-label={ko ? "드래그로 순서 이동" : "Drag to reorder"}
+                        className="cursor-grab text-sm text-muted active:cursor-grabbing"
+                      >
+                        ⠿
+                      </button>
+                      <span className="text-xs text-muted">{i + 1}.</span>
                       {name}
                       {s.type === "postList" && (
                         <span className="ml-1.5 text-xs text-primary">
@@ -1517,10 +1600,14 @@ export function WebsiteEditor({
                       </button>
                     </div>
                   )}
-                </li>
-              );
-            })}
-          </ul>
+                        </>
+                      )}
+                    </SortableSectionRow>
+                  );
+                })}
+              </ul>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 
