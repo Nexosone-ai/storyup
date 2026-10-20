@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { grantDesigner, revokeDesigner } from "@/lib/marketplace/designer";
 import { markDesignerEarningPaid } from "@/lib/marketplace/sales";
+import { parseGithubUrl } from "@/lib/marketplace/github";
 
 export interface DesignerAdminState {
   ok?: boolean;
@@ -249,5 +250,72 @@ export async function markDesignerEarningPaidAction(
   if (!admin) return { error: "권한이 없습니다." };
   await markDesignerEarningPaid(id);
   revalidatePath("/dashboard/admin/designer");
+  return { ok: true };
+}
+
+// ---------------- 추천 스킬 카탈로그 ----------------
+
+export interface CatalogInput {
+  repoUrl: string;
+  title: string;
+  description: string;
+  tag: string;
+  sortOrder: number;
+}
+
+/** 추천 스킬 추가 — 공개 GitHub URL만 허용(가져오기는 파트너가 원클릭). */
+export async function addSkillCatalogAction(
+  input: CatalogInput,
+): Promise<DesignerAdminState> {
+  const { admin } = await requireAdmin();
+  if (!admin) return { error: "권한이 없습니다." };
+
+  const url = input.repoUrl.trim();
+  if (!parseGithubUrl(url)) return { error: "github.com 공개 저장소 URL을 입력해주세요." };
+  const title = input.title.trim();
+  if (!title) return { error: "제목을 입력해주세요." };
+
+  const adminc = createAdminClient();
+  const { error } = await adminc.from("skill_catalog").insert({
+    repo_url: url,
+    title,
+    description: input.description.trim() || null,
+    tag: input.tag.trim() || null,
+    sort_order: Number.isFinite(input.sortOrder) ? Math.trunc(input.sortOrder) : 0,
+  });
+  if (error) {
+    console.error("[designer] catalog add failed", error);
+    return { error: "추가에 실패했어요." };
+  }
+  revalidatePath("/dashboard/admin/designer");
+  revalidatePath("/partner/designer/skills");
+  return { ok: true, message: "추천 스킬을 추가했어요." };
+}
+
+/** 추천 스킬 노출/숨김 토글. */
+export async function toggleSkillCatalogAction(
+  id: string,
+  active: boolean,
+): Promise<DesignerAdminState> {
+  const { admin } = await requireAdmin();
+  if (!admin) return { error: "권한이 없습니다." };
+  const adminc = createAdminClient();
+  await adminc
+    .from("skill_catalog")
+    .update({ active, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  revalidatePath("/dashboard/admin/designer");
+  revalidatePath("/partner/designer/skills");
+  return { ok: true };
+}
+
+/** 추천 스킬 삭제. */
+export async function removeSkillCatalogAction(id: string): Promise<DesignerAdminState> {
+  const { admin } = await requireAdmin();
+  if (!admin) return { error: "권한이 없습니다." };
+  const adminc = createAdminClient();
+  await adminc.from("skill_catalog").delete().eq("id", id);
+  revalidatePath("/dashboard/admin/designer");
+  revalidatePath("/partner/designer/skills");
   return { ok: true };
 }

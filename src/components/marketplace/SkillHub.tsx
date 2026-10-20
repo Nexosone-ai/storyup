@@ -24,6 +24,13 @@ export interface SkillSourceRow {
   supportReason: string | null;
   createdAt: string;
 }
+export interface CatalogItem {
+  id: string;
+  repoUrl: string;
+  title: string;
+  description: string | null;
+  tag: string | null;
+}
 
 const SUPPORT: Record<
   SkillSourceRow["supportLevel"],
@@ -47,27 +54,35 @@ const TYPE_HINT: Record<SkillSourceRow["skillType"], string> = {
   D: "D · 미지원/차단",
 };
 
-export function SkillHub({ skills }: { skills: SkillSourceRow[] }) {
+export function SkillHub({
+  skills,
+  catalog = [],
+}: {
+  skills: SkillSourceRow[];
+  catalog?: CatalogItem[];
+}) {
   const router = useRouter();
   const [url, setUrl] = useState("");
   const [busy, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const doImport = () => {
+  const importUrl = (target: string, done?: () => void) => {
     setError(null);
     setNotice(null);
     startTransition(async () => {
-      const res = await importGithubSkillAction(url);
+      const res = await importGithubSkillAction(target);
       if (res.error) {
         setError(res.error);
         return;
       }
-      setUrl("");
+      done?.();
       setNotice("가져왔어요. 아래 보관함에 추가됐습니다.");
       router.refresh();
     });
   };
+
+  const doImport = () => importUrl(url, () => setUrl(""));
 
   const remove = (id: string) => {
     setError(null);
@@ -122,6 +137,50 @@ export function SkillHub({ skills }: { skills: SkillSourceRow[] }) {
         {error && <p className="mt-2 text-sm text-danger">{error}</p>}
         {notice && <p className="mt-2 text-sm text-emerald-600">{notice}</p>}
       </div>
+
+      {/* 추천 스킬(관리자 큐레이션) — 원클릭 가져오기 */}
+      {catalog.length > 0 && (
+        <div className="rounded-2xl border border-border bg-surface p-4">
+          <p className="mb-1 text-sm font-semibold">추천 스킬</p>
+          <p className="mb-3 text-xs text-muted">
+            STORYUP이 추천하는 공개 스킬이에요. [가져오기]를 누르면 보관함에 추가됩니다.
+          </p>
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {catalog.map((c) => (
+              <li
+                key={c.id}
+                className="flex items-start justify-between gap-2 rounded-xl border border-border p-3"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">
+                    {c.title}
+                    {c.tag && <span className="ml-2 text-xs text-muted">· {c.tag}</span>}
+                  </p>
+                  {c.description && (
+                    <p className="mt-0.5 line-clamp-2 text-xs text-muted">{c.description}</p>
+                  )}
+                  <a
+                    href={c.repoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-0.5 block truncate text-xs text-primary underline underline-offset-2"
+                  >
+                    {c.repoUrl.replace(/^https?:\/\/(www\.)?github\.com\//, "")}
+                  </a>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => importUrl(c.repoUrl)}
+                >
+                  가져오기
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {skills.length > 0 ? (
         <ul className="grid gap-3 sm:grid-cols-2">
