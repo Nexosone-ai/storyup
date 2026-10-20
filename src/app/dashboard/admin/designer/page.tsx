@@ -6,6 +6,7 @@ import type {
   ReviewRow,
   ListingRow,
   CatalogRow,
+  PromptRow,
 } from "@/components/admin/AdminDesignerView";
 
 export const metadata = { title: "관리자 · 디자이너 마켓" };
@@ -13,7 +14,8 @@ export const metadata = { title: "관리자 · 디자이너 마켓" };
 export default async function AdminDesignerPage() {
   const admin = createAdminClient();
 
-  const [permsRes, reviewRes, listingRes, earnings, catalogRes] = await Promise.all([
+  const [permsRes, reviewRes, listingRes, earnings, catalogRes, promptRes] =
+    await Promise.all([
     admin
       .from("designer_permissions")
       .select("user_id, status, created_at")
@@ -38,6 +40,12 @@ export default async function AdminDesignerPage() {
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: false })
       .limit(200),
+    admin
+      .from("design_prompts")
+      .select("id, title, tag, hint, prompt, active, sort_order")
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: false })
+      .limit(200),
   ]);
 
   const perms = permsRes.data ?? [];
@@ -50,6 +58,15 @@ export default async function AdminDesignerPage() {
     description: c.description,
     tag: c.tag,
     active: c.active,
+  }));
+  const prompts: PromptRow[] = (promptRes.data ?? []).map((p) => ({
+    id: p.id,
+    title: p.title,
+    tag: p.tag,
+    hint: p.hint,
+    prompt: p.prompt,
+    active: p.active,
+    sortOrder: p.sort_order,
   }));
 
   // 템플릿 제목 먼저 조회(소유자 id 확보용).
@@ -121,6 +138,7 @@ export default async function AdminDesignerPage() {
         listings={listingRows}
         earnings={earnings}
         catalog={catalog}
+        prompts={prompts}
       />
     </div>
   );

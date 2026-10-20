@@ -53,6 +53,22 @@ export default async function TemplateEditPage({
     description: s.description,
   }));
 
+  // 관리자 큐레이션 프롬프트 프리셋(활성) — 없으면 편집기가 내장 기본값 사용.
+  const { data: promptRows } = await supabase
+    .from("design_prompts")
+    .select("id, title, tag, hint, prompt")
+    .eq("active", true)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false })
+    .limit(60);
+  const presets = (promptRows ?? []).map((p) => ({
+    key: p.id,
+    title: p.title,
+    tag: p.tag ?? "",
+    hint: p.hint ?? "",
+    prompt: p.prompt,
+  }));
+
   return (
     <TemplateEditor
       versionId={ver.id}
@@ -61,6 +77,7 @@ export default async function TemplateEditPage({
       initialSchema={schema}
       aiPrice={aiPrice}
       skills={skills}
+      presets={presets}
     />
   );
 }
