@@ -29,7 +29,14 @@ import {
   saveTemplateVersion,
   submitTemplateVersion,
   aiEditSchemaAction,
+  applySkillToSchemaAction,
 } from "@/app/partner/designer/actions";
+
+export interface EditorSkill {
+  id: string;
+  name: string;
+  description: string | null;
+}
 
 type Sel = { s: number; r: number; c: number; i: number } | null;
 type Device = "mobile" | "tablet" | "desktop";
@@ -111,12 +118,14 @@ export function TemplateEditor({
   status,
   initialSchema,
   aiPrice = 0,
+  skills = [],
 }: {
   versionId: string;
   title: string;
   status: string;
   initialSchema: PageSchema;
   aiPrice?: number;
+  skills?: EditorSkill[];
 }) {
   const router = useRouter();
   const [schema, setSchema] = useState<PageSchema>(initialSchema);
@@ -132,6 +141,7 @@ export function TemplateEditor({
   const [aiProposed, setAiProposed] = useState<PageSchema | null>(null);
   const [beforeAi, setBeforeAi] = useState<PageSchema | null>(null);
   const [aiMsg, setAiMsg] = useState<string | null>(null);
+  const [skillId, setSkillId] = useState("");
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const onDragEnd = (e: DragEndEvent) => {
@@ -233,6 +243,20 @@ export function TemplateEditor({
       setAiProposed(res.schema);
     });
   };
+  // Skill 적용 — 보관함의 지침형 Skill을 현재 디자인에 AI 패치로 반영(제안 미리보기).
+  const runSkill = () => {
+    if (!skillId) return;
+    setAiMsg(null);
+    startAi(async () => {
+      const res = await applySkillToSchemaAction(skillId, schema, aiInput.trim() || undefined);
+      if (res.error || !res.schema) {
+        setAiMsg(res.error ?? "Skill 적용에 실패했어요.");
+        return;
+      }
+      setAiProposed(res.schema);
+    });
+  };
+
   const applyAi = () => {
     if (!aiProposed) return;
     setBeforeAi(schema);
@@ -312,6 +336,32 @@ export function TemplateEditor({
               </Button>
             )}
           </div>
+          {skills.length > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-border pt-2">
+              <span className="text-xs font-medium text-muted">Skill 적용</span>
+              <select
+                value={skillId}
+                onChange={(e) => setSkillId(e.target.value)}
+                disabled={aiBusy || !!aiProposed}
+                className="min-w-0 flex-1 rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary disabled:opacity-60"
+              >
+                <option value="">보관함 Skill 선택…</option>
+                {skills.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={runSkill}
+                disabled={aiBusy || !!aiProposed || !skillId}
+              >
+                {aiBusy ? <Spinner className="size-4" /> : "적용"}
+              </Button>
+            </div>
+          )}
           <p className="mt-1.5 text-xs text-muted">
             {aiPrice > 0
               ? `요청 1건당 ${aiPrice.toLocaleString()} UP 차감(실패 시 환급). `
