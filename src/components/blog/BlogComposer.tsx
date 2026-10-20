@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Textarea, Label, Select } from "@/components/ui/Field";
 import { Card } from "@/components/ui/Card";
+import { Spinner } from "@/components/ui/Spinner";
 import { Icon } from "@/components/ui/icons";
 import { GeneratingScreen } from "@/components/ai/GeneratingScreen";
 import { useLocale } from "@/components/i18n/LocaleProvider";
@@ -120,8 +121,12 @@ function fmtTime(sec: number): string {
 export function BlogComposer({ businessId }: { businessId: string }) {
   const router = useRouter();
   const ko = useLocale() === "ko";
-  const [mode, setMode] = useState<"topic" | "voice" | "manual">("topic");
+  const [mode, setMode] = useState<"topic" | "chat" | "voice" | "manual">("topic");
   const [topic, setTopic] = useState("");
+  // 대화형 글감 — AI와 질문·답변을 주고받다가 '글감 완성'으로 초안 생성.
+  const [chat, setChat] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatBusy, setChatBusy] = useState(false);
   const [tone, setTone] = useState<BlogTone>("Friendly");
   const [length, setLength] = useState<BlogLength>("Medium");
   const [generating, setGenerating] = useState(false);
@@ -394,6 +399,51 @@ export function BlogComposer({ businessId }: { businessId: string }) {
     }
   };
 
+  // 대화형: 한 턴 주고받기(무료).
+  const sendChat = async () => {
+    const text = chatInput.trim();
+    if (!text || chatBusy) return;
+    const next = [...chat, { role: "user" as const, content: text }];
+    setChat(next);
+    setChatInput("");
+    setChatBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/ai/blog-interview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessId, messages: next }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.reply) throw new Error(json.error ?? (ko ? "응답 실패" : "Failed"));
+      setChat((c) => [...c, { role: "assistant", content: json.reply }]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : ko ? "응답에 실패했어요." : "Failed.");
+    } finally {
+      setChatBusy(false);
+    }
+  };
+
+  // 대화형: 쌓인 대화를 정리해 블로그 초안 생성(과금).
+  const finalizeChat = async () => {
+    setError(null);
+    setGenerating(true);
+    try {
+      const res = await fetch("/api/ai/blog-from-conversation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessId, messages: chat, tone, length }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.postId)
+        throw new Error(json.error ?? (ko ? "생성에 실패했습니다." : "Failed to create."));
+      router.push(`/business/${businessId}/blog/${json.postId}`);
+    } catch (e) {
+      setGenerating(false);
+      setError(e instanceof Error ? e.message : ko ? "생성에 실패했습니다." : "Failed.");
+    }
+  };
+
   if (generating && !error) {
     if (mode === "manual") {
       return (
@@ -439,10 +489,11 @@ export function BlogComposer({ businessId }: { businessId: string }) {
       </div>
 
       {/* 입력 모드 탭 */}
-      <div className="grid grid-cols-3 gap-2 rounded-xl border border-border bg-surface p-1">
+      <div className="grid grid-cols-2 gap-2 rounded-xl border border-border bg-surface p-1 sm:grid-cols-4">
         {(
           [
             { key: "topic", label: ko ? "주제로 작성" : "From a topic", icon: Icon.pen },
+            { key: "chat", label: ko ? "대화형" : "Conversation", icon: Icon.sparkles },
             { key: "voice", label: ko ? "음성으로 작성" : "From your voice", icon: Icon.mic },
             { key: "manual", label: ko ? "직접 작성" : "Write it myself", icon: Icon.file },
           ] as const
@@ -482,6 +533,69 @@ export function BlogComposer({ businessId }: { businessId: string }) {
                   : "e.g. I want to promote the strawberry cake we launched today."
               }
             />
+          </div>
+        ) : mode === "chat" ? (
+          <div className="space-y-3">
+            <Label>{ko ? "대화로 글감 만들기" : "Build it in a conversation"}</Label>
+            <p className="text-sm text-muted">
+              {ko
+                ? "주제를 꺼내면 AI가 하나씩 질문해요. 답하다 보면 글감이 모여요. AI는 답변에 근거를 함께 밝혀드려요. 충분해지면 '글감 완성'을 누르세요."
+                : "Share a topic and AI asks follow-up questions, citing its grounds. When it's enough, press 'Finish'."}
+            </p>
+            {chat.length > 0 && (
+              <div className="max-h-80 space-y-3 overflow-y-auto rounded-xl border border-border bg-surface p-3">
+                {chat.map((m, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "whitespace-pre-wrap rounded-lg px-3 py-2 text-sm",
+                      m.role === "user"
+                        ? "ml-8 bg-primary/10 text-foreground"
+                        : "mr-8 bg-background text-foreground",
+                    )}
+                  >
+                    {m.content}
+                  </div>
+                ))}
+                {chatBusy && (
+                  <div className="mr-8 flex items-center gap-2 text-sm text-muted">
+                    <Spinner className="size-4" />
+                    {ko ? "생각 중…" : "Thinking…"}
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="flex items-end gap-2">
+              <Textarea
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    sendChat();
+                  }
+                }}
+                placeholder={
+                  chat.length === 0
+                    ? ko
+                      ? "어떤 이야기를 쓰고 싶으세요? (예: 신메뉴 딸기케이크 출시 이야기)"
+                      : "What do you want to write about?"
+                    : ko
+                      ? "답변을 입력하세요…"
+                      : "Type your answer…"
+                }
+                className="min-h-11 flex-1"
+              />
+              <Button onClick={sendChat} disabled={chatBusy || !chatInput.trim()}>
+                {ko ? "보내기" : "Send"}
+              </Button>
+            </div>
+            {chat.length >= 2 && (
+              <Button variant="outline" onClick={finalizeChat} className="w-full">
+                <Icon.sparkles width={18} height={18} />
+                {ko ? "글감 완성 — 초안 만들기" : "Finish — create draft"}
+              </Button>
+            )}
           </div>
         ) : mode === "voice" ? (
           <div className="space-y-3">
@@ -620,7 +734,7 @@ export function BlogComposer({ businessId }: { businessId: string }) {
             <Icon.file width={18} height={18} />
             {ko ? "직접 작성 시작" : "Start writing"}
           </Button>
-        ) : (
+        ) : mode === "chat" ? null : (
           <Button onClick={generate} className="w-full" disabled={recording}>
             <Icon.sparkles width={18} height={18} />
             {ko ? "글 생성하기" : "Generate post"}
