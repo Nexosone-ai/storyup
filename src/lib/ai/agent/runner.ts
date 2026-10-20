@@ -17,6 +17,33 @@ export interface AgentContext {
   category: string;
   brandStory?: string | null;
   tone?: string | null;
+  /** 실시간 SNS 연동 상태 — 답변을 실제 UI에 맞게 안내하기 위함. */
+  social?: {
+    facebook: { configured: boolean; connected: boolean };
+    youtube: { configured: boolean; connected: boolean };
+  };
+}
+
+/** 실제 UI(이 페이지의 'SNS 연동' 카드)에 맞춘 연동 안내문 — 가짜 메뉴 경로를 지어내지 않도록. */
+function socialGuide(social: AgentContext["social"]): string {
+  if (!social) return "";
+  const fbLine = !social.facebook.configured
+    ? "Facebook: 현재 '설정 필요(관리자)' 상태 — STORYUP 관리자가 Meta 앱을 설정해야 연결 버튼이 나타납니다. 사장님이 직접 연결할 수 없으니 관리자에게 설정을 요청하라고 안내하세요."
+    : social.facebook.connected
+      ? "Facebook: 이미 연결됨 — 바로 게시를 제안할 수 있어요."
+      : "Facebook: 아직 '연결 안 됨' — 'SNS 연동' 카드의 [페이지 연결] 버튼을 눌러 Facebook 로그인 후 게시할 페이지를 선택하면 연결됩니다.";
+  const ytLine = !social.youtube.configured
+    ? "YouTube: '설정 필요(관리자)' 상태 — 관리자 설정이 필요합니다."
+    : social.youtube.connected
+      ? "YouTube: 연결됨."
+      : "YouTube: 아직 연결 안 됨 — 'SNS 연동' 카드의 [채널 연결] 버튼으로 연결합니다.";
+  return `
+
+[SNS 연동 안내 — 반드시 아래 사실대로만 안내하세요]
+- SNS 연동 UI는 지금 이 'AI 에이전트' 페이지의 채팅 아래 '**SNS 연동**' 카드에 있습니다. '설정' 메뉴나 '연동 관리' 같은 별도 메뉴는 없으니 그런 경로를 지어내지 마세요.
+- ${fbLine}
+- ${ytLine}
+- 연동 여부는 추측하지 말고 위 상태를 그대로 전달하세요.`;
 }
 
 export interface AgentTurnResult {
@@ -37,7 +64,7 @@ ${ctx.brandStory ? `브랜드 스토리: ${ctx.brandStory}` : ""}
 - Facebook 게시는 페이지가 연결돼 있을 때만 제안하세요(publish_facebook가 연결 여부를 확인합니다).
 - 대상 글의 ID가 필요하면 list_content로 먼저 확인하세요.
 - 사용자가 중요한 사실(사업 정보·고객·마케팅 목표)을 알려주면 save_memory로 기억하세요.
-- 한국어로 간결하고 친근하게 답하고, 제안을 만들면 무엇을 승인하면 되는지 한 줄로 안내하세요.${mem}`;
+- 한국어로 간결하고 친근하게 답하고, 제안을 만들면 무엇을 승인하면 되는지 한 줄로 안내하세요.${socialGuide(ctx.social)}${mem}`;
 }
 
 export async function runAgentTurn(args: {
