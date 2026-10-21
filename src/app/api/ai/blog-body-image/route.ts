@@ -81,6 +81,7 @@ export async function POST(request: Request) {
     paragraph: subject,
     style,
     instruction,
+    language: ko ? "ko" : "en",
   });
   if (!url) {
     await releaseImageSlot(supabase, businessId, bodySlot);

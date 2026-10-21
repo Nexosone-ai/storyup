@@ -226,9 +226,11 @@ export class OpenAIProvider implements AIProvider {
     text: string;
     kind?: "still-life" | "scene";
     allowPeople?: boolean;
+    language?: PromptLanguage;
   }): Promise<string> {
     const scene = input.kind === "scene";
     const allowPeople = input.allowPeople === true;
+    const ko = (input.language ?? "ko") !== "en";
     const spec: PromptSpec = {
       system:
         '당신은 사진 촬영 지시문을 쓰는 아트 디렉터입니다. 반드시 {"subject": "..."} 형태의 순수 JSON만 반환하세요.',
@@ -238,10 +240,14 @@ export class OpenAIProvider implements AIProvider {
 ${
   allowPeople
     ? `위 "내용"은 사용자가 직접 요청한 묘사입니다. 이를 사진 장면으로 영어 한 문장으로 충실히 묘사하세요.
-- 요청에 사람·인물·행동(예: 고민하는 사장, 상담 장면)이 있으면 자연스럽게 포함하세요.
+- 요청에 사람·인물·행동(예: 고민하는 사장, 상담 장면)이 있으면 자연스럽게 포함하세요.${
+        ko
+          ? `\n- 등장 인물은 반드시 한국인(동양인)으로 묘사하세요. 예: "a Korean ...". 서양인·백인으로 묘사하지 마세요.`
+          : ""
+      }
 - 요청 내용을 최우선으로 반영하되 업종 맥락과 분위기를 더하세요.
 - 글자·숫자·로고는 포함하지 마세요.
-- 예: "a small business owner sitting at a desk looking worried, resting chin on hand, soft daylight in a modern office"`
+- 예: "${ko ? "a Korean small business owner" : "a small business owner"} sitting at a desk looking worried, resting chin on hand, soft daylight in a modern office"`
     : scene
     ? `위 내용이 말하는 바를 시각적으로 보여주는 사진 장면(공간·현장·사물)을 영어 한 문장으로 묘사하세요.
 - 반드시 "내용"이 전달하려는 메시지와 업종에 맞는 장소/사물/분위기여야 함 (일반적인 사무실·책상 금지)

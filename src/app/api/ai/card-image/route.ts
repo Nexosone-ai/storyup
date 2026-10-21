@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     const scene = await getAIProvider()
       .generateImageSubject({ category: business.category, text: subject })
       .catch(() => subject);
-    const prompt = buildCardImagePrompt(business.category, scene);
+    const prompt = buildCardImagePrompt(business.category, scene, ko ? "ko" : "en");
     const { b64, mime } = await getImageProvider().generateImage(prompt, aspect);
 
     // 이미지 모델이 뱉는 대형 PNG(장당 ~2MB)를 WebP로 압축·리사이즈한다.

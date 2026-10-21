@@ -9,9 +9,22 @@
  *   또는 블로그 생성 결과의 image_subject를 사용할 것.
  */
 import type { ImageStyleId } from "./style";
+import type { PromptLanguage } from "@/lib/ai/prompts/brand-story";
 
 const NO_TEXT =
   "Absolutely no text, no letters, no words, no numbers, no logos, no watermarks, no signage.";
+
+/**
+ * 인물 민족성 — 한국어 콘텐츠는 등장 인물을 '한국인(동양인)'으로 지정한다.
+ * (지정하지 않으면 이미지 모델이 서양인으로 기본 생성해 한국 업종 맥락과 어색함)
+ * 사람이 없는 구도에선 무시된다. 영어 콘텐츠는 지정하지 않는다.
+ */
+const EAST_ASIAN_PEOPLE =
+  "Any people shown are Korean (East Asian) adults with natural, realistic East Asian features and typical Korean styling — not Western or Caucasian.";
+
+function peopleEthnicity(language: PromptLanguage): string {
+  return language === "en" ? "" : EAST_ASIAN_PEOPLE;
+}
 
 const STILL_LIFE_FRAMING =
   "Beautifully arranged, photographed from directly above, tight crop with the objects filling the frame, " +
@@ -63,7 +76,7 @@ export function buildBlogImagePrompt(
   category: string,
   scene: string,
   style: ImageStyleId = "photo",
-  opts?: { allowPeople?: boolean },
+  opts?: { allowPeople?: boolean; language?: PromptLanguage },
 ): string {
   // photo 스타일만 '사람 배제' 구도를 강제한다. 사용자가 사람을 요청하면 허용 구도로.
   const extra =
@@ -76,6 +89,7 @@ export function buildBlogImagePrompt(
     STYLE_FRAMING[style](category),
     `${scene.trim().slice(0, 220)}.`,
     extra,
+    peopleEthnicity(opts?.language ?? "ko"),
     NO_TEXT,
   ]
     .filter(Boolean)
@@ -101,11 +115,16 @@ export function buildLogoPrompt(category: string, scene: string): string {
 }
 
 /** Builds a photographic image prompt for a card backdrop. scene은 영문 피사체 묘사. */
-export function buildCardImagePrompt(category: string, scene: string): string {
+export function buildCardImagePrompt(
+  category: string,
+  scene: string,
+  language: PromptLanguage = "ko",
+): string {
   return [
     `Overhead close-up still-life photography for a ${category} business:`,
     `${scene.trim().slice(0, 220)}.`,
     STILL_LIFE_FRAMING,
+    peopleEthnicity(language),
     NO_TEXT,
   ].join(" ");
 }
