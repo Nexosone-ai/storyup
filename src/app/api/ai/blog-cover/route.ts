@@ -61,6 +61,7 @@ export async function POST(request: Request) {
     keywords: post.keywords ?? [],
     style,
     instruction,
+    language: ko ? "ko" : "en",
   });
   if (!url)
     return NextResponse.json(

@@ -2,6 +2,7 @@ import { getAIProvider } from "@/lib/ai";
 import { generateImageResilient } from "@/lib/ai/image";
 import { buildBlogImagePrompt } from "@/lib/ai/image/prompt";
 import type { ImageStyleId } from "@/lib/ai/image/style";
+import type { PromptLanguage } from "@/lib/ai/prompts/brand-story";
 import { storeGeneratedImage } from "@/lib/ai/imageStore";
 
 /**
@@ -16,8 +17,11 @@ export async function generateAndStoreBlogBodyImage(opts: {
   style?: ImageStyleId;
   /** 사용자가 원하는 이미지를 직접 설명한 경우 — 있으면 글 내용 대신 이 설명으로 피사체를 만든다. */
   instruction?: string;
+  /** 콘텐츠 언어 — ko면 등장 인물을 한국인(동양인)으로. 기본 ko. */
+  language?: PromptLanguage;
 }): Promise<string | null> {
   try {
+    const language = opts.language ?? "ko";
     // 설명이 있으면 설명을, 없으면 글 내용을 피사체 생성의 근거로 쓴다.
     const directed = !!opts.instruction?.trim();
     const basis = opts.instruction?.trim() || opts.paragraph;
@@ -27,10 +31,12 @@ export async function generateAndStoreBlogBodyImage(opts: {
         text: basis,
         kind: "scene",
         allowPeople: directed, // 사용자가 직접 요청하면 사람·인물도 반영
+        language,
       })
       .catch(() => basis.replace(/\s+/g, " ").trim().slice(0, 120));
     const prompt = buildBlogImagePrompt(opts.category, scene, opts.style, {
       allowPeople: directed,
+      language,
     });
 
     const image = await generateImageResilient(prompt, "4:3");

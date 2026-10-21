@@ -3,6 +3,7 @@ import { generateImageResilient } from "@/lib/ai/image";
 import { buildBlogImagePrompt } from "@/lib/ai/image/prompt";
 import { storeGeneratedImage } from "@/lib/ai/imageStore";
 import type { ImageStyleId } from "@/lib/ai/image/style";
+import type { PromptLanguage } from "@/lib/ai/prompts/brand-story";
 
 /**
  * 블로그 커버 이미지를 생성해 스토리지에 올리고 공개 URL을 반환한다.
@@ -19,9 +20,12 @@ export async function generateAndStoreBlogCover(opts: {
   style?: ImageStyleId;
   /** 사용자가 원하는 커버를 직접 설명한 경우 — 있으면 제목·키워드 대신 이 설명으로 피사체를 만든다. */
   instruction?: string;
+  /** 콘텐츠 언어 — ko면 등장 인물을 한국인(동양인)으로. 기본 ko. */
+  language?: PromptLanguage;
   timeoutMs?: number;
 }): Promise<string | null> {
   try {
+    const language = opts.language ?? "ko";
     const instruction = opts.instruction?.trim();
     const scene = instruction
       ? await getAIProvider()
@@ -30,6 +34,7 @@ export async function generateAndStoreBlogCover(opts: {
             text: instruction,
             kind: "scene",
             allowPeople: true, // 사용자가 직접 요청하면 사람·인물도 반영
+            language,
           })
           .catch(() => instruction)
       : opts.imageSubject?.trim() ||
@@ -38,10 +43,12 @@ export async function generateAndStoreBlogCover(opts: {
             category: opts.category,
             text: [opts.title, ...opts.keywords].join(", "),
             kind: "scene",
+            language,
           })
           .catch(() => opts.keywords.join(", ") || opts.title));
     const prompt = buildBlogImagePrompt(opts.category, scene, opts.style, {
       allowPeople: !!instruction,
+      language,
     });
 
     const generate = generateImageResilient(prompt, "16:9");
