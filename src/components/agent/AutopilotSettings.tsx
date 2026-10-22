@@ -124,18 +124,30 @@ function RoutineCard({
 
   return (
     <div className="rounded-xl border border-border bg-surface p-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold">{KIND_LABEL[kind]}</h3>
-        <label className="flex items-center gap-2 text-sm">
+        <label
+          className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
+            enabled
+              ? "border-primary bg-primary-soft text-primary"
+              : "border-border bg-surface text-muted"
+          }`}
+        >
           <input
             type="checkbox"
             checked={enabled}
             onChange={(e) => setEnabled(e.target.checked)}
-            className="size-4"
+            className="size-4 accent-[var(--primary)]"
           />
-          {enabled ? "켜짐" : "꺼짐"}
+          {enabled ? "자동 실행 켜짐" : "꺼짐 — 체크해 켜기"}
         </label>
       </div>
+      {!enabled && (
+        <p className="mt-2 rounded-lg border border-warning/40 bg-warning/5 px-3 py-1.5 text-xs text-warning">
+          지금은 꺼져 있어 자동으로 실행되지 않아요. 위 스위치를 <strong>켜짐</strong>으로
+          체크한 뒤 <strong>저장</strong>해야 동작합니다.
+        </p>
+      )}
 
       {kind === "facebook" && !fbConnected && (
         <p className="mt-2 text-xs text-danger">

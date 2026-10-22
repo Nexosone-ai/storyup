@@ -84,19 +84,24 @@ export async function upsertRoutineAction(
     updated_at: new Date().toISOString(),
   };
 
-  if (input.id) {
+  // (사업장 × 종류)당 루틴은 하나 — id 전달 여부와 무관하게 '있으면 업데이트, 없으면 추가'로
+  // 멱등 처리한다(중복 생성 방지). 기존 id가 없어도 kind로 기존 행을 찾아 갱신한다.
+  const { data: prev } = await supabase
+    .from("agent_routines")
+    .select("id, enabled")
+    .eq("business_id", businessId)
+    .eq("kind", input.kind)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (prev) {
     // 비활성→활성 전환 시 곧 실행되도록 next_run_at을 현재로.
-    const { data: prev } = await supabase
-      .from("agent_routines")
-      .select("enabled")
-      .eq("id", input.id)
-      .eq("business_id", businessId)
-      .maybeSingle();
-    const reactivated = row.enabled && prev && !prev.enabled;
+    const reactivated = row.enabled && !prev.enabled;
     const { error } = await supabase
       .from("agent_routines")
       .update(reactivated ? { ...row, next_run_at: new Date().toISOString() } : row)
-      .eq("id", input.id)
+      .eq("id", prev.id)
       .eq("business_id", businessId);
     if (error) return { error: g.ko ? "저장에 실패했어요." : "Save failed." };
   } else {
