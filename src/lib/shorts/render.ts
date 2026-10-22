@@ -10,8 +10,8 @@ export type ShortsMotion = "static" | "dynamic";
 export interface ShortsRenderOptions {
   width: number;
   height: number;
-  /** 카드 한 장당 노출 시간(ms). */
-  perCardMs: number;
+  /** 카드별 노출 시간(ms) 배열 — images와 같은 길이. 시간 조율/간단 편집용. */
+  durations: number[];
   /** 전환 시간(ms). */
   transitionMs: number;
   motion: ShortsMotion;
@@ -154,10 +154,22 @@ export function renderShortsVideo(
   opts: ShortsRenderOptions,
 ): Promise<ShortsResult> {
   return new Promise((resolve, reject) => {
-    const { width: W, height: H, perCardMs, transitionMs, motion, fps } = opts;
+    const { width: W, height: H, transitionMs, motion, fps } = opts;
     if (images.length === 0) {
       reject(new Error("no images"));
       return;
+    }
+    // 카드별 노출 시간(ms). 누락/부족분은 기본 2500ms로 채운다.
+    const durations = images.map((_, i) =>
+      Number.isFinite(opts.durations?.[i]) && opts.durations[i] > 0
+        ? opts.durations[i]
+        : 2500,
+    );
+    const starts: number[] = [];
+    let acc = 0;
+    for (const d of durations) {
+      starts.push(acc);
+      acc += d;
     }
     const canvas = document.createElement("canvas");
     canvas.width = W;
@@ -198,7 +210,7 @@ export function renderShortsVideo(
     };
     recorder.onerror = () => reject(new Error("recording failed"));
 
-    const totalMs = images.length * perCardMs;
+    const totalMs = acc;
     const n = images.length;
 
     const first = images[0];
@@ -218,9 +230,11 @@ export function renderShortsVideo(
       ctx.fillStyle = "#0b0b0f";
       ctx.fillRect(0, 0, W, H);
 
-      const idx = Math.min(Math.floor(t / perCardMs), n - 1);
-      const local = t - idx * perCardMs;
-      const p = clamp01(local / perCardMs);
+      // 누적 시작시간으로 현재 카드 인덱스를 찾는다(카드별 시간 반영).
+      let idx = 0;
+      while (idx < n - 1 && t >= starts[idx + 1]) idx++;
+      const local = t - starts[idx];
+      const p = clamp01(local / durations[idx]);
       // 켄번스 줌(세그먼트 동안 서서히 확대)
       const zoomAmt = motion === "dynamic" ? 0.1 : 0.05;
       const curZoom = 1 + zoomAmt * easeInOut(p);
