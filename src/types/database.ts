@@ -1245,6 +1245,62 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["homepage_templates"]["Insert"]>;
         Relationships: [];
       };
+      provideo_projects: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          business_id: string | null;
+          title: string;
+          concept: string;
+          aspect: "9:16" | "16:9" | "1:1";
+          quality: "480p" | "720p" | "1080p";
+          music_prompt: string | null;
+          status: "draft" | "storyboard" | "assets" | "rendering" | "done";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          business_id?: string | null;
+          title?: string;
+          concept?: string;
+          aspect?: "9:16" | "16:9" | "1:1";
+          quality?: "480p" | "720p" | "1080p";
+          music_prompt?: string | null;
+          status?: "draft" | "storyboard" | "assets" | "rendering" | "done";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["provideo_projects"]["Insert"]>;
+        Relationships: [];
+      };
+      provideo_scenes: {
+        Row: {
+          id: string;
+          project_id: string;
+          idx: number;
+          script: string | null;
+          image_prompt: string | null;
+          image_url: string | null;
+          video_url: string | null;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          idx?: number;
+          script?: string | null;
+          image_prompt?: string | null;
+          image_url?: string | null;
+          video_url?: string | null;
+          status?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["provideo_scenes"]["Insert"]>;
+        Relationships: [];
+      };
       design_prompts: {
         Row: {
           id: string;

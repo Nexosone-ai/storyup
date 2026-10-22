@@ -13,6 +13,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/icons";
 import { PartnerProfileEditor } from "@/components/partner/PartnerProfileEditor";
 import { savePartnerProfileAction } from "@/app/partner/actions";
+import { PROVIDEO_ENABLED } from "@/lib/provideo/config";
 
 const INQ_STATUS: Record<string, string> = {
   open: "신규 문의",
@@ -124,6 +125,11 @@ export default async function PartnerPage() {
             배정된 고객 사업장의 <strong>AI 에이전트</strong>에서 바로 사용할 수
             있어요(아래 고객 목록).
           </p>
+          {PROVIDEO_ENABLED && (
+            <ButtonLink size="sm" href="/partner/video" className="mt-3">
+              {ko ? "전문 영상 스튜디오" : "Pro video studio"}
+            </ButtonLink>
+          )}
         </Card>
 
         <Card className="p-4 sm:p-5">
