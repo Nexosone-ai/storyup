@@ -305,3 +305,47 @@ export async function generateMusicAction(projectId: string): Promise<ProVideoSt
   revalidatePath(`/partner/video/${projectId}`);
   return { ok: true, projectId };
 }
+
+// ---------------- Phase 3: Seedance 영상 ----------------
+
+/** 장면 영상 생성(Seedance) — scene.image_url + script로 image-to-video 후 저장. */
+export async function generateSceneVideoAction(sceneId: string): Promise<ProVideoState> {
+  const ctx = await requirePartner();
+  if ("error" in ctx) return { error: ctx.error };
+  const { supabase } = ctx;
+
+  const { data: scene } = await supabase
+    .from("provideo_scenes")
+    .select("id, project_id, script, image_prompt, image_url")
+    .eq("id", sceneId)
+    .maybeSingle();
+  if (!scene) return { error: "장면을 찾을 수 없어요." };
+  if (!scene.image_url)
+    return { error: "먼저 이 장면의 이미지를 생성해주세요(Seedance는 이미지→영상)." };
+
+  const { data: project } = await supabase
+    .from("provideo_projects")
+    .select("quality, aspect")
+    .eq("id", scene.project_id)
+    .maybeSingle();
+
+  const { generateSceneVideo, VideoError } = await import("@/lib/provideo/video");
+  let videoUrl: string;
+  try {
+    ({ videoUrl } = await generateSceneVideo({
+      imageUrl: scene.image_url,
+      prompt: (scene.script ?? scene.image_prompt ?? "").trim(),
+      quality: project?.quality ?? "720p",
+      aspect: project?.aspect ?? "9:16",
+    }));
+  } catch (err) {
+    return { error: err instanceof VideoError ? err.message : "영상 생성에 실패했어요." };
+  }
+
+  await supabase
+    .from("provideo_scenes")
+    .update({ video_url: videoUrl, status: "video" })
+    .eq("id", sceneId);
+  revalidatePath(`/partner/video/${scene.project_id}`);
+  return { ok: true };
+}

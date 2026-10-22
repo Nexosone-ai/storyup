@@ -12,6 +12,7 @@ import {
   generateSceneImageAction,
   generateAssetImageAction,
   generateMusicAction,
+  generateSceneVideoAction,
 } from "@/app/partner/video/actions";
 import type { ProviderStatus } from "./ProVideoStudio";
 
@@ -268,11 +269,33 @@ export function ProVideoProject({
                 onBlur={(e) => saveScene(s.id, { imagePrompt: e.target.value })}
                 className="mt-0.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs"
               />
-              <div className="mt-2 flex flex-wrap gap-2">
-                <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted">
-                  영상(Seedance): {providers.video ? "준비됨(후속 단계)" : "준비중"}
-                </span>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => run(`v-${s.id}`, () => generateSceneVideoAction(s.id))}
+                  disabled={busy || !providers.video || !s.imageUrl}
+                  title={!s.imageUrl ? "먼저 이미지를 생성하세요" : undefined}
+                >
+                  {busy && pendingId === `v-${s.id}` ? (
+                    <Spinner className="size-4" />
+                  ) : s.videoUrl ? (
+                    "영상 재생성(Seedance)"
+                  ) : (
+                    "영상 생성(Seedance)"
+                  )}
+                </Button>
+                {!providers.video && (
+                  <span className="text-xs text-muted">Seedance 설정 후 활성화</span>
+                )}
               </div>
+              {s.videoUrl && (
+                <video
+                  controls
+                  src={s.videoUrl}
+                  className="mt-2 max-h-72 w-auto rounded-lg border border-border"
+                />
+              )}
             </li>
           ))}
         </ol>
