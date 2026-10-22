@@ -5,6 +5,7 @@ import { PROVIDEO_ENABLED, providerStatus } from "@/lib/provideo/config";
 import {
   ProVideoProject,
   type SceneRow,
+  type AssetRow,
 } from "@/components/provideo/ProVideoProject";
 
 export const metadata = { title: "전문 영상 프로젝트" };
@@ -25,11 +26,18 @@ export default async function ProVideoProjectPage({
     .maybeSingle();
   if (!project) notFound();
 
-  const { data: scenes } = await supabase
-    .from("provideo_scenes")
-    .select("id, idx, script, image_prompt, image_url, video_url, status")
-    .eq("project_id", id)
-    .order("idx", { ascending: true });
+  const [{ data: scenes }, { data: assets }] = await Promise.all([
+    supabase
+      .from("provideo_scenes")
+      .select("id, idx, script, image_prompt, image_url, video_url, status")
+      .eq("project_id", id)
+      .order("idx", { ascending: true }),
+    supabase
+      .from("provideo_assets")
+      .select("id, kind, label, prompt, image_url")
+      .eq("project_id", id)
+      .order("created_at", { ascending: true }),
+  ]);
 
   const sceneRows: SceneRow[] = (scenes ?? []).map((s) => ({
     id: s.id,
@@ -38,6 +46,13 @@ export default async function ProVideoProjectPage({
     imagePrompt: s.image_prompt,
     imageUrl: s.image_url,
     videoUrl: s.video_url,
+  }));
+  const assetRows: AssetRow[] = (assets ?? []).map((a) => ({
+    id: a.id,
+    kind: a.kind,
+    label: a.label,
+    prompt: a.prompt,
+    imageUrl: a.image_url,
   }));
 
   return (
@@ -52,6 +67,7 @@ export default async function ProVideoProjectPage({
         musicPrompt: project.music_prompt,
       }}
       scenes={sceneRows}
+      assets={assetRows}
       providers={providerStatus()}
     />
   );

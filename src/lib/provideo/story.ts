@@ -23,6 +23,75 @@ export interface StoryboardResult {
 
 export class StoryboardError extends Error {}
 
+export interface ProAsset {
+  kind: "background" | "prop";
+  label: string;
+  prompt: string;
+}
+
+/**
+ * 에셋 목록 — 영상 전에 만들어 둘 배경(앵글별)·소품을 Claude가 설계한다.
+ * 각 에셋의 prompt는 영어(GPT 이미지용). 재사용 가능한 단위로.
+ */
+export async function generateAssetList(input: {
+  businessName: string;
+  category: string;
+  concept: string;
+  scenes: string[];
+  language?: "ko" | "en";
+}): Promise<ProAsset[]> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) throw new StoryboardError("스토리 엔진(Claude)이 설정되지 않았어요.");
+
+  const system = `당신은 광고 영상의 아트 디렉터입니다. 영상 제작 전에 미리 만들어 둘 '에셋' 목록을 설계합니다.
+- kind='background': 장면 배경을 '앵글별'로(예: 정면/측면/부감 등) 나눠 제안.
+- kind='prop': 장면에 필요한 소품을 하나하나.
+- 각 에셋의 prompt는 '영어'로 이미지 모델이 바로 쓸 수 있게(피사체·구도·조명·스타일, 글자/로고 금지, 인물이 있으면 한국인).
+- 소품 없이 돌리면 재생성이 많아지니, 장면에 등장할 핵심 배경·소품을 빠짐없이.
+반드시 아래 JSON만 반환: {"assets":[{"kind":"background|prop","label":"짧은 이름","prompt":"English prompt"}]}`;
+
+  const user = `사업: ${input.businessName} (업종: ${input.category})
+컨셉: ${input.concept.slice(0, 1200)}
+장면 요약:
+${input.scenes.map((s, i) => `${i + 1}. ${s}`).join("\n").slice(0, 2000)}
+
+JSON으로만 응답.`;
+
+  const client = new Anthropic({ apiKey: key });
+  let text = "";
+  try {
+    const res = await client.messages.create({
+      model: PROVIDEO_STORY_MODEL,
+      max_tokens: 2000,
+      system,
+      messages: [{ role: "user", content: user }],
+    });
+    text = res.content
+      .filter((b): b is Anthropic.TextBlock => b.type === "text")
+      .map((b) => b.text)
+      .join("");
+  } catch (err) {
+    console.error("[provideo/assets]", err);
+    throw new StoryboardError("에셋 목록 생성에 실패했어요.");
+  }
+  const m = /\{[\s\S]*\}/.exec(text);
+  if (!m) throw new StoryboardError("에셋 응답을 해석하지 못했어요.");
+  let parsed: { assets?: ProAsset[] };
+  try {
+    parsed = JSON.parse(m[0]);
+  } catch {
+    throw new StoryboardError("에셋 응답 형식이 올바르지 않아요.");
+  }
+  return (Array.isArray(parsed.assets) ? parsed.assets : [])
+    .map((a) => ({
+      kind: a?.kind === "background" ? "background" : ("prop" as "background" | "prop"),
+      label: String(a?.label ?? "").slice(0, 80),
+      prompt: String(a?.prompt ?? "").slice(0, 800),
+    }))
+    .filter((a) => a.prompt)
+    .slice(0, 30);
+}
+
 export async function generateStoryboard(input: {
   businessName: string;
   category: string;
