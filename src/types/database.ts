@@ -1255,6 +1255,7 @@ export interface Database {
           aspect: "9:16" | "16:9" | "1:1";
           quality: "480p" | "720p" | "1080p";
           music_prompt: string | null;
+          music_url: string | null;
           status: "draft" | "storyboard" | "assets" | "rendering" | "done";
           created_at: string;
           updated_at: string;
@@ -1268,6 +1269,7 @@ export interface Database {
           aspect?: "9:16" | "16:9" | "1:1";
           quality?: "480p" | "720p" | "1080p";
           music_prompt?: string | null;
+          music_url?: string | null;
           status?: "draft" | "storyboard" | "assets" | "rendering" | "done";
           created_at?: string;
           updated_at?: string;

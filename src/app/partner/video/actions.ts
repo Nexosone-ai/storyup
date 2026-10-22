@@ -272,3 +272,36 @@ export async function generateAssetImageAction(assetId: string): Promise<ProVide
   revalidatePath(`/partner/video/${asset.project_id}`);
   return { ok: true };
 }
+
+// ---------------- Phase 4: SUNO 음악 ----------------
+
+/** 음악 생성(SUNO, 설정 가능한 엔드포인트) — project.music_prompt로 생성 후 URL 저장. */
+export async function generateMusicAction(projectId: string): Promise<ProVideoState> {
+  const ctx = await requirePartner();
+  if ("error" in ctx) return { error: ctx.error };
+  const { supabase } = ctx;
+
+  const { data: project } = await supabase
+    .from("provideo_projects")
+    .select("id, music_prompt")
+    .eq("id", projectId)
+    .maybeSingle();
+  if (!project) return { error: "프로젝트를 찾을 수 없어요." };
+  const prompt = (project.music_prompt ?? "").trim();
+  if (!prompt) return { error: "음악 프롬프트가 없어요. 먼저 스토리보드를 생성해주세요." };
+
+  const { generateMusic, MusicError } = await import("@/lib/provideo/music");
+  let audioUrl: string;
+  try {
+    ({ audioUrl } = await generateMusic(prompt));
+  } catch (err) {
+    return { error: err instanceof MusicError ? err.message : "음악 생성에 실패했어요." };
+  }
+
+  await supabase
+    .from("provideo_projects")
+    .update({ music_url: audioUrl, updated_at: new Date().toISOString() })
+    .eq("id", projectId);
+  revalidatePath(`/partner/video/${projectId}`);
+  return { ok: true, projectId };
+}

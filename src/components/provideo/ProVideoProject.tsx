@@ -11,6 +11,7 @@ import {
   generateAssetsAction,
   generateSceneImageAction,
   generateAssetImageAction,
+  generateMusicAction,
 } from "@/app/partner/video/actions";
 import type { ProviderStatus } from "./ProVideoStudio";
 
@@ -44,6 +45,7 @@ export function ProVideoProject({
     aspect: string;
     quality: string;
     musicPrompt: string | null;
+    musicUrl: string | null;
   };
   scenes: SceneRow[];
   assets: AssetRow[];
@@ -123,8 +125,32 @@ export function ProVideoProject({
         <p className="mt-1 whitespace-pre-wrap text-muted">{project.concept}</p>
         {project.musicPrompt && (
           <>
-            <p className="mt-3 font-medium">음악 프롬프트(SUNO용)</p>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="font-medium">음악(SUNO)</p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => run("music", () => generateMusicAction(project.id))}
+                disabled={busy || !providers.music}
+              >
+                {busy && pendingId === "music" ? (
+                  <Spinner className="size-4" />
+                ) : project.musicUrl ? (
+                  "음악 재생성"
+                ) : (
+                  "음악 생성(SUNO)"
+                )}
+              </Button>
+            </div>
             <p className="mt-1 text-muted">{project.musicPrompt}</p>
+            {!providers.music && (
+              <p className="mt-1 text-xs text-muted">
+                음악 생성은 SUNO 설정(SUNO_API_KEY·SUNO_API_BASE) 후 활성화돼요.
+              </p>
+            )}
+            {project.musicUrl && (
+              <audio controls src={project.musicUrl} className="mt-2 w-full" />
+            )}
           </>
         )}
       </div>

@@ -21,7 +21,7 @@ export default async function ProVideoProjectPage({
   const supabase = await createClient();
   const { data: project } = await supabase
     .from("provideo_projects")
-    .select("id, title, concept, status, aspect, quality, music_prompt")
+    .select("id, title, concept, status, aspect, quality, music_prompt, music_url")
     .eq("id", id)
     .maybeSingle();
   if (!project) notFound();
@@ -65,6 +65,7 @@ export default async function ProVideoProjectPage({
         aspect: project.aspect,
         quality: project.quality,
         musicPrompt: project.music_prompt,
+        musicUrl: project.music_url,
       }}
       scenes={sceneRows}
       assets={assetRows}
