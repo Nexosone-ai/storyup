@@ -1,5 +1,5 @@
 /**
- * 쇼츠 영상 기능 활성화 여부. 기본 비활성(준비중) — 메뉴/패널은 '준비중'으로 표시한다.
- * 다시 켜려면 환경변수 NEXT_PUBLIC_SHORTS_ENABLED=true.
+ * 쇼츠 영상 기능 활성화 여부. 기본 '켜짐' — 끄려면 환경변수 NEXT_PUBLIC_SHORTS_ENABLED=false.
+ * (유튜브 업로드는 별도로 GOOGLE_CLIENT_ID/SECRET 설정 시에만 노출된다.)
  */
-export const SHORTS_ENABLED = process.env.NEXT_PUBLIC_SHORTS_ENABLED === "true";
+export const SHORTS_ENABLED = process.env.NEXT_PUBLIC_SHORTS_ENABLED !== "false";
