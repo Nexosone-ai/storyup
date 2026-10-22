@@ -1301,6 +1301,30 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["provideo_scenes"]["Insert"]>;
         Relationships: [];
       };
+      provideo_assets: {
+        Row: {
+          id: string;
+          project_id: string;
+          kind: "background" | "prop";
+          label: string;
+          prompt: string | null;
+          image_url: string | null;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          kind?: "background" | "prop";
+          label?: string;
+          prompt?: string | null;
+          image_url?: string | null;
+          status?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["provideo_assets"]["Insert"]>;
+        Relationships: [];
+      };
       design_prompts: {
         Row: {
           id: string;

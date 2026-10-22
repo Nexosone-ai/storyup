@@ -8,6 +8,9 @@ import { Spinner } from "@/components/ui/Spinner";
 import {
   generateStoryboardAction,
   updateSceneAction,
+  generateAssetsAction,
+  generateSceneImageAction,
+  generateAssetImageAction,
 } from "@/app/partner/video/actions";
 import type { ProviderStatus } from "./ProVideoStudio";
 
@@ -19,10 +22,18 @@ export interface SceneRow {
   imageUrl: string | null;
   videoUrl: string | null;
 }
+export interface AssetRow {
+  id: string;
+  kind: "background" | "prop";
+  label: string;
+  prompt: string | null;
+  imageUrl: string | null;
+}
 
 export function ProVideoProject({
   project,
   scenes,
+  assets,
   providers,
 }: {
   project: {
@@ -35,12 +46,26 @@ export function ProVideoProject({
     musicPrompt: string | null;
   };
   scenes: SceneRow[];
+  assets: AssetRow[];
   providers: ProviderStatus;
 }) {
   const router = useRouter();
   const [busy, start] = useTransition();
+  const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+
+  const run = (id: string | null, fn: () => Promise<{ error?: string }>) => {
+    setError(null);
+    setMsg(null);
+    setPendingId(id);
+    start(async () => {
+      const res = await fn();
+      setPendingId(null);
+      if (res.error) setError(res.error);
+      else router.refresh();
+    });
+  };
 
   const genStoryboard = () => {
     setError(null);
@@ -104,6 +129,71 @@ export function ProVideoProject({
         )}
       </div>
 
+      {/* 에셋(배경·소품) — 영상 전에 미리 생성 */}
+      {scenes.length > 0 && (
+        <div className="rounded-xl border border-border bg-surface p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-semibold">에셋(배경·소품) 사전 생성</p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => run("assets", () => generateAssetsAction(project.id))}
+              disabled={busy || !providers.story}
+            >
+              {busy && pendingId === "assets" ? (
+                <Spinner className="size-4" />
+              ) : assets.length > 0 ? (
+                "에셋 다시 설계"
+              ) : (
+                "에셋 목록 설계(Claude)"
+              )}
+            </Button>
+          </div>
+          {assets.length > 0 ? (
+            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+              {assets.map((a) => (
+                <li
+                  key={a.id}
+                  className="flex items-center gap-3 rounded-lg border border-border p-2"
+                >
+                  {a.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- 원격 생성 이미지
+                    <img src={a.imageUrl} alt="" className="h-14 w-14 shrink-0 rounded object-cover" />
+                  ) : (
+                    <div className="grid h-14 w-14 shrink-0 place-items-center rounded bg-surface-muted/40 text-[10px] text-muted">
+                      {a.kind === "background" ? "배경" : "소품"}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{a.label}</p>
+                    <p className="truncate text-xs text-muted">{a.prompt}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => run(a.id, () => generateAssetImageAction(a.id))}
+                    disabled={busy || !providers.image}
+                  >
+                    {busy && pendingId === a.id ? (
+                      <Spinner className="size-4" />
+                    ) : a.imageUrl ? (
+                      "재생성"
+                    ) : (
+                      "이미지"
+                    )}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-2 text-xs text-muted">
+              배경(앵글별)·소품을 미리 설계해 두면 영상 생성 시 재생성이 줄어 크레딧을 아껴요.
+              {!providers.image && " (이미지 생성은 GPT 키 설정 후 활성화)"}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* 장면(스토리보드) */}
       {scenes.length === 0 ? (
         <p className="text-sm text-muted">
@@ -113,7 +203,31 @@ export function ProVideoProject({
         <ol className="space-y-3">
           {scenes.map((s) => (
             <li key={s.id} className="rounded-xl border border-border bg-surface p-4">
-              <p className="mb-2 text-xs font-semibold text-muted">장면 {s.idx + 1}</p>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-muted">장면 {s.idx + 1}</p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => run(s.id, () => generateSceneImageAction(s.id))}
+                  disabled={busy || !providers.image || !s.imagePrompt}
+                >
+                  {busy && pendingId === s.id ? (
+                    <Spinner className="size-4" />
+                  ) : s.imageUrl ? (
+                    "이미지 재생성"
+                  ) : (
+                    "이미지 생성(GPT)"
+                  )}
+                </Button>
+              </div>
+              {s.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element -- 원격 생성 이미지
+                <img
+                  src={s.imageUrl}
+                  alt=""
+                  className="mb-2 max-h-56 w-auto rounded-lg border border-border"
+                />
+              )}
               <label className="block text-xs text-muted">스크립트/설명</label>
               <textarea
                 defaultValue={s.script ?? ""}
@@ -130,10 +244,7 @@ export function ProVideoProject({
               />
               <div className="mt-2 flex flex-wrap gap-2">
                 <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted">
-                  이미지: {providers.image ? "생성 가능(후속)" : "준비중"}
-                </span>
-                <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted">
-                  영상: {providers.video ? "생성 가능(후속)" : "준비중"}
+                  영상(Seedance): {providers.video ? "준비됨(후속 단계)" : "준비중"}
                 </span>
               </div>
             </li>

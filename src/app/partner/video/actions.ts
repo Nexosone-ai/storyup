@@ -152,3 +152,123 @@ export async function deleteProVideoProject(projectId: string): Promise<ProVideo
   revalidatePath("/partner/video");
   return { ok: true };
 }
+
+// ---------------- Phase 2: 에셋(배경·소품) + GPT 이미지 ----------------
+
+/** 에셋 목록 생성(Claude) — 배경(앵글별)·소품을 미리 설계해 저장. */
+export async function generateAssetsAction(projectId: string): Promise<ProVideoState> {
+  const ctx = await requirePartner();
+  if ("error" in ctx) return { error: ctx.error };
+  const { supabase } = ctx;
+  const ko = (await getLocale()) === "ko";
+
+  const { data: project } = await supabase
+    .from("provideo_projects")
+    .select("id, business_id, concept")
+    .eq("id", projectId)
+    .maybeSingle();
+  if (!project) return { error: "프로젝트를 찾을 수 없어요." };
+  const { data: scenes } = await supabase
+    .from("provideo_scenes")
+    .select("script")
+    .eq("project_id", projectId)
+    .order("idx", { ascending: true });
+  const business = project.business_id ? await getBusiness(project.business_id) : null;
+
+  const { generateAssetList } = await import("@/lib/provideo/story");
+  let assets;
+  try {
+    assets = await generateAssetList({
+      businessName: business?.name ?? "",
+      category: business?.category ?? "",
+      concept: project.concept,
+      scenes: (scenes ?? []).map((s) => s.script ?? "").filter(Boolean),
+      language: ko ? "ko" : "en",
+    });
+  } catch (err) {
+    return { error: err instanceof StoryboardError ? err.message : "생성에 실패했어요." };
+  }
+  if (assets.length === 0) return { error: "만들 에셋이 없어요. 먼저 스토리보드를 생성해주세요." };
+
+  await supabase.from("provideo_assets").delete().eq("project_id", projectId);
+  const { error } = await supabase.from("provideo_assets").insert(
+    assets.map((a) => ({
+      project_id: projectId,
+      kind: a.kind,
+      label: a.label,
+      prompt: a.prompt,
+      status: "draft",
+    })),
+  );
+  if (error) return { error: "에셋 저장에 실패했어요." };
+  await supabase.from("provideo_projects").update({ status: "assets" }).eq("id", projectId);
+  revalidatePath(`/partner/video/${projectId}`);
+  return { ok: true, projectId };
+}
+
+async function renderAndStore(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  projectId: string,
+  prompt: string,
+): Promise<{ url?: string; error?: string }> {
+  const { data: project } = await supabase
+    .from("provideo_projects")
+    .select("business_id, aspect")
+    .eq("id", projectId)
+    .maybeSingle();
+  if (!project?.business_id) return { error: "사업장이 없어 이미지를 저장할 수 없어요." };
+  const { generateProVideoImage, ProImageError } = await import("@/lib/provideo/image");
+  const { storeGeneratedImage } = await import("@/lib/ai/imageStore");
+  try {
+    const img = await generateProVideoImage(prompt, project.aspect);
+    const url = await storeGeneratedImage(project.business_id, "provideo", img);
+    if (!url) return { error: "이미지 저장에 실패했어요." };
+    return { url };
+  } catch (err) {
+    return {
+      error: err instanceof ProImageError ? err.message : "이미지 생성에 실패했어요.",
+    };
+  }
+}
+
+/** 장면 이미지 생성(GPT) — scene.image_prompt로 이미지 생성 후 저장. */
+export async function generateSceneImageAction(sceneId: string): Promise<ProVideoState> {
+  const ctx = await requirePartner();
+  if ("error" in ctx) return { error: ctx.error };
+  const { supabase } = ctx;
+  const { data: scene } = await supabase
+    .from("provideo_scenes")
+    .select("id, project_id, image_prompt")
+    .eq("id", sceneId)
+    .maybeSingle();
+  if (!scene?.image_prompt) return { error: "이미지 프롬프트가 없어요." };
+  const r = await renderAndStore(supabase, scene.project_id, scene.image_prompt);
+  if (r.error) return { error: r.error };
+  await supabase
+    .from("provideo_scenes")
+    .update({ image_url: r.url, status: "image" })
+    .eq("id", sceneId);
+  revalidatePath(`/partner/video/${scene.project_id}`);
+  return { ok: true };
+}
+
+/** 에셋 이미지 생성(GPT). */
+export async function generateAssetImageAction(assetId: string): Promise<ProVideoState> {
+  const ctx = await requirePartner();
+  if ("error" in ctx) return { error: ctx.error };
+  const { supabase } = ctx;
+  const { data: asset } = await supabase
+    .from("provideo_assets")
+    .select("id, project_id, prompt")
+    .eq("id", assetId)
+    .maybeSingle();
+  if (!asset?.prompt) return { error: "프롬프트가 없어요." };
+  const r = await renderAndStore(supabase, asset.project_id, asset.prompt);
+  if (r.error) return { error: r.error };
+  await supabase
+    .from("provideo_assets")
+    .update({ image_url: r.url, status: "image" })
+    .eq("id", assetId);
+  revalidatePath(`/partner/video/${asset.project_id}`);
+  return { ok: true };
+}
