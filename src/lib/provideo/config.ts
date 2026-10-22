@@ -22,6 +22,7 @@ export function providerStatus(): {
     story: !!process.env.ANTHROPIC_API_KEY,
     image: !!process.env.OPENAI_API_KEY,
     video: !!process.env.SEEDANCE_API_KEY,
-    music: !!process.env.SUNO_API_KEY,
+    // 음악은 키 + 엔드포인트(설정 가능) 둘 다 있어야 활성.
+    music: !!process.env.SUNO_API_KEY && !!process.env.SUNO_API_BASE,
   };
 }
