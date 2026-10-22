@@ -16,6 +16,15 @@ import {
 /** 음악 선택 — 합성 분위기 또는 '내 음악 올리기'(custom). */
 type MusicChoice = ShortsMood | "custom";
 const MAX_AUDIO_BYTES = 20 * 1024 * 1024; // 20MB
+
+/** 간단 편집용 카드 — 썸네일·포함여부·노출시간(ms). */
+type EditCard = {
+  id: string;
+  file: File;
+  url: string;
+  include: boolean;
+  durationMs: number;
+};
 import {
   renderShortsVideo,
   fileToImage,
@@ -109,6 +118,56 @@ export function ShortsPanel({
   const [ytLink, setYtLink] = useState<string | null>(null);
   const [ytError, setYtError] = useState<string | null>(null);
 
+  // 간단 편집 — 카드별 포함/순서/노출시간 조율.
+  const [editCards, setEditCards] = useState<EditCard[] | null>(null);
+  const [loadingEdit, setLoadingEdit] = useState(false);
+  const loadEdit = async () => {
+    if (loadingEdit) return;
+    setError(null);
+    if (!guard()) return;
+    setLoadingEdit(true);
+    try {
+      const files = await renderCards();
+      if (files.length === 0) {
+        setError(ko ? "카드가 없어요. 먼저 카드뉴스를 만들어주세요." : "No cards yet.");
+        return;
+      }
+      const d = motion === "dynamic" ? 1800 : 3000;
+      // 이전 썸네일 URL 정리.
+      editCards?.forEach((c) => URL.revokeObjectURL(c.url));
+      setEditCards(
+        files.map((f, i) => ({
+          id: `${Date.now()}-${i}`,
+          file: f,
+          url: URL.createObjectURL(f),
+          include: true,
+          durationMs: d,
+        })),
+      );
+    } catch {
+      setError(ko ? "카드를 불러오지 못했어요." : "Could not load cards.");
+    } finally {
+      setLoadingEdit(false);
+    }
+  };
+  const editMove = (i: number, dir: -1 | 1) =>
+    setEditCards((list) => {
+      if (!list) return list;
+      const j = i + dir;
+      if (j < 0 || j >= list.length) return list;
+      const next = [...list];
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
+  const editToggle = (id: string) =>
+    setEditCards((list) =>
+      list ? list.map((c) => (c.id === id ? { ...c, include: !c.include } : c)) : list,
+    );
+  const editDuration = (id: string, ms: number) =>
+    setEditCards((list) =>
+      list ? list.map((c) => (c.id === id ? { ...c, durationMs: ms } : c)) : list,
+    );
+
   const planId = quota?.planId ?? "free";
   const limit = quota?.limit ?? 0;
   const planOk = planId !== "free" && limit !== 0;
@@ -163,15 +222,25 @@ export function ShortsPanel({
       }
       if (typeof q.used === "number") setUsed(q.used);
 
-      // 2) 현재 카드들을 이미지로 렌더
-      const files = await renderCards();
-      if (files.length === 0) throw new Error("no cards");
+      // 2) 편집 목록(순서·포함·카드별 시간)이 있으면 그걸, 없으면 전체 카드를 균일 시간으로.
+      let files: File[];
+      let durations: number[];
+      if (editCards && editCards.length > 0) {
+        const chosen = editCards.filter((c) => c.include);
+        if (chosen.length === 0) throw new Error("no cards");
+        files = chosen.map((c) => c.file);
+        durations = chosen.map((c) => c.durationMs);
+      } else {
+        files = await renderCards();
+        if (files.length === 0) throw new Error("no cards");
+        const d = motion === "dynamic" ? 1800 : 3000;
+        durations = files.map(() => d);
+      }
       imgs = await Promise.all(files.map((f) => fileToImage(f)));
 
       // 3) 음악 합성(선택) + 4) 영상 렌더
       const preset = SIZES.find((s) => s.id === size) ?? SIZES[0];
-      const perCardMs = motion === "dynamic" ? 1800 : 3000;
-      const totalSec = (imgs.length * perCardMs) / 1000;
+      const totalSec = durations.reduce((a, b) => a + b, 0) / 1000;
 
       const AudioCtx =
         window.AudioContext ||
@@ -197,7 +266,7 @@ export function ShortsPanel({
       const result = await renderShortsVideo(imgs, {
         width: preset.w,
         height: preset.h,
-        perCardMs,
+        durations,
         transitionMs: motion === "dynamic" ? 380 : 600,
         motion,
         fps: 30,
@@ -466,6 +535,105 @@ export function ShortsPanel({
               </label>
             </div>
           )}
+
+          {/* 시간 조율·간단 편집 — 카드별 순서·포함·노출시간 */}
+          <div className="mt-4 rounded-xl border border-border bg-surface p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-sm font-medium">
+                {ko ? "시간 조율·편집" : "Timing & edit"}
+              </span>
+              <Button size="sm" variant="outline" onClick={loadEdit} disabled={loadingEdit || busy}>
+                {loadingEdit ? (
+                  <Spinner className="size-4" />
+                ) : editCards ? (
+                  ko ? "카드 다시 불러오기" : "Reload cards"
+                ) : ko ? (
+                  "카드 불러와 편집"
+                ) : (
+                  "Load cards"
+                )}
+              </Button>
+            </div>
+            {editCards && editCards.length > 0 ? (
+              <>
+                <ul className="mt-3 space-y-2">
+                  {editCards.map((c, i) => (
+                    <li
+                      key={c.id}
+                      className={`flex items-center gap-3 rounded-lg border border-border p-2 ${c.include ? "" : "opacity-50"}`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element -- 로컬 썸네일 */}
+                      <img
+                        src={c.url}
+                        alt=""
+                        className="h-16 w-9 shrink-0 rounded border border-border object-cover"
+                      />
+                      <label className="flex items-center gap-1.5 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={c.include}
+                          onChange={() => editToggle(c.id)}
+                          className="size-4 accent-[var(--primary)]"
+                        />
+                        {ko ? "포함" : "On"}
+                      </label>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between text-xs text-muted">
+                          <span>{ko ? "노출 시간" : "Duration"}</span>
+                          <span>{(c.durationMs / 1000).toFixed(1)}s</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={1000}
+                          max={6000}
+                          step={250}
+                          value={c.durationMs}
+                          onChange={(e) => editDuration(c.id, Number(e.target.value))}
+                          disabled={!c.include}
+                          className="w-full accent-[var(--primary)]"
+                        />
+                      </div>
+                      <div className="flex shrink-0 flex-col gap-1">
+                        <button
+                          type="button"
+                          onClick={() => editMove(i, -1)}
+                          disabled={i === 0}
+                          className="rounded border border-border px-1.5 text-xs text-muted hover:text-primary disabled:opacity-40"
+                          aria-label={ko ? "위로" : "Up"}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => editMove(i, 1)}
+                          disabled={i === editCards.length - 1}
+                          className="rounded border border-border px-1.5 text-xs text-muted hover:text-primary disabled:opacity-40"
+                          aria-label={ko ? "아래로" : "Down"}
+                        >
+                          ↓
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-xs text-muted">
+                  {(() => {
+                    const inc = editCards.filter((c) => c.include);
+                    const sec = inc.reduce((a, c) => a + c.durationMs, 0) / 1000;
+                    return ko
+                      ? `포함 ${inc.length}장 · 총 약 ${sec.toFixed(1)}초`
+                      : `${inc.length} cards · ~${sec.toFixed(1)}s`;
+                  })()}
+                </p>
+              </>
+            ) : (
+              <p className="mt-2 text-xs text-muted">
+                {ko
+                  ? "카드를 불러오면 순서 변경·포함 선택·카드별 노출 시간을 조절할 수 있어요. 불러오지 않으면 전체 카드를 기본 시간으로 만듭니다."
+                  : "Load cards to reorder, toggle, and set per-card duration. Otherwise all cards use the default timing."}
+              </p>
+            )}
+          </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <Button
