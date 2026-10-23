@@ -154,16 +154,43 @@ export function CardsBlock({
   );
 }
 
-export function MapBlock({ content, heading = HEADING_DEFAULT }: Shared) {
+export function MapBlock({
+  content,
+  T,
+  editable,
+  heading = HEADING_DEFAULT,
+}: Shared) {
   const { contact } = content;
-  if (!contact.address) return null;
   const lang = siteLang(content);
   const L = SITE_UI[lang];
+  // 주소가 없으면 공개 사이트에선 숨긴다. 단, 편집기에선 주소를 입력할 수 있게 보여준다.
+  if (!contact.address && !editable) return null;
   return (
     <section className="border-t border-border">
       <div className="mx-auto max-w-5xl px-5 py-16">
         <h2 className={`mb-6 text-2xl ${heading}`}>{L.directions}</h2>
-        <SiteMap address={contact.address} lang={lang} />
+        {editable && (
+          <div className="mb-4 rounded-xl border border-dashed border-border bg-surface-muted/40 p-4">
+            <label className="mb-1 block text-xs font-medium text-muted">
+              {lang === "ko" ? "주소" : "Address"}
+            </label>
+            {T({
+              path: "contact.address",
+              value: contact.address ?? "",
+              as: "span",
+              placeholder:
+                lang === "ko" ? "예: 서울시 강남구 테헤란로 123" : "e.g. 123 Main St, Seoul",
+              className:
+                "inline-block min-w-64 rounded-md border border-border bg-white px-2 py-1 text-sm",
+            })}
+            <p className="mt-2 text-xs leading-relaxed text-muted">
+              {lang === "ko"
+                ? "주소를 입력하면 공개 사이트에 지도가 표시돼요. 비어 있으면 '오시는 길'은 숨겨집니다. 변경 후 '저장'을 눌러주세요."
+                : "Enter an address to show the map on your public site. Press Save to apply."}
+            </p>
+          </div>
+        )}
+        {contact.address ? <SiteMap address={contact.address} lang={lang} /> : null}
       </div>
     </section>
   );
