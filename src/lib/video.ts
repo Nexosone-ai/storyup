@@ -82,6 +82,10 @@ export async function grantVideoCredits(
 const FAL_MODEL =
   process.env.FAL_VIDEO_MODEL || "fal-ai/wan/v2.2-a14b/text-to-video";
 
+// 캐릭터(이미지)를 피사체로 애니메이션하는 image-to-video 모델. 캐릭터가 지정되면 사용.
+const FAL_IMAGE_MODEL =
+  process.env.FAL_VIDEO_IMAGE_MODEL || "fal-ai/wan/v2.2-a14b/image-to-video";
+
 export function videoEngineConfigured(): boolean {
   return !!(process.env.FAL_KEY || "").trim();
 }
@@ -122,16 +126,25 @@ export interface SubmitResult {
   responseUrl: string;
 }
 
-/** fal 큐에 영상 생성 제출 → request_id/status_url/response_url. */
-export async function submitVideo(prompt: string): Promise<SubmitResult> {
+/**
+ * fal 큐에 영상 생성 제출 → request_id/status_url/response_url.
+ * imageUrl(캐릭터 이미지)이 있으면 image-to-video 모델로 그 인물을 피사체로 애니메이션한다.
+ */
+export async function submitVideo(
+  prompt: string,
+  imageUrl?: string,
+): Promise<SubmitResult> {
   const key = falKey();
+  const useImage = !!imageUrl && /^https?:\/\//.test(imageUrl);
+  const model = useImage ? FAL_IMAGE_MODEL : FAL_MODEL;
+  const body = useImage ? { prompt, image_url: imageUrl } : { prompt };
   // 네트워크/DNS/타임아웃 등 fetch 자체 실패도 실제 사유를 노출(일반 오류로 가려지지 않게).
   let res: Response;
   try {
-    res = await fetch(`https://queue.fal.run/${FAL_MODEL}`, {
+    res = await fetch(`https://queue.fal.run/${model}`, {
       method: "POST",
       headers: { Authorization: `Key ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify(body),
     });
   } catch (err) {
     console.error("[fal-video] submit network", err);
@@ -155,7 +168,7 @@ export async function submitVideo(prompt: string): Promise<SubmitResult> {
         : res.status === 401 || res.status === 403
           ? `영상 엔진 인증/잔액을 확인해주세요(fal 키·크레딧).${detail ? ` — ${redactKey(detail, key)}` : ""}`
           : res.status === 404
-            ? `영상 모델을 찾을 수 없어요(FAL_VIDEO_MODEL 확인: ${FAL_MODEL}).`
+            ? `영상 모델을 찾을 수 없어요(모델 확인: ${model}).`
             : `영상 생성 요청 실패 (${res.status})${detail ? ` — ${detail}` : ""}`,
     );
   }
