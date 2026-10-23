@@ -13,8 +13,8 @@ import {
   type ShortsMood,
 } from "@/lib/shorts/music";
 
-/** 음악 선택 — 합성 분위기 또는 '내 음악 올리기'(custom). */
-type MusicChoice = ShortsMood | "custom";
+/** 음악 선택 — 합성 분위기 / 라이브러리(library) / 내 음악 올리기(custom). */
+type MusicChoice = ShortsMood | "library" | "custom";
 const MAX_AUDIO_BYTES = 20 * 1024 * 1024; // 20MB
 
 /** 간단 편집용 카드 — 썸네일·포함여부·노출시간(ms). */
@@ -31,6 +31,7 @@ import {
   type ShortsMotion,
 } from "@/lib/shorts/render";
 import { SHORTS_ENABLED } from "@/lib/shorts/config";
+import { BGM_TRACKS, BGM_AVAILABLE } from "@/lib/shorts/bgm";
 
 export interface ShortsQuota {
   planId: PlanId;
@@ -104,6 +105,7 @@ export function ShortsPanel({
   const [size, setSize] = useState<SizeId>("youtube");
   const [motion, setMotion] = useState<ShortsMotion>("static");
   const [music, setMusic] = useState<MusicChoice>("bright");
+  const [libraryUrl, setLibraryUrl] = useState<string>(BGM_TRACKS[0]?.url ?? "");
   const [customFile, setCustomFile] = useState<File | null>(null);
   const [consent, setConsent] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -258,8 +260,19 @@ export function ShortsPanel({
           throw new Error("decode");
         }
         bed = createCustomBed(AC, buffer, totalSec);
+      } else if (music === "library" && libraryUrl) {
+        // 라이브러리 곡을 받아 디코딩(custom과 같은 경로로 녹화 스트림에 합침).
+        let buffer: AudioBuffer;
+        try {
+          const arr = await (await fetch(libraryUrl)).arrayBuffer();
+          buffer = await AC.decodeAudioData(arr);
+        } catch {
+          throw new Error("decode");
+        }
+        bed = createCustomBed(AC, buffer, totalSec);
       } else {
-        bed = createMusicBed(AC, music === "custom" ? "none" : music, totalSec);
+        const mood = music === "custom" || music === "library" ? "none" : music;
+        bed = createMusicBed(AC, mood, totalSec);
       }
       bed.start();
 
@@ -467,6 +480,15 @@ export function ShortsPanel({
                     {ko ? m.ko : m.en}
                   </Chip>
                 ))}
+                {BGM_AVAILABLE && (
+                  <Chip
+                    active={music === "library"}
+                    onClick={() => setMusic("library")}
+                    disabled={busy}
+                  >
+                    {ko ? "음악 라이브러리" : "Music library"}
+                  </Chip>
+                )}
                 <Chip
                   active={music === "custom"}
                   onClick={() => setMusic("custom")}
@@ -477,6 +499,37 @@ export function ShortsPanel({
               </div>
             </Field>
           </div>
+
+          {/* 음악 라이브러리 — 미리듣기 후 선택 */}
+          {music === "library" && (
+            <div className="mt-3 rounded-xl border border-border bg-surface-muted/50 p-3">
+              <p className="mb-2 text-xs text-muted">
+                {ko
+                  ? "곡을 들어보고 하나를 선택하세요. 선택한 곡이 쇼츠 배경음악으로 들어가요."
+                  : "Preview and pick one track for your short's background music."}
+              </p>
+              <ul className="max-h-64 space-y-1.5 overflow-y-auto">
+                {BGM_TRACKS.map((t) => (
+                  <li
+                    key={t.id}
+                    className={`flex items-center gap-2 rounded-lg border p-2 ${
+                      libraryUrl === t.url ? "border-primary bg-primary-soft/40" : "border-border"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="bgm"
+                      checked={libraryUrl === t.url}
+                      onChange={() => setLibraryUrl(t.url)}
+                      className="size-4 shrink-0 accent-[var(--primary)]"
+                    />
+                    <span className="w-24 shrink-0 text-sm font-medium">{t.label}</span>
+                    <audio controls preload="none" src={t.url} className="h-8 min-w-0 flex-1" />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* 내 음악 업로드 + 저작권 책임 동의 */}
           {music === "custom" && (
