@@ -72,7 +72,7 @@ export function BlogInfoModules({
           </dl>
         </div>
       )}
-      {hasMap && <SiteMap address={address} lang={lang} />}
+      {hasMap && <SiteMap address={address} mapQuery={contact?.mapQuery} lang={lang} />}
     </section>
   );
 }
