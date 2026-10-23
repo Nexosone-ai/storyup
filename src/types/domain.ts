@@ -378,6 +378,12 @@ export interface WebsiteContent {
     phone: string;
     email: string;
     address: string;
+    /**
+     * (선택) 지도 전용 위치 지정 — 자동 지오코딩이 엉뚱한 핀을 찍을 때 사용.
+     * 정확한 장소명/주소, 또는 "위도,경도"(예: 37.5485,126.8426)를 넣으면
+     * 지도는 이 값으로 표시한다. 비우면 address로 표시한다. 하위호환 optional.
+     */
+    mapQuery?: string;
     instagram: string;
     /** SNS 링크 — 기존 데이터에는 없을 수 있어 optional. */
     facebook?: string;

@@ -181,7 +181,7 @@ export function SplitTemplate(props: TemplateProps) {
           <h2 className="mb-8 text-2xl font-semibold tracking-tight">
             {L.directions}
           </h2>
-          <SiteMap address={contact.address} lang={siteLang(content)} />
+          <SiteMap address={contact.address} mapQuery={contact.mapQuery} lang={siteLang(content)} />
         </div>
       </section>
     ) : null,

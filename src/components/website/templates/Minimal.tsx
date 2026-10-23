@@ -185,7 +185,7 @@ export function MinimalTemplate(props: TemplateProps) {
         {Divider}
         <section className="mx-auto max-w-2xl px-6 py-16">
           <h2 className="eyebrow mb-6 block">{L.directions}</h2>
-          <SiteMap address={contact.address} lang={siteLang(content)} />
+          <SiteMap address={contact.address} mapQuery={contact.mapQuery} lang={siteLang(content)} />
         </section>
       </>
     ) : null,

@@ -188,9 +188,30 @@ export function MapBlock({
                 ? "주소를 입력하면 공개 사이트에 지도가 표시돼요. 비어 있으면 '오시는 길'은 숨겨집니다. 변경 후 '저장'을 눌러주세요."
                 : "Enter an address to show the map on your public site. Press Save to apply."}
             </p>
+            <label className="mb-1 mt-4 block text-xs font-medium text-muted">
+              {lang === "ko" ? "지도 위치(선택) — 핀이 엉뚱하면" : "Map location (optional)"}
+            </label>
+            {T({
+              path: "contact.mapQuery",
+              value: contact.mapQuery ?? "",
+              as: "span",
+              placeholder:
+                lang === "ko"
+                  ? "예: 37.5485,126.8426 또는 정확한 장소명"
+                  : "e.g. 37.5485,126.8426 or an exact place name",
+              className:
+                "inline-block min-w-64 rounded-md border border-border bg-white px-2 py-1 text-sm",
+            })}
+            <p className="mt-2 text-xs leading-relaxed text-muted">
+              {lang === "ko"
+                ? "지도 핀이 실제 위치와 다를 때만 쓰세요. 구글 지도에서 내 위치를 찾아 ‘위도,경도’를 복사해 넣으면 가장 정확해요(예: 37.5485,126.8426). 비우면 위 주소로 표시됩니다."
+                : "Use only if the pin is wrong. Paste 'lat,lng' from Google Maps for best accuracy. Empty = use the address above."}
+            </p>
           </div>
         )}
-        {contact.address ? <SiteMap address={contact.address} lang={lang} /> : null}
+        {contact.address ? (
+          <SiteMap address={contact.address} mapQuery={contact.mapQuery} lang={lang} />
+        ) : null}
       </div>
     </section>
   );

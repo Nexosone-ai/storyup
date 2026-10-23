@@ -250,20 +250,39 @@ export function PoweredByStoryup({
   );
 }
 
+/** 지도 검색어 정규화 — 좌표면 그대로, 한글 주소면 국가를 앞에 붙여 지오코딩을 안정화. */
+export function mapQueryFor(address: string, mapQuery?: string): string {
+  const q = (mapQuery?.trim() || address.trim()).trim();
+  if (!q) return "";
+  // "위도,경도" (예: 37.5485,126.8426) 는 그대로 좌표로 사용 — 핀이 정확히 찍힌다.
+  if (/^-?\d{1,3}(\.\d+)?\s*,\s*-?\d{1,3}(\.\d+)?$/.test(q)) {
+    return q.replace(/\s+/g, "");
+  }
+  // 한글 주소는 "429"를 "산 42-9"처럼 잘못 해석하는 일이 있어, 국가를 앞에 붙여
+  // 지오코더가 한국 지번으로 올바로 파싱하도록 유도한다(이미 있으면 중복 추가 안 함).
+  if (/[가-힣]/.test(q) && !/(대한민국|한국|south\s*korea|korea)/i.test(q)) {
+    return `대한민국 ${q}`;
+  }
+  return q;
+}
+
 /**
  * 주소가 입력돼 있으면 Contact 섹션에 보여주는 구글 지도.
  * API 키 없이 주소 텍스트로 임베드한다(키리스 embed) — 사장님이 별도 설정할 게 없다.
+ * mapQuery(장소명/주소 또는 "위도,경도")가 있으면 그 값으로 핀을 찍는다.
  */
 export function SiteMap({
   address,
+  mapQuery,
   lang = "ko",
   className,
 }: {
   address: string;
+  mapQuery?: string;
   lang?: SiteLang;
   className?: string;
 }) {
-  const q = address.trim();
+  const q = mapQueryFor(address, mapQuery);
   if (!q) return null;
   const src = `https://www.google.com/maps?q=${encodeURIComponent(q)}&hl=${lang}&z=16&output=embed`;
   return (
