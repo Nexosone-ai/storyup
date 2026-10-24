@@ -67,7 +67,7 @@ export async function Footer() {
           <p className="text-xs font-bold uppercase tracking-[0.15em] text-white/40">
             파트너사
           </p>
-          <div>
+          <div className="flex flex-wrap items-center gap-3">
             {/* UNITY EMC — 브랜드 주황(#F26522) 워드마크. 추후 공식 로고로 교체 가능. */}
             <span className="inline-flex items-baseline gap-1.5 rounded-lg bg-[#F26522] px-3 py-2">
               <span className="text-sm font-extrabold tracking-wide text-white">
@@ -76,6 +76,15 @@ export async function Footer() {
               <span className="text-sm font-semibold tracking-[0.25em] text-white/90">
                 EMC
               </span>
+            </span>
+            {/* INIPAY(KG이니시스) — 흰 배경 로고라 흰 칩 위에 표시. */}
+            <span className="inline-flex items-center rounded-lg bg-white px-3 py-2">
+              {/* eslint-disable-next-line @next/next/no-img-element -- 정적 파트너 로고 에셋 */}
+              <img
+                src="/images/partners/inipay.png"
+                alt="INIPAY KG이니시스"
+                className="h-8 w-auto object-contain"
+              />
             </span>
           </div>
         </div>
