@@ -62,6 +62,24 @@ export async function Footer() {
           ))}
         </nav>
       </div>
+      <div className="border-t border-white/10 px-6 py-6 sm:px-8">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3">
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-white/40">
+            파트너사
+          </p>
+          <div>
+            {/* UNITY EMC — 브랜드 주황(#F26522) 워드마크. 추후 공식 로고로 교체 가능. */}
+            <span className="inline-flex items-baseline gap-1.5 rounded-lg bg-[#F26522] px-3 py-2">
+              <span className="text-sm font-extrabold tracking-wide text-white">
+                UNITY
+              </span>
+              <span className="text-sm font-semibold tracking-[0.25em] text-white/90">
+                EMC
+              </span>
+            </span>
+          </div>
+        </div>
+      </div>
       <div className="border-t border-white/10 px-6 py-5 sm:px-8">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
           {company.length > 0 && (
