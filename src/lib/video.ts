@@ -77,14 +77,32 @@ export async function grantVideoCredits(
 
 // ---------------- fal.ai 영상 엔진(큐 + 폴링) ----------------
 
-// 기본값은 현행 지원 모델이어야 함(과거 kling v1.6 standard는 fal 지원 종료).
-// Wan 2.2 A14B: 상업용·prompt만으로 호출 가능·저가(~$0.1/초, 기본 ≈5초).
+// 기본값은 '소리(동기화 오디오)까지 생성'하는 모델. Seedance 2.5 US(ByteDance)는
+// 영상과 함께 synchronized audio를 생성한다. (무음이 필요하면 env로 Wan 2.2로 교체.)
+// 원가가 무음 모델보다 높으니 관리자 UP 단가(AI_VIDEO)를 그에 맞게 조정할 것.
 const FAL_MODEL =
-  process.env.FAL_VIDEO_MODEL || "fal-ai/wan/v2.2-a14b/text-to-video";
+  process.env.FAL_VIDEO_MODEL || "bytedance/seedance-2.5/us/text-to-video";
 
-// 캐릭터(이미지)를 피사체로 애니메이션하는 image-to-video 모델. 캐릭터가 지정되면 사용.
+// 캐릭터(이미지)를 피사체로 애니메이션하는 image-to-video 모델(동일 계열, 오디오 포함).
 const FAL_IMAGE_MODEL =
-  process.env.FAL_VIDEO_IMAGE_MODEL || "fal-ai/wan/v2.2-a14b/image-to-video";
+  process.env.FAL_VIDEO_IMAGE_MODEL || "bytedance/seedance-2.5/us/image-to-video";
+
+/**
+ * 모델별 추가 파라미터(해상도·길이·오디오 플래그 등)를 코드 변경 없이 주입한다.
+ * FAL_VIDEO_EXTRA 에 JSON 객체 문자열을 넣으면 생성 요청 body에 병합된다.
+ * 예: {"resolution":"720p","duration":5}  파싱 실패 시 무시한다.
+ */
+function falVideoExtra(): Record<string, unknown> {
+  const raw = (process.env.FAL_VIDEO_EXTRA || "").trim();
+  if (!raw) return {};
+  try {
+    const obj = JSON.parse(raw);
+    return obj && typeof obj === "object" && !Array.isArray(obj) ? obj : {};
+  } catch {
+    console.error("[fal-video] FAL_VIDEO_EXTRA JSON 파싱 실패 — 무시");
+    return {};
+  }
+}
 
 export function videoEngineConfigured(): boolean {
   return !!(process.env.FAL_KEY || "").trim();
@@ -137,7 +155,11 @@ export async function submitVideo(
   const key = falKey();
   const useImage = !!imageUrl && /^https?:\/\//.test(imageUrl);
   const model = useImage ? FAL_IMAGE_MODEL : FAL_MODEL;
-  const body = useImage ? { prompt, image_url: imageUrl } : { prompt };
+  const body = {
+    ...falVideoExtra(),
+    prompt,
+    ...(useImage ? { image_url: imageUrl } : {}),
+  };
   // 네트워크/DNS/타임아웃 등 fetch 자체 실패도 실제 사유를 노출(일반 오류로 가려지지 않게).
   let res: Response;
   try {
