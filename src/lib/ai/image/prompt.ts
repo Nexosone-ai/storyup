@@ -96,6 +96,31 @@ export function buildBlogImagePrompt(
     .join(" ");
 }
 
+/**
+ * 영상용 캐릭터(인물/마스코트) 포트레이트 프롬프트 — 영상(image-to-video)의 피사체로
+ * 쓸 '일관된 한 명'을 깨끗한 단독 구도로 만든다. scene(설명)은 한글이어도 되지만,
+ * 모델 인식을 위해 영문 묘사가 더 좋다. ko면 한국인(동양인)으로 지정.
+ */
+const CHARACTER_FRAMING =
+  "A single consistent character, full upper-body framing facing the camera, friendly natural expression, " +
+  "realistic anatomy, soft studio lighting, clean simple uncluttered background, " +
+  "sharp focus, high-quality portrait suitable to animate in a short video.";
+
+export function buildCharacterPrompt(
+  description: string,
+  opts?: { language?: PromptLanguage },
+): string {
+  return [
+    "Character design portrait:",
+    `${description.trim().slice(0, 220)}.`,
+    CHARACTER_FRAMING,
+    peopleEthnicity(opts?.language ?? "ko"),
+    NO_TEXT,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
 const LOGO_FRAMING =
   "Minimal modern vector logo emblem: a single simple iconic symbol mark, clean geometric flat shapes, " +
   "one or two harmonious brand colors, centered with generous padding, isolated on a plain solid white background, " +

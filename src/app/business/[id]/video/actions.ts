@@ -13,19 +13,70 @@ import {
   VIDEO_SERVICE,
 } from "@/lib/video";
 import { chargeAiUsage, InsufficientPointsError } from "@/lib/ai/billing";
+import { getLocale } from "@/lib/i18n";
+import { generateImageResilient } from "@/lib/ai/image";
+import { buildCharacterPrompt } from "@/lib/ai/image/prompt";
+import { storeGeneratedImage } from "@/lib/ai/imageStore";
 
 const MAX_CONCURRENT = 2;
 const VIDEO_BUCKET = "site-images"; // 공개 버킷(원본 제공) — 편집본은 edited-videos/ 하위.
+
+export interface CharacterState {
+  url?: string;
+  error?: string;
+}
+
+/**
+ * 영상 전 단계 — AI 캐릭터 그리기. 설명을 받아 인물/마스코트 포트레이트를 생성·저장하고
+ * 공개 URL을 돌려준다. 이 URL을 영상 생성 시 넘기면 그 인물이 영상에 등장한다(image-to-video).
+ * 이미지 생성은 무료(IMAGE_GENERATION)지만 유료 플랜에서만 노출한다.
+ */
+export async function generateCharacterAction(
+  businessId: string,
+  description: string,
+): Promise<CharacterState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "로그인이 필요합니다." };
+  const business = await getBusiness(businessId);
+  if (!business) return { error: "권한이 없습니다." };
+
+  const text = description.trim().slice(0, 300);
+  if (!text) return { error: "캐릭터 설명을 입력해주세요." };
+
+  const plan = getPlanById(await getPlanId(user.id));
+  if (plan.limits.video === 0)
+    return { error: "AI 영상은 유료 플랜(Basic/Pro)에서 사용할 수 있어요." };
+
+  const ko = (await getLocale()) === "ko";
+  try {
+    const prompt = buildCharacterPrompt(text, { language: ko ? "ko" : "en" });
+    // 영상이 9:16(쇼츠)·세로 중심이라 캐릭터도 세로 포트레이트로 생성.
+    const img = await generateImageResilient(prompt, "9:16");
+    const url = await storeGeneratedImage(businessId, "characters", img);
+    if (!url) return { error: "캐릭터 이미지를 저장하지 못했어요. 다시 시도해주세요." };
+    return { url };
+  } catch (err) {
+    console.error("[video] character gen failed", err);
+    return { error: "캐릭터 생성에 실패했어요. 설명을 바꿔 다시 시도해주세요." };
+  }
+}
 
 export interface SubmitState {
   jobId?: string;
   error?: string;
 }
 
-/** AI 영상 생성 제출 — 유료 게이트 + UP 선차감 후 fal 큐에 제출(실패 시 환급). */
+/**
+ * AI 영상 생성 제출 — 유료 게이트 + UP 선차감 후 fal 큐에 제출(실패 시 환급).
+ * characterUrl(캐릭터 이미지)이 있으면 그 인물을 피사체로 하는 image-to-video로 생성.
+ */
 export async function submitVideoAction(
   businessId: string,
   prompt: string,
+  characterUrl?: string,
 ): Promise<SubmitState> {
   const supabase = await createClient();
   const {
@@ -64,8 +115,17 @@ export async function submitVideoAction(
     return { error: "과금 처리 중 문제가 발생했어요. 잠시 후 다시 시도해주세요." };
   }
 
+  // 캐릭터 URL은 우리 공개 스토리지(site-images)만 허용 — 임의 외부 URL 주입 방지.
+  const publicBase = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/+$/, "");
+  const charUrl =
+    characterUrl &&
+    publicBase &&
+    characterUrl.startsWith(`${publicBase}/storage/v1/object/public/site-images/`)
+      ? characterUrl
+      : undefined;
+
   try {
-    const sub = await submitVideo(text);
+    const sub = await submitVideo(text, charUrl);
     // video_jobs는 서비스롤만 쓰기(사용자가 status_url 등 변조 못 하게) — admin으로 기록.
     const { data: job, error: insErr } = await admin
       .from("video_jobs")
