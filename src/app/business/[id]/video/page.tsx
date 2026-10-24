@@ -63,8 +63,8 @@ export default async function VideoPage({
         </h1>
         <p className="mt-1.5 text-muted">
           {ko
-            ? "원하는 장면을 설명하면 AI가 영상을 만들어줘요. 완성된 영상은 랜딩·홈페이지·블로그·SNS 카드에 바로 쓸 수 있어요."
-            : "Describe a scene and AI makes a video you can use anywhere."}
+            ? "원하는 장면을 설명하면 AI가 소리(배경음·효과음)까지 담긴 영상을 만들어줘요. 완성된 영상은 랜딩·홈페이지·블로그·SNS 카드에 바로 쓸 수 있어요."
+            : "Describe a scene and AI makes a video with sound you can use anywhere."}
         </p>
       </div>
       <VideoStudio
