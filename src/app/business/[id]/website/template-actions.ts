@@ -9,6 +9,7 @@ import {
   applyHomepageTemplate,
 } from "@/lib/website/homepageTemplate";
 import { normalizeSiteSections, normalizeSitePages } from "@/lib/website/sections";
+import { isPartner } from "@/lib/partner";
 import type { WebsiteContent } from "@/types/domain";
 
 export interface TemplateActionState {
@@ -39,6 +40,9 @@ export async function saveHomepageTemplateAction(
   const ko = (await getLocale()) === "ko";
   const { supabase, user } = await me();
   if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
+  // 디자인 템플릿(재사용·판매)은 파트너 전용.
+  if (!(await isPartner(user.id)))
+    return { error: ko ? "파트너 전용 기능입니다." : "Partners only." };
 
   // RLS로 본인 사업장만 접근.
   const web = await getWebsite(businessId);
@@ -61,6 +65,8 @@ export async function saveHomepageTemplateAction(
 export async function listHomepageTemplates(): Promise<HomepageTemplateRow[]> {
   const { supabase, user } = await me();
   if (!user) return [];
+  // 파트너만 템플릿 목록을 받는다(일반/유료고객 비노출).
+  if (!(await isPartner(user.id))) return [];
   const { data } = await supabase
     .from("homepage_templates")
     .select("id, title, description")
@@ -77,6 +83,9 @@ export async function installHomepageTemplateAction(
   const ko = (await getLocale()) === "ko";
   const { supabase, user } = await me();
   if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
+  // 디자인 템플릿(재사용·판매)은 파트너 전용.
+  if (!(await isPartner(user.id)))
+    return { error: ko ? "파트너 전용 기능입니다." : "Partners only." };
 
   const business = await getBusiness(businessId);
   if (!business) return { error: ko ? "권한이 없습니다." : "No permission." };

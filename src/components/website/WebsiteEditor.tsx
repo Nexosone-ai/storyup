@@ -300,6 +300,7 @@ export function WebsiteEditor({
   website,
   maxLayouts = 1,
   richAllowed = false,
+  isPartner = false,
   cards = [],
   posts = [],
   categories = [],
@@ -310,6 +311,8 @@ export function WebsiteEditor({
   maxLayouts?: number;
   /** AI 상세 홈페이지 생성 가능 플랜(Pro+)인지. false면 잠금. */
   richAllowed?: boolean;
+  /** 파트너 전용 — 전문 레이아웃·디자인 템플릿(재사용·판매) 섹션 노출 여부. */
+  isPartner?: boolean;
   /** 이 가게의 카드뉴스 — 미리보기의 "카드뉴스" 섹션에 표시. */
   cards?: ShowcaseCardItem[];
   /** 이 가게의 공개 블로그 글 — 글 목록(postList) 섹션 미리보기·필터용. */
@@ -1603,7 +1606,8 @@ export function WebsiteEditor({
         </div>
       </div>
 
-      {/* 전문 레이아웃 + 섹션 순서(박스 배치) — 핵심 섹션 골격을 한 번에 채우고 순서를 바꾼다. */}
+      {/* 전문 레이아웃 + 섹션 순서(박스 배치) — 파트너 전용(일반/유료고객 비노출). */}
+      {isPartner && (
       <div className="space-y-3 rounded-xl border border-border bg-surface p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
@@ -1903,6 +1907,7 @@ export function WebsiteEditor({
           </DndContext>
         )}
       </div>
+      )}
 
       {/* 배너 관리 — 랜딩/블로그에 노출할 이미지 배너(문구·버튼·AI 이미지·사이즈). */}
       <div className="space-y-3 rounded-xl border border-border bg-surface p-3">

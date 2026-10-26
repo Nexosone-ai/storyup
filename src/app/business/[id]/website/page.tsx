@@ -15,6 +15,7 @@ import { WorkflowSteps } from "@/components/dashboard/WorkflowSteps";
 import { getLocale } from "@/lib/i18n";
 import { getPlanId } from "@/lib/subscription";
 import { getPlanById } from "@/lib/plans";
+import { isPartner } from "@/lib/partner";
 
 export const metadata = { title: "랜딩페이지" };
 
@@ -62,6 +63,8 @@ export default async function WebsitePage({
     const user = await getUser();
     const plan = user ? getPlanById(await getPlanId(user.id)) : null;
     const maxLayouts = plan?.siteLayouts ?? 1;
+    // 전문 레이아웃·디자인 템플릿 섹션은 파트너 전용(일반/유료고객 비노출).
+    const partner = user ? await isPartner(user.id) : false;
     // 미리보기의 "카드뉴스" 섹션에 표시할 이 가게의 카드뉴스.
     const content = website.content as { hero?: { businessName?: string } };
     const [cards, posts, categories] = await Promise.all([
@@ -89,6 +92,7 @@ export default async function WebsitePage({
         website={website}
         maxLayouts={maxLayouts}
         richAllowed={plan?.fullHomepage === true}
+        isPartner={partner}
         cards={cards}
         posts={sectionPosts}
         categories={categories}
