@@ -113,6 +113,39 @@ function Tip({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
+/** 유튜브 영상 카드 — 16:9 반응형 임베드 + 라벨. */
+function VideoCard({
+  id,
+  label,
+  badge,
+}: {
+  id: string;
+  label: string;
+  badge: string;
+}) {
+  return (
+    <figure className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+      <div className="relative aspect-video w-full bg-black">
+        <iframe
+          src={`https://www.youtube-nocookie.com/embed/${id}?rel=0`}
+          title={label}
+          className="absolute inset-0 size-full"
+          loading="lazy"
+          referrerPolicy="strict-origin-when-cross-origin"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+        />
+      </div>
+      <figcaption className="flex items-center gap-2 px-4 py-3">
+        <span className="inline-flex items-center rounded-full bg-primary px-2.5 py-0.5 text-xs font-bold text-primary-foreground">
+          {badge}
+        </span>
+        <span className="text-sm font-semibold">{label}</span>
+      </figcaption>
+    </figure>
+  );
+}
+
 /** 블로그 글쓰기 4가지 방법 카드. */
 function MethodCard({
   emoji,
@@ -176,6 +209,35 @@ export async function UserGuide() {
             This guide is currently available in Korean.
           </p>
         )}
+
+        {/* 영상 메뉴얼 — 제일 위에 노출 */}
+        <div className="space-y-3 pt-2">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold">🎬 영상으로 먼저 보기</h2>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <VideoCard
+              id="W-a9obkycqE"
+              badge="Free"
+              label="Free 유저 메뉴얼"
+            />
+            <VideoCard
+              id="G-fXz2djWek"
+              badge="Basic"
+              label="Basic 유저 메뉴얼"
+            />
+          </div>
+          <div className="rounded-xl border border-primary/20 bg-primary-soft/50 px-3.5 py-3 text-sm">
+            <p className="font-bold text-primary">📺 더 선명하게 보는 법</p>
+            <p className="mt-1 leading-relaxed text-foreground/85">
+              영상이 흐릿하게 보이면, 재생 화면에서{" "}
+              <b>⚙️ 설정(톱니바퀴) → 화질 → 1080p</b> 로 바꿔주세요. 유튜브는
+              처음에 낮은 화질로 재생될 수 있어, <b>1080p로 맞추면</b> 글자와
+              버튼이 또렷하게 보여요.
+            </p>
+          </div>
+        </div>
+
         {/* 목차 */}
         <nav className="flex flex-wrap gap-2 pt-1">
           {toc.map((label, i) => (
