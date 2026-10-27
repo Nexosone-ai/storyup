@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
@@ -63,18 +63,25 @@ interface VideoItem {
   url: string;
   createdAt: string;
 }
+interface PendingJob {
+  id: string;
+  prompt: string;
+  createdAt: string;
+}
 
 export function VideoStudio({
   businessId,
   pricing,
   engineReady,
   videos,
+  pendingJobs,
   ko,
 }: {
   businessId: string;
   pricing: Pricing;
   engineReady: boolean;
   videos: VideoItem[];
+  pendingJobs: PendingJob[];
   ko: boolean;
 }) {
   const router = useRouter();
@@ -94,40 +101,41 @@ export function VideoStudio({
   // '이어서 만들기' — 기존 영상의 마지막 장면을 시작 프레임으로(charUrl 재사용).
   const [continuing, setContinuing] = useState(false);
   const [extractingId, setExtractingId] = useState<string | null>(null);
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  // 진행 중(생성 중) 작업 — 새로고침·재접속 후에도 상태를 이어서 보여주고 자동 폴링한다.
+  const [pending, setPending] = useState<PendingJob[]>(pendingJobs);
   const topRef = useRef<HTMLDivElement | null>(null);
+
+  // 진행 중 작업을 주기적으로 확인 — 완료/실패되면 목록에서 빼고 새로고침(완성본 노출).
+  const pendingRef = useRef(pending);
+  useEffect(() => {
+    pendingRef.current = pending;
+  }, [pending]);
+  useEffect(() => {
+    if (pending.length === 0) return;
+    const t = setInterval(async () => {
+      const current = pendingRef.current;
+      if (current.length === 0) return;
+      const results = await Promise.all(
+        current.map(async (p) => ({
+          id: p.id,
+          res: await pollVideoAction(p.id).catch(() => null),
+        })),
+      );
+      const finished = results
+        .filter((r) => r.res && r.res.status !== "processing")
+        .map((r) => r.id);
+      if (finished.length) {
+        setPending((prev) => prev.filter((p) => !finished.includes(p.id)));
+        router.refresh();
+      }
+    }, 7000);
+    return () => clearInterval(t);
+    // 진행 중 작업 수가 바뀔 때 인터벌을 재설정(0이 되면 정리). 내부는 pendingRef로 최신값 사용.
+  }, [pending.length, router]);
 
   const length = videoLengthById(lengthId);
   const cost = pricing.price * length.multiplier;
   const notEnough = cost > 0 && pricing.balance < cost;
-
-  const poll = (jobId: string) => {
-    let tries = 0;
-    timer.current = setInterval(async () => {
-      tries++;
-      const res = await pollVideoAction(jobId);
-      if (res.status === "done") {
-        stop();
-        setStatus(null);
-        setBusy(false);
-        router.refresh();
-      } else if (res.status === "failed") {
-        stop();
-        setBusy(false);
-        setStatus(null);
-        setError(res.error ?? "영상 생성에 실패했어요.");
-      } else if (tries > 60) {
-        // ~5분 초과 — 백그라운드로 처리 중. 목록 새로고침으로 확인.
-        stop();
-        setBusy(false);
-        setStatus("처리가 길어지고 있어요. 잠시 후 목록을 새로고침해 확인해주세요.");
-      }
-    }, 5000);
-  };
-  const stop = () => {
-    if (timer.current) clearInterval(timer.current);
-    timer.current = null;
-  };
 
   const drawCharacter = async () => {
     const text = charDesc.trim();
@@ -193,14 +201,19 @@ export function VideoStudio({
       charUrl ?? undefined,
       lengthId,
     );
+    setBusy(false);
+    setStatus(null);
     if (res.error || !res.jobId) {
-      setBusy(false);
-      setStatus(null);
       setError(res.error ?? "요청에 실패했어요.");
       return;
     }
-    setStatus("AI가 영상을 만들고 있어요… (수십 초~수 분)");
-    poll(res.jobId);
+    // 생성 중 목록에 추가 — 자동 폴링이 완료를 감지해 '내 영상'에 노출한다.
+    // (페이지를 닫아도 서버 복구 크론이 완료분을 저장하므로 영상은 보존된다.)
+    setPending((prev) => [
+      { id: res.jobId!, prompt: text, createdAt: new Date().toISOString() },
+      ...prev,
+    ]);
+    setPrompt("");
   };
 
   const copy = (url: string) => {
@@ -432,6 +445,33 @@ export function VideoStudio({
         </div>
         {error && <p className="mt-2 text-sm text-danger">{error}</p>}
       </div>
+
+      {/* 생성 중 — 진행 상황(새로고침·재접속 후에도 이어서 표시, 완료 시 자동 노출) */}
+      {pending.length > 0 && (
+        <div>
+          <h2 className="mb-2 text-sm font-semibold">
+            {ko ? "생성 중" : "In progress"}
+          </h2>
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {pending.map((p) => (
+              <li
+                key={p.id}
+                className="flex items-center gap-3 rounded-xl border border-border bg-surface p-3"
+              >
+                <Spinner className="size-4 shrink-0" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{p.prompt}</p>
+                  <p className="text-xs text-muted">
+                    {ko
+                      ? "AI가 영상을 만들고 있어요… 완료되면 자동으로 나타나요(영상이 길수록 수 분 더 걸려요)."
+                      : "Generating… it will appear here automatically when done."}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* 내 영상 */}
       {videos.length > 0 && (
