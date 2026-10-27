@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/Button";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import { createInquiryAction } from "@/app/agency/actions";
 import {
   SupporterProfileCard,
@@ -191,14 +191,14 @@ export function AgencySection({
             {availableSupporters.map((s, i) => (
               <div key={i} className="space-y-2">
                 <SupporterProfileCard profile={s} heading="전문가" />
-                <Button
+                <ButtonLink
+                  href="/pay/1-e31184"
                   size="sm"
                   variant="outline"
                   className="w-full"
-                  onClick={() => openForm()}
                 >
                   의뢰하기
-                </Button>
+                </ButtonLink>
               </div>
             ))}
           </div>
