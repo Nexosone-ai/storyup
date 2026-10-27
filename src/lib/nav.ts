@@ -18,6 +18,11 @@ export function dashboardNav(
       exact: true,
     },
     {
+      label: ko ? "이용가이드" : "User guide",
+      href: "/dashboard/guide",
+      icon: "file",
+    },
+    {
       label: ko ? "내 비즈니스" : "My businesses",
       href: "/dashboard/businesses",
       icon: "briefcase",
