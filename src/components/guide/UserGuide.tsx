@@ -582,7 +582,7 @@ export async function UserGuide() {
           <b> 전문가가 대신 운영해주는 대행 서비스</b>가 있어요. 바쁘거나
           손이 안 가는 분은 맡겨두고 결과만 받아보세요.
         </p>
-        <Screen caption="스토어 › 대행 서비스">
+        <Screen caption="대행 서비스 신청">
           <div className="flex items-center justify-between gap-3">
             <div className="text-sm">
               <p className="font-bold">콘텐츠 대행 서비스</p>
@@ -595,7 +595,7 @@ export async function UserGuide() {
         </Screen>
         <div className="flex flex-wrap gap-2 pt-1">
           <Link
-            href="/store"
+            href="/pay/1-e31184"
             className="inline-flex items-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
           >
             대행 서비스 보러가기
