@@ -8,9 +8,48 @@ import {
   submitVideoAction,
   pollVideoAction,
   generateCharacterAction,
+  createVideoFrameUploadUrl,
 } from "@/app/business/[id]/video/actions";
 import { VideoEditor } from "@/components/video/VideoEditor";
 import { VIDEO_LENGTHS, videoLengthById } from "@/lib/videoLength";
+import { createClient } from "@/lib/supabase/client";
+
+/** 기존 영상의 마지막 프레임을 캔버스로 추출(same-origin 프록시라 CORS 오염 없음). */
+async function extractLastFrame(
+  businessId: string,
+  deliverableId: string,
+): Promise<Blob> {
+  const video = document.createElement("video");
+  video.src = `/api/business/${businessId}/video/file?d=${deliverableId}`;
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = "auto";
+  await new Promise<void>((resolve, reject) => {
+    video.onloadedmetadata = () => resolve();
+    video.onerror = () => reject(new Error("영상을 불러오지 못했어요."));
+  });
+  // 끝으로 이동 — duration이 불명확(Infinity/NaN)하면 큰 값으로 점프(브라우저가 끝으로 클램프).
+  const dur = video.duration;
+  const target = Number.isFinite(dur) && dur > 0 ? Math.max(0, dur - 0.1) : 1e7;
+  await new Promise<void>((resolve, reject) => {
+    video.onseeked = () => resolve();
+    video.onerror = () => reject(new Error("마지막 장면을 읽지 못했어요."));
+    video.currentTime = target;
+  });
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth || 720;
+  canvas.height = video.videoHeight || 1280;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("프레임 추출에 실패했어요.");
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  return await new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error("프레임 저장에 실패했어요."))),
+      "image/jpeg",
+      0.9,
+    ),
+  );
+}
 
 interface Pricing {
   /** 영상 1편당 UP 단가. 0 = 무료. */
@@ -52,7 +91,11 @@ export function VideoStudio({
   const [charError, setCharError] = useState<string | null>(null);
   // 영상 길이 — 길수록 UP를 배수로 더 차감.
   const [lengthId, setLengthId] = useState(VIDEO_LENGTHS[0].id);
+  // '이어서 만들기' — 기존 영상의 마지막 장면을 시작 프레임으로(charUrl 재사용).
+  const [continuing, setContinuing] = useState(false);
+  const [extractingId, setExtractingId] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const topRef = useRef<HTMLDivElement | null>(null);
 
   const length = videoLengthById(lengthId);
   const cost = pricing.price * length.multiplier;
@@ -100,6 +143,44 @@ export function VideoStudio({
     setCharUrl(res.url);
   };
 
+  // 기존 영상에서 '이어서 만들기' — 마지막 프레임 추출 → 업로드 → 시작 프레임으로 설정.
+  const continueFrom = async (video: VideoItem) => {
+    if (extractingId || busy) return;
+    setExtractingId(video.id);
+    setCharError(null);
+    setError(null);
+    try {
+      const blob = await extractLastFrame(businessId, video.id);
+      const ticket = await createVideoFrameUploadUrl(businessId);
+      if (ticket.error || !ticket.path || !ticket.token || !ticket.publicUrl)
+        throw new Error(ticket.error ?? "이어서 만들기 준비에 실패했어요.");
+      const supabase = createClient();
+      const { error: upErr } = await supabase.storage
+        .from("site-images")
+        .uploadToSignedUrl(ticket.path, ticket.token, blob, {
+          contentType: "image/jpeg",
+        });
+      if (upErr) throw new Error("프레임 업로드에 실패했어요. 다시 시도해주세요.");
+      setCharUrl(ticket.publicUrl);
+      setContinuing(true);
+      setCharDesc("");
+      // 사용자가 2단계(설명 입력)를 보도록 위로 스크롤.
+      topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (err) {
+      setCharError(
+        err instanceof Error ? err.message : "이어서 만들기에 실패했어요.",
+      );
+    } finally {
+      setExtractingId(null);
+    }
+  };
+
+  const resetStart = () => {
+    setCharUrl(null);
+    setContinuing(false);
+    setCharError(null);
+  };
+
   const make = async () => {
     const text = prompt.trim();
     if (!text || busy) return;
@@ -128,7 +209,7 @@ export function VideoStudio({
   };
 
   return (
-    <div className="space-y-5">
+    <div ref={topRef} className="space-y-5">
       {/* 과금 안내 — 1편당 UP 차감 + 보유 UP */}
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border bg-surface p-4">
         <p className="text-sm">
@@ -182,35 +263,46 @@ export function VideoStudio({
 
         {charUrl ? (
           <div className="flex flex-wrap items-center gap-4">
-            {/* eslint-disable-next-line @next/next/no-img-element -- 사용자 생성 캐릭터 미리보기 */}
+            {/* eslint-disable-next-line @next/next/no-img-element -- 시작 프레임/캐릭터 미리보기 */}
             <img
               src={charUrl}
-              alt={ko ? "생성된 캐릭터" : "Character"}
+              alt={ko ? "시작 장면" : "Start frame"}
               className="h-40 w-auto rounded-xl border border-border bg-black/5 object-contain"
             />
             <div className="flex flex-col gap-2">
               <p className="text-sm font-medium text-primary">
-                {ko ? "✓ 이 캐릭터로 영상을 만듭니다" : "✓ Using this character"}
+                {continuing
+                  ? ko
+                    ? "✓ 이전 영상에 이어서 만듭니다"
+                    : "✓ Continuing from your video"
+                  : ko
+                    ? "✓ 이 캐릭터로 영상을 만듭니다"
+                    : "✓ Using this character"}
               </p>
               <div className="flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={drawCharacter}
-                  disabled={charBusy || !charDesc.trim()}
-                >
-                  {charBusy ? <Spinner className="size-4" /> : ko ? "다시 그리기" : "Redraw"}
-                </Button>
+                {!continuing && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={drawCharacter}
+                    disabled={charBusy || !charDesc.trim()}
+                  >
+                    {charBusy ? <Spinner className="size-4" /> : ko ? "다시 그리기" : "Redraw"}
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => {
-                    setCharUrl(null);
-                    setCharError(null);
-                  }}
+                  onClick={resetStart}
                   disabled={charBusy}
                 >
-                  {ko ? "캐릭터 제거" : "Remove"}
+                  {continuing
+                    ? ko
+                      ? "이어가기 취소"
+                      : "Cancel"
+                    : ko
+                      ? "캐릭터 제거"
+                      : "Remove"}
                 </Button>
               </div>
             </div>
@@ -266,9 +358,13 @@ export function VideoStudio({
         </div>
         {charUrl && (
           <p className="mb-2 text-xs text-primary">
-            {ko
-              ? "설정한 캐릭터가 영상에 등장합니다. 캐릭터의 동작·장면을 설명해주세요."
-              : "Your character will appear. Describe the action and scene."}
+            {continuing
+              ? ko
+                ? "이전 영상의 마지막 장면에서 이어집니다. 다음에 이어질 장면을 설명해주세요."
+                : "Continues from the last frame. Describe what happens next."
+              : ko
+                ? "설정한 캐릭터가 영상에 등장합니다. 캐릭터의 동작·장면을 설명해주세요."
+                : "Your character will appear. Describe the action and scene."}
           </p>
         )}
         <textarea
@@ -276,9 +372,11 @@ export function VideoStudio({
           onChange={(e) => setPrompt(e.target.value)}
           rows={3}
           placeholder={
-            charUrl
-              ? "캐릭터의 동작·장면을 설명하세요 (예: 카페에서 커피를 내리며 환하게 웃는 모습)"
-              : "만들고 싶은 영상을 설명하세요 (예: 아늑한 카페에서 커피를 내리는 15초 홍보 영상)"
+            continuing
+              ? "이어질 장면을 설명하세요 (예: 같은 인물이 제품을 들어 보이며 환하게 웃는 장면)"
+              : charUrl
+                ? "캐릭터의 동작·장면을 설명하세요 (예: 카페에서 커피를 내리며 환하게 웃는 모습)"
+                : "만들고 싶은 영상을 설명하세요 (예: 아늑한 카페에서 커피를 내리는 15초 홍보 영상)"
           }
           disabled={busy}
           className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary disabled:opacity-60"
@@ -367,6 +465,15 @@ export function VideoStudio({
                     className="font-medium text-primary underline underline-offset-2"
                   >
                     편집
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => continueFrom(v)}
+                    disabled={extractingId !== null || busy}
+                    className="inline-flex items-center gap-1 font-medium text-primary underline underline-offset-2 disabled:opacity-50"
+                  >
+                    {extractingId === v.id && <Spinner className="size-3.5" />}
+                    {extractingId === v.id ? "불러오는 중…" : "이어서 만들기"}
                   </button>
                   <span className="text-muted">랜딩·블로그·SNS에 붙여 사용</span>
                 </div>
