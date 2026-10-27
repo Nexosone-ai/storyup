@@ -13,9 +13,16 @@ export interface VideoLength {
   multiplier: number;
 }
 
+// 배수는 5초(기본)를 1로 본 길이 비례값. UP 단가 = 관리자 AI_VIDEO 단가 × multiplier.
+// 30초 이상은 모델(현 fal Seedance)이 단일 생성에서 거부할 수 있고, 그 경우 생성
+// 실패로 처리되어 UP는 자동 환급된다(진짜 장편은 클립 이어붙이기 파이프라인이 필요).
 export const VIDEO_LENGTHS: VideoLength[] = [
-  { id: "short", label: "기본 (약 5초)", seconds: 5, multiplier: 1 },
-  { id: "long", label: "길게 (약 10초)", seconds: 10, multiplier: 2 },
+  { id: "s5", label: "기본 (약 5초)", seconds: 5, multiplier: 1 },
+  { id: "s10", label: "길게 (약 10초)", seconds: 10, multiplier: 2 },
+  { id: "s15", label: "약 15초", seconds: 15, multiplier: 3 },
+  { id: "s30", label: "약 30초", seconds: 30, multiplier: 6 },
+  { id: "s60", label: "약 1분", seconds: 60, multiplier: 12 },
+  { id: "s120", label: "약 2분", seconds: 120, multiplier: 24 },
 ];
 
 /** id로 길이 옵션 조회 — 없거나 빈 값이면 기본(첫 번째). */
