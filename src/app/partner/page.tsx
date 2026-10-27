@@ -119,17 +119,22 @@ export default async function PartnerPage() {
           <ul className="mt-2 space-y-1 text-sm text-muted">
             <li>· AI 에이전트로 블로그·카드뉴스·SNS 생성과 예약 발행을 대행</li>
             <li>· 오토파일럿으로 고객별 자동 마케팅(제안/자동 실행)</li>
-            <li>· 영상제작 솔루션으로 쇼츠·홍보영상 생성(패킷 차감)</li>
+            <li>· 원본 영상 1개로 같은 컨셉의 유사 영상 10개를 한 번에 생성</li>
           </ul>
           <p className="mt-2 text-xs text-muted">
             배정된 고객 사업장의 <strong>AI 에이전트</strong>에서 바로 사용할 수
             있어요(아래 고객 목록).
           </p>
-          {PROVIDEO_ENABLED && (
-            <ButtonLink size="sm" href="/partner/video" className="mt-3">
-              {ko ? "전문 영상 스튜디오" : "Pro video studio"}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <ButtonLink size="sm" href="/partner/similar-video">
+              {ko ? "유사 영상 10개 만들기" : "10 similar videos"}
             </ButtonLink>
-          )}
+            {PROVIDEO_ENABLED && (
+              <ButtonLink size="sm" variant="outline" href="/partner/video">
+                {ko ? "전문 영상 스튜디오" : "Pro video studio"}
+              </ButtonLink>
+            )}
+          </div>
         </Card>
 
         <Card className="p-4 sm:p-5">
