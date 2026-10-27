@@ -1,8 +1,16 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { isCurrentUserPartner } from "@/lib/partner";
+import {
+  isCurrentUserPartner,
+  getPartnerCreditBalance,
+  getCreditPrice,
+} from "@/lib/partner";
 import { videoEngineConfigured } from "@/lib/video";
-import { parseYouTubeId, youtubeThumbnail } from "@/lib/similarVideo";
+import {
+  parseYouTubeId,
+  youtubeThumbnail,
+  SIMILAR_VIDEO_ACTION,
+} from "@/lib/similarVideo";
 import {
   SimilarVideoStudio,
   type BatchView,
@@ -18,6 +26,11 @@ export default async function SimilarVideoPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) notFound();
+
+  const [credits, cost] = await Promise.all([
+    getPartnerCreditBalance(user.id),
+    getCreditPrice(SIMILAR_VIDEO_ACTION),
+  ]);
 
   const { data: batches } = await supabase
     .from("similar_video_batches")
@@ -61,6 +74,11 @@ export default async function SimilarVideoPage() {
   });
 
   return (
-    <SimilarVideoStudio configured={videoEngineConfigured()} batches={views} />
+    <SimilarVideoStudio
+      configured={videoEngineConfigured()}
+      batches={views}
+      credits={credits}
+      cost={cost}
+    />
   );
 }

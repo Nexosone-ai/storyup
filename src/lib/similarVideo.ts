@@ -8,6 +8,9 @@ import "server-only";
 
 export const SIMILAR_VIDEO_COUNT = 10;
 
+/** 파트너 패킷 차감 액션 키 — partner_credit_prices.action 과 일치(관리자 단가). */
+export const SIMILAR_VIDEO_ACTION = "SIMILAR_VIDEO";
+
 /** 유튜브 URL(여러 형식)에서 11자 영상 ID 추출. 아니면 null. */
 export function parseYouTubeId(url: string): string | null {
   try {
