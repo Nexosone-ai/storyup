@@ -31,9 +31,15 @@ function ratioClass(aspect: string): string {
 export function SimilarVideoStudio({
   configured,
   batches: initial,
+  credits,
+  cost,
 }: {
   configured: boolean;
   batches: BatchView[];
+  /** 파트너 보유 크레딧(패킷). */
+  credits: number;
+  /** 1회(10편) 생성 크레딧 단가. null = 미설정(생성 차단). */
+  cost: number | null;
 }) {
   const [sourceUrl, setSourceUrl] = useState("");
   const [concept, setConcept] = useState("");
@@ -76,6 +82,11 @@ export function SimilarVideoStudio({
     pollAll();
     return () => clearInterval(t);
   }, [batches, pollAll]);
+
+  // 단가 미설정(null)이면 서버가 차단하므로 비활성, 잔액 부족도 사전 차단.
+  const priceKnown = cost !== null;
+  const chargeable = priceKnown && (cost ?? 0) > 0;
+  const tooLow = chargeable && credits < (cost ?? 0);
 
   const create = async () => {
     setError(null);
@@ -124,6 +135,17 @@ export function SimilarVideoStudio({
           원본 영상(유튜브 등) 링크와 컨셉 한 줄을 넣으면, 같은 분위기의 새 영상 10개를
           서로 다른 연출로 한 번에 생성해요.
         </p>
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+          <span className="rounded-full border border-border bg-surface px-2.5 py-1">
+            1회(10편) ={" "}
+            <strong className="text-foreground">
+              {cost === null ? "미설정" : cost === 0 ? "무료" : `${cost} 크레딧`}
+            </strong>
+          </span>
+          <span className="rounded-full border border-border bg-surface px-2.5 py-1">
+            보유 <strong className="text-foreground">{credits.toLocaleString()}</strong> 크레딧
+          </span>
+        </div>
       </div>
 
       {!configured && (
@@ -185,11 +207,22 @@ export function SimilarVideoStudio({
           </label>
         </div>
         <div className="mt-4 flex items-center gap-3">
-          <Button onClick={create} disabled={!configured || creating}>
-            {creating ? "생성 요청 중…" : "유사 영상 10개 생성"}
+          <Button
+            onClick={create}
+            disabled={!configured || creating || !priceKnown || tooLow}
+          >
+            {creating
+              ? "생성 요청 중…"
+              : chargeable
+                ? `유사 영상 10개 생성 (${cost} 크레딧)`
+                : "유사 영상 10개 생성"}
           </Button>
           <span className="text-xs text-muted">
-            영상당 수십 초 소요 · 한 번에 10편 생성됩니다.
+            {tooLow
+              ? "크레딧이 부족해요. 관리자에게 충전을 요청하세요."
+              : !priceKnown
+                ? "단가가 아직 설정되지 않았어요(관리자 설정 필요)."
+                : "영상당 수십 초 소요 · 한 번에 10편 생성됩니다."}
           </span>
         </div>
         {error && <p className="mt-2 text-sm text-danger">{error}</p>}
