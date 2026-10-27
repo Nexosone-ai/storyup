@@ -88,16 +88,38 @@ export async function chargeWebsiteGeneration(
   return chargeLegacy(userId, "AI_WEBSITE", description, ko);
 }
 
-/** service_prices(관리자 화면) 기반 과금. 가격 0원/비활성/미설정 = 무료. */
+/**
+ * 수량(배수) 과금 — 영상 길이처럼 1건을 N배 단가로 차감할 때 사용(제공량 비적용 서비스).
+ * service_prices × units 로 포인트를 선차감하고, 실패 시 refund로 되돌린다.
+ */
+export async function chargeAiUsageUnits(
+  userId: string,
+  service: string,
+  description: string,
+  units: number,
+): Promise<AiBilling> {
+  if (service === "IMAGE_GENERATION") return noop;
+  const ko = (await getLocale()) === "ko";
+  return chargeLegacy(
+    userId,
+    service,
+    description,
+    ko,
+    Math.max(1, Math.floor(units)),
+  );
+}
+
+/** service_prices(관리자 화면) 기반 과금. 가격 0원/비활성/미설정 = 무료. units 배수 지원. */
 async function chargeLegacy(
   userId: string,
   service: string,
   description: string,
   ko: boolean,
+  units = 1,
 ): Promise<AiBilling> {
   const admin = createAdminClient();
-  // 단가는 service_prices 단일 소스에서 조회 — 0이면 무료.
-  const price = await getServicePrice(service);
+  // 단가는 service_prices 단일 소스에서 조회 — 0이면 무료. 길이 등 배수는 units로.
+  const price = (await getServicePrice(service)) * Math.max(1, Math.floor(units));
   if (price <= 0) return noop;
 
   const { error } = await admin.rpc("spend_points", {

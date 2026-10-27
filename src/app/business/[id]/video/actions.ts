@@ -12,7 +12,8 @@ import {
   VideoEngineError,
   VIDEO_SERVICE,
 } from "@/lib/video";
-import { chargeAiUsage, InsufficientPointsError } from "@/lib/ai/billing";
+import { chargeAiUsageUnits, InsufficientPointsError } from "@/lib/ai/billing";
+import { videoLengthById } from "@/lib/videoLength";
 import { getLocale } from "@/lib/i18n";
 import { generateImageResilient } from "@/lib/ai/image";
 import { buildCharacterPrompt } from "@/lib/ai/image/prompt";
@@ -77,6 +78,7 @@ export async function submitVideoAction(
   businessId: string,
   prompt: string,
   characterUrl?: string,
+  lengthId?: string,
 ): Promise<SubmitState> {
   const supabase = await createClient();
   const {
@@ -88,6 +90,9 @@ export async function submitVideoAction(
 
   const text = prompt.trim().slice(0, 1000);
   if (!text) return { error: "영상 내용을 입력해주세요." };
+
+  // 영상 길이 — 길수록 UP를 배수로 더 차감(관리자 단가 × multiplier).
+  const length = videoLengthById(lengthId);
 
   const plan = getPlanById(await getPlanId(user.id));
   if (plan.limits.video === 0)
@@ -105,10 +110,15 @@ export async function submitVideoAction(
   if ((processing ?? 0) >= MAX_CONCURRENT)
     return { error: "처리 중인 영상이 있어요. 잠시 후 다시 시도해주세요." };
 
-  // UP 선차감 — 잔액 부족이면 생성하지 않고 안내(차감 없음).
+  // UP 선차감 — 길이 배수 적용. 잔액 부족이면 생성하지 않고 안내(차감 없음).
   let billing;
   try {
-    billing = await chargeAiUsage(user.id, VIDEO_SERVICE, "AI 영상 생성");
+    billing = await chargeAiUsageUnits(
+      user.id,
+      VIDEO_SERVICE,
+      `AI 영상 생성 (${length.seconds}초)`,
+      length.multiplier,
+    );
   } catch (err) {
     if (err instanceof InsufficientPointsError) return { error: err.message };
     console.error("[video] charge failed", err);
@@ -125,7 +135,7 @@ export async function submitVideoAction(
       : undefined;
 
   try {
-    const sub = await submitVideo(text, charUrl);
+    const sub = await submitVideo(text, charUrl, { duration: length.seconds });
     // video_jobs는 서비스롤만 쓰기(사용자가 status_url 등 변조 못 하게) — admin으로 기록.
     const { data: job, error: insErr } = await admin
       .from("video_jobs")
