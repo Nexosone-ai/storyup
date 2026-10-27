@@ -240,6 +240,40 @@ export async function createEditedVideoUploadUrl(
   return { path: data.path, token: data.token };
 }
 
+/**
+ * '이어서 만들기' — 기존 영상의 마지막 장면(프레임)을 다음 영상의 시작 이미지로 올린다.
+ * 브라우저가 same-origin 프록시로 프레임을 추출해 이 서명 URL로 공개 버킷(site-images)의
+ * frames/ 하위에 올리면, 그 공개 URL을 submitVideoAction의 characterUrl로 넘겨
+ * image-to-video로 '이어지는' 클립을 생성한다. (characterUrl 검증 경로와 동일한 버킷)
+ */
+export async function createVideoFrameUploadUrl(
+  businessId: string,
+): Promise<UploadTicketState & { publicUrl?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "로그인이 필요합니다." };
+  const business = await getBusiness(businessId);
+  if (!business) return { error: "권한이 없습니다." };
+  const plan = getPlanById(await getPlanId(user.id));
+  if (plan.limits.video === 0)
+    return { error: "AI 영상은 유료 플랜(Basic/Pro)에서 사용할 수 있어요." };
+
+  const admin = createAdminClient();
+  const path = `${businessId}/frames/${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}.jpg`;
+  const { data, error } = await admin.storage
+    .from(VIDEO_BUCKET)
+    .createSignedUploadUrl(path);
+  if (error || !data) return { error: "이어서 만들기 준비에 실패했어요." };
+  const {
+    data: { publicUrl },
+  } = admin.storage.from(VIDEO_BUCKET).getPublicUrl(path);
+  return { path: data.path, token: data.token, publicUrl };
+}
+
 export interface RegisterVideoState {
   ok?: boolean;
   url?: string;
