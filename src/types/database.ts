@@ -1000,6 +1000,70 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["video_jobs"]["Insert"]>;
         Relationships: [];
       };
+      similar_video_batches: {
+        Row: {
+          id: string;
+          user_id: string;
+          business_id: string | null;
+          source_url: string;
+          concept: string;
+          aspect: string;
+          quality: string;
+          count: number;
+          status: "processing" | "done" | "failed";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          business_id?: string | null;
+          source_url: string;
+          concept?: string;
+          aspect?: string;
+          quality?: string;
+          count?: number;
+          status?: "processing" | "done" | "failed";
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["similar_video_batches"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      similar_video_jobs: {
+        Row: {
+          id: string;
+          batch_id: string;
+          user_id: string;
+          idx: number;
+          prompt: string;
+          status: "processing" | "done" | "failed";
+          request_id: string | null;
+          status_url: string | null;
+          response_url: string | null;
+          video_url: string | null;
+          error: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          batch_id: string;
+          user_id: string;
+          idx?: number;
+          prompt: string;
+          status?: "processing" | "done" | "failed";
+          request_id?: string | null;
+          status_url?: string | null;
+          response_url?: string | null;
+          video_url?: string | null;
+          error?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["similar_video_jobs"]["Insert"]
+        >;
+        Relationships: [];
+      };
       account_shares: {
         Row: {
           id: string;

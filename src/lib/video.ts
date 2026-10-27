@@ -151,12 +151,16 @@ export interface SubmitResult {
 export async function submitVideo(
   prompt: string,
   imageUrl?: string,
+  extra?: Record<string, unknown>,
 ): Promise<SubmitResult> {
   const key = falKey();
   const useImage = !!imageUrl && /^https?:\/\//.test(imageUrl);
   const model = useImage ? FAL_IMAGE_MODEL : FAL_MODEL;
+  // 호출부가 넘긴 extra(비율·해상도 등)는 env 기본값 뒤에 병합하되, prompt·image_url은
+  // 끝에 둬서 extra가 덮어쓰지 못하게 한다.
   const body = {
     ...falVideoExtra(),
+    ...(extra ?? {}),
     prompt,
     ...(useImage ? { image_url: imageUrl } : {}),
   };
