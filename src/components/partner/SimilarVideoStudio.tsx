@@ -8,18 +8,26 @@ import {
   pollSimilarBatchAction,
   type JobView,
 } from "@/app/partner/similar-video/actions";
+import { VIDEO_LENGTHS, videoLengthById } from "@/lib/videoLength";
 
 export interface BatchView {
   id: string;
   concept: string;
   status: string;
   aspect: string;
+  seconds: number;
   sourceThumb: string | null;
   jobs: JobView[];
 }
 
 const field =
   "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary";
+
+/** 배치에 저장된 길이(초) → 사람이 읽는 라벨(가장 가까운 옵션). */
+function lengthLabelBySeconds(seconds: number): string {
+  const hit = VIDEO_LENGTHS.find((l) => l.seconds === seconds);
+  return hit ? hit.label : `약 ${seconds}초`;
+}
 
 /** 비율 → 미리보기 타일 종횡비 클래스. */
 function ratioClass(aspect: string): string {
@@ -45,6 +53,7 @@ export function SimilarVideoStudio({
   const [concept, setConcept] = useState("");
   const [aspect, setAspect] = useState("9:16");
   const [quality, setQuality] = useState("720p");
+  const [lengthId, setLengthId] = useState("s5");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [batches, setBatches] = useState<BatchView[]>(initial);
@@ -83,10 +92,14 @@ export function SimilarVideoStudio({
     return () => clearInterval(t);
   }, [batches, pollAll]);
 
+  // 선택한 길이의 배수를 단가에 반영 — 길수록 크레딧을 더 차감.
+  const length = videoLengthById(lengthId);
+  const effCost = cost === null ? null : cost * length.multiplier;
+
   // 단가 미설정(null)이면 서버가 차단하므로 비활성, 잔액 부족도 사전 차단.
-  const priceKnown = cost !== null;
-  const chargeable = priceKnown && (cost ?? 0) > 0;
-  const tooLow = chargeable && credits < (cost ?? 0);
+  const priceKnown = effCost !== null;
+  const chargeable = priceKnown && (effCost ?? 0) > 0;
+  const tooLow = chargeable && credits < (effCost ?? 0);
 
   const create = async () => {
     setError(null);
@@ -101,6 +114,7 @@ export function SimilarVideoStudio({
         concept,
         aspect,
         quality,
+        lengthId,
       );
       if (res.error) {
         setError(res.error);
@@ -113,6 +127,7 @@ export function SimilarVideoStudio({
             concept: concept.trim() || "(원본 제목으로 생성)",
             status: "processing",
             aspect,
+            seconds: length.seconds,
             sourceThumb: null,
             jobs: [],
           },
@@ -137,9 +152,13 @@ export function SimilarVideoStudio({
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
           <span className="rounded-full border border-border bg-surface px-2.5 py-1">
-            1회(10편) ={" "}
+            1회(10편 · {length.label}) ={" "}
             <strong className="text-foreground">
-              {cost === null ? "미설정" : cost === 0 ? "무료" : `${cost} 크레딧`}
+              {effCost === null
+                ? "미설정"
+                : effCost === 0
+                  ? "무료"
+                  : `${effCost} 크레딧`}
             </strong>
           </span>
           <span className="rounded-full border border-border bg-surface px-2.5 py-1">
@@ -178,7 +197,23 @@ export function SimilarVideoStudio({
             disabled={!configured || creating}
           />
         </label>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <label className="text-xs text-muted">
+            영상 길이
+            <select
+              value={lengthId}
+              onChange={(e) => setLengthId(e.target.value)}
+              className={`mt-1 ${field}`}
+              disabled={!configured || creating}
+            >
+              {VIDEO_LENGTHS.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.label}
+                  {l.multiplier > 1 ? ` · ${l.multiplier}배 크레딧` : ""}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="text-xs text-muted">
             비율
             <select
@@ -214,7 +249,7 @@ export function SimilarVideoStudio({
             {creating
               ? "생성 요청 중…"
               : chargeable
-                ? `유사 영상 10개 생성 (${cost} 크레딧)`
+                ? `유사 영상 10개 생성 (${effCost} 크레딧)`
                 : "유사 영상 10개 생성"}
           </Button>
           <span className="text-xs text-muted">
@@ -222,7 +257,9 @@ export function SimilarVideoStudio({
               ? "크레딧이 부족해요. 관리자에게 충전을 요청하세요."
               : !priceKnown
                 ? "단가가 아직 설정되지 않았어요(관리자 설정 필요)."
-                : "영상당 수십 초 소요 · 한 번에 10편 생성됩니다."}
+                : length.seconds >= 30
+                  ? "긴 영상은 모델이 거부하면 실패 처리되고 크레딧은 자동 환급돼요."
+                  : "영상당 수십 초 소요 · 한 번에 10편 생성됩니다."}
           </span>
         </div>
         {error && <p className="mt-2 text-sm text-danger">{error}</p>}
@@ -258,7 +295,9 @@ function BatchCard({ batch }: { batch: BatchView }) {
                 : "생성 실패"}
           </p>
         </div>
-        <span className="shrink-0 text-xs text-muted">{batch.aspect}</span>
+        <span className="shrink-0 text-xs text-muted">
+          {batch.aspect} · {lengthLabelBySeconds(batch.seconds)}
+        </span>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">

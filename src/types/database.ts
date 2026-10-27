@@ -1009,6 +1009,7 @@ export interface Database {
           concept: string;
           aspect: string;
           quality: string;
+          seconds: number;
           count: number;
           status: "processing" | "done" | "failed";
           created_at: string;
@@ -1021,6 +1022,7 @@ export interface Database {
           concept?: string;
           aspect?: string;
           quality?: string;
+          seconds?: number;
           count?: number;
           status?: "processing" | "done" | "failed";
           created_at?: string;

@@ -165,13 +165,16 @@ export async function chargePartnerCredits(
   action: string,
   refBusinessId?: string,
   ko = true,
+  units = 1,
 ): Promise<CreditCharge> {
-  const credits = await getCreditPrice(action);
-  if (credits === null) {
+  const base = await getCreditPrice(action);
+  if (base === null) {
     // 단가를 확인할 수 없음 — 무상 진행 금지.
     console.error("[partner-credits] price unknown for action:", action);
     throw new CreditChargeError(ko);
   }
+  // units = 수량(배수) — 영상 길이처럼 1회를 N배 단가로 차감할 때 사용.
+  const credits = base * Math.max(1, Math.floor(units));
   if (credits <= 0) return NOOP_CHARGE; // 명시적 무료(예: AGENT_CHAT)
   const admin = createAdminClient();
   const { error } = await admin.rpc("spend_partner_credits", {
