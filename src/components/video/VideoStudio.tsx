@@ -10,6 +10,7 @@ import {
   generateCharacterAction,
 } from "@/app/business/[id]/video/actions";
 import { VideoEditor } from "@/components/video/VideoEditor";
+import { VIDEO_LENGTHS, videoLengthById } from "@/lib/videoLength";
 
 interface Pricing {
   /** 영상 1편당 UP 단가. 0 = 무료. */
@@ -49,9 +50,13 @@ export function VideoStudio({
   const [charUrl, setCharUrl] = useState<string | null>(null);
   const [charBusy, setCharBusy] = useState(false);
   const [charError, setCharError] = useState<string | null>(null);
+  // 영상 길이 — 길수록 UP를 배수로 더 차감.
+  const [lengthId, setLengthId] = useState(VIDEO_LENGTHS[0].id);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const notEnough = pricing.price > 0 && pricing.balance < pricing.price;
+  const length = videoLengthById(lengthId);
+  const cost = pricing.price * length.multiplier;
+  const notEnough = cost > 0 && pricing.balance < cost;
 
   const poll = (jobId: string) => {
     let tries = 0;
@@ -101,7 +106,12 @@ export function VideoStudio({
     setBusy(true);
     setError(null);
     setStatus("영상 생성 요청 중…");
-    const res = await submitVideoAction(businessId, text, charUrl ?? undefined);
+    const res = await submitVideoAction(
+      businessId,
+      text,
+      charUrl ?? undefined,
+      lengthId,
+    );
     if (res.error || !res.jobId) {
       setBusy(false);
       setStatus(null);
@@ -143,8 +153,8 @@ export function VideoStudio({
       {notEnough && (
         <p className="rounded-xl border border-warning/40 bg-warning/5 px-4 py-3 text-sm text-warning">
           {ko
-            ? `UP이 부족해요. 영상 1편에 ${pricing.price.toLocaleString()} UP이 필요합니다.`
-            : `Not enough UP. Each video costs ${pricing.price.toLocaleString()} UP.`}
+            ? `UP이 부족해요. 선택한 길이(${length.label})에는 ${cost.toLocaleString()} UP이 필요합니다.`
+            : `Not enough UP. The selected length costs ${cost.toLocaleString()} UP.`}
         </p>
       )}
 
@@ -273,9 +283,52 @@ export function VideoStudio({
           disabled={busy}
           className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary disabled:opacity-60"
         />
+
+        {/* 영상 길이 — 길수록 UP 더 소진 */}
+        <div className="mt-3">
+          <p className="mb-1.5 text-xs font-medium text-muted">
+            {ko ? "영상 길이" : "Video length"}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {VIDEO_LENGTHS.map((l) => {
+              const c = pricing.price * l.multiplier;
+              const selected = l.id === lengthId;
+              return (
+                <button
+                  key={l.id}
+                  type="button"
+                  onClick={() => setLengthId(l.id)}
+                  disabled={busy}
+                  aria-pressed={selected}
+                  className={`rounded-xl border px-3 py-2 text-left text-sm transition-colors disabled:opacity-60 ${
+                    selected
+                      ? "border-primary bg-primary/5 text-foreground"
+                      : "border-border bg-background text-muted hover:border-primary/50"
+                  }`}
+                >
+                  <span className="block font-medium">{l.label}</span>
+                  <span className="block text-xs text-muted">
+                    {pricing.price > 0
+                      ? `${c.toLocaleString()} UP`
+                      : ko
+                        ? "무료"
+                        : "Free"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="mt-3 flex items-center gap-3">
-          <Button onClick={make} disabled={busy || !engineReady || !prompt.trim()}>
-            {busy ? <Spinner className="size-4" /> : ko ? "영상 만들기" : "Make video"}
+          <Button onClick={make} disabled={busy || !engineReady || !prompt.trim() || notEnough}>
+            {busy ? (
+              <Spinner className="size-4" />
+            ) : ko ? (
+              pricing.price > 0 ? `영상 만들기 (${cost.toLocaleString()} UP)` : "영상 만들기"
+            ) : (
+              "Make video"
+            )}
           </Button>
           {status && <span className="text-sm text-muted">{status}</span>}
         </div>
