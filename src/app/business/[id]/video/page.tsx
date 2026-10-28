@@ -48,11 +48,28 @@ export default async function VideoPage({
     );
   }
 
-  const [pricing, deliverables] = await Promise.all([
+  const [pricing, deliverables, pendingRes] = await Promise.all([
     getVideoPricing(user!.id),
     listDeliverables(id),
+    // 진행 중(생성 중) 영상 작업 — 새로고침·재접속 후에도 상태를 이어서 보여준다(RLS: 본인 사업장).
+    (async () => {
+      const { createClient } = await import("@/lib/supabase/server");
+      const supabase = await createClient();
+      return supabase
+        .from("video_jobs")
+        .select("id, prompt, created_at")
+        .eq("business_id", id)
+        .eq("status", "processing")
+        .order("created_at", { ascending: false })
+        .limit(10);
+    })(),
   ]);
   const videos = deliverables.filter((d) => d.kind === "video");
+  const pendingJobs = (pendingRes.data ?? []).map((j) => ({
+    id: j.id,
+    prompt: j.prompt,
+    createdAt: j.created_at,
+  }));
 
   return (
     <div className="space-y-5">
@@ -72,6 +89,7 @@ export default async function VideoPage({
         pricing={{ price: pricing.price, balance: pricing.balance }}
         engineReady={videoEngineConfigured()}
         videos={videos}
+        pendingJobs={pendingJobs}
         ko={ko}
       />
     </div>
