@@ -12,6 +12,8 @@ import {
   type RoutineRow,
   type LogRow,
   type ProposalRow,
+  type SourceRow,
+  type ReviewDraftRow,
 } from "@/components/agent/AutopilotSettings";
 
 export const metadata = { title: "AI 오토파일럿" };
@@ -50,32 +52,51 @@ export default async function AutopilotPage({
   }
 
   const supabase = await createClient();
-  const [routinesRes, logsRes, proposalsRes, fb] = await Promise.all([
-    supabase
-      .from("agent_routines")
-      .select("*")
-      .eq("business_id", id)
-      .order("kind", { ascending: true }),
-    supabase
-      .from("agent_run_logs")
-      .select("id, action, status, detail, created_at")
-      .eq("business_id", id)
-      .order("created_at", { ascending: false })
-      .limit(20),
-    supabase
-      .from("agent_proposals")
-      .select("id, action, params")
-      .eq("business_id", id)
-      .eq("status", "pending")
-      .is("conversation_id", null)
-      .order("created_at", { ascending: false })
-      .limit(20),
-    getFacebookStatus(id),
-  ]);
+  const [routinesRes, logsRes, proposalsRes, sourcesRes, reviewRes, fb] =
+    await Promise.all([
+      supabase
+        .from("agent_routines")
+        .select("*")
+        .eq("business_id", id)
+        .order("kind", { ascending: true }),
+      supabase
+        .from("agent_run_logs")
+        .select("id, action, status, detail, created_at")
+        .eq("business_id", id)
+        .order("created_at", { ascending: false })
+        .limit(20),
+      supabase
+        .from("agent_proposals")
+        .select("id, action, params")
+        .eq("business_id", id)
+        .eq("status", "pending")
+        .is("conversation_id", null)
+        .order("created_at", { ascending: false })
+        .limit(20),
+      supabase
+        .from("agent_blog_sources")
+        .select("id, kind, url, title, char_count, created_at")
+        .eq("business_id", id)
+        .order("created_at", { ascending: false })
+        .limit(20),
+      // 검토 큐 — 오토파일럿이 '검토' 모드로 만든 예약 발행 초안.
+      supabase
+        .from("blog_posts")
+        .select("id, title, slug, scheduled_at, updated_at")
+        .eq("business_id", id)
+        .eq("status", "draft")
+        .not("autopilot_routine_id", "is", null)
+        .not("scheduled_at", "is", null)
+        .order("scheduled_at", { ascending: true })
+        .limit(30),
+      getFacebookStatus(id),
+    ]);
 
   const routines = (routinesRes.data ?? []) as unknown as RoutineRow[];
   const logs = (logsRes.data ?? []) as unknown as LogRow[];
   const proposals = (proposalsRes.data ?? []) as unknown as ProposalRow[];
+  const sources = (sourcesRes.data ?? []) as unknown as SourceRow[];
+  const reviewDrafts = (reviewRes.data ?? []) as unknown as ReviewDraftRow[];
 
   return (
     <div className="space-y-5">
@@ -100,6 +121,8 @@ export default async function AutopilotPage({
         routines={routines}
         logs={logs}
         proposals={proposals}
+        sources={sources}
+        reviewDrafts={reviewDrafts}
         fbConnected={fb.connected}
       />
     </div>

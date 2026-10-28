@@ -12,6 +12,7 @@ import {
   CreditChargeError,
   type CreditCharge,
 } from "@/lib/partner";
+import { loadCombinedSources } from "@/lib/ai/agent/sources";
 import type { BlogTone, BlogLength } from "@/types/domain";
 
 /** 루틴 종류 → 파트너 크레딧 단가 키(facebook 게시는 무차감). */
@@ -126,6 +127,17 @@ async function latestPublishedPost(
   return data ?? null;
 }
 
+/** 소재 중복 회피용 — 최근 글 제목 몇 개. */
+async function recentTitles(admin: Admin, businessId: string): Promise<string[]> {
+  const { data } = await admin
+    .from("blog_posts")
+    .select("title")
+    .eq("business_id", businessId)
+    .order("created_at", { ascending: false })
+    .limit(8);
+  return (data ?? []).map((r) => r.title).filter(Boolean);
+}
+
 /** auto 모드 실제 실행. 성공 시 detail 반환, 실패 시 throw. */
 async function executeRoutine(
   admin: Admin,
@@ -136,7 +148,15 @@ async function executeRoutine(
   const params = (r.params ?? {}) as Record<string, unknown>;
 
   if (r.kind === "blog") {
-    const topic = str(params.topic) || `${bizName} 이번 주 소식과 팁`;
+    // 글감 소스(URL/PDF)가 있으면 그 자료에 근거해 생성(지어내기 금지). 비어 있으면 주제 힌트로.
+    const [{ text: source }, avoid] = await Promise.all([
+      loadCombinedSources(admin, r.business_id),
+      recentTitles(admin, r.business_id),
+    ]);
+    // 소스가 있으면 주제는 비워 AI가 자료에서 글감을 추리게 한다(힌트가 있으면 방향만).
+    const topic = source
+      ? str(params.topic)
+      : str(params.topic) || `${bizName} 이번 주 소식과 팁`;
     const { postId, title } = await generateAndSaveBlog({
       supabase: admin,
       userId: ownerId,
@@ -146,7 +166,27 @@ async function executeRoutine(
       length: (str(params.length) || "Medium") as BlogLength,
       locale: "ko",
       skipBilling: true, // 파트너 크레딧으로 과금
+      source: source || undefined,
+      avoidTitles: avoid,
     });
+
+    if (r.autonomy === "review") {
+      // 검토 모드: 바로 발행하지 않고 검토 창(review_hours) 뒤로 예약. 그 사이 파트너가
+      // 초안을 보고 수정·지금발행·보류할 수 있다. 예약시각이 되면 /api/cron/publish가 발행.
+      const hours = Math.max(1, Math.min(168, r.review_hours ?? 24));
+      const scheduledAt = new Date(Date.now() + hours * 3_600_000).toISOString();
+      await admin
+        .from("blog_posts")
+        .update({
+          status: "draft",
+          scheduled_at: scheduledAt,
+          autopilot_routine_id: r.id,
+        })
+        .eq("id", postId)
+        .eq("business_id", r.business_id);
+      return { postId, title, scheduledReview: true, scheduledAt } as Json;
+    }
+
     // auto 모드: 생성 후 바로 발행.
     await admin
       .from("blog_posts")
@@ -305,7 +345,8 @@ export async function runDueRoutines(now = new Date()): Promise<AutopilotSummary
     }
 
     try {
-      if (r.autonomy === "auto") {
+      // 'review'(검토 후 예약발행)도 실제 생성·과금이 일어나므로 auto와 같은 경로로 처리한다.
+      if (r.autonomy === "auto" || r.autonomy === "review") {
         if ((await countDone(admin, r.id, seoulDayStartIso())) >= r.max_per_day) {
           await log(admin, r, "skip", "max_per_day");
           skipped++;
