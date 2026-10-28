@@ -466,6 +466,110 @@ export interface Database {
         >;
         Relationships: [];
       };
+      industries: {
+        Row: {
+          id: string;
+          slug: string;
+          name_ko: string;
+          name_en: string;
+          icon: string;
+          summary_ko: string;
+          summary_en: string;
+          status: "draft" | "published";
+          sort_order: number;
+          parent_id: string | null;
+          content: Json | null;
+          seo: Json | null;
+          maps_category: string | null;
+          maps_industry: string | null;
+          sensitive: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          slug: string;
+          name_ko: string;
+          name_en?: string;
+          icon?: string;
+          summary_ko?: string;
+          summary_en?: string;
+          status?: "draft" | "published";
+          sort_order?: number;
+          parent_id?: string | null;
+          content?: Json | null;
+          seo?: Json | null;
+          maps_category?: string | null;
+          maps_industry?: string | null;
+          sensitive?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["industries"]["Insert"]>;
+        Relationships: [];
+      };
+      industry_requests: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          description: string;
+          needs: string | null;
+          ref_url: string | null;
+          status: "received" | "reviewing" | "adopted" | "rejected";
+          admin_note: string | null;
+          public_reply: string | null;
+          linked_industry_id: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          description: string;
+          needs?: string | null;
+          ref_url?: string | null;
+          status?: "received" | "reviewing" | "adopted" | "rejected";
+          admin_note?: string | null;
+          public_reply?: string | null;
+          linked_industry_id?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["industry_requests"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      industry_request_events: {
+        Row: {
+          id: string;
+          request_id: string;
+          from_status: string | null;
+          to_status: string;
+          actor_id: string | null;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          request_id: string;
+          from_status?: string | null;
+          to_status: string;
+          actor_id?: string | null;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["industry_request_events"]["Insert"]
+        >;
+        Relationships: [];
+      };
       notifications: {
         Row: {
           id: string;
@@ -477,7 +581,8 @@ export interface Database {
             | "site_inquiry"
             | "coupon_claim"
             | "sub_expiring"
-            | "reservation";
+            | "reservation"
+            | "industry_request";
           post_id: string | null;
           post_title: string | null;
           site_slug: string | null;
@@ -498,7 +603,8 @@ export interface Database {
             | "site_inquiry"
             | "coupon_claim"
             | "sub_expiring"
-            | "reservation";
+            | "reservation"
+            | "industry_request";
           post_id?: string | null;
           post_title?: string | null;
           site_slug?: string | null;

@@ -1,22 +1,33 @@
 import type { MetadataRoute } from "next";
 import { getShowcaseSites, getShowcasePosts } from "@/lib/queries";
+import { listPublishedIndustrySlugs } from "@/lib/industries";
 import { siteUrl } from "@/utils/seo";
 import type { WebsiteContent } from "@/types/domain";
 
 export const revalidate = 3600; // 1시간마다 갱신
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [sites, posts] = await Promise.all([
+  const [sites, posts, industries] = await Promise.all([
     getShowcaseSites(1000),
     getShowcasePosts(1000),
+    listPublishedIndustrySlugs(),
   ]);
 
   const staticPages: MetadataRoute.Sitemap = [
     { url: siteUrl, changeFrequency: "weekly", priority: 1 },
+    { url: `${siteUrl}/industries`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${siteUrl}/showcase`, changeFrequency: "daily", priority: 0.8 },
     { url: `${siteUrl}/community`, changeFrequency: "daily", priority: 0.7 },
     { url: `${siteUrl}/pricing`, changeFrequency: "monthly", priority: 0.8 },
   ];
+
+  // 공개된 업종 소개 페이지만(초안·요청 페이지는 제외).
+  const industryPages: MetadataRoute.Sitemap = industries.map((i) => ({
+    url: `${siteUrl}/industries/${i.slug}`,
+    lastModified: i.updatedAt,
+    changeFrequency: "weekly",
+    priority: 0.7,
+  }));
 
   const sitePages: MetadataRoute.Sitemap = sites.map((s) => ({
     url: `${siteUrl}/site/${s.slug}`,
@@ -45,5 +56,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }));
   });
 
-  return [...staticPages, ...sitePages, ...postPages, ...subPages];
+  return [...staticPages, ...industryPages, ...sitePages, ...postPages, ...subPages];
 }

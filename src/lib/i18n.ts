@@ -21,6 +21,7 @@ export const translations = {
       community: "커뮤니티",
       pricing: "요금제",
       store: "스토어",
+      industries: "업종별 활용",
     },
     landing: {
       badge: "AI 브랜드 빌더 · 무료 베타",
@@ -295,6 +296,7 @@ export const translations = {
       community: "Community",
       pricing: "Pricing",
       store: "Store",
+      industries: "By Industry",
     },
     landing: {
       badge: "AI Brand Builder · Free Beta",

@@ -18,6 +18,12 @@ export async function MarketingNav() {
           <Logo />
           <nav className="hidden items-center gap-6 md:flex">
             <Link
+              href="/industries"
+              className="text-sm font-medium text-muted transition-colors hover:text-foreground"
+            >
+              {t.nav.industries}
+            </Link>
+            <Link
               href="/showcase"
               className="text-sm font-medium text-muted transition-colors hover:text-foreground"
             >
@@ -90,6 +96,7 @@ export async function MarketingNav() {
           <MarketingMobileNav
             locale={locale}
             links={[
+              { href: "/industries", label: t.nav.industries },
               { href: "/showcase", label: t.nav.portfolio },
               { href: "/community", label: t.nav.community },
               { href: "/pricing", label: t.nav.pricing },
