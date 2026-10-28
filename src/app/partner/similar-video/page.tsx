@@ -34,7 +34,7 @@ export default async function SimilarVideoPage() {
 
   const { data: batches } = await supabase
     .from("similar_video_batches")
-    .select("id, concept, source_url, aspect, status, created_at")
+    .select("id, concept, source_url, aspect, seconds, status, created_at")
     .order("created_at", { ascending: false })
     .limit(10);
   const ids = (batches ?? []).map((b) => b.id);
@@ -68,6 +68,7 @@ export default async function SimilarVideoPage() {
       concept: b.concept,
       status: b.status,
       aspect: b.aspect,
+      seconds: b.seconds,
       sourceThumb: ytId ? youtubeThumbnail(ytId) : null,
       jobs: jobMap.get(b.id) ?? [],
     };

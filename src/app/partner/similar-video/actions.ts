@@ -20,6 +20,7 @@ import {
   SIMILAR_VIDEO_COUNT,
   SIMILAR_VIDEO_ACTION,
 } from "@/lib/similarVideo";
+import { videoLengthById } from "@/lib/videoLength";
 
 const ASPECTS = new Set(["9:16", "16:9", "1:1"]);
 const QUALITIES = new Set(["480p", "720p", "1080p"]);
@@ -39,6 +40,7 @@ export async function createSimilarBatchAction(
   concept: string,
   aspect: string,
   quality: string,
+  lengthId?: string,
 ): Promise<CreateBatchState> {
   const supabase = await createClient();
   const {
@@ -53,6 +55,8 @@ export async function createSimilarBatchAction(
   if (!isHttpUrl(url)) return { error: "올바른 영상 URL(http/https)을 입력해주세요." };
   const asp = ASPECTS.has(aspect) ? aspect : "9:16";
   const q = QUALITIES.has(quality) ? quality : "720p";
+  // 영상 길이 — 길수록 크레딧을 배수로 더 차감(원본 fal 비용도 길이에 비례).
+  const length = videoLengthById(lengthId);
 
   // 컨셉이 비었으면 유튜브 oEmbed 제목으로 보강(키 불필요). 실패하면 무시.
   let conceptText = concept.trim().slice(0, 500);
@@ -88,7 +92,13 @@ export async function createSimilarBatchAction(
   // 전체 실패 시 환급. 일부만 실패하면 유지(대부분 생성됨).
   let billing;
   try {
-    billing = await chargePartnerCredits(user.id, SIMILAR_VIDEO_ACTION);
+    billing = await chargePartnerCredits(
+      user.id,
+      SIMILAR_VIDEO_ACTION,
+      undefined,
+      true,
+      length.multiplier,
+    );
   } catch (err) {
     if (err instanceof InsufficientCreditsError || err instanceof CreditChargeError)
       return { error: err.message };
@@ -106,6 +116,7 @@ export async function createSimilarBatchAction(
       concept: conceptText,
       aspect: asp,
       quality: q,
+      seconds: length.seconds,
       count: prompts.length,
       status: "processing",
     })
@@ -123,6 +134,7 @@ export async function createSimilarBatchAction(
         const sub = await submitVideo(p.prompt, undefined, {
           aspect_ratio: asp,
           resolution: q,
+          duration: length.seconds,
         });
         return {
           batch_id: batch.id,
