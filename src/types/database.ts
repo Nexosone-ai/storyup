@@ -255,6 +255,8 @@ export interface Database {
           /** 글별 SEO 진단·보강 AI 분석 캐시 (0076). 유료 플랜. */
           seo_analysis: BlogSeoAnalysisCache | null;
           seo_analyzed_at: string | null;
+          /** 오토파일럿 '검토' 모드가 만든 예약 발행 글(0094). null이면 수동 작성. */
+          autopilot_routine_id: string | null;
         } & Timestamps;
         Insert: {
           id?: string;
@@ -276,6 +278,7 @@ export interface Database {
           faq?: BlogFaqItem[];
           seo_analysis?: BlogSeoAnalysisCache | null;
           seo_analyzed_at?: string | null;
+          autopilot_routine_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -665,7 +668,8 @@ export interface Database {
           cadence: "daily" | "weekly" | "biweekly" | "monthly";
           params: Json;
           enabled: boolean;
-          autonomy: "propose" | "auto";
+          autonomy: "propose" | "auto" | "review";
+          review_hours: number;
           max_per_day: number;
           monthly_cap: number;
           quiet_start: number | null;
@@ -682,7 +686,8 @@ export interface Database {
           cadence?: "daily" | "weekly" | "biweekly" | "monthly";
           params?: Json;
           enabled?: boolean;
-          autonomy?: "propose" | "auto";
+          autonomy?: "propose" | "auto" | "review";
+          review_hours?: number;
           max_per_day?: number;
           monthly_cap?: number;
           quiet_start?: number | null;
@@ -720,6 +725,32 @@ export interface Database {
         };
         Update: Partial<
           Database["public"]["Tables"]["agent_run_logs"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      agent_blog_sources: {
+        Row: {
+          id: string;
+          business_id: string;
+          kind: "url" | "pdf";
+          url: string | null;
+          title: string;
+          text: string;
+          char_count: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          kind: "url" | "pdf";
+          url?: string | null;
+          title?: string;
+          text?: string;
+          char_count?: number;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["agent_blog_sources"]["Insert"]
         >;
         Relationships: [];
       };

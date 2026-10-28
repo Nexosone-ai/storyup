@@ -40,6 +40,10 @@ export interface BlogPromptInput {
   tone: BlogTone;
   length: BlogLength;
   language?: PromptLanguage;
+  /** 글감 소스(URL/PDF에서 추출한 참고 자료). 있으면 이 자료에 근거해 작성하고 지어내지 않는다. */
+  source?: string;
+  /** 최근 발행 제목 — 소재(글감)가 겹치지 않게 피한다. */
+  avoidTitles?: string[];
 }
 
 const LENGTH_GUIDE_KO: Record<BlogLength, string> = {
@@ -184,13 +188,30 @@ export function blogPrompt(input: BlogPromptInput): PromptSpec {
   const language = input.language ?? "ko";
   const lengthGuide =
     language === "en" ? LENGTH_GUIDE_EN[input.length] : LENGTH_GUIDE_KO[input.length];
+  const hasSource = !!input.source?.trim();
+  const sourceRule = hasSource
+    ? `- 아래 '참고 자료(글감)'에 담긴 사실·정보에 근거해 작성하고, 자료에 없는 수치·날짜·효능 등은 지어내지 않습니다.
+- 자료 전체를 요약하지 말고, 자료에서 독자에게 가장 쓸모 있는 소재(글감) 하나를 골라 그 각도로 한 편을 씁니다.`
+    : "";
   const system = `당신은 소상공인의 블로그 콘텐츠를 대신 써주는 전문 카피라이터입니다.
 독자에게 실질적으로 도움이 되고 자연스럽게 읽히는 글을 씁니다.
 ${languageRule(language)}
 content 는 Markdown 형식(##, **, - 목록 사용)으로 작성합니다.
+${sourceRule}
 ${CONTENT_QUALITY_RULES_KO}
 ${HUMAN_WRITING_RULES_KO}
 반드시 아래 JSON 스키마만 순수 JSON으로 반환하세요.`;
+
+  const avoid =
+    input.avoidTitles && input.avoidTitles.length > 0
+      ? `\n- 아래 최근 발행 제목과 소재가 겹치지 않는 새 각도로 쓰세요: ${input.avoidTitles
+          .slice(0, 8)
+          .map((t) => `"${t}"`)
+          .join(", ")}`
+      : "";
+  const sourceBlock = hasSource
+    ? `\n\n참고 자료(글감) — 이 내용에 근거해 작성:\n"""\n${input.source!.slice(0, 12000)}\n"""`
+    : "";
 
   const user = `사업 정보:
 - 사업 이름: ${input.businessName}
@@ -198,9 +219,9 @@ ${HUMAN_WRITING_RULES_KO}
 - 브랜드 톤: ${input.brandTone}
 
 작성 요청:
-- 주제: ${input.topic}
+- 주제${hasSource ? "(방향 힌트, 비어 있으면 자료에서 선택)" : ""}: ${input.topic || "(자료에서 적절한 소재 선택)"}
 - 글의 톤: ${input.tone}
-- 분량: ${input.length} (${lengthGuide})
+- 분량: ${input.length} (${lengthGuide})${avoid}${sourceBlock}
 
 아래 JSON 스키마로만 응답하세요:
 {

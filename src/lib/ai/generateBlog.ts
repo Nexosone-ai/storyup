@@ -21,6 +21,10 @@ export async function generateAndSaveBlog(args: {
   locale?: PromptLanguage;
   /** 파트너 패킷(크레딧)으로 별도 과금하는 경우 기존 UP/쿼터 과금을 건너뛴다. */
   skipBilling?: boolean;
+  /** 글감 소스(URL/PDF 추출 텍스트). 있으면 이 자료에 근거해 생성(지어내기 금지). */
+  source?: string;
+  /** 최근 발행 제목 — 소재 중복 회피용. */
+  avoidTitles?: string[];
 }): Promise<{ postId: string; title: string }> {
   const { supabase, userId, businessId, topic } = args;
 
@@ -49,6 +53,8 @@ export async function generateAndSaveBlog(args: {
       tone: args.tone ?? "Friendly",
       length: args.length ?? "Medium",
       language: args.locale ?? "ko",
+      source: args.source,
+      avoidTitles: args.avoidTitles,
     });
     const postId = await createBlogDraft({
       supabase,
