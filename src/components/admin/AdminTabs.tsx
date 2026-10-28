@@ -22,6 +22,8 @@ const TABS: { href: string; label: string }[] = [
   { href: "/dashboard/admin/billing", label: "결제·가격" },
   { href: "/dashboard/admin/announcements", label: "공지팝업" },
   { href: "/dashboard/admin/domains", label: "개인도메인" },
+  { href: "/dashboard/admin/industries", label: "업종" },
+  { href: "/dashboard/admin/industry-requests", label: "업종요청" },
   { href: "/dashboard/admin/integrity", label: "정합성" },
 ];
 

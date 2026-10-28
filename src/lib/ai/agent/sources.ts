@@ -24,8 +24,9 @@ export class SourceFetchError extends Error {
   }
 }
 
-/** 내부망/로컬/메타데이터 주소로의 요청을 막는다(SSRF 방지). http/https만 허용. */
-function assertPublicUrl(raw: string): URL {
+/** 내부망/로컬/메타데이터 주소로의 요청을 막는다(SSRF 방지). http/https만 허용.
+ *  URL 파싱·검증만 하고 네트워크 요청은 하지 않는다(참고 URL 저장 검증에도 재사용). */
+export function assertPublicUrl(raw: string): URL {
   let u: URL;
   try {
     u = new URL(raw);

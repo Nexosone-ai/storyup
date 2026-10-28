@@ -33,10 +33,23 @@ const empty: BusinessInterviewInput = {
   tone: "" as BrandTone,
 };
 
-export function OnboardingWizard({ t }: { t: OnbDict }) {
+export function OnboardingWizard({
+  t,
+  initialCategory,
+  initialIndustry,
+}: {
+  t: OnbDict;
+  /** '이 업종으로 시작하기'에서 넘어온 기본값(사용자가 바꿀 수 있음). */
+  initialCategory?: BusinessCategory;
+  initialIndustry?: IndustryId;
+}) {
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const [data, setData] = useState<BusinessInterviewInput>(empty);
+  const [data, setData] = useState<BusinessInterviewInput>({
+    ...empty,
+    ...(initialCategory ? { category: initialCategory } : {}),
+    ...(initialIndustry ? { industry: initialIndustry } : {}),
+  });
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
