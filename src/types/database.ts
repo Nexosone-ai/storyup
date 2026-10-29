@@ -1063,7 +1063,12 @@ export interface Database {
           id: string;
           partner_user_id: string;
           quote_id: string | null;
+          invoice_id: string | null;
           amount_krw: number;
+          gross_krw: number | null;
+          base_deduction_krw: number | null;
+          pg_fee_krw: number;
+          tax_krw: number;
           status: string;
           paid_at: string | null;
           created_at: string;
@@ -1072,13 +1077,234 @@ export interface Database {
           id?: string;
           partner_user_id: string;
           quote_id?: string | null;
+          invoice_id?: string | null;
           amount_krw: number;
+          gross_krw?: number | null;
+          base_deduction_krw?: number | null;
+          pg_fee_krw?: number;
+          tax_krw?: number;
           status?: string;
           paid_at?: string | null;
           created_at?: string;
         };
         Update: Partial<
           Database["public"]["Tables"]["partner_earnings"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      partner_storefronts: {
+        Row: {
+          partner_user_id: string;
+          slug: string;
+          display_name: string;
+          logo_url: string | null;
+          intro: string | null;
+          contact: string | null;
+          seller_info: string | null;
+          status: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          partner_user_id: string;
+          slug: string;
+          display_name: string;
+          logo_url?: string | null;
+          intro?: string | null;
+          contact?: string | null;
+          seller_info?: string | null;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["partner_storefronts"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      partner_products: {
+        Row: {
+          id: string;
+          partner_user_id: string;
+          name: string;
+          description: string | null;
+          included_services: string | null;
+          base_plan: string | null;
+          base_plan_version: string | null;
+          base_price_krw: number;
+          sell_price_krw: number;
+          currency: string;
+          vat_mode: string;
+          billing_type: string;
+          billing_period: string | null;
+          valid_from: string | null;
+          valid_until: string | null;
+          scope: string | null;
+          terms: string | null;
+          status: string;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          partner_user_id: string;
+          name: string;
+          description?: string | null;
+          included_services?: string | null;
+          base_plan?: string | null;
+          base_plan_version?: string | null;
+          base_price_krw?: number;
+          sell_price_krw: number;
+          currency?: string;
+          vat_mode?: string;
+          billing_type?: string;
+          billing_period?: string | null;
+          valid_from?: string | null;
+          valid_until?: string | null;
+          scope?: string | null;
+          terms?: string | null;
+          status?: string;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["partner_products"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      partner_offers: {
+        Row: {
+          id: string;
+          partner_user_id: string;
+          client_user_id: string | null;
+          product_id: string | null;
+          token: string;
+          name: string;
+          description: string | null;
+          included_services: string | null;
+          base_plan: string | null;
+          base_plan_version: string | null;
+          base_price_krw: number;
+          sell_price_krw: number;
+          currency: string;
+          vat_mode: string;
+          billing_type: string;
+          billing_period: string | null;
+          valid_until: string | null;
+          status: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          partner_user_id: string;
+          client_user_id?: string | null;
+          product_id?: string | null;
+          token: string;
+          name: string;
+          description?: string | null;
+          included_services?: string | null;
+          base_plan?: string | null;
+          base_plan_version?: string | null;
+          base_price_krw?: number;
+          sell_price_krw: number;
+          currency?: string;
+          vat_mode?: string;
+          billing_type?: string;
+          billing_period?: string | null;
+          valid_until?: string | null;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["partner_offers"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      partner_invoices: {
+        Row: {
+          id: string;
+          offer_id: string | null;
+          partner_user_id: string;
+          client_user_id: string | null;
+          token: string;
+          number: string;
+          product_snapshot: Json;
+          sell_price_krw: number;
+          base_price_krw: number;
+          tax_krw: number;
+          currency: string;
+          vat_mode: string;
+          billing_type: string;
+          billing_period: string | null;
+          period_start: string | null;
+          period_end: string | null;
+          seller_name: string | null;
+          seller_info: string | null;
+          collector_info: string;
+          status: string;
+          order_id: string | null;
+          paid_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          offer_id?: string | null;
+          partner_user_id: string;
+          client_user_id?: string | null;
+          token: string;
+          number: string;
+          product_snapshot: Json;
+          sell_price_krw: number;
+          base_price_krw?: number;
+          tax_krw?: number;
+          currency?: string;
+          vat_mode?: string;
+          billing_type?: string;
+          billing_period?: string | null;
+          period_start?: string | null;
+          period_end?: string | null;
+          seller_name?: string | null;
+          seller_info?: string | null;
+          collector_info?: string;
+          status?: string;
+          order_id?: string | null;
+          paid_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["partner_invoices"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      partner_invoice_events: {
+        Row: {
+          id: string;
+          invoice_id: string;
+          from_status: string | null;
+          to_status: string;
+          amount_krw: number | null;
+          actor_id: string | null;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          invoice_id: string;
+          from_status?: string | null;
+          to_status: string;
+          amount_krw?: number | null;
+          actor_id?: string | null;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["partner_invoice_events"]["Insert"]
         >;
         Relationships: [];
       };
