@@ -177,6 +177,69 @@ export async function createQuoteOrder(args: {
   };
 }
 
+/**
+ * 파트너 청구서(토큰) 주문 생성 — 금액은 서버가 청구서(partner_invoices)에서 확정한다.
+ * product_id는 null, metadata.invoice_id로 결제 후 이행(플랜 부여·정산)을 연결한다.
+ * 부가세 별도면 총액 = 판매가 + 세금.
+ */
+export async function createInvoiceOrder(args: {
+  token: string;
+  buyer: Buyer;
+}): Promise<{ order?: CreatedOrder; error?: string }> {
+  const storeId = process.env.NEXT_PUBLIC_PORTONE_STORE_ID;
+  const channelKey = process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY;
+  if (!storeId || !channelKey || !process.env.PORTONE_API_SECRET)
+    return { error: "결제 설정이 완료되지 않았습니다. 잠시 후 다시 시도해주세요." };
+
+  const admin = createAdminClient();
+  const { data: inv } = await admin
+    .from("partner_invoices")
+    .select("*")
+    .eq("token", args.token)
+    .maybeSingle();
+  if (!inv) return { error: "청구서를 찾을 수 없습니다." };
+  if (inv.status === "paid") return { error: "이미 결제된 청구서입니다." };
+  if (inv.status === "void" || inv.status === "refunded")
+    return { error: "결제할 수 없는 청구서입니다." };
+
+  const snap = (inv.product_snapshot ?? {}) as { name?: string };
+  const orderName = snap.name || "파트너 상품";
+  const total =
+    inv.vat_mode === "excluded" ? inv.sell_price_krw + inv.tax_krw : inv.sell_price_krw;
+
+  const orderId = `ord_${randomUUID()}`;
+  const { error } = await admin.from("product_orders").insert({
+    order_id: orderId,
+    product_id: null,
+    product_name: orderName,
+    amount: total,
+    currency: "KRW",
+    buyer_name: args.buyer.name || null,
+    buyer_phone: args.buyer.phone || null,
+    buyer_email: args.buyer.email || null,
+    status: "PENDING",
+    metadata: { invoice_id: inv.id },
+  });
+  if (error) {
+    console.error("[orders] create invoice order failed", orderId, error);
+    return { error: "주문 생성에 실패했습니다. 잠시 후 다시 시도해주세요." };
+  }
+  // 청구서에 결제대기 상태 + 주문 연결(최신 주문으로 갱신).
+  await admin
+    .from("partner_invoices")
+    .update({
+      status: inv.status === "issued" ? "pending_payment" : inv.status,
+      order_id: orderId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", inv.id)
+    .neq("status", "paid");
+
+  return {
+    order: { orderId, orderName, amount: total, currency: "KRW", storeId, channelKey },
+  };
+}
+
 export interface OrderSyncResult {
   status: ProductOrderRow["status"];
   amount?: number;
@@ -260,8 +323,15 @@ export async function syncProductOrder(
     // 자동 이행 — 상품에 지급 플랜이 연결돼 있으면 구매자 계정에 플랜 부여 (멱등).
     await fulfillProductOrder(orderId);
     // 대행 견적 결제면 정산(공급가 보유·파트너 마진 적립, 멱등).
-    const quoteId = (order.metadata as Record<string, unknown> | null)?.quote_id;
+    const meta = order.metadata as Record<string, unknown> | null;
+    const quoteId = meta?.quote_id;
     if (typeof quoteId === "string") await settleQuotePaid(quoteId, orderId);
+    // 파트너 상품 청구서 결제면 이행(정산 적립 + 기본 요금제 부여 + paid 전환, 멱등).
+    const invoiceId = meta?.invoice_id;
+    if (typeof invoiceId === "string") {
+      const { fulfillInvoicePaid } = await import("@/lib/b2b2c/invoices");
+      await fulfillInvoicePaid(invoiceId, orderId, order.buyer_email);
+    }
 
     return { status: "PAID", productName: order.product_name, amount: order.amount };
   }
