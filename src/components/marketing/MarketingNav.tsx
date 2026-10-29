@@ -4,12 +4,26 @@ import { MarketingMobileNav } from "@/components/marketing/MarketingMobileNav";
 import { Logo } from "@/components/ui/Logo";
 import { getDict } from "@/lib/i18n";
 import { getProfileName, getUser } from "@/lib/queries";
+import { B2B2C_ENABLED } from "@/lib/b2b2c/config";
 import Link from "next/link";
 
 export async function MarketingNav() {
   const { locale, t } = await getDict();
   const user = await getUser();
   const name = user ? await getProfileName() : null;
+  // B2B2C 모드: 요금제 링크는 '도입 문의'로, 직접구매(스토어)는 숨긴다.
+  const pricingLabel = B2B2C_ENABLED
+    ? locale === "ko"
+      ? "도입 문의"
+      : "Contact"
+    : t.nav.pricing;
+  const navLinks = [
+    { href: "/industries", label: t.nav.industries },
+    { href: "/showcase", label: t.nav.portfolio },
+    { href: "/community", label: t.nav.community },
+    { href: "/pricing", label: pricingLabel },
+    ...(B2B2C_ENABLED ? [] : [{ href: "/store", label: t.nav.store }]),
+  ];
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-xl">
@@ -17,36 +31,15 @@ export async function MarketingNav() {
         <div className="flex items-center gap-8">
           <Logo />
           <nav className="hidden items-center gap-6 md:flex">
-            <Link
-              href="/industries"
-              className="text-sm font-medium text-muted transition-colors hover:text-foreground"
-            >
-              {t.nav.industries}
-            </Link>
-            <Link
-              href="/showcase"
-              className="text-sm font-medium text-muted transition-colors hover:text-foreground"
-            >
-              {t.nav.portfolio}
-            </Link>
-            <Link
-              href="/community"
-              className="text-sm font-medium text-muted transition-colors hover:text-foreground"
-            >
-              {t.nav.community}
-            </Link>
-            <Link
-              href="/pricing"
-              className="text-sm font-medium text-muted transition-colors hover:text-foreground"
-            >
-              {t.nav.pricing}
-            </Link>
-            <Link
-              href="/store"
-              className="text-sm font-medium text-muted transition-colors hover:text-foreground"
-            >
-              {t.nav.store}
-            </Link>
+            {navLinks.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="text-sm font-medium text-muted transition-colors hover:text-foreground"
+              >
+                {l.label}
+              </Link>
+            ))}
           </nav>
         </div>
         <nav className="flex shrink-0 items-center gap-1.5 sm:gap-2">
@@ -93,16 +86,7 @@ export async function MarketingNav() {
               </Link>
             </>
           )}
-          <MarketingMobileNav
-            locale={locale}
-            links={[
-              { href: "/industries", label: t.nav.industries },
-              { href: "/showcase", label: t.nav.portfolio },
-              { href: "/community", label: t.nav.community },
-              { href: "/pricing", label: t.nav.pricing },
-              { href: "/store", label: t.nav.store },
-            ]}
-          />
+          <MarketingMobileNav locale={locale} links={navLinks} />
         </nav>
       </div>
     </header>

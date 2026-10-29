@@ -281,6 +281,99 @@ export async function fulfillInvoicePaid(
   });
 }
 
+/**
+ * 결제는 성공(정산 적립 있음)했지만 활성화(플랜 부여)가 실패/누락된 청구서를 안전 재처리.
+ * 관리자 전용. 정산 중복은 일어나지 않고(이미 적립됨), 플랜만 멱등 부여 후 paid로 맞춘다.
+ */
+export async function reprocessInvoice(
+  invoiceId: string,
+): Promise<{ ok: boolean; note: string }> {
+  const admin = createAdminClient();
+  const { data: inv } = await admin
+    .from("partner_invoices")
+    .select("*")
+    .eq("id", invoiceId)
+    .maybeSingle();
+  if (!inv) return { ok: false, note: "청구서 없음" };
+  // 정산(멱등 잠금)이 있어야 결제가 확정된 것. 없으면 아직 미결제.
+  const { data: earning } = await admin
+    .from("partner_earnings")
+    .select("id")
+    .eq("invoice_id", invoiceId)
+    .maybeSingle();
+  if (!earning) return { ok: false, note: "결제 확정 전(정산 없음)" };
+
+  const basePlan = inferBasePlan(inv);
+  let buyerEmail: string | null = null;
+  if (inv.order_id) {
+    const { data: order } = await admin
+      .from("product_orders")
+      .select("buyer_email")
+      .eq("order_id", inv.order_id)
+      .maybeSingle();
+    buyerEmail = order?.buyer_email ?? null;
+  }
+
+  let activation = "no_plan";
+  if (basePlan === "basic" || basePlan === "pro") {
+    let clientUserId = inv.client_user_id;
+    if (!clientUserId && buyerEmail) {
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("user_id")
+        .eq("email", buyerEmail.trim())
+        .maybeSingle();
+      clientUserId = profile?.user_id ?? null;
+    }
+    if (!clientUserId) activation = "no_account";
+    else {
+      const days = invoicePeriodDays(inv);
+      const { data: sub } = await admin
+        .from("subscriptions")
+        .select("current_period_end")
+        .eq("user_id", clientUserId)
+        .maybeSingle();
+      const nowMs = Date.now();
+      const baseMs =
+        sub?.current_period_end &&
+        new Date(sub.current_period_end).getTime() > nowMs
+          ? new Date(sub.current_period_end).getTime()
+          : nowMs;
+      const end = new Date(baseMs + days * 86_400_000).toISOString();
+      const { error } = await admin.from("subscriptions").upsert(
+        {
+          user_id: clientUserId,
+          plan: basePlan,
+          status: "active",
+          current_period_end: end,
+          trial: false,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" },
+      );
+      activation = error ? "grant_failed" : `granted:${basePlan}`;
+      if (!inv.client_user_id)
+        await admin
+          .from("partner_invoices")
+          .update({ client_user_id: clientUserId })
+          .eq("id", inv.id);
+    }
+  }
+
+  if (inv.status !== "paid")
+    await admin
+      .from("partner_invoices")
+      .update({ status: "paid", paid_at: inv.paid_at ?? new Date().toISOString() })
+      .eq("id", inv.id);
+  await admin.from("partner_invoice_events").insert({
+    invoice_id: inv.id,
+    from_status: inv.status,
+    to_status: "paid",
+    note: `관리자 재처리 · 활성화 ${activation}`,
+  });
+  return { ok: activation.startsWith("granted"), note: activation };
+}
+
 /** 청구서 스냅샷에서 기준 요금제 추출. */
 function inferBasePlan(inv: InvoiceRow): string | null {
   const snap = (inv.product_snapshot ?? {}) as Partial<ProductSnapshot>;

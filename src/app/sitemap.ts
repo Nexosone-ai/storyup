@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getShowcaseSites, getShowcasePosts } from "@/lib/queries";
 import { listPublishedIndustrySlugs } from "@/lib/industries";
+import { B2B2C_ENABLED } from "@/lib/b2b2c/config";
 import { siteUrl } from "@/utils/seo";
 import type { WebsiteContent } from "@/types/domain";
 
@@ -18,7 +19,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteUrl}/industries`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${siteUrl}/showcase`, changeFrequency: "daily", priority: 0.8 },
     { url: `${siteUrl}/community`, changeFrequency: "daily", priority: 0.7 },
-    { url: `${siteUrl}/pricing`, changeFrequency: "monthly", priority: 0.8 },
+    // B2B2C 모드에선 공개 요금표를 색인하지 않는다(도입 문의 페이지로 전환).
+    ...(B2B2C_ENABLED
+      ? []
+      : [
+          {
+            url: `${siteUrl}/pricing`,
+            changeFrequency: "monthly" as const,
+            priority: 0.8,
+          },
+        ]),
   ];
 
   // 공개된 업종 소개 페이지만(초안·요청 페이지는 제외).

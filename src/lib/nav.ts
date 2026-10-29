@@ -1,5 +1,6 @@
 import type { NavItem } from "@/components/dashboard/DashboardShell";
 import type { Locale } from "@/lib/i18n";
+import { B2B2C_ENABLED } from "@/lib/b2b2c/config";
 
 /** 모든 화면에서 동일하게 보이는 대시보드 메뉴. */
 export function dashboardNav(
@@ -74,6 +75,15 @@ export function dashboardNav(
       href: "/dashboard/plans",
       icon: "tag",
     },
+    ...(B2B2C_ENABLED
+      ? [
+          {
+            label: ko ? "내 청구서" : "My invoices",
+            href: "/dashboard/my-invoices",
+            icon: "file",
+          } as NavItem,
+        ]
+      : []),
     ...(partner
       ? [
           {
