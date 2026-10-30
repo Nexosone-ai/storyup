@@ -14,6 +14,7 @@ import { Icon } from "@/components/ui/icons";
 import { PartnerProfileEditor } from "@/components/partner/PartnerProfileEditor";
 import { savePartnerProfileAction } from "@/app/partner/actions";
 import { PROVIDEO_ENABLED } from "@/lib/provideo/config";
+import { B2B2C_ENABLED } from "@/lib/b2b2c/config";
 
 const INQ_STATUS: Record<string, string> = {
   open: "신규 문의",
@@ -132,6 +133,11 @@ export default async function PartnerPage() {
             {PROVIDEO_ENABLED && (
               <ButtonLink size="sm" variant="outline" href="/partner/video">
                 {ko ? "전문 영상 스튜디오" : "Pro video studio"}
+              </ButtonLink>
+            )}
+            {B2B2C_ENABLED && (
+              <ButtonLink size="sm" variant="outline" href="/partner/sales">
+                {ko ? "상품 · 판매 관리" : "Products & sales"}
               </ButtonLink>
             )}
           </div>

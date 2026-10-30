@@ -11,6 +11,7 @@ import {
 } from "@/lib/plans";
 import { COMPANY } from "@/lib/company";
 import { cn } from "@/utils/cn";
+import { B2B2C_ENABLED } from "@/lib/b2b2c/config";
 
 export const metadata = {
   title: "요금제",
@@ -31,6 +32,46 @@ export default async function PricingPage() {
   // 구독은 회원만 가능 — 로그인 상태면 구독 페이지로, 아니면 회원가입으로 유도한다.
   const user = await getUser();
   const subscribeHref = user ? "/dashboard/plans" : "/signup";
+
+  // B2B2C 모드: 기본요금표·직접 구매를 숨기고 파트너 상담·도입 문의로 전환한다.
+  // (가격을 SSR HTML에 아예 렌더하지 않는다 — PLANS 가격 노출 차단.)
+  if (B2B2C_ENABLED) {
+    return (
+      <div className="flex min-h-dvh flex-col">
+        <MarketingNav />
+        <main className="flex-1 px-5 py-20 sm:px-8">
+          <div className="mx-auto max-w-xl text-center">
+            <p className="eyebrow mb-2 !text-primary">STORYUP</p>
+            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+              {ko ? "도입 상담으로 시작하세요" : "Start with a consultation"}
+            </h1>
+            <p className="mt-4 text-muted">
+              {ko
+                ? "STORYUP은 전문 파트너를 통해 비즈니스에 맞춰 도입됩니다. 상담을 통해 서비스 구성과 도입 조건을 안내해 드립니다."
+                : "STORYUP is delivered through professional partners, tailored to your business. Contact us for a consultation."}
+            </p>
+            <div className="mt-8 flex flex-col items-center gap-3">
+              <a
+                href={tel}
+                className="neon-glow inline-flex w-full max-w-xs items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary-hover"
+              >
+                {ko ? "도입 문의하기" : "Contact us"}
+              </a>
+              <Link
+                href={user ? "/dashboard/plans" : "/login"}
+                className="text-sm font-medium text-muted hover:text-primary"
+              >
+                {ko
+                  ? "이미 이용 중이신가요? 구독 관리 →"
+                  : "Already a customer? Manage subscription →"}
+              </Link>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   const rows: [string, (p: Plan) => string][] = [
     [ko ? "브랜드 스토리 생성" : "Brand story", () => "✓"],

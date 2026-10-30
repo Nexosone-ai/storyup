@@ -1,9 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { MarketingNav } from "@/components/marketing/MarketingNav";
 import { Footer } from "@/components/marketing/Footer";
 import { getLocale } from "@/lib/i18n";
 import { listActiveProducts } from "@/lib/payments/orders";
+import { B2B2C_ENABLED } from "@/lib/b2b2c/config";
 import { PlanBanner } from "@/components/pay/PlanBanner";
 
 export const metadata: Metadata = {
@@ -16,6 +18,8 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function StorePage() {
+  // B2B2C 모드: 공개 직접판매 스토어를 비공개 처리(상품은 파트너 오퍼/청구서로만).
+  if (B2B2C_ENABLED) notFound();
   const ko = (await getLocale()) === "ko";
   const products = await listActiveProducts();
 
