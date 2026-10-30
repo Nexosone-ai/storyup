@@ -53,7 +53,11 @@ export async function updateSession(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     const { pathname } = request.nextUrl;
-    const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
+    // 세그먼트 경계로 매칭 — "/partner"가 공개 스토어 "/partners/[slug]"를
+    // 잡지 않도록(정확히 그 경로이거나 그 하위 경로일 때만 보호).
+    const isProtected = PROTECTED_PREFIXES.some(
+      (p) => pathname === p || pathname.startsWith(p + "/"),
+    );
 
     if (!user && isProtected) {
       const url = request.nextUrl.clone();
