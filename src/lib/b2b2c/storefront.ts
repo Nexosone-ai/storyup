@@ -40,6 +40,17 @@ export async function getMyStorefront(
   return data ?? null;
 }
 
+/** 활성 파트너 목록(고객이 도입 파트너를 고를 수 있도록). 안전필드만. */
+export async function listActiveStorefronts(): Promise<PublicStorefront[]> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("partner_storefronts")
+    .select("*")
+    .eq("status", "active")
+    .order("display_name", { ascending: true });
+  return (data ?? []).map(toPublic);
+}
+
 /** 공개 페이지용 — slug로 활성 스토어프론트 조회(서비스롤, 안전필드만). */
 export async function getPublicStorefront(
   slug: string,
