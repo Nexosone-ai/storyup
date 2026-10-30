@@ -38,9 +38,9 @@ export default async function LandingPage() {
     L.showcase.popular,
   );
   const cardItems = cards.map(toCardItem);
-  // 운영 파트너 로고 — public/unity-emc.png 가 있으면 표시(없으면 텍스트만, 깨짐 방지).
+  // 운영 파트너 로고 — public/unity-emc.webp 가 있으면 표시(없으면 텍스트만, 깨짐 방지).
   const hasUnityLogo = fs.existsSync(
-    path.join(process.cwd(), "public", "unity-emc.png"),
+    path.join(process.cwd(), "public", "unity-emc.webp"),
   );
 
   return (
@@ -282,20 +282,20 @@ export default async function LandingPage() {
 
       {/* 운영 파트너 표기 — UNITY EMC */}
       <section className="border-t border-border bg-surface px-6 py-10 text-center sm:px-8">
-        <div className="mx-auto flex max-w-3xl flex-col items-center gap-3">
-          {hasUnityLogo && (
+        <div className="mx-auto flex max-w-3xl flex-col items-center justify-center gap-4 sm:flex-row">
+          {hasUnityLogo ? (
             /* eslint-disable-next-line @next/next/no-img-element -- 정적 로고 */
             <img
-              src="/unity-emc.png"
+              src="/unity-emc.webp"
               alt="UNITY EMC"
-              className="h-12 w-auto"
+              className="h-14 w-auto rounded-xl shadow-sm"
             />
-          )}
-          <p className="text-sm text-muted">
+          ) : (
             <span className="text-base font-bold tracking-wide text-foreground">
               UNITY EMC
             </span>
-            <span className="mx-2 text-border">—</span>
+          )}
+          <p className="text-sm text-muted">
             Main Partner and Operator of STORYUP
           </p>
         </div>
