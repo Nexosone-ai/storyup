@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getActiveProductBySlug } from "@/lib/payments/orders";
 import { createClient } from "@/lib/supabase/server";
 import { CheckoutForm } from "@/components/pay/CheckoutForm";
 import { ServiceExamples } from "@/components/pay/ServiceExamples";
 import { PlanBanner } from "@/components/pay/PlanBanner";
+import { B2B2C_ENABLED } from "@/lib/b2b2c/config";
 
 export async function generateMetadata({
   params,
@@ -14,6 +15,10 @@ export async function generateMetadata({
   const { slug } = await params;
   const product = await getActiveProductBySlug(slug);
   if (!product) return { title: "결제" };
+  // B2B2C 모드: 요금제(구독) 상품은 직접 결제를 막으므로 가격을 메타에도 노출하지 않는다.
+  if (B2B2C_ENABLED && product.grants_plan) {
+    return { title: "도입 문의" };
+  }
   return {
     title: `${product.name} 결제`,
     description: product.description ?? `${product.name} · ₩${product.price.toLocaleString()}`,
@@ -31,6 +36,12 @@ export default async function PayPage({
   const { ref } = await searchParams;
   const product = await getActiveProductBySlug(slug);
   if (!product) notFound();
+
+  // B2B2C 모드: 요금제(구독) 상품의 직접 결제는 막고 도입 문의로 보낸다.
+  // (기본요금 노출 차단 — 파트너 오퍼/청구서 토큰 결제만 허용. 비(非)플랜 팩 상품은 그대로.)
+  if (B2B2C_ENABLED && product.grants_plan) {
+    redirect("/pricing");
+  }
 
   // 로그인 사용자면 가입 정보(이름·이메일)를 결제 폼에 미리 채운다.
   // 이메일이 계정과 일치해야 결제 후 플랜 자동 지급도 정확히 연결된다.

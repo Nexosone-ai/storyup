@@ -18,6 +18,7 @@ import {
   getShowcaseCards,
   getBlogEngagement,
 } from "@/lib/queries";
+import { B2B2C_ENABLED } from "@/lib/b2b2c/config";
 
 // www/비-www 이중 주소 중 표준 URL을 선언한다 (metadataBase 기준 절대화).
 export const metadata = { alternates: { canonical: "/" } };
@@ -234,30 +235,32 @@ export default async function LandingPage() {
             ))}
           </div>
 
-          {/* Pricing teaser */}
-          <div className="mt-16 flex flex-col items-start justify-between gap-6 rounded-2xl border border-white/10 bg-white/5 p-8 md:flex-row md:items-center">
-            <div>
-              <p className="eyebrow mb-2 !text-primary">{L.pricingEyebrow}</p>
-              <h3 className="text-2xl font-semibold">{L.pricingT}</h3>
-              <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-white/65">
-                {L.pricingSub}
-              </p>
+          {/* Pricing teaser — B2B2C 모드에서는 요금제(구독가) 홍보를 숨긴다. */}
+          {!B2B2C_ENABLED && (
+            <div className="mt-16 flex flex-col items-start justify-between gap-6 rounded-2xl border border-white/10 bg-white/5 p-8 md:flex-row md:items-center">
+              <div>
+                <p className="eyebrow mb-2 !text-primary">{L.pricingEyebrow}</p>
+                <h3 className="text-2xl font-semibold">{L.pricingT}</h3>
+                <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-white/65">
+                  {L.pricingSub}
+                </p>
+              </div>
+              <div className="flex shrink-0 flex-col items-start gap-3">
+                <Link
+                  href="/signup"
+                  className="neon-glow inline-flex rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary-hover"
+                >
+                  {L.pricingBtn}
+                </Link>
+                <Link
+                  href="/pricing"
+                  className="text-sm text-white/60 underline-offset-4 hover:text-white hover:underline"
+                >
+                  {L.pricingLink}
+                </Link>
+              </div>
             </div>
-            <div className="flex shrink-0 flex-col items-start gap-3">
-              <Link
-                href="/signup"
-                className="neon-glow inline-flex rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary-hover"
-              >
-                {L.pricingBtn}
-              </Link>
-              <Link
-                href="/pricing"
-                className="text-sm text-white/60 underline-offset-4 hover:text-white hover:underline"
-              >
-                {L.pricingLink}
-              </Link>
-            </div>
-          </div>
+          )}
         </div>
       </section>
 

@@ -8,6 +8,7 @@ import {
   SubscribePanel,
   type BillingState,
 } from "@/components/points/SubscribePanel";
+import { B2B2C_ENABLED } from "@/lib/b2b2c/config";
 import type { PointTx } from "@/lib/points";
 
 function fmtDate(iso: string, ko: boolean) {
@@ -167,17 +168,20 @@ export function PointsView({
                 <p className="text-base font-bold uppercase tracking-[0.1em]">
                   {plan.name[ko ? "ko" : "en"]}
                 </p>
-                <p className="tnum text-sm text-muted">
-                  {plan.priceKrw === null
-                    ? ko
-                      ? "별도 협의"
-                      : "Custom"
-                    : plan.priceKrw === 0
+                {/* B2B2C 모드: 기본 요금(₩/월)은 숨긴다(파트너가 상품으로 제공). */}
+                {!B2B2C_ENABLED && (
+                  <p className="tnum text-sm text-muted">
+                    {plan.priceKrw === null
                       ? ko
-                        ? "무료"
-                        : "Free"
-                      : `₩${plan.priceKrw.toLocaleString()}${ko ? "/월" : "/mo"}`}
-                </p>
+                        ? "별도 협의"
+                        : "Custom"
+                      : plan.priceKrw === 0
+                        ? ko
+                          ? "무료"
+                          : "Free"
+                        : `₩${plan.priceKrw.toLocaleString()}${ko ? "/월" : "/mo"}`}
+                  </p>
+                )}
               </div>
               <div className="space-y-3">
                 <UsageRow
@@ -233,14 +237,17 @@ export function PointsView({
         );
       })()}
 
-      {/* 구독 시작/변경/해지 */}
-      <SubscribePanel
-        userId={userId}
-        currentPlanId={subscription.planId}
-        billing={billing}
-        customerName={customerName}
-        customerEmail={customerEmail}
-      />
+      {/* 구독 시작/변경/해지 — B2B2C 모드에서는 셀프 구독결제(요금제)를 숨긴다.
+          구독 상품·결제는 담당 파트너의 청구서를 통해 제공된다. */}
+      {!B2B2C_ENABLED && (
+        <SubscribePanel
+          userId={userId}
+          currentPlanId={subscription.planId}
+          billing={billing}
+          customerName={customerName}
+          customerEmail={customerEmail}
+        />
+      )}
 
       {/* 결제 내역 */}
       {payments.length > 0 && (

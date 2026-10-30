@@ -2,10 +2,17 @@ import Link from "next/link";
 import { getDict } from "@/lib/i18n";
 import { companyInfoRows } from "@/lib/company";
 import { InicisMark } from "@/components/marketing/InicisMark";
+import { B2B2C_ENABLED } from "@/lib/b2b2c/config";
 
 export async function Footer() {
   const { t } = await getDict();
   const company = companyInfoRows();
+  // B2B2C 모드: 요금제·스토어(직접 구매) 메뉴는 푸터에서도 숨긴다.
+  const productLinks = B2B2C_ENABLED
+    ? t.footer.product.filter(
+        (l) => l.href !== "/pricing" && l.href !== "/store",
+      )
+    : t.footer.product;
   return (
     <footer className="band-dark">
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-6 py-14 sm:px-8 md:grid-cols-4">
@@ -37,7 +44,7 @@ export async function Footer() {
           <p className="text-xs font-bold uppercase tracking-[0.15em] text-white/40">
             {t.footer.productLabel}
           </p>
-          {t.footer.product.map((link) => (
+          {productLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
