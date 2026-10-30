@@ -9,6 +9,8 @@ import {
   markHotPost,
 } from "@/components/marketing/showcaseData";
 import Link from "next/link";
+import fs from "node:fs";
+import path from "node:path";
 import { getDict, getLocale } from "@/lib/i18n";
 import {
   getShowcaseSites,
@@ -36,6 +38,10 @@ export default async function LandingPage() {
     L.showcase.popular,
   );
   const cardItems = cards.map(toCardItem);
+  // 운영 파트너 로고 — public/unity-emc.png 가 있으면 표시(없으면 텍스트만, 깨짐 방지).
+  const hasUnityLogo = fs.existsSync(
+    path.join(process.cwd(), "public", "unity-emc.png"),
+  );
 
   return (
     <div className="flex min-h-dvh flex-col bg-background">
@@ -272,6 +278,27 @@ export default async function LandingPage() {
           {L.ctaBtn}
         </Link>
         {/*<p className="mt-6 text-sm text-muted">{L.ctaNote}</p>*/}
+      </section>
+
+      {/* 운영 파트너 표기 — UNITY EMC */}
+      <section className="border-t border-border bg-surface px-6 py-10 text-center sm:px-8">
+        <div className="mx-auto flex max-w-3xl flex-col items-center gap-3">
+          {hasUnityLogo && (
+            /* eslint-disable-next-line @next/next/no-img-element -- 정적 로고 */
+            <img
+              src="/unity-emc.png"
+              alt="UNITY EMC"
+              className="h-12 w-auto"
+            />
+          )}
+          <p className="text-sm text-muted">
+            <span className="text-base font-bold tracking-wide text-foreground">
+              UNITY EMC
+            </span>
+            <span className="mx-2 text-border">—</span>
+            Main Partner and Operator of STORYUP
+          </p>
+        </div>
       </section>
 
       <Footer />
