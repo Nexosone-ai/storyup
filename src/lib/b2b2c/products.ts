@@ -2,6 +2,7 @@ import "server-only";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getPlanById, type PlanId } from "@/lib/plans";
 import { PLAN_PRICE_VERSION, type VatMode, type BillingType } from "./config";
+import { supplyPriceForPlan } from "./basePlans";
 import type { Database } from "@/types/database";
 
 export type ProductRow =
@@ -139,7 +140,8 @@ export async function upsertProduct(
 ): Promise<{ id?: string; error?: string }> {
   const supabase = await createClient();
   const basePlan = input.basePlan ?? null;
-  const basePrice = basePriceForPlan(basePlan);
+  // 본사 공급가는 관리자 설정값(base_plan_catalog) 우선, 없으면 plans.ts 폴백.
+  const basePrice = await supplyPriceForPlan(basePlan);
   const sell = Math.max(0, Math.floor(input.sellPriceKrw));
 
   const row = {

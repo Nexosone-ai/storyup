@@ -74,12 +74,19 @@ interface Settlement {
   held: number;
   paid: number;
 }
+interface BasePlanInfo {
+  plan: "basic" | "pro";
+  displayName: string;
+  supplyPriceKrw: number;
+  summary: string | null;
+  includedServices: string | null;
+}
 
 type Tab = "store" | "products" | "offers" | "invoices" | "settlement";
 
 export function PartnerSalesView(props: {
   storefront: Storefront | null;
-  basePrices: { basic: number; pro: number };
+  basePlans: { basic: BasePlanInfo; pro: BasePlanInfo };
   products: Product[];
   clients: ClientOpt[];
   offers: Offer[];
@@ -130,7 +137,7 @@ export function PartnerSalesView(props: {
         <StoreTab storefront={props.storefront} origin={origin} />
       )}
       {tab === "products" && (
-        <ProductsTab products={props.products} basePrices={props.basePrices} />
+        <ProductsTab products={props.products} basePlans={props.basePlans} />
       )}
       {tab === "offers" && (
         <OffersTab
@@ -265,10 +272,10 @@ function StoreTab({
 // ---------------- 상품 ----------------
 function ProductsTab({
   products,
-  basePrices,
+  basePlans,
 }: {
   products: Product[];
-  basePrices: { basic: number; pro: number };
+  basePlans: { basic: BasePlanInfo; pro: BasePlanInfo };
 }) {
   const [editing, setEditing] = useState<Product | null>(null);
   const [creating, setCreating] = useState(false);
@@ -276,12 +283,15 @@ function ProductsTab({
   return (
     <div className="space-y-4">
       {!creating && !editing && (
-        <Button onClick={() => setCreating(true)}>+ 새 상품</Button>
+        <>
+          <Button onClick={() => setCreating(true)}>+ 새 상품</Button>
+          <BasePlanReference basePlans={basePlans} />
+        </>
       )}
       {(creating || editing) && (
         <ProductForm
           product={editing}
-          basePrices={basePrices}
+          basePlans={basePlans}
           onDone={() => {
             setCreating(false);
             setEditing(null);
@@ -365,13 +375,71 @@ function StatusToggle({ id, status }: { id: string; status: string }) {
   );
 }
 
+// 본사가 제공하는 기준 요금제(공급가·포함 내역) — 파트너가 가격을 정할 때 참조.
+function basePlanBullets(info: BasePlanInfo): string[] {
+  return (info.includedServices ?? "")
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function BasePlanReference({
+  basePlans,
+}: {
+  basePlans: { basic: BasePlanInfo; pro: BasePlanInfo };
+}) {
+  return (
+    <Card className="space-y-3 p-5">
+      <div>
+        <p className="font-semibold">본사 제공 기준 요금제 (공급가)</p>
+        <p className="mt-0.5 text-xs text-muted">
+          아래는 STORYUP 본사가 제공하는 기준 상품입니다. 이 공급가 위에 내 판매가를
+          붙여 상품을 만드세요. (내용·공급가는 본사가 업데이트할 수 있습니다.)
+        </p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {(["basic", "pro"] as const).map((plan) => {
+          const info = basePlans[plan];
+          const bullets = basePlanBullets(info);
+          return (
+            <div
+              key={plan}
+              className="rounded-lg border border-border bg-surface-2 p-4"
+            >
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="font-semibold">{info.displayName}</p>
+                <p className="text-sm font-semibold text-primary">
+                  공급가 {won(info.supplyPriceKrw)}
+                </p>
+              </div>
+              {info.summary && (
+                <p className="mt-1 text-xs text-muted">{info.summary}</p>
+              )}
+              {bullets.length > 0 && (
+                <ul className="mt-2 space-y-1 text-xs text-muted">
+                  {bullets.map((b, i) => (
+                    <li key={i} className="flex gap-1.5">
+                      <span className="text-primary">·</span>
+                      <span>{b}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
 function ProductForm({
   product,
-  basePrices,
+  basePlans,
   onDone,
 }: {
   product: Product | null;
-  basePrices: { basic: number; pro: number };
+  basePlans: { basic: BasePlanInfo; pro: BasePlanInfo };
   onDone: () => void;
 }) {
   const router = useRouter();
@@ -393,12 +461,13 @@ function ProductForm({
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, start] = useTransition();
 
-  const basePrice =
+  const baseInfo =
     basePlan === "basic"
-      ? basePrices.basic
+      ? basePlans.basic
       : basePlan === "pro"
-        ? basePrices.pro
-        : 0;
+        ? basePlans.pro
+        : null;
+  const basePrice = baseInfo?.supplyPriceKrw ?? 0;
   const sellNum = Number(sellPrice) || 0;
   const delta = sellNum - basePrice;
 
@@ -469,12 +538,28 @@ function ProductForm({
           />
         </div>
       </div>
-      {basePlan && (
-        <div className="rounded-lg bg-surface-2 p-3 text-sm">
-          <p>
-            본사 기본요금(참조):{" "}
-            <span className="font-semibold">{won(basePrice)}</span>
-          </p>
+      {baseInfo && (
+        <div className="space-y-2 rounded-lg bg-surface-2 p-3 text-sm">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="font-semibold">{baseInfo.displayName}</span>
+            <span className="font-semibold text-primary">
+              본사 공급가 {won(basePrice)}
+            </span>
+          </div>
+          {baseInfo.summary && (
+            <p className="text-xs text-muted">{baseInfo.summary}</p>
+          )}
+          {basePlanBullets(baseInfo).length > 0 && (
+            <ul className="space-y-0.5 text-xs text-muted">
+              {basePlanBullets(baseInfo).map((b, i) => (
+                <li key={i} className="flex gap-1.5">
+                  <span className="text-primary">·</span>
+                  <span>{b}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="border-t border-border pt-2">
           {delta < 0 ? (
             <p className="text-danger">
               예상 마진: {won(delta)} — 기본요금보다 낮습니다 ⚠
@@ -487,6 +572,7 @@ function ProductForm({
               </span>
             </p>
           )}
+          </div>
         </div>
       )}
       <div className="grid grid-cols-2 gap-3">
