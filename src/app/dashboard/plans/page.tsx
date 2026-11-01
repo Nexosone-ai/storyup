@@ -9,7 +9,6 @@ import { getPendingBankTransfer } from "@/lib/payments/bankTransfer";
 import { isBillingConfigured, isPaymentsConfigured } from "@/lib/payments/portone";
 import { B2B2C_ENABLED } from "@/lib/b2b2c/config";
 import { listActiveStorefronts } from "@/lib/b2b2c/storefront";
-import { COMPANY } from "@/lib/company";
 import { Card } from "@/components/ui/Card";
 import { PlansView } from "@/components/plans/PlansView";
 
@@ -28,7 +27,6 @@ export default async function PlansPage() {
       listActiveStorefronts(),
     ]);
     const plan = getPlanById(planId);
-    const tel = `tel:${COMPANY.supportPhone.replace(/-/g, "")}`;
     return (
       <div className="mx-auto max-w-3xl space-y-5">
         <div>
@@ -74,8 +72,7 @@ export default async function PlansPage() {
           </div>
           {partners.length === 0 ? (
             <p className="mt-3 text-sm text-muted">
-              현재 안내 가능한 파트너가 없습니다. 아래로 도입 문의를
-              남겨주시면 담당자가 연결해 드립니다.
+              현재 안내 가능한 파트너가 없습니다. 잠시 후 다시 확인해 주세요.
             </p>
           ) : (
             <ul className="mt-4 space-y-2.5">
@@ -103,15 +100,6 @@ export default async function PlansPage() {
               ))}
             </ul>
           )}
-          <div className="mt-5 border-t border-border pt-4">
-            <p className="text-xs text-muted">직접 도입 문의도 가능합니다.</p>
-            <a
-              href={tel}
-              className="mt-2 inline-flex items-center justify-center rounded-xl border border-border px-4 py-2 text-sm font-semibold transition-colors hover:border-primary/60 hover:text-primary"
-            >
-              도입 문의하기 ({COMPANY.supportPhone})
-            </a>
-          </div>
         </Card>
       </div>
     );
