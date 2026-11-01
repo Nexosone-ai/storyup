@@ -1122,6 +1122,30 @@ export interface Database {
         >;
         Relationships: [];
       };
+      base_plan_catalog: {
+        Row: {
+          plan: string;
+          display_name: string;
+          supply_price_krw: number;
+          summary: string | null;
+          included_services: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          plan: string;
+          display_name: string;
+          supply_price_krw: number;
+          summary?: string | null;
+          included_services?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["base_plan_catalog"]["Insert"]
+        >;
+        Relationships: [];
+      };
       partner_products: {
         Row: {
           id: string;

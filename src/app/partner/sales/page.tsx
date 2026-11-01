@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getUser } from "@/lib/queries";
 import { isCurrentUserPartner, listPartnerClients } from "@/lib/partner";
 import { B2B2C_ENABLED } from "@/lib/b2b2c/config";
-import { basePriceForPlan } from "@/lib/b2b2c/products";
+import { getBasePlanCatalog } from "@/lib/b2b2c/basePlans";
 import { getMyStorefront } from "@/lib/b2b2c/storefront";
 import { listMyProducts } from "@/lib/b2b2c/products";
 import { listMyOffers } from "@/lib/b2b2c/offers";
@@ -20,13 +20,15 @@ export default async function PartnerSalesPage() {
   const user = await getUser();
   if (!user || !(await isCurrentUserPartner())) notFound();
 
-  const [storefront, products, clients, offers, invoices] = await Promise.all([
-    getMyStorefront(user.id),
-    listMyProducts(user.id),
-    listPartnerClients(user.id),
-    listMyOffers(user.id),
-    listMyInvoices(user.id),
-  ]);
+  const [storefront, products, clients, offers, invoices, baseCatalog] =
+    await Promise.all([
+      getMyStorefront(user.id),
+      listMyProducts(user.id),
+      listPartnerClients(user.id),
+      listMyOffers(user.id),
+      listMyInvoices(user.id),
+      getBasePlanCatalog(),
+    ]);
 
   // 정산 요약(파트너 본인) — 상태별 합계.
   const admin = createAdminClient();
@@ -71,7 +73,7 @@ export default async function PartnerSalesPage() {
             }
           : null
       }
-      basePrices={{ basic: basePriceForPlan("basic"), pro: basePriceForPlan("pro") }}
+      basePlans={{ basic: baseCatalog.basic, pro: baseCatalog.pro }}
       products={products.map((p) => ({
         id: p.id,
         name: p.name,
