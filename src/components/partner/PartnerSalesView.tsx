@@ -101,8 +101,10 @@ export function PartnerSalesView(props: {
         <p className="eyebrow mb-2">파트너 판매</p>
         <h1 className="text-2xl font-semibold tracking-tight">상품 · 판매 관리</h1>
         <p className="mt-1.5 text-muted">
-          기존 요금제 위에 내 판매가를 붙여 상품을 만들고, 고객에게 오퍼·청구서를
-          제시합니다. 수납은 STORYUP이 하고 차액은 정산됩니다.
+          기존 요금제 위에 내 판매가를 붙여 상품을 만듭니다. 상품을 &lsquo;판매
+          시작&rsquo;하면 내 공개 스토어 페이지에서 고객이 직접 구매하고(결제 시
+          계정 자동 등업), 개별 고객에겐 오퍼·청구서도 제시할 수 있습니다. 수납은
+          STORYUP이 하고 차액은 정산됩니다.
         </p>
       </div>
 
@@ -209,7 +211,8 @@ function StoreTab({
         />
         {slug && (
           <p className="mt-1 text-xs text-muted">
-            {origin}/partners/{slug}
+            {origin}/partners/{slug} · &lsquo;판매 시작&rsquo;한 상품이 이
+            페이지에서 바로 판매됩니다.
           </p>
         )}
       </div>

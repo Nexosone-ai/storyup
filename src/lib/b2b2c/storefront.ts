@@ -51,6 +51,20 @@ export async function listActiveStorefronts(): Promise<PublicStorefront[]> {
   return (data ?? []).map(toPublic);
 }
 
+/** 결제창 브랜딩용 — 파트너 user_id로 공개 스토어프론트 조회(active만, 안전필드만). */
+export async function getPublicStorefrontByOwner(
+  partnerUserId: string,
+): Promise<PublicStorefront | null> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("partner_storefronts")
+    .select("*")
+    .eq("partner_user_id", partnerUserId)
+    .eq("status", "active")
+    .maybeSingle();
+  return data ? toPublic(data) : null;
+}
+
 /** 공개 페이지용 — slug로 활성 스토어프론트 조회(서비스롤, 안전필드만). */
 export async function getPublicStorefront(
   slug: string,
