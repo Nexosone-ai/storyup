@@ -8,6 +8,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import {
   connectDomainAction,
   disconnectDomainAction,
+  refreshDomainStatusAction,
 } from "@/app/dashboard/domain/actions";
 
 interface DomainInfo {
@@ -111,6 +112,13 @@ function BusinessRow({ item, ko }: { item: Item; ko: boolean }) {
     });
   };
 
+  const refresh = () =>
+    start(async () => {
+      setNote(null);
+      const res = await refreshDomainStatusAction(item.domain!.id);
+      setNote({ text: res.error ?? res.message ?? "", error: !!res.error });
+    });
+
   return (
     <Card className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -132,7 +140,25 @@ function BusinessRow({ item, ko }: { item: Item; ko: boolean }) {
         <>
           <p className="font-mono text-sm">{item.domain.domain}</p>
           {item.domain.status === "pending" && (
-            <DnsGuide domain={item.domain.domain} ko={ko} />
+            <>
+              <DnsGuide domain={item.domain.domain} ko={ko} />
+              <div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={refresh}
+                  disabled={busy}
+                >
+                  {busy ? (
+                    <Spinner className="size-4" />
+                  ) : ko ? (
+                    "상태 확인"
+                  ) : (
+                    "Check status"
+                  )}
+                </Button>
+              </div>
+            </>
           )}
           {item.domain.status === "active" && (
             <a

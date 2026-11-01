@@ -5,6 +5,12 @@ import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n";
 import { getPlanId } from "@/lib/subscription";
 import { getPlanById } from "@/lib/plans";
+import {
+  vercelDomainsConfigured,
+  addDomainToProject,
+  getDomainStatus,
+  removeDomainFromProject,
+} from "@/lib/vercel";
 
 export interface DomainActionState {
   ok?: boolean;
@@ -81,9 +87,11 @@ export async function connectDomainAction(
         : "A domain is already connected. Remove it first.",
     };
 
-  const { error } = await supabase
+  const { data: inserted, error } = await supabase
     .from("custom_domains")
-    .insert({ business_id: businessId, domain, status: "pending" });
+    .insert({ business_id: businessId, domain, status: "pending" })
+    .select("id")
+    .single();
   if (error) {
     // 유니크 위반 = 다른 곳에서 이미 사용 중인 도메인
     if (error.code === "23505")
@@ -95,12 +103,100 @@ export async function connectDomainAction(
     return { error: ko ? "연결 요청에 실패했습니다." : "Failed to connect." };
   }
 
+  // Vercel 자동 등록 — env 가 설정돼 있으면 배포 프로젝트에 도메인을 붙이고,
+  // DNS 가 이미 올바르면 즉시 활성화한다(검토 대기 없이). 미설정이면 기존 수동 흐름.
+  let message = ko
+    ? "도메인이 등록됐어요. 아래 DNS 설정을 완료하면 검토 후 연결됩니다."
+    : "Domain registered. Complete the DNS setup below; it will be connected after review.";
+
+  if (vercelDomainsConfigured()) {
+    const add = await addDomainToProject(domain);
+    if (add.error === "in_use") {
+      // 다른 Vercel 프로젝트/계정이 선점 중 — 등록 롤백하고 안내.
+      await supabase.from("custom_domains").delete().eq("id", inserted.id);
+      return {
+        error: ko
+          ? "이 도메인이 다른 프로젝트에서 사용 중이라 연결할 수 없어요. 고객센터로 문의해주세요."
+          : "This domain is already used by another project. Please contact support.",
+      };
+    }
+    if (add.ok) {
+      const status = await getDomainStatus(domain);
+      if (status?.attached && status.verified && !status.misconfigured) {
+        await supabase
+          .from("custom_domains")
+          .update({ status: "active", verified_at: new Date().toISOString() })
+          .eq("id", inserted.id);
+        message = ko
+          ? "도메인이 연결되고 활성화됐어요. HTTPS 인증서가 자동 발급됩니다."
+          : "Domain connected and activated. An HTTPS certificate is issued automatically.";
+      } else {
+        message = ko
+          ? "도메인을 등록했어요. 아래 DNS 설정을 완료하면 자동으로 활성화됩니다. (설정 후 '상태 확인'을 눌러주세요.)"
+          : "Domain registered. Complete the DNS below and it activates automatically. (Press 'Check status' after setup.)";
+      }
+    }
+  }
+
   revalidatePath("/dashboard/domain");
+  return { ok: true, message };
+}
+
+/**
+ * 개인 도메인 상태 확인/새로고침 — Vercel 검증 상태를 다시 읽어 DNS 전파가 끝났으면
+ * pending → active 로 전환한다. 소유자가 DNS 설정 후 누른다. (env 미설정이면 수동 안내.)
+ */
+export async function refreshDomainStatusAction(
+  domainId: string,
+): Promise<DomainActionState> {
+  const ko = (await getLocale()) === "ko";
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
+
+  // RLS(소유자)로 본인 도메인만 조회된다.
+  const { data: row } = await supabase
+    .from("custom_domains")
+    .select("id, domain, status")
+    .eq("id", domainId)
+    .maybeSingle();
+  if (!row)
+    return { error: ko ? "도메인을 찾을 수 없습니다." : "Domain not found." };
+  if (row.status === "active")
+    return { ok: true, message: ko ? "이미 활성화돼 있어요." : "Already active." };
+
+  if (!vercelDomainsConfigured())
+    return {
+      ok: true,
+      message: ko
+        ? "DNS 설정이 완료되면 관리자 검토 후 활성화됩니다."
+        : "It will be activated after review once DNS is set.",
+    };
+
+  // 아직 프로젝트에 안 붙어 있을 수 있으니(수동 등록분) 한 번 더 붙여 본다(멱등).
+  await addDomainToProject(row.domain);
+  const status = await getDomainStatus(row.domain);
+  if (status?.attached && status.verified && !status.misconfigured) {
+    await supabase
+      .from("custom_domains")
+      .update({ status: "active", verified_at: new Date().toISOString() })
+      .eq("id", row.id);
+    revalidatePath("/dashboard/domain");
+    return {
+      ok: true,
+      message: ko
+        ? "활성화됐어요! HTTPS 인증서가 자동 발급됩니다."
+        : "Activated! An HTTPS certificate is issued automatically.",
+    };
+  }
+
   return {
     ok: true,
     message: ko
-      ? "도메인이 등록됐어요. 아래 DNS 설정을 완료하면 검토 후 연결됩니다."
-      : "Domain registered. Complete the DNS setup below; it will be connected after review.",
+      ? "아직 DNS 전파 전이에요. 레코드(A @ → 76.76.21.21)를 확인하고 몇 분 뒤 다시 눌러주세요."
+      : "DNS hasn't propagated yet. Check the record (A @ → 76.76.21.21) and try again shortly.",
   };
 }
 
@@ -115,6 +211,13 @@ export async function disconnectDomainAction(
   } = await supabase.auth.getUser();
   if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
 
+  // 삭제 전 도메인명을 확보(Vercel 프로젝트에서도 떼어내기 위함). RLS로 본인 것만 보인다.
+  const { data: row } = await supabase
+    .from("custom_domains")
+    .select("domain")
+    .eq("id", domainId)
+    .maybeSingle();
+
   // RLS(소유자)로 본인 도메인만 삭제된다.
   const { error } = await supabase
     .from("custom_domains")
@@ -122,6 +225,9 @@ export async function disconnectDomainAction(
     .eq("id", domainId);
   if (error)
     return { error: ko ? "해제에 실패했습니다." : "Failed to remove." };
+
+  // Vercel 프로젝트에서도 제거(env 설정 시). 실패해도 DB 해제는 유효하다.
+  if (row?.domain) await removeDomainFromProject(row.domain);
 
   revalidatePath("/dashboard/domain");
   return { ok: true, message: ko ? "연결이 해제됐어요." : "Domain removed." };
