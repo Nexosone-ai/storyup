@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Select, Label } from "@/components/ui/Field";
+import { PLATFORM_COMMISSION_RATE } from "@/lib/b2b2c/config";
 import {
   saveStorefrontAction,
   saveProductAction,
@@ -68,6 +69,7 @@ interface Invoice {
 interface Settlement {
   gross: number;
   baseDeduction: number;
+  commission: number;
   pending: number;
   held: number;
   paid: number;
@@ -309,8 +311,9 @@ function ProductsTab({
                     <p
                       className={`mt-0.5 text-xs ${delta < 0 ? "text-danger" : "text-muted"}`}
                     >
-                      예상 차액 {won(delta)}{" "}
-                      {delta < 0 ? "(기본요금보다 낮음 ⚠)" : "(세금·수수료 제외 전)"}
+                      {delta < 0
+                        ? `예상 마진 ${won(delta)} (기본요금보다 낮음 ⚠)`
+                        : `예상 정산 ${won(Math.round(delta * (1 - PLATFORM_COMMISSION_RATE)))} (마진 ${won(delta)} − 수수료 10%)`}
                     </p>
                   )}
                 </div>
@@ -472,12 +475,18 @@ function ProductForm({
             본사 기본요금(참조):{" "}
             <span className="font-semibold">{won(basePrice)}</span>
           </p>
-          <p className={delta < 0 ? "text-danger" : "text-muted"}>
-            예상 차액: {won(delta)}{" "}
-            {delta < 0
-              ? "— 기본요금보다 낮습니다 ⚠"
-              : "— 세금·PG수수료·대행비용 제외 전(순이익 아님)"}
-          </p>
+          {delta < 0 ? (
+            <p className="text-danger">
+              예상 마진: {won(delta)} — 기본요금보다 낮습니다 ⚠
+            </p>
+          ) : (
+            <p className="text-muted">
+              예상 마진 {won(delta)} · 플랫폼 수수료 10% 제외 → 예상 정산{" "}
+              <span className="font-semibold">
+                {won(Math.round(delta * (1 - PLATFORM_COMMISSION_RATE)))}
+              </span>
+            </p>
+          )}
         </div>
       )}
       <div className="grid grid-cols-2 gap-3">
@@ -765,6 +774,7 @@ function SettlementTab({ settlement }: { settlement: Settlement }) {
   const tiles = [
     { label: "총 수납액(고객 결제)", value: settlement.gross },
     { label: "본사 기본요금 공제", value: settlement.baseDeduction },
+    { label: "플랫폼 수수료(10%)", value: settlement.commission },
     { label: "정산 예정(대기)", value: settlement.pending },
     { label: "보류", value: settlement.held },
     { label: "지급 완료", value: settlement.paid },
@@ -780,9 +790,10 @@ function SettlementTab({ settlement }: { settlement: Settlement }) {
         ))}
       </div>
       <Card className="p-5 text-sm text-muted">
-        정산 예정액은 <strong>고객 결제금액 − 본사 기본요금</strong> 기준의 예상
-        차액입니다. 세금·PG 수수료·환불·대행 비용은 아직 반영되지 않았으므로
-        순이익이 아닙니다. 실제 지급액·주기·보류 조건은 관리자 정산 정책을 따릅니다.
+        정산 예정액은 <strong>(고객 결제금액 − 본사 기본요금) 마진에서 플랫폼
+        수수료 10%를 뗀 금액</strong>입니다. 세금·PG 수수료·환불·대행 비용은 아직
+        반영되지 않았으므로 순이익이 아닙니다. 실제 지급액·주기·보류 조건은 관리자
+        정산 정책을 따릅니다.
       </Card>
     </div>
   );

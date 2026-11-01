@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { secureToken, invoiceNumber } from "./secure";
+import { computePartnerSettlement } from "./config";
 import type { Database, Json } from "@/types/database";
 import type { OfferRow } from "./offers";
 
@@ -280,10 +281,11 @@ export async function fulfillInvoicePaid(
   if (inv.status === "paid") return; // 빠른 멱등 경로
 
   // --- 멱등 잠금: 청구서당 정산 1건(유니크). 선점 실패(23505)면 타 처리가 소유 → 종료.
+  // 정산 = (고객결제 − 본사 기본요금) 마진에서 플랫폼 수수료(10%)를 뗀 금액. 음수 방지.
+  // 수수료액은 파생값(마진 − amount_krw)으로 조회부에서 계산한다(별도 컬럼 없음).
   const gross = inv.sell_price_krw;
-  // 공제는 실제 수납액을 넘지 않는다(판매가<기본요금 시 음수 정산 방지).
-  const baseDeduction = Math.min(inv.base_price_krw, gross);
-  const net = Math.max(0, gross - baseDeduction); // 예상 정산액(세금·PG수수료는 별도 조정항목, 기본 0)
+  const { baseDeductionKrw: baseDeduction, netKrw: net } =
+    computePartnerSettlement(gross, inv.base_price_krw);
   const { error: lockErr } = await admin.from("partner_earnings").insert({
     partner_user_id: inv.partner_user_id,
     invoice_id: inv.id,

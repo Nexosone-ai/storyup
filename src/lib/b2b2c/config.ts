@@ -26,3 +26,41 @@ export type BillingType = "one_time" | "recurring";
 
 /** 오퍼/청구서 공개 토큰 길이(바이트) — 추측 불가 URL. */
 export const SECURE_TOKEN_BYTES = 24;
+
+/**
+ * 플랫폼(STORYUP) 중개 수수료율 — 파트너가 기본요금(관리자 등록가) 위에 더한 마진에 부과한다.
+ * 모든 파트너 상품 거래에 적용(마진의 10%를 수수료로 떼고 나머지를 파트너에게 정산).
+ */
+export const PLATFORM_COMMISSION_RATE = 0.1;
+
+export interface PartnerSettlement {
+  /** 본사가 가져가는 기본요금 공제액(음수 방지). */
+  baseDeductionKrw: number;
+  /** 파트너 마진 = 고객결제 − 기본요금(음수 방지). */
+  marginKrw: number;
+  /** 플랫폼 수수료 = 마진 × 수수료율(반올림). */
+  commissionKrw: number;
+  /** 파트너 실제 정산액 = 마진 − 수수료. */
+  netKrw: number;
+}
+
+/**
+ * 파트너 정산 산식(단일 진입점).
+ *  1) 고객 결제액(gross)에서 본사 기본요금(basePrice)을 먼저 공제한다.
+ *  2) 남은 파트너 마진에서 플랫폼 수수료(기본 10%)를 뗀다.
+ *  3) 나머지를 파트너에게 정산(netKrw)한다.
+ * 판매가 < 기본요금이면 마진·수수료·정산액 모두 0(음수 방지).
+ */
+export function computePartnerSettlement(
+  grossKrw: number,
+  basePriceKrw: number,
+  rate: number = PLATFORM_COMMISSION_RATE,
+): PartnerSettlement {
+  const gross = Math.max(0, Math.floor(grossKrw));
+  const base = Math.max(0, Math.floor(basePriceKrw));
+  const baseDeductionKrw = Math.min(base, gross);
+  const marginKrw = Math.max(0, gross - baseDeductionKrw);
+  const commissionKrw = Math.round(marginKrw * rate);
+  const netKrw = Math.max(0, marginKrw - commissionKrw);
+  return { baseDeductionKrw, marginKrw, commissionKrw, netKrw };
+}

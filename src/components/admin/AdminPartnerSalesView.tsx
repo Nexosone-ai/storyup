@@ -114,8 +114,8 @@ export function AdminPartnerSalesView({
       {tab === "settlements" && (
         <div className="space-y-2">
           <p className="text-xs text-muted">
-            정산 예정액 = 수납액 − 기본요금 공제(예상 차액, 세금·PG수수료 미반영).
-            실제 송금은 하지 않으며 상태·기록만 관리합니다.
+            정산 예정액 = (수납액 − 기본요금) 마진 − 플랫폼 수수료 10%. 세금·PG수수료
+            미반영. 실제 송금은 하지 않으며 상태·기록만 관리합니다.
           </p>
           {settlements.length === 0 && (
             <p className="text-sm text-muted">정산 내역이 없습니다.</p>
@@ -129,7 +129,8 @@ export function AdminPartnerSalesView({
                     {s.invoiceId ? "상품 청구" : s.quoteId ? "대행 견적" : "-"}
                   </p>
                   <p className="mt-1 text-sm">
-                    수납 {won(s.grossKrw)} − 기본요금 {won(s.baseDeductionKrw)} →{" "}
+                    수납 {won(s.grossKrw)} − 기본요금 {won(s.baseDeductionKrw)} −
+                    수수료 {won(s.commissionKrw)} →{" "}
                     <strong>예상 정산 {won(s.amountKrw)}</strong>
                   </p>
                 </div>
