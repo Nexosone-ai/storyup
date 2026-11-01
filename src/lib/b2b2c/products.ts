@@ -7,6 +7,35 @@ import type { Database } from "@/types/database";
 export type ProductRow =
   Database["public"]["Tables"]["partner_products"]["Row"];
 
+/** 공개 스토어프론트에 노출하는 상품(고객 셀프 구매용) — 기본요금·마진 비노출, 판매가만. */
+export interface PublicProduct {
+  id: string;
+  name: string;
+  description: string | null;
+  includedServices: string | null;
+  basePlan: "basic" | "pro" | null;
+  sellPriceKrw: number;
+  currency: string;
+  vatMode: string;
+  billingType: string;
+  billingPeriod: string | null;
+}
+
+function toPublicProduct(r: ProductRow): PublicProduct {
+  return {
+    id: r.id,
+    name: r.name,
+    description: r.description,
+    includedServices: r.included_services,
+    basePlan: (r.base_plan as "basic" | "pro" | null) ?? null,
+    sellPriceKrw: r.sell_price_krw,
+    currency: r.currency,
+    vatMode: r.vat_mode,
+    billingType: r.billing_type,
+    billingPeriod: r.billing_period,
+  };
+}
+
 /** 기준 요금제의 현재 기본요금(원). 요금제 미연동(null)·없는 플랜이면 0. */
 export function basePriceForPlan(basePlan: string | null): number {
   if (basePlan !== "basic" && basePlan !== "pro") return 0;
@@ -51,6 +80,34 @@ export async function getMyProduct(
     .eq("partner_user_id", partnerUserId)
     .maybeSingle();
   return data ?? null;
+}
+
+/**
+ * 공개 스토어프론트용 — 특정 파트너(slug)의 '활성' 상품을 고객에게 노출(셀프 구매).
+ * 스토어프론트가 active 일 때만. draft/보관 상품과 hidden 스토어는 제외. 서비스롤 안전필드만.
+ */
+export async function listPublicProductsBySlug(
+  slug: string,
+): Promise<{ partnerUserId: string; products: PublicProduct[] } | null> {
+  const admin = createAdminClient();
+  const { data: store } = await admin
+    .from("partner_storefronts")
+    .select("partner_user_id")
+    .eq("slug", slug)
+    .eq("status", "active")
+    .maybeSingle();
+  if (!store) return null;
+  const { data } = await admin
+    .from("partner_products")
+    .select("*")
+    .eq("partner_user_id", store.partner_user_id)
+    .eq("status", "active")
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false });
+  return {
+    partnerUserId: store.partner_user_id,
+    products: (data ?? []).map(toPublicProduct),
+  };
 }
 
 export interface ProductInput {

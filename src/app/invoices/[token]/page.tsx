@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { B2B2C_ENABLED } from "@/lib/b2b2c/config";
 import { getInvoiceByToken, toPublicInvoice } from "@/lib/b2b2c/invoices";
+import { getPublicStorefrontByOwner } from "@/lib/b2b2c/storefront";
 import { Card } from "@/components/ui/Card";
 import { InvoiceCheckout } from "@/components/b2b2c/InvoiceCheckout";
 
@@ -31,6 +32,8 @@ export default async function InvoicePage({
   const row = await getInvoiceByToken(token);
   if (!row) notFound();
   const inv = toPublicInvoice(row);
+  // 파트너 브랜드 헤더(로고·이름) — 공개 스토어프론트가 있으면 결제창에 표시.
+  const store = await getPublicStorefrontByOwner(row.partner_user_id);
 
   const total =
     inv.vatMode === "excluded" ? inv.sellPriceKrw + inv.taxKrw : inv.sellPriceKrw;
@@ -39,6 +42,23 @@ export default async function InvoicePage({
 
   return (
     <main className="mx-auto w-full max-w-md px-5 py-10">
+      {store && (
+        <div className="mb-5 flex items-center gap-3">
+          {store.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={store.logoUrl}
+              alt={store.displayName}
+              className="size-10 rounded-xl object-cover"
+            />
+          ) : (
+            <div className="flex size-10 items-center justify-center rounded-xl bg-primary-soft text-sm font-bold text-primary">
+              {store.displayName.slice(0, 1)}
+            </div>
+          )}
+          <span className="text-sm font-semibold">{store.displayName}</span>
+        </div>
+      )}
       <div className="mb-5">
         <p className="eyebrow mb-1">청구서</p>
         <h1 className="text-xl font-semibold tracking-tight">{inv.name}</h1>

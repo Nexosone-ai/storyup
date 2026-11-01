@@ -155,6 +155,95 @@ export async function issueInvoiceFromOffer(
   return { invoice: data };
 }
 
+/**
+ * 셀프서비스 구매 — 공개 스토어프론트에서 고객이 '활성' 상품을 직접 구매할 때 청구서를 발행한다.
+ * 파트너의 수동 오퍼 없이 상품 스냅샷을 동결해 발행하며, client_user_id 를 구매 고객 본인으로
+ * 지정한다(결제 완료 시 이 계정에 플랜이 부여됨 — fulfillInvoicePaid). 호출 전 고객 로그인 필수.
+ * 상품은 'active' + 스토어프론트 'active' 만. 같은 고객·상품의 미결제 청구서가 있으면 재사용(중복 방지).
+ */
+export async function issueInvoiceFromProduct(
+  clientUserId: string,
+  productId: string,
+): Promise<{ token?: string; error?: string }> {
+  const admin = createAdminClient();
+  const { data: product } = await admin
+    .from("partner_products")
+    .select("*")
+    .eq("id", productId)
+    .eq("status", "active")
+    .maybeSingle();
+  if (!product) return { error: "판매 중인 상품이 아닙니다." };
+
+  // 스토어프론트가 공개(active)인 파트너의 상품만 셀프 구매 허용.
+  const { data: store } = await admin
+    .from("partner_storefronts")
+    .select("display_name, seller_info, status")
+    .eq("partner_user_id", product.partner_user_id)
+    .maybeSingle();
+  if (!store || store.status !== "active")
+    return { error: "현재 구매할 수 없는 상품입니다." };
+
+  // 같은 고객·같은 상품의 미결제 청구서가 있으면 재사용(클릭마다 중복 발행 방지).
+  const { data: existing } = await admin
+    .from("partner_invoices")
+    .select("token, product_snapshot")
+    .eq("client_user_id", clientUserId)
+    .eq("partner_user_id", product.partner_user_id)
+    .in("status", ["issued", "pending_payment"])
+    .order("created_at", { ascending: false })
+    .limit(20);
+  const reuse = (existing ?? []).find(
+    (r) =>
+      (r.product_snapshot as { productId?: string } | null)?.productId ===
+      productId,
+  );
+  if (reuse) return { token: reuse.token };
+
+  const snapshot: ProductSnapshot & { productId: string } = {
+    name: product.name,
+    includedServices: product.included_services,
+    basePlan: product.base_plan,
+    basePlanVersion: product.base_plan_version,
+    productId: product.id,
+  };
+
+  const { data, error } = await admin
+    .from("partner_invoices")
+    .insert({
+      offer_id: null,
+      partner_user_id: product.partner_user_id,
+      client_user_id: clientUserId,
+      token: secureToken(),
+      number: invoiceNumber(),
+      product_snapshot: snapshot as unknown as Json,
+      sell_price_krw: product.sell_price_krw,
+      base_price_krw: product.base_price_krw,
+      tax_krw: 0,
+      currency: product.currency,
+      vat_mode: product.vat_mode,
+      billing_type: product.billing_type,
+      billing_period: product.billing_period,
+      seller_name: store.display_name,
+      seller_info: store.seller_info,
+      status: "issued",
+    })
+    .select("id, token, sell_price_krw")
+    .single();
+  if (error || !data) {
+    console.error("[b2b2c] self-serve invoice failed", error);
+    return { error: "구매 요청 생성에 실패했습니다." };
+  }
+  await admin.from("partner_invoice_events").insert({
+    invoice_id: data.id,
+    from_status: null,
+    to_status: "issued",
+    amount_krw: data.sell_price_krw,
+    actor_id: clientUserId,
+    note: "셀프서비스 구매 — 청구서 발행",
+  });
+  return { token: data.token };
+}
+
 /** 공개 토큰으로 청구서 조회(서비스롤). */
 export async function getInvoiceByToken(
   token: string,

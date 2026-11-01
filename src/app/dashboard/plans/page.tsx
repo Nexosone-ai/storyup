@@ -35,8 +35,8 @@ export default async function PlansPage() {
           <p className="eyebrow mb-2">구독</p>
           <h1 className="text-2xl font-semibold tracking-tight">구독 관리</h1>
           <p className="mt-2 text-sm text-muted">
-            STORYUP은 전문 파트너를 통해 비즈니스에 맞춰 도입됩니다. 도입을
-            원하시면 파트너를 선택해 상담하세요.
+            STORYUP은 전문 파트너를 통해 비즈니스에 맞춰 도입됩니다. 파트너를
+            선택해 상품을 확인하고 바로 구매하거나 상담할 수 있습니다.
           </p>
         </div>
 
@@ -96,7 +96,7 @@ export default async function PlansPage() {
                       )}
                     </span>
                     <span className="shrink-0 text-sm font-medium text-primary">
-                      상담 →
+                      상품 보기 →
                     </span>
                   </Link>
                 </li>
