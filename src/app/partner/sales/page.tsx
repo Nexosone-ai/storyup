@@ -35,10 +35,22 @@ export default async function PartnerSalesPage() {
     .select("amount_krw, gross_krw, base_deduction_krw, status")
     .eq("partner_user_id", user.id);
 
-  const settlement = { gross: 0, baseDeduction: 0, pending: 0, held: 0, paid: 0 };
+  const settlement = {
+    gross: 0,
+    baseDeduction: 0,
+    commission: 0,
+    pending: 0,
+    held: 0,
+    paid: 0,
+  };
   for (const e of earnings ?? []) {
-    settlement.gross += e.gross_krw ?? 0;
-    settlement.baseDeduction += e.base_deduction_krw ?? 0;
+    const g = e.gross_krw ?? 0;
+    const bd = e.base_deduction_krw ?? 0;
+    const margin = Math.max(0, g - bd);
+    settlement.gross += g;
+    settlement.baseDeduction += bd;
+    // 플랫폼 수수료 = 마진 − 실제 정산액(파생값). 과거(수수료 이전) 행은 0.
+    settlement.commission += Math.max(0, margin - e.amount_krw);
     if (e.status === "paid") settlement.paid += e.amount_krw;
     else if (e.status === "held") settlement.held += e.amount_krw;
     else settlement.pending += e.amount_krw;

@@ -25,6 +25,7 @@ export interface AdminSettlementView {
   partnerLabel: string;
   grossKrw: number | null;
   baseDeductionKrw: number | null;
+  commissionKrw: number;
   pgFeeKrw: number;
   taxKrw: number;
   amountKrw: number;
@@ -87,20 +88,25 @@ export async function listSettlements(
     .limit(limit);
   const rows = data ?? [];
   const labels = await emailMap(rows.map((r) => r.partner_user_id));
-  return rows.map((r) => ({
-    id: r.id,
-    invoiceId: r.invoice_id,
-    quoteId: r.quote_id,
-    partnerLabel: labels.get(r.partner_user_id) ?? r.partner_user_id.slice(0, 8),
-    grossKrw: r.gross_krw,
-    baseDeductionKrw: r.base_deduction_krw,
-    pgFeeKrw: r.pg_fee_krw,
-    taxKrw: r.tax_krw,
-    amountKrw: r.amount_krw,
-    status: r.status,
-    createdAt: r.created_at,
-    paidAt: r.paid_at,
-  }));
+  return rows.map((r) => {
+    // 플랫폼 수수료 = 마진(수납−기본요금) − 실제 정산액(파생값). 과거 행은 0.
+    const margin = Math.max(0, (r.gross_krw ?? 0) - (r.base_deduction_krw ?? 0));
+    return {
+      id: r.id,
+      invoiceId: r.invoice_id,
+      quoteId: r.quote_id,
+      partnerLabel: labels.get(r.partner_user_id) ?? r.partner_user_id.slice(0, 8),
+      grossKrw: r.gross_krw,
+      baseDeductionKrw: r.base_deduction_krw,
+      commissionKrw: Math.max(0, margin - r.amount_krw),
+      pgFeeKrw: r.pg_fee_krw,
+      taxKrw: r.tax_krw,
+      amountKrw: r.amount_krw,
+      status: r.status,
+      createdAt: r.created_at,
+      paidAt: r.paid_at,
+    };
+  });
 }
 
 export interface AdminB2b2cStats {
