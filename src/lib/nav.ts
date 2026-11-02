@@ -171,5 +171,11 @@ export function workspaceNav(
           } as NavItem,
         ]
       : []),
+    // 비즈니스 세부설정 — 워크스페이스 맨 아래.
+    {
+      label: ko ? "세부설정" : "Settings",
+      href: `${base}/settings`,
+      icon: "settings",
+    },
   ];
 }
