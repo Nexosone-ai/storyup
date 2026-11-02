@@ -4,7 +4,10 @@ import { getPublishedSite } from "@/lib/queries";
 import { getPlanId } from "@/lib/subscription";
 import { getPlanById } from "@/lib/plans";
 import { StoryupWatermark } from "@/components/site/StoryupWatermark";
-import { normalizeAdsensePublisherId } from "@/lib/adsense";
+import {
+  normalizeAdsensePublisherId,
+  companyAdsenseClient,
+} from "@/lib/adsense";
 
 /**
  * AdSense 사이트 인증 메타(google-adsense-account)를 <head>에 넣는다.
@@ -18,9 +21,13 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const site = await getPublishedSite(slug);
-  const client = normalizeAdsensePublisherId(
-    site?.website.content.adsense?.publisherId,
-  );
+  if (!site) return {};
+  // 무료 사이트는 회사(STORYUP) 자동광고, 유료는 사장님 본인 AdSense의 인증 메타.
+  const isFreeOwner =
+    getPlanById(await getPlanId(site.business.user_id)).id === "free";
+  const client = isFreeOwner
+    ? companyAdsenseClient()
+    : normalizeAdsensePublisherId(site.website.content.adsense?.publisherId);
   return client
     ? { other: { "google-adsense-account": client } }
     : {};
@@ -38,16 +45,21 @@ export default async function PublishedSiteLayout({
   const site = await getPublishedSite(slug);
   const style = site ? siteStyleVars(site.website.content.style) : undefined;
 
+  // 사이트 소유자 요금제 — 워터마크 제거 여부 + 무료 티어 회사 광고 판정에 공용.
+  const ownerPlan = site
+    ? getPlanById(await getPlanId(site.business.user_id))
+    : null;
   // Free 플랜 사이트는 하단에 STORYUP 워터마크를 표기한다(Basic+는 plan.watermarkRemoved로 제거).
-  const showWatermark = site
-    ? !getPlanById(await getPlanId(site.business.user_id)).watermarkRemoved
-    : false;
+  const showWatermark = ownerPlan ? !ownerPlan.watermarkRemoved : false;
 
-  // 사장님이 연결한 Google AdSense 자동광고 — 입력은 신뢰하지 않고 항상 정규화해서
-  // ca-pub-################ 형태만 스크립트 src에 넣는다.
-  const adsenseClient = normalizeAdsensePublisherId(
-    site?.website.content.adsense?.publisherId,
-  );
+  // 광고 자동 로더(Auto Ads):
+  //  - 무료 사이트 → 회사(STORYUP) AdSense로 무료 티어를 수익화.
+  //  - 유료 사이트 → 사장님이 연결한 본인 AdSense만(미연결이면 광고 없음).
+  // 입력은 신뢰하지 않고 항상 정규화해 ca-pub-################ 형태만 script src에 넣는다.
+  const adsenseClient =
+    ownerPlan?.id === "free"
+      ? companyAdsenseClient()
+      : normalizeAdsensePublisherId(site?.website.content.adsense?.publisherId);
 
   return (
     <div className="min-h-dvh" style={style}>
