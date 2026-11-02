@@ -8,6 +8,18 @@
 const ADSENSE_TAG_ID = "f08c47fec0942fa0";
 
 /**
+ * 회사(STORYUP) 소유 AdSense 퍼블리셔 ID — 무료 요금제 사용자의 발행 페이지에
+ * 회사 자동광고를 노출해 무료 티어를 수익화한다. 퍼블리셔 ID는 모든 페이지의
+ * script src에 노출되는 공개 값이라 하드코딩하되, 환경변수로 교체할 수 있다.
+ * 항상 정규화해서 반환한다.
+ */
+export function companyAdsenseClient(): string | null {
+  return normalizeAdsensePublisherId(
+    process.env.NEXT_PUBLIC_COMPANY_ADSENSE_CLIENT ?? "ca-pub-2441713448479711",
+  );
+}
+
+/**
  * 입력에서 AdSense 퍼블리셔 ID를 정규화한다.
  * "ca-pub-1234567890123456", "pub-1234567890123456", 공백 포함 입력 등을 받아
  * 유효하면 "ca-pub-################"(16자리)로, 아니면 null을 반환한다.
