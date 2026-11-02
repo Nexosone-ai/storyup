@@ -22,7 +22,7 @@ export default async function OnboardingPage({
 }) {
   const user = await getUser();
   if (!user) redirect("/login");
-  const { t } = await getDict();
+  const { t, locale } = await getDict();
 
   // '이 업종으로 시작하기'에서 넘어온 업종 → 기존 category/industry 기본값으로만 사용.
   // (자동 생성·과금 없음. 사용자가 온보딩에서 바꿀 수 있음.)
@@ -48,6 +48,7 @@ export default async function OnboardingPage({
   return (
     <OnboardingWizard
       t={t.onboarding}
+      ko={locale === "ko"}
       initialCategory={initialCategory}
       initialIndustry={initialIndustry}
     />

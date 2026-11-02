@@ -1,10 +1,17 @@
 import type { SiteSection } from "@/types/domain";
-import type { TextRenderer, ImageRenderer, SiteLang } from "./shared";
+import type {
+  TextRenderer,
+  ImageRenderer,
+  SiteLang,
+  SectionEditTools,
+} from "./shared";
 import { safeCtaHref } from "./shared";
 import { BlogPreviewCards, type SiteSectionPost } from "./BlogPreview";
 import { LucianFaq } from "./LucianFaq";
 import { LucianStats } from "./LucianStats";
 import { HeroSlider } from "./HeroSlider";
+import { MusicAlbumPlayer } from "./MusicAlbumPlayer";
+import { AudioSlot } from "./AudioSlot";
 import { BlogSectionBlock } from "./BlogSectionBlock";
 import { resolveBlogBlock } from "@/lib/website/blogBinding";
 
@@ -92,6 +99,7 @@ export function SiteSections({
   blogHref,
   lang = "ko",
   categories,
+  editTools,
 }: {
   sections?: SiteSection[];
   T: TextRenderer;
@@ -111,6 +119,8 @@ export function SiteSections({
   lang?: SiteLang;
   /** (에디터) 사용 중인 블로그 카테고리 — postList 카테고리 입력 힌트. */
   categories?: string[];
+  /** (에디터) 음악/미술 섹션 배열 아이템 편집 도구. */
+  editTools?: SectionEditTools;
 }) {
   if (!sections?.length) return null;
   return (
@@ -133,6 +143,8 @@ export function SiteSections({
               s.type !== "postList" &&
               s.type !== "hero" &&
               s.type !== "slider" &&
+              s.type !== "musicAlbum" &&
+              s.type !== "artGallery" &&
               (editable || s.image) && (
               <div className="mx-auto max-w-5xl px-5 pt-12">
                 <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl border border-border bg-surface-muted/40">
@@ -147,6 +159,7 @@ export function SiteSections({
             <SectionBlock
               section={s}
               base={base}
+              index={i}
               T={T}
               Img={Img}
               editable={editable}
@@ -155,6 +168,7 @@ export function SiteSections({
               blogHref={blogHref}
               lang={lang}
               categories={categories}
+              editTools={editTools}
             />
           </div>
         );
@@ -200,6 +214,7 @@ function SectionHeader({
 function SectionBlock({
   section: s,
   base,
+  index,
   T,
   Img,
   editable = false,
@@ -208,9 +223,11 @@ function SectionBlock({
   blogHref,
   lang = "ko",
   categories,
+  editTools,
 }: {
   section: SiteSection;
   base: string;
+  index: number;
   T: TextRenderer;
   Img?: ImageRenderer;
   editable?: boolean;
@@ -219,6 +236,7 @@ function SectionBlock({
   blogHref?: string;
   lang?: SiteLang;
   categories?: string[];
+  editTools?: SectionEditTools;
 }) {
   switch (s.type) {
     // 섹션형 히어로 — 액센트 글로우 배경 + 큰 제목 + 소개 + 글로우 CTA 버튼.
@@ -709,6 +727,173 @@ function SectionBlock({
         </section>
       );
     }
+
+    // 음악 앨범 — 공개는 회전 커버 플레이어, 에디터는 트랙별 mp3·가사·이야기 편집.
+    case "musicAlbum": {
+      if (!editable)
+        return (
+          <MusicAlbumPlayer
+            title={s.title}
+            coverImage={s.coverImage}
+            story={s.story}
+            tracks={s.items}
+          />
+        );
+      return (
+        <section className={WRAP}>
+          <div className="mx-auto max-w-3xl px-5 py-16">
+            <SectionHeader title={s.title ?? ""} base={base} T={T} />
+            {Img && (
+              <div className="mx-auto mb-5 max-w-xs">
+                <p className="mb-1.5 text-center text-xs font-medium text-muted">
+                  앨범 커버 (회전 LP)
+                </p>
+                <div className="relative aspect-square w-full overflow-hidden rounded-xl border border-border bg-surface-muted/40">
+                  {Img({ path: `${base}.coverImage`, value: s.coverImage, aspect: "1:1" })}
+                </div>
+              </div>
+            )}
+            {T({
+              path: `${base}.story`,
+              value: s.story ?? "",
+              as: "p",
+              placeholder: "앨범을 소개하는 글을 적어보세요.",
+              className: "mb-6 text-center leading-relaxed text-muted",
+            })}
+            <div className="space-y-4">
+              {s.items.map((tr, j) => (
+                <div key={j} className="rounded-2xl border border-border bg-surface p-4">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold text-muted">곡 {j + 1}</p>
+                    {editTools && s.items.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => editTools.removeItem(index, j)}
+                        className="rounded-md border border-border bg-white px-2 py-0.5 text-xs text-danger hover:bg-surface"
+                      >
+                        곡 삭제
+                      </button>
+                    )}
+                  </div>
+                  {editTools && (
+                    <div className="mb-3">
+                      <AudioSlot
+                        businessId={editTools.businessId}
+                        value={tr.audioUrl}
+                        onChange={(url) =>
+                          editTools.setValue(`${base}.items.${j}.audioUrl`, url)
+                        }
+                      />
+                    </div>
+                  )}
+                  {T({
+                    path: `${base}.items.${j}.title`,
+                    value: tr.title,
+                    as: "h3",
+                    placeholder: "곡 제목",
+                    className: "font-semibold",
+                  })}
+                  <p className="mt-3 mb-1 text-xs font-medium text-muted">가사</p>
+                  {T({
+                    path: `${base}.items.${j}.lyrics`,
+                    value: tr.lyrics ?? "",
+                    as: "p",
+                    placeholder: "가사를 입력하세요.",
+                    className: "whitespace-pre-wrap leading-relaxed text-foreground/85",
+                  })}
+                  <p className="mt-3 mb-1 text-xs font-medium text-muted">이 곡의 이야기</p>
+                  {T({
+                    path: `${base}.items.${j}.story`,
+                    value: tr.story ?? "",
+                    as: "p",
+                    placeholder: "이 곡을 만든 계기와 사연을 들려주세요.",
+                    className: "whitespace-pre-wrap leading-relaxed text-muted",
+                  })}
+                </div>
+              ))}
+            </div>
+            {editTools && (
+              <button
+                type="button"
+                onClick={() => editTools.addItem(index)}
+                className="mt-4 w-full rounded-xl border border-dashed border-border bg-surface-muted/40 px-3 py-2.5 text-sm font-medium text-muted hover:bg-surface"
+              >
+                + 곡 추가
+              </button>
+            )}
+          </div>
+        </section>
+      );
+    }
+
+    // 미술 갤러리 — 이미지 + 작품 이야기를 세로로. 공개/에디터 공통 Img 슬롯 사용.
+    case "artGallery":
+      return (
+        <section className={WRAP}>
+          <div className="mx-auto max-w-3xl px-5 py-16">
+            <SectionHeader title={s.title ?? ""} base={base} T={T} />
+            {(s.story || editable) &&
+              T({
+                path: `${base}.story`,
+                value: s.story ?? "",
+                as: "p",
+                placeholder: "작업 세계를 한 문단으로 소개해보세요.",
+                className: "mb-8 text-center leading-relaxed text-muted",
+              })}
+            <div className="space-y-12">
+              {s.items.map((art, j) => (
+                <figure key={j} className="space-y-3">
+                  {Img &&
+                    (editable || art.imageUrl) &&
+                    (
+                      <div className="relative w-full overflow-hidden rounded-2xl border border-border bg-surface-muted/40">
+                        {Img({
+                          path: `${base}.items.${j}.imageUrl`,
+                          value: art.imageUrl,
+                          aspect: "4:3",
+                        })}
+                      </div>
+                    )}
+                  {(art.title || editable) &&
+                    T({
+                      path: `${base}.items.${j}.title`,
+                      value: art.title ?? "",
+                      as: "h3",
+                      placeholder: "작품 제목",
+                      className: "text-lg font-semibold",
+                    })}
+                  {(art.story || editable) &&
+                    T({
+                      path: `${base}.items.${j}.story`,
+                      value: art.story ?? "",
+                      as: "figcaption",
+                      placeholder: "이 그림에 담긴 이야기를 적어주세요.",
+                      className: "whitespace-pre-wrap leading-relaxed text-foreground/85",
+                    })}
+                  {editable && editTools && s.items.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => editTools.removeItem(index, j)}
+                      className="rounded-md border border-border bg-white px-2 py-0.5 text-xs text-danger hover:bg-surface"
+                    >
+                      작품 삭제
+                    </button>
+                  )}
+                </figure>
+              ))}
+            </div>
+            {editable && editTools && (
+              <button
+                type="button"
+                onClick={() => editTools.addItem(index)}
+                className="mt-8 w-full rounded-xl border border-dashed border-border bg-surface-muted/40 px-3 py-2.5 text-sm font-medium text-muted hover:bg-surface"
+              >
+                + 작품 추가
+              </button>
+            )}
+          </div>
+        </section>
+      );
 
     default:
       return null;

@@ -21,6 +21,11 @@ const MAX_ITEMS = 8;
 const str = (v: unknown, max = 600): string =>
   typeof v === "string" ? v.trim().slice(0, max) : "";
 const arr = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
+/** http(s) URL만 허용(업로드된 미디어 공개 URL). 그 외는 빈 문자열. */
+const url = (v: unknown): string => {
+  const s = str(v, 1000);
+  return /^https?:\/\//i.test(s) ? s : "";
+};
 
 const KNOWN = new Set<SiteSectionType>(SITE_SECTION_TYPES);
 
@@ -183,6 +188,45 @@ export function normalizeSiteSections(raw: unknown): SiteSection[] {
       case "richText": {
         const body = str(o.body, 4000);
         if (title || body) out.push({ type, title, body });
+        break;
+      }
+      case "musicAlbum": {
+        const tracks = items
+          .map((i) => {
+            const x = (i ?? {}) as Record<string, unknown>;
+            return {
+              title: str(x.title, 120),
+              audioUrl: url(x.audioUrl) || undefined,
+              lyrics: str(x.lyrics, 4000) || undefined,
+              story: str(x.story, 2000) || undefined,
+            };
+          })
+          .filter((t) => t.title || t.audioUrl || t.lyrics || t.story);
+        const story = str(o.story, 2000) || undefined;
+        if (tracks.length || title || story)
+          out.push({
+            type,
+            title: title || undefined,
+            coverImage: url(o.coverImage) || undefined,
+            story,
+            items: tracks,
+          });
+        break;
+      }
+      case "artGallery": {
+        const works = items
+          .map((i) => {
+            const x = (i ?? {}) as Record<string, unknown>;
+            return {
+              imageUrl: url(x.imageUrl) || undefined,
+              title: str(x.title, 120) || undefined,
+              story: str(x.story, 2000) || undefined,
+            };
+          })
+          .filter((w) => w.imageUrl || w.title || w.story);
+        const story = str(o.story, 2000) || undefined;
+        if (works.length || title || story)
+          out.push({ type, title: title || undefined, story, items: works });
         break;
       }
     }

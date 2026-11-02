@@ -89,7 +89,9 @@ type AddableSection =
   | "stats"
   | "cta"
   | "postList"
-  | "blogSection";
+  | "blogSection"
+  | "musicAlbum"
+  | "artGallery";
 
 /** '섹션 추가'로 넣는 섹션의 시작 템플릿(언어별 예시 내용). */
 function makeStarterSection(type: AddableSection, ko: boolean): SiteSection {
@@ -175,6 +177,34 @@ function makeStarterSection(type: AddableSection, ko: boolean): SiteSection {
             ? ["모든 기본 기능", "우선 지원", "추가 혜택"]
             : ["Everything in Basic", "Priority support", "Extra perks"],
           highlighted: true,
+        },
+      ],
+    };
+  if (type === "musicAlbum")
+    return {
+      type: "musicAlbum",
+      title: ko ? "내 음악" : "My music",
+      story: ko ? "앨범을 소개하는 글을 적어보세요." : "Introduce this album.",
+      items: [
+        {
+          title: ko ? "곡 제목" : "Track title",
+          lyrics: "",
+          story: ko
+            ? "이 곡을 만든 계기와 가사에 담긴 사연을 들려주세요."
+            : "Share the story behind this song.",
+        },
+      ],
+    };
+  if (type === "artGallery")
+    return {
+      type: "artGallery",
+      title: ko ? "작품" : "Works",
+      items: [
+        {
+          title: ko ? "작품 제목" : "Artwork title",
+          story: ko
+            ? "이 그림에 담긴 이야기를 적어주세요."
+            : "Share the story behind this piece.",
         },
       ],
     };
@@ -272,6 +302,8 @@ const SITE_SECTION_LABELS: Record<SiteSectionType, { ko: string; en: string }> =
   stats: { ko: "핵심 지표", en: "Stats" },
   cta: { ko: "CTA(행동 유도)", en: "CTA" },
   richText: { ko: "본문 텍스트", en: "Rich text" },
+  musicAlbum: { ko: "음악 앨범", en: "Music album" },
+  artGallery: { ko: "미술 갤러리", en: "Art gallery" },
 };
 
 /** 저장된 순서를 정규화 — 저장값 우선, 빠진 키는 기본 순서로 뒤에 붙인다. */
@@ -301,6 +333,7 @@ export function WebsiteEditor({
   maxLayouts = 1,
   richAllowed = false,
   isPartner = false,
+  musicAllowed = false,
   cards = [],
   posts = [],
   categories = [],
@@ -313,6 +346,8 @@ export function WebsiteEditor({
   richAllowed?: boolean;
   /** 파트너 전용 — 전문 레이아웃·디자인 템플릿(재사용·판매) 섹션 노출 여부. */
   isPartner?: boolean;
+  /** 음악 앨범(mp3 업로드) 가능 플랜(Basic/Pro/Partner)인지. false면 섹션 추가 잠금. */
+  musicAllowed?: boolean;
   /** 이 가게의 카드뉴스 — 미리보기의 "카드뉴스" 섹션에 표시. */
   cards?: ShowcaseCardItem[];
   /** 이 가게의 공개 블로그 글 — 글 목록(postList) 섹션 미리보기·필터용. */
@@ -668,6 +703,88 @@ export function WebsiteEditor({
         items: [...sec.items, { title: ko ? "새 슬라이드" : "New slide" }],
       };
       return { ...c, sections: list };
+    });
+
+  /** 홈 또는 하위 페이지의 섹션 배열을 한 섹션만 변형해 커밋(음악/미술 아이템 편집용). */
+  const mutateSectionList = (
+    page: "home" | number,
+    sectionIndex: number,
+    fn: (sec: SiteSection) => SiteSection | null,
+  ) =>
+    setContent((c) => {
+      const apply = (list: SiteSection[]): SiteSection[] | null => {
+        const sec = list[sectionIndex];
+        if (!sec) return null;
+        const next = fn(sec);
+        if (!next) return null;
+        const out = [...list];
+        out[sectionIndex] = next;
+        return out;
+      };
+      if (page === "home") {
+        const out = apply(c.sections ?? []);
+        return out ? { ...c, sections: out } : c;
+      }
+      const pages = c.pages ?? [];
+      const target = pages[page];
+      if (!target) return c;
+      const out = apply(target.sections ?? []);
+      if (!out) return c;
+      return {
+        ...c,
+        pages: pages.map((p, j) => (j === page ? { ...p, sections: out } : p)),
+      };
+    });
+
+  /** 음악 앨범·미술 갤러리 섹션에 아이템(곡/작품) 한 개 추가. */
+  const addSectionItem = (sectionIndex: number, page: "home" | number = "home") =>
+    mutateSectionList(page, sectionIndex, (sec) => {
+      if (sec.type === "musicAlbum")
+        return {
+          ...sec,
+          items: [
+            ...sec.items,
+            {
+              title: ko ? "곡 제목" : "Track title",
+              lyrics: "",
+              story: ko
+                ? "이 곡을 만든 계기와 가사에 담긴 사연을 들려주세요."
+                : "Share the story behind this song.",
+            },
+          ],
+        };
+      if (sec.type === "artGallery")
+        return {
+          ...sec,
+          items: [
+            ...sec.items,
+            {
+              title: ko ? "작품 제목" : "Artwork title",
+              story: ko
+                ? "이 그림에 담긴 이야기를 적어주세요."
+                : "Share the story behind this piece.",
+            },
+          ],
+        };
+      return null;
+    });
+
+  /** 음악 앨범·미술 갤러리 섹션에서 아이템 삭제(최소 1개 유지). */
+  const removeSectionItem = (
+    sectionIndex: number,
+    itemIndex: number,
+    page: "home" | number = "home",
+  ) =>
+    mutateSectionList(page, sectionIndex, (sec) => {
+      if (sec.type !== "musicAlbum" && sec.type !== "artGallery") return null;
+      if (sec.items.length <= 1) {
+        setNote(ko ? "최소 1개는 필요해요." : "At least one item is required.");
+        return null;
+      }
+      return {
+        ...sec,
+        items: sec.items.filter((_, k) => k !== itemIndex),
+      } as SiteSection;
     });
 
   /** 블로그 연결 섹션의 레이아웃/바인딩 수정. */
@@ -1590,6 +1707,7 @@ export function WebsiteEditor({
               ["faq", "FAQ"],
               ["stats", ko ? "통계" : "Stats"],
               ["cta", ko ? "CTA(행동 유도)" : "CTA"],
+              ["artGallery", ko ? "미술 갤러리" : "Art gallery"],
               ["blogSection", ko ? "블로그 연결 섹션" : "Blog section"],
               ["postList", ko ? "블로그 글목록(기본)" : "Blog list"],
             ] as const
@@ -1603,6 +1721,27 @@ export function WebsiteEditor({
               + {label}
             </button>
           ))}
+          {/* 음악 앨범 — mp3 업로드가 필요해 유료 플랜만. 무료는 안내 후 잠금. */}
+          <button
+            type="button"
+            onClick={() =>
+              musicAllowed
+                ? addHomeSection("musicAlbum")
+                : setNote(
+                    ko
+                      ? "음악 앨범(mp3 업로드)은 Basic·Pro 플랜에서 추가할 수 있어요."
+                      : "Music albums (mp3 upload) require a Basic or Pro plan.",
+                  )
+            }
+            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
+              musicAllowed
+                ? "border-border-strong text-muted hover:border-primary/50 hover:bg-primary-soft hover:text-primary"
+                : "border-border text-muted/60"
+            }`}
+          >
+            {musicAllowed ? "+ " : "🔒 "}
+            {ko ? "음악 앨범" : "Music album"}
+          </button>
         </div>
       </div>
 
@@ -2125,6 +2264,13 @@ export function WebsiteEditor({
                   blogHref={`/site/${slug}/blog`}
                   lang={content.language === "en" ? "en" : "ko"}
                   categories={categories}
+                  editTools={{
+                    businessId,
+                    setValue: onEdit,
+                    addItem: (si) => addSectionItem(si, currentPage),
+                    removeItem: (si, ii) =>
+                      removeSectionItem(si, ii, currentPage),
+                  }}
                 />
               </div>
             ) : (
@@ -2139,6 +2285,12 @@ export function WebsiteEditor({
                 editable
                 scoped
                 onDeleteSection={removeHomeSection}
+                editTools={{
+                  businessId,
+                  setValue: onEdit,
+                  addItem: (si) => addSectionItem(si, "home"),
+                  removeItem: (si, ii) => removeSectionItem(si, ii, "home"),
+                }}
               />
             )}
           </div>
