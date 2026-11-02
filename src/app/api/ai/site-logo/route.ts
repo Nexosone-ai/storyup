@@ -6,6 +6,7 @@ import { getImageProvider, ImageGenerationError } from "@/lib/ai/image";
 import { buildLogoPrompt } from "@/lib/ai/image/prompt";
 import { storeGeneratedImage } from "@/lib/ai/imageStore";
 import { getLocale } from "@/lib/i18n";
+import { getPlanId } from "@/lib/subscription";
 
 export const maxDuration = 60;
 
@@ -66,7 +67,8 @@ export async function POST(request: Request) {
       .generateImageSubject({ category: business.category, text, kind: "still-life" })
       .catch(() => text);
     const prompt = buildLogoPrompt(business.category, symbol);
-    const image = await getImageProvider().generateImage(prompt, "1:1");
+    const premium = (await getPlanId(user.id)) !== "free";
+    const image = await getImageProvider(premium).generateImage(prompt, "1:1");
 
     const url = await storeGeneratedImage(businessId, "site-logo", image);
     if (!url) throw new Error("storage upload failed");

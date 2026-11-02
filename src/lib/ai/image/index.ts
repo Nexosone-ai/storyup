@@ -12,8 +12,12 @@ let cached: ImageProvider | null = null;
  * Active image provider (server-only). Selected by IMAGE_PROVIDER
  * ("pollinations" | "fal" | "gemini"), else inferred from whichever key is
  * present (fal → gemini), else the free Pollinations fallback.
+ *
+ * premium=false(무료 플랜)이면 설정과 무관하게 무료 Pollinations를 쓴다 — 고품질 유료
+ * 모델(fal/gemini)은 유료 플랜 전용. (서버에서 플랜을 확인한 뒤 전달한다.)
  */
-export function getImageProvider(): ImageProvider {
+export function getImageProvider(premium = true): ImageProvider {
+  if (!premium) return new PollinationsImageProvider();
   if (cached) return cached;
   const choice = process.env.IMAGE_PROVIDER?.toLowerCase();
 
@@ -39,7 +43,12 @@ export function isImageGenConfigured(): boolean {
 export async function generateImageResilient(
   prompt: string,
   aspect?: ImageAspect,
+  opts?: { premium?: boolean },
 ): Promise<GeneratedImage> {
+  // 무료 플랜(premium=false)은 무료 Pollinations를 그대로 사용(폴백 불필요).
+  if (opts?.premium === false) {
+    return new PollinationsImageProvider().generateImage(prompt, aspect);
+  }
   let primary: ImageProvider | null = null;
   try {
     primary = getImageProvider();

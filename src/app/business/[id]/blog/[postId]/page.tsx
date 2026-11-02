@@ -65,6 +65,7 @@ export default async function BlogEditorPage({
         schedulingAllowed={schedulingAllowed}
         seoAllowed={seoAllowed}
         summaryImageAllowed={summaryImageAllowed}
+        premiumImages={plan?.id !== "free"}
       />
       <EventEditor
         businessId={id}

@@ -22,6 +22,8 @@ export async function generateAndStoreBlogCover(opts: {
   instruction?: string;
   /** 콘텐츠 언어 — ko면 등장 인물을 한국인(동양인)으로. 기본 ko. */
   language?: PromptLanguage;
+  /** 유료 플랜이면 고품질 모델, false(무료)면 Pollinations. 기본 유료. */
+  premium?: boolean;
   timeoutMs?: number;
 }): Promise<string | null> {
   try {
@@ -51,7 +53,9 @@ export async function generateAndStoreBlogCover(opts: {
       language,
     });
 
-    const generate = generateImageResilient(prompt, "16:9");
+    const generate = generateImageResilient(prompt, "16:9", {
+      premium: opts.premium,
+    });
     const image = opts.timeoutMs
       ? await Promise.race([
           generate,

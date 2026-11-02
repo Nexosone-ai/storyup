@@ -4,6 +4,7 @@ import { reserveImageSlot, releaseImageSlot } from "@/lib/ai/imageSlot";
 import { getLocale } from "@/lib/i18n";
 import { generateAndStoreBlogBodyImage } from "@/lib/ai/blogBodyImage";
 import { coerceImageStyle } from "@/lib/ai/image/style";
+import { getPlanId } from "@/lib/subscription";
 
 export const maxDuration = 60;
 
@@ -82,6 +83,7 @@ export async function POST(request: Request) {
     style,
     instruction,
     language: ko ? "ko" : "en",
+    premium: (await getPlanId(user.id)) !== "free",
   });
   if (!url) {
     await releaseImageSlot(supabase, businessId, bodySlot);
