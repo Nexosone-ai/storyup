@@ -27,12 +27,15 @@ export async function POST(request: Request) {
   let topic = "";
   let tone: BlogTone = "Friendly";
   let length: BlogLength = "Medium";
+  let source = "";
   try {
     const body = await request.json();
     businessId = String(body.businessId);
     topic = String(body.topic ?? "").trim();
     if (BLOG_TONES.includes(body.tone)) tone = body.tone;
     if (BLOG_LENGTHS.includes(body.length)) length = body.length;
+    // 참조 자료(URL·파일에서 추출한 텍스트) — 있으면 이 자료에 근거해 작성.
+    source = String(body.source ?? "").slice(0, 16000);
   } catch {
     return NextResponse.json(
       { error: ko ? "잘못된 요청입니다." : "Invalid request." },
@@ -58,6 +61,7 @@ export async function POST(request: Request) {
       tone,
       length,
       locale,
+      source: source || undefined,
     });
     return NextResponse.json({ ok: true, postId });
   } catch (err) {

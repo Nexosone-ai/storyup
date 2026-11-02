@@ -10,6 +10,7 @@ import { Icon } from "@/components/ui/icons";
 import { GeneratingScreen } from "@/components/ai/GeneratingScreen";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { createClient } from "@/lib/supabase/client";
+import { extractPdfText } from "@/lib/client/pdfText";
 import {
   createVoiceUploadUrl,
   createBlankBlogAction,
@@ -131,6 +132,92 @@ export function BlogComposer({ businessId }: { businessId: string }) {
   const [length, setLength] = useState<BlogLength>("Medium");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // ── 참조 자료(글감) ── URL·파일에서 추출한 텍스트를 모아 생성 시 source로 넘긴다.
+  const [refs, setRefs] = useState<
+    { id: string; label: string; text: string; kind: "url" | "file" }[]
+  >([]);
+  const [refUrl, setRefUrl] = useState("");
+  const [refBusy, setRefBusy] = useState(false);
+  const refFileRef = useRef<HTMLInputElement | null>(null);
+
+  const addRefUrl = async () => {
+    const u = refUrl.trim();
+    if (!u || refBusy) return;
+    setRefBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/ai/blog-reference", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessId, url: u }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.text) {
+        setError(
+          data.error ??
+            (ko ? "주소를 불러오지 못했어요." : "Could not load the URL."),
+        );
+        return;
+      }
+      setRefs((r) => [
+        ...r,
+        {
+          id: crypto.randomUUID(),
+          kind: "url",
+          label: data.name || u,
+          text: data.text,
+        },
+      ]);
+      setRefUrl("");
+    } catch {
+      setError(ko ? "주소를 불러오지 못했어요." : "Could not load the URL.");
+    } finally {
+      setRefBusy(false);
+    }
+  };
+
+  const addRefFile = async (file: File) => {
+    if (refBusy) return;
+    setRefBusy(true);
+    setError(null);
+    try {
+      const name = file.name.toLowerCase();
+      const isPdf = name.endsWith(".pdf") || file.type === "application/pdf";
+      const text = isPdf
+        ? await extractPdfText(file)
+        : (await file.text()).slice(0, 20000);
+      if (!text.trim()) {
+        setError(
+          ko
+            ? "이 파일에서 읽을 수 있는 텍스트가 없어요(스캔된 PDF일 수 있어요)."
+            : "No readable text in that file (it may be a scanned PDF).",
+        );
+        return;
+      }
+      setRefs((r) => [
+        ...r,
+        { id: crypto.randomUUID(), kind: "file", label: file.name, text },
+      ]);
+    } catch {
+      setError(ko ? "파일을 읽지 못했어요." : "Could not read the file.");
+    } finally {
+      setRefBusy(false);
+      if (refFileRef.current) refFileRef.current.value = "";
+    }
+  };
+
+  const removeRef = (id: string) =>
+    setRefs((r) => r.filter((x) => x.id !== id));
+
+  /** 참조 자료들을 하나의 글감 텍스트(source)로 합친다(상한 적용). */
+  const buildRefSource = () =>
+    refs.length
+      ? refs
+          .map((r) => `[${r.label}]\n${r.text}`)
+          .join("\n\n---\n\n")
+          .slice(0, 16000)
+      : "";
 
   // ── 음성 입력 상태 ──
   // SSR에서는 false, 클라이언트에서 브라우저 지원 여부로 확정 (hydration 안전)
@@ -321,7 +408,13 @@ export function BlogComposer({ businessId }: { businessId: string }) {
         res = await fetch("/api/ai/blog", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ businessId, topic, tone, length }),
+          body: JSON.stringify({
+            businessId,
+            topic,
+            tone,
+            length,
+            source: buildRefSource(),
+          }),
         });
       } else {
         // 1) 서명 URL 발급 → 2) Storage 직접 업로드 → 3) 경로만 서버로
@@ -521,6 +614,98 @@ export function BlogComposer({ businessId }: { businessId: string }) {
       <Card className="space-y-5">
         {mode === "topic" ? (
           <div>
+            {/* 참조 자료(선택) — 넣으면 그 내용을 근거로 글을 쓴다(없는 수치·사실 지어내기 금지). */}
+            <div className="mb-4 space-y-2 rounded-xl border border-border bg-surface p-3">
+              <div className="flex flex-wrap items-baseline gap-2">
+                <span className="text-sm font-semibold">
+                  {ko ? "참조 자료 (선택)" : "References (optional)"}
+                </span>
+                <span className="text-xs text-muted">
+                  {ko
+                    ? "웹주소나 파일(txt·md·pdf)을 넣으면 그 내용을 근거로 글을 써요."
+                    : "Add a URL or file (txt/md/pdf) to ground the post in it."}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <input
+                  type="url"
+                  value={refUrl}
+                  onChange={(e) => setRefUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void addRefUrl();
+                    }
+                  }}
+                  placeholder="https://…"
+                  disabled={refBusy}
+                  className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addRefUrl}
+                  disabled={refBusy || !refUrl.trim()}
+                >
+                  {ko ? "주소 추가" : "Add URL"}
+                </Button>
+                <input
+                  ref={refFileRef}
+                  type="file"
+                  accept=".txt,.md,.markdown,.csv,.pdf,text/plain,application/pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void addRefFile(f);
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refFileRef.current?.click()}
+                  disabled={refBusy}
+                >
+                  {refBusy ? (
+                    <Spinner className="size-4" />
+                  ) : ko ? (
+                    "파일 첨부"
+                  ) : (
+                    "Attach file"
+                  )}
+                </Button>
+              </div>
+              {refs.length > 0 && (
+                <ul className="space-y-1">
+                  {refs.map((r) => (
+                    <li
+                      key={r.id}
+                      className="flex items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs"
+                    >
+                      {r.kind === "url" ? (
+                        <Icon.link className="size-3.5 shrink-0 text-muted" />
+                      ) : (
+                        <Icon.file className="size-3.5 shrink-0 text-muted" />
+                      )}
+                      <span className="min-w-0 flex-1 truncate">{r.label}</span>
+                      <span className="shrink-0 tabular-nums text-muted">
+                        {r.text.length.toLocaleString()}
+                        {ko ? "자" : " chars"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeRef(r.id)}
+                        className="shrink-0 text-muted hover:text-danger"
+                        aria-label={ko ? "삭제" : "Remove"}
+                      >
+                        <Icon.x className="size-3.5" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
             <Label htmlFor="topic">{ko ? "주제" : "Topic"}</Label>
             <Textarea
               id="topic"
