@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { AIGenerationError } from "@/lib/ai";
 import { InsufficientPointsError } from "@/lib/ai/billing";
-import { generateAndSaveCardNews } from "@/lib/ai/generateCardNews";
+import { generateAndSaveCardNews, CardNewsPlanError } from "@/lib/ai/generateCardNews";
 import { getLocale } from "@/lib/i18n";
 
 export const maxDuration = 60;
@@ -43,6 +43,8 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({ ok: true, cardNews, cardNewsId });
   } catch (err) {
+    if (err instanceof CardNewsPlanError)
+      return NextResponse.json({ error: err.message }, { status: 403 });
     if (err instanceof InsufficientPointsError)
       return NextResponse.json({ error: err.message }, { status: 402 });
     if (err instanceof Error && err.message === "business not found")

@@ -31,6 +31,8 @@ export default async function MarketingPage({
   const ytStatus = user ? await getYoutubeStatus(user.id) : null;
   const proPlan =
     shortsQuota?.planId === "pro" || shortsQuota?.planId === "partner";
+  // 카드뉴스는 유료 전용 — 무료 플랜은 스튜디오를 숨기고 업그레이드 안내만 노출.
+  const isFreePlan = (shortsQuota?.planId ?? "free") === "free";
   const shortsYoutube = ytStatus
     ? {
         configured: ytStatus.configured,
@@ -179,16 +181,37 @@ export default async function MarketingPage({
               : "Save as an Instagram carousel, or share the link straight to X and Facebook."}
           </p>
         </div>
-        <CardNewsStudio
-          businessId={id}
-          posts={postOptions}
-          brandName={business.name}
-          handle={`@${business.slug}`}
-          siteSlug={siteSlug}
-          initial={initialCards}
-          shorts={shortsQuota}
-          youtube={shortsYoutube}
-        />
+        {isFreePlan ? (
+          <div className="rounded-xl border border-dashed border-border bg-muted/20 p-6 text-center">
+            <p className="text-sm font-medium">
+              {ko
+                ? "SNS 카드뉴스는 유료 플랜(Basic 이상) 기능입니다."
+                : "Card news is available on paid plans (Basic and up)."}
+            </p>
+            <p className="mt-1 text-sm text-muted">
+              {ko
+                ? "플랜을 업그레이드하면 블로그 글을 인스타그램 카드뉴스로 바로 만들 수 있어요."
+                : "Upgrade to turn blog posts into Instagram card news in one click."}
+            </p>
+            <a
+              href="/dashboard/plans"
+              className="mt-3 inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+            >
+              {ko ? "플랜 보기" : "View plans"}
+            </a>
+          </div>
+        ) : (
+          <CardNewsStudio
+            businessId={id}
+            posts={postOptions}
+            brandName={business.name}
+            handle={`@${business.slug}`}
+            siteSlug={siteSlug}
+            initial={initialCards}
+            shorts={shortsQuota}
+            youtube={shortsYoutube}
+          />
+        )}
       </section>
     </div>
   );
