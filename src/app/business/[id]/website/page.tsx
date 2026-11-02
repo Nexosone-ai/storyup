@@ -98,6 +98,7 @@ export default async function WebsitePage({
         richAllowed={plan?.fullHomepage === true}
         isPartner={partner}
         musicAllowed={musicAllowed}
+        category={business.category}
         cards={cards}
         posts={sectionPosts}
         categories={categories}

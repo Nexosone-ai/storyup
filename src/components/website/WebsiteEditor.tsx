@@ -334,6 +334,7 @@ export function WebsiteEditor({
   richAllowed = false,
   isPartner = false,
   musicAllowed = false,
+  category = null,
   cards = [],
   posts = [],
   categories = [],
@@ -348,6 +349,8 @@ export function WebsiteEditor({
   isPartner?: boolean;
   /** 음악 앨범(mp3 업로드) 가능 플랜(Basic/Pro/Partner)인지. false면 섹션 추가 잠금. */
   musicAllowed?: boolean;
+  /** 비즈니스 카테고리(businesses.category) — 음악 앨범 등 카테고리별 섹션 노출 판정용. */
+  category?: string | null;
   /** 이 가게의 카드뉴스 — 미리보기의 "카드뉴스" 섹션에 표시. */
   cards?: ShowcaseCardItem[];
   /** 이 가게의 공개 블로그 글 — 글 목록(postList) 섹션 미리보기·필터용. */
@@ -356,6 +359,9 @@ export function WebsiteEditor({
   categories?: string[];
 }) {
   const ko = useLocale() === "ko";
+  // 작가·예술가 카테고리에서만 음악 앨범 등 창작자 전용 섹션을 노출한다
+  // (일반 비즈니스는 Spotify·앨범 같은 기능이 필요 없음).
+  const isArtist = category === "Artist";
   const [content, setContent] = useState<WebsiteContent>(website.content);
   const [brief, setBrief] = useState("");
   const [multi, setMulti] = useState(false);
@@ -1287,7 +1293,8 @@ export function WebsiteEditor({
         )}
       </div>
 
-      {/* (프리미엄) AI 상세 홈페이지 만들기 */}
+      {/* (프리미엄) AI 상세 홈페이지 만들기 — 구조 편집이라 대행 파트너 전용. */}
+      {isPartner && (
       <div className="rounded-xl border border-primary/30 bg-primary-soft/30 p-4">
         <div className="flex items-start gap-2">
           <span aria-hidden className="text-base">
@@ -1403,14 +1410,21 @@ export function WebsiteEditor({
         </div>
       </div>
 
-      {/* Google Maps import */}
+      )}
+
+      {/* Google Maps import — 위치/영업정보는 기본 정보라 전체 노출. */}
       <MapImportBar businessId={businessId} onImport={applyGoogleImport} />
 
-      {/* URL import — 기존 홈페이지 주소에서 콘텐츠·사진 가져오기 */}
-      <UrlImportBar businessId={businessId} onImport={applyPdfImport} />
+      {/* URL·PDF 가져오기 — 콘텐츠 일괄 반입(구조 편집)이라 대행 파트너 전용. */}
+      {isPartner && (
+        <>
+          {/* URL import — 기존 홈페이지 주소에서 콘텐츠·사진 가져오기 */}
+          <UrlImportBar businessId={businessId} onImport={applyPdfImport} />
 
-      {/* PDF import */}
-      <PdfImportBar businessId={businessId} onImport={applyPdfImport} />
+          {/* PDF import */}
+          <PdfImportBar businessId={businessId} onImport={applyPdfImport} />
+        </>
+      )}
 
       {/* Template picker + device toggle */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-3">
@@ -1573,6 +1587,10 @@ export function WebsiteEditor({
         </div>
       </div>
 
+      {/* 구조 편집(CTA 링크·섹션 배치·섹션 추가) — 대행 파트너 전용. 일반 유저는
+          템플릿·색·폰트 선택과 미리보기 글자/이미지 클릭 수정, 발행만 사용한다. */}
+      {isPartner && (
+      <>
       {/* CTA 버튼 링크 — 메인 히어로 + 상세 홈페이지의 CTA/히어로 섹션 버튼 주소. */}
       <div className="space-y-2 rounded-xl border border-border bg-surface p-3">
         <div className="flex flex-wrap items-baseline gap-2">
@@ -1721,29 +1739,33 @@ export function WebsiteEditor({
               + {label}
             </button>
           ))}
-          {/* 음악 앨범 — mp3 업로드가 필요해 유료 플랜만. 무료는 안내 후 잠금. */}
-          <button
-            type="button"
-            onClick={() =>
-              musicAllowed
-                ? addHomeSection("musicAlbum")
-                : setNote(
-                    ko
-                      ? "음악 앨범(mp3 업로드)은 Basic·Pro 플랜에서 추가할 수 있어요."
-                      : "Music albums (mp3 upload) require a Basic or Pro plan.",
-                  )
-            }
-            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
-              musicAllowed
-                ? "border-border-strong text-muted hover:border-primary/50 hover:bg-primary-soft hover:text-primary"
-                : "border-border text-muted/60"
-            }`}
-          >
-            {musicAllowed ? "+ " : "🔒 "}
-            {ko ? "음악 앨범" : "Music album"}
-          </button>
+          {/* 음악 앨범 — 작가·예술가(music) 카테고리에서만. mp3 업로드가 필요해 유료 플랜만(무료는 안내 후 잠금). */}
+          {isArtist && (
+            <button
+              type="button"
+              onClick={() =>
+                musicAllowed
+                  ? addHomeSection("musicAlbum")
+                  : setNote(
+                      ko
+                        ? "음악 앨범(mp3 업로드)은 Basic·Pro 플랜에서 추가할 수 있어요."
+                        : "Music albums (mp3 upload) require a Basic or Pro plan.",
+                    )
+              }
+              className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
+                musicAllowed
+                  ? "border-border-strong text-muted hover:border-primary/50 hover:bg-primary-soft hover:text-primary"
+                  : "border-border text-muted/60"
+              }`}
+            >
+              {musicAllowed ? "+ " : "🔒 "}
+              {ko ? "음악 앨범" : "Music album"}
+            </button>
+          )}
         </div>
       </div>
+      </>
+      )}
 
       {/* 전문 레이아웃 + 섹션 순서(박스 배치) — 파트너 전용(일반/유료고객 비노출). */}
       {isPartner && (
@@ -2048,7 +2070,8 @@ export function WebsiteEditor({
       </div>
       )}
 
-      {/* 배너 관리 — 랜딩/블로그에 노출할 이미지 배너(문구·버튼·AI 이미지·사이즈). */}
+      {/* 배너 관리 — 이미지 배너 추가/구성은 구조 편집이라 대행 파트너 전용. */}
+      {isPartner && (
       <div className="space-y-3 rounded-xl border border-border bg-surface p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
@@ -2082,6 +2105,7 @@ export function WebsiteEditor({
             : "Press Save at the top to apply. (Published sites go live on save.)"}
         </p>
       </div>
+      )}
 
       {note && <p className="text-sm text-primary">{note}</p>}
       <p className="text-xs text-muted">
@@ -2090,8 +2114,8 @@ export function WebsiteEditor({
           : "Click any text in the preview below to edit it in place. Select text to reveal formatting tools (bold, color, highlight). Press Save when you are done."}
       </p>
 
-      {/* 페이지 관리 (멀티페이지) */}
-      {(richAllowed || pages.length > 0) && (
+      {/* 페이지 관리 (멀티페이지) — 구조 편집이라 대행 파트너 전용. */}
+      {isPartner && (richAllowed || pages.length > 0) && (
         <div className="space-y-2 rounded-xl border border-border bg-surface p-3">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="eyebrow mr-1">{ko ? "페이지" : "Pages"}</span>
