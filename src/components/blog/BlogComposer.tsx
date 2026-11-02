@@ -373,11 +373,11 @@ export function BlogComposer({ businessId }: { businessId: string }) {
   };
 
   const generate = async () => {
-    if (mode === "topic" && !topic.trim()) {
+    if (mode === "topic" && !topic.trim() && refs.length === 0) {
       setError(
         ko
-          ? "어떤 내용을 쓰고 싶은지 알려주세요."
-          : "Tell us what you would like to write about.",
+          ? "주제를 적거나 참조 자료(주소·파일)를 하나 이상 넣어주세요."
+          : "Enter a topic, or add at least one reference (URL or file).",
       );
       return;
     }
@@ -405,12 +405,19 @@ export function BlogComposer({ businessId }: { businessId: string }) {
     try {
       let res: Response;
       if (mode === "topic") {
+        // 주제를 비워도 참조 자료만으로 생성할 수 있다 — 이 경우 첨부 자료(영문 포함)를
+        // 분석해 한국어 블로그 글로 정리하도록 기본 지시를 넣는다.
+        const effectiveTopic =
+          topic.trim() ||
+          (ko
+            ? "첨부한 참조 자료의 핵심 내용을 분석해 한국어 블로그 글로 정리해줘."
+            : "Analyze the attached reference material and write a blog post based on it.");
         res = await fetch("/api/ai/blog", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             businessId,
-            topic,
+            topic: effectiveTopic,
             tone,
             length,
             source: buildRefSource(),
@@ -713,11 +720,22 @@ export function BlogComposer({ businessId }: { businessId: string }) {
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               placeholder={
-                ko
-                  ? "예: 오늘 새로 출시한 딸기 케이크에 대해 홍보하고 싶어요."
-                  : "e.g. I want to promote the strawberry cake we launched today."
+                refs.length > 0
+                  ? ko
+                    ? "비워두면 첨부한 참조 자료를 분석해 한국어 글을 써드려요. (원하는 방향이 있으면 적어주세요)"
+                    : "Leave blank to write from the attached references. (Optional: add a direction)"
+                  : ko
+                    ? "예: 오늘 새로 출시한 딸기 케이크에 대해 홍보하고 싶어요."
+                    : "e.g. I want to promote the strawberry cake we launched today."
               }
             />
+            {refs.length > 0 && !topic.trim() && (
+              <p className="text-xs text-muted">
+                {ko
+                  ? "주제를 비워두면 첨부한 참조 자료(영문 포함)를 분석해 한국어 블로그 글로 정리합니다."
+                  : "With the topic blank, the attached references will be analyzed and written up as a blog post."}
+              </p>
+            )}
           </div>
         ) : mode === "chat" ? (
           <div className="space-y-3">
