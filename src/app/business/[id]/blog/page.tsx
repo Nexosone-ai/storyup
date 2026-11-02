@@ -3,6 +3,7 @@ import {
   getBusiness,
   getBlogPosts,
   getManagedBlogCategories,
+  getWebsite,
 } from "@/lib/queries";
 import { getLocale } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/server";
@@ -25,10 +26,13 @@ export default async function BlogPage({
   const { id } = await params;
   const business = await getBusiness(id);
   if (!business) notFound();
-  const [posts, categories] = await Promise.all([
+  const [posts, categories, website] = await Promise.all([
     getBlogPosts(id),
     getManagedBlogCategories(id),
+    getWebsite(id),
   ]);
+  // 이미 사이트를 발행한(= 한번 세팅 완료한) 고객에겐 안내 투어를 자동 실행하지 않는다.
+  const configured = website?.status === "published";
   const ko = (await getLocale()) === "ko";
   const supabase = await createClient();
   const {
@@ -52,7 +56,7 @@ export default async function BlogPage({
       </div>
       <GuidedTour
         storageKey="tour.blog.v1"
-        autoStart={posts.length === 0}
+        autoStart={posts.length === 0 && !configured}
         steps={[
           {
             target: "[data-tour=blog-new]",

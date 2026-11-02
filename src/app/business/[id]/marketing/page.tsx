@@ -121,7 +121,10 @@ export default async function MarketingPage({
       <GuidedTour
         storageKey="tour.sns.v1"
         autoStart={
-          !initialText.instagram && !initialText.facebook && !initialCards
+          website?.status !== "published" &&
+          !initialText.instagram &&
+          !initialText.facebook &&
+          !initialCards
         }
         steps={[
           {
