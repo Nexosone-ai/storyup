@@ -132,23 +132,48 @@ export function EventEditor({
     addressEnabled ||
     mapEnabled ||
     reservationEnabled;
+  // 기본은 접힘 — 이미 켜둔 모듈이 있으면 펼친 채로 시작(설정값을 바로 보이게).
+  const [open, setOpen] = useState(anyOn);
   const fieldCls = "w-40";
 
   return (
     <div className="mx-auto max-w-3xl">
       <div className="rounded-2xl border border-border bg-surface p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          className="flex w-full items-center justify-between gap-3 text-left"
+        >
           <div>
             <h2 className="flex items-center gap-2 text-base font-semibold">
               🎁 {ko ? "이벤트" : "Event"}
             </h2>
             <p className="mt-0.5 text-xs text-muted">
               {ko
-                ? "이 글 하단에 쿠폰·연락문의·댓글·주소·지도 모듈을 붙일 수 있어요. '모든 글에 동일 적용'으로 한 번에 반영할 수도 있어요(쿠폰 제외)."
-                : "Attach coupon, contact, comments, address, and map modules below this post. Use 'Apply to all posts' to set them across every post at once (coupon excluded)."}
+                ? "이 글 하단에 쿠폰·연락문의·댓글·주소·지도 모듈을 붙일 수 있어요. 펼쳐서 설정하세요."
+                : "Attach coupon, contact, comments, address, and map modules below this post. Expand to configure."}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+            className={`shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`}
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </button>
+
+        {open && (
+          <>
+          <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
             <Button
               size="sm"
               variant="outline"
@@ -178,7 +203,6 @@ export function EventEditor({
               )}
             </Button>
           </div>
-        </div>
 
         {note && <p className="mt-3 text-sm text-primary">{note}</p>}
 
@@ -561,6 +585,8 @@ export function EventEditor({
             </span>
           </label>
         </div>
+          </>
+        )}
       </div>
     </div>
   );

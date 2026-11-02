@@ -51,6 +51,8 @@ export default async function BlogEditorPage({
   const schedulingAllowed = plan?.scheduledPublish === true;
   const aeoAllowed = plan?.aeo === true;
   const seoAllowed = plan?.seoTools === true;
+  // 글 요약 이미지(1장)는 Pro 전용.
+  const summaryImageAllowed = plan?.id === "pro";
 
   return (
     <div className="space-y-8">
@@ -62,6 +64,7 @@ export default async function BlogEditorPage({
         categories={categories}
         schedulingAllowed={schedulingAllowed}
         seoAllowed={seoAllowed}
+        summaryImageAllowed={summaryImageAllowed}
       />
       <EventEditor
         businessId={id}
