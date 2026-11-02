@@ -13,9 +13,23 @@ export const BUSINESS_CATEGORIES = [
   "E-commerce",
   "Technology",
   "Education",
+  "Artist",
   "Other",
 ] as const;
 export type BusinessCategory = (typeof BUSINESS_CATEGORIES)[number];
+
+/**
+ * 작가·예술가 사이트의 하위 유형 — '작가'(Artist) 카테고리에서 고르면 그에 맞는
+ * minimal 레이아웃 + 스타터 섹션(음악 앨범/미술 갤러리/글)이 자동 구성된다.
+ */
+export const WRITER_KINDS = ["music", "art", "novel", "etc"] as const;
+export type WriterKind = (typeof WRITER_KINDS)[number];
+export const WRITER_KIND_LABELS: Record<WriterKind, { ko: string; en: string }> = {
+  music: { ko: "음악", en: "Music" },
+  art: { ko: "미술·그림", en: "Art" },
+  novel: { ko: "소설·글", en: "Novel" },
+  etc: { ko: "기타", en: "Other" },
+};
 
 /**
  * 업종 대분류(10개) — 사장님이 브랜드 설정에서 고르고, 쇼케이스에서 업종별로 필터한다.
@@ -210,6 +224,20 @@ export interface SiteSlideItem {
   ctaLabel?: string;
   ctaHref?: string;
 }
+/** 음악 앨범의 한 곡 — mp3 + 가사 + 곡에 얽힌 이야기(글감). */
+export interface SiteTrackItem {
+  title: string;
+  /** 업로드된 mp3 등의 공개 URL. */
+  audioUrl?: string;
+  lyrics?: string;
+  story?: string;
+}
+/** 미술 갤러리의 한 작품 — 이미지 + 작품에 관한 이야기. */
+export interface SiteArtItem {
+  imageUrl?: string;
+  title?: string;
+  story?: string;
+}
 
 /**
  * 블로그 연결 블록의 추상 바인딩 규칙 — 디자인과 분리된 데이터 연결만 저장한다.
@@ -242,6 +270,8 @@ export const SITE_SECTION_TYPES = [
   "stats",
   "cta",
   "richText",
+  "musicAlbum",
+  "artGallery",
 ] as const;
 export type SiteSectionType = (typeof SITE_SECTION_TYPES)[number];
 
@@ -291,6 +321,18 @@ export type SiteSection = { image?: string } & (
   | { type: "stats"; title?: string; items: SiteStatItem[] }
   | { type: "cta"; title: string; body?: string; ctaLabel?: string; ctaHref?: string }
   | { type: "richText"; title: string; body: string }
+  // 음악 앨범 — mp3 트랙 목록(공개는 커버 회전 플레이어). 곡별 가사·이야기.
+  | {
+      type: "musicAlbum";
+      title?: string;
+      /** 앨범 커버 이미지(회전 LP). 없으면 기본 LP 그래픽. */
+      coverImage?: string;
+      /** 앨범 전체에 대한 소개/이야기. */
+      story?: string;
+      items: SiteTrackItem[];
+    }
+  // 미술 갤러리 — 이미지 + 작품 이야기를 세로로 나열.
+  | { type: "artGallery"; title?: string; story?: string; items: SiteArtItem[] }
   // 블로그 글 목록(레거시) — category로 자동 필터해 카드로 노출. 비우면 전체.
   | { type: "postList"; title?: string; category?: string }
   // 블로그 연결 섹션 — 추상 바인딩 규칙 + 비균일 레이아웃(글은 런타임 조회).
@@ -549,6 +591,8 @@ export interface BusinessInterviewInput {
   category: BusinessCategory;
   /** 업종 대분류 id (쇼케이스 분류용). 온보딩에서 선택 사항. */
   industry?: IndustryId;
+  /** category="Artist"일 때 작가 하위 유형 — 사이트 스타터 프리셋 선택용. */
+  writerKind?: WriterKind;
   founder_story: string;
   target_customer: string;
   strengths: string;

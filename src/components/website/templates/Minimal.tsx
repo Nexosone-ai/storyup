@@ -117,6 +117,7 @@ export function MinimalTemplate(props: TemplateProps) {
             onDelete={onDeleteSection}
         posts={props.sectionPosts}
         categories={props.categories}
+        editTools={props.editTools}
           />
         </>
       ) : null,

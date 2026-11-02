@@ -61,8 +61,12 @@ export default async function WebsitePage({
   } else {
     // 플랜별 사용 가능한 레이아웃 수 (Free 1 · Basic 3 · Pro 9). 직원은 소유자 플랜 상속.
     const user = await getUser();
-    const plan = user ? getPlanById(await getPlanId(user.id)) : null;
+    const planId = user ? await getPlanId(user.id) : null;
+    const plan = planId ? getPlanById(planId) : null;
     const maxLayouts = plan?.siteLayouts ?? 1;
+    // 음악 앨범(mp3 업로드)은 유료 플랜만 — 저장 비용 통제.
+    const musicAllowed =
+      planId === "basic" || planId === "pro" || planId === "partner";
     // 전문 레이아웃·디자인 템플릿 섹션은 파트너 전용(일반/유료고객 비노출).
     const partner = user ? await isPartner(user.id) : false;
     // 미리보기의 "카드뉴스" 섹션에 표시할 이 가게의 카드뉴스.
@@ -93,6 +97,7 @@ export default async function WebsitePage({
         maxLayouts={maxLayouts}
         richAllowed={plan?.fullHomepage === true}
         isPartner={partner}
+        musicAllowed={musicAllowed}
         cards={cards}
         posts={sectionPosts}
         categories={categories}

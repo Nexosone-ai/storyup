@@ -67,6 +67,19 @@ export interface TemplateProps {
   editHref?: string;
   /** (에디터) 홈의 풍부한 섹션(단락) 삭제 콜백. */
   onDeleteSection?: (index: number) => void;
+  /** (에디터) 음악/미술 섹션 등 배열 아이템 편집 도구 묶음. 공개 렌더에선 미전달. */
+  editTools?: SectionEditTools;
+}
+
+/**
+ * (에디터 전용) 음악 앨범·미술 갤러리처럼 배열 아이템이 있는 섹션의 편집 도구.
+ * 값 설정(setValue=setPath), 아이템 추가/삭제를 한 묶음으로 전달해 템플릿 스레딩을 줄인다.
+ */
+export interface SectionEditTools {
+  businessId: string;
+  setValue: (path: string, value: string) => void;
+  addItem: (sectionIndex: number) => void;
+  removeItem: (sectionIndex: number, itemIndex: number) => void;
 }
 
 /** Server-safe renderer: plain text, no interactivity.

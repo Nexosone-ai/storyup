@@ -2,10 +2,65 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { slugWithFallback, randomSuffix } from "@/utils/slug";
-import { BUSINESS_CATEGORIES, BRAND_TONES, INDUSTRY_IDS } from "@/types/domain";
-import type { BusinessInterviewInput } from "@/types/domain";
+import {
+  BUSINESS_CATEGORIES,
+  BRAND_TONES,
+  INDUSTRY_IDS,
+  WRITER_KINDS,
+} from "@/types/domain";
+import type {
+  BusinessInterviewInput,
+  WriterKind,
+  WebsiteContent,
+  SiteSection,
+} from "@/types/domain";
 import { getPlanId } from "@/lib/subscription";
 import { getPlanById } from "@/lib/plans";
+import { getLocale } from "@/lib/i18n";
+import { WRITER_PRESETS } from "@/lib/website/writerPresets";
+
+/**
+ * 작가(Artist) 사이트 초기 콘텐츠 — minimal 레이아웃 + 하위 유형 프리셋 섹션.
+ * 기본 비즈니스 블록(소개/제공/강점/갤러리 등)은 숨기고 작가 섹션+연락처만 노출한다.
+ */
+function buildWriterContent(
+  name: string,
+  kind: WriterKind,
+  ko: boolean,
+): WebsiteContent {
+  const preset = WRITER_PRESETS[kind];
+  const built = preset.build(ko);
+  const heroSec = built.find(
+    (s): s is Extract<SiteSection, { type: "hero" }> => s.type === "hero",
+  );
+  const rest = built.filter((s) => s.type !== "hero");
+  return {
+    template: preset.template,
+    language: ko ? "ko" : "en",
+    style: { palette: preset.palette, font: preset.font },
+    hero: {
+      businessName: name,
+      headline: heroSec?.title ?? name,
+      shortDescription: heroSec?.subtitle ?? "",
+      ctaLabel: heroSec?.ctaLabel ?? (ko ? "연락하기" : "Get in touch"),
+    },
+    story: { title: "", body: "" },
+    offers: { title: "", items: [] },
+    whyChooseUs: { title: "", items: [] },
+    contact: { phone: "", email: "", address: "", instagram: "", website: "" },
+    sections: rest,
+    hiddenSections: [
+      "banner",
+      "story",
+      "offers",
+      "whyChooseUs",
+      "gallery",
+      "blog",
+      "cards",
+      "map",
+    ],
+  };
+}
 
 export interface CreateBusinessResult {
   businessId?: string;
@@ -26,6 +81,14 @@ export async function createBusinessAction(
   // 업종은 선택 사항 — 값이 있으면 유효성만 검사한다.
   if (input.industry && !INDUSTRY_IDS.includes(input.industry))
     return { error: "올바른 업종을 선택해주세요." };
+  // 작가 카테고리는 하위 유형(음악/미술/소설/기타) 필수.
+  const isArtist = input.category === "Artist";
+  const writerKind: WriterKind | null =
+    isArtist && input.writerKind && WRITER_KINDS.includes(input.writerKind)
+      ? input.writerKind
+      : isArtist
+        ? "etc"
+        : null;
 
   const supabase = await createClient();
   const {
@@ -86,5 +149,22 @@ export async function createBusinessAction(
     .single();
 
   if (error || !data) return { error: "비즈니스 생성에 실패했습니다." };
+
+  // 작가 사이트는 하위 유형 프리셋으로 초기 웹사이트(minimal)를 바로 시드한다.
+  if (writerKind) {
+    const ko = (await getLocale()) === "ko";
+    const content = buildWriterContent(name, writerKind, ko);
+    await supabase.from("websites").upsert(
+      {
+        business_id: data.id,
+        slug,
+        content,
+        status: "draft",
+      },
+      { onConflict: "business_id" },
+    );
+    // 시드 실패해도 비즈니스 생성은 성공으로 본다(이후 생성기에서 복구 가능).
+  }
+
   return { businessId: data.id };
 }

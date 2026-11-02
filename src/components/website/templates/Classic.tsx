@@ -93,6 +93,7 @@ export function ClassicTemplate(props: TemplateProps) {
         onDelete={onDeleteSection}
         posts={props.sectionPosts}
         categories={props.categories}
+        editTools={props.editTools}
       />
     ),
     gallery: <GalleryBlock {...props} />,

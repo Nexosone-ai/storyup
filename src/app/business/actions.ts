@@ -147,6 +147,89 @@ export async function createVoiceUploadUrl(
   return { path: data.path, token: data.token };
 }
 
+const AUDIO_BUCKET = "site-audio";
+const AUDIO_EXTS = ["mp3", "m4a", "wav", "aac", "ogg"];
+
+export interface AudioUploadTicket {
+  path?: string;
+  token?: string;
+  /** 업로드 완료 후 그대로 사용할 공개 재생 URL(공개 버킷). */
+  publicUrl?: string;
+  error?: string;
+}
+
+/**
+ * 작가(음악) 사이트용 mp3 업로드 서명 URL 발급 — 공개 버킷 `site-audio`에 영구 저장.
+ * mp3는 Vercel 요청 본문 한도(4.5MB)를 넘기 쉬워 클라이언트가 Storage에 직접 올린다.
+ * 유료(Basic/Pro/Partner)만 허용 — 저장 비용 통제. (서버가 최종 권위.)
+ */
+export async function createAudioUploadUrl(
+  businessId: string,
+  ext: string,
+): Promise<AudioUploadTicket> {
+  const ko = (await getLocale()) === "ko";
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: ko ? "로그인이 필요합니다." : "Please log in." };
+
+  // 소유권 확인(RLS).
+  const { data: biz } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("id", businessId)
+    .maybeSingle();
+  if (!biz)
+    return { error: ko ? "권한이 없습니다." : "You don't have permission." };
+
+  // 플랜 게이트 — 음악 업로드는 유료만.
+  const planId = await getPlanId(user.id);
+  if (planId !== "basic" && planId !== "pro" && planId !== "partner")
+    return {
+      error: ko
+        ? "음악(mp3) 업로드는 Basic·Pro 플랜에서 이용할 수 있습니다."
+        : "Music upload is available on Basic and Pro plans.",
+    };
+
+  const safeExt = AUDIO_EXTS.includes(ext.toLowerCase())
+    ? ext.toLowerCase()
+    : null;
+  if (!safeExt)
+    return {
+      error: ko
+        ? "mp3·m4a·wav 형식만 올릴 수 있습니다."
+        : "Only mp3, m4a, or wav files are allowed.",
+    };
+
+  const admin = createAdminClient();
+
+  // 공개 버킷 멱등 생성.
+  try {
+    const { data: buckets } = await admin.storage.listBuckets();
+    if (!buckets?.some((b) => b.name === AUDIO_BUCKET)) {
+      await admin.storage.createBucket(AUDIO_BUCKET, {
+        public: true,
+        fileSizeLimit: "25MB",
+      });
+    }
+  } catch {
+    // 목록/생성 실패해도 이미 존재하면 서명은 동작한다.
+  }
+
+  const path = `${businessId}/${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}.${safeExt}`;
+  const { data, error } = await admin.storage
+    .from(AUDIO_BUCKET)
+    .createSignedUploadUrl(path);
+  if (error || !data)
+    return {
+      error: ko ? "업로드 준비에 실패했습니다." : "Failed to prepare upload.",
+    };
+  const {
+    data: { publicUrl },
+  } = admin.storage.from(AUDIO_BUCKET).getPublicUrl(path);
+  return { path: data.path, token: data.token, publicUrl };
+}
+
 export interface ActionState {
   error?: string;
   message?: string;

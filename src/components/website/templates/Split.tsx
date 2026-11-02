@@ -107,6 +107,7 @@ export function SplitTemplate(props: TemplateProps) {
         onDelete={onDeleteSection}
         posts={props.sectionPosts}
         categories={props.categories}
+        editTools={props.editTools}
       />
     ),
     gallery:

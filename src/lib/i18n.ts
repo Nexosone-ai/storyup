@@ -246,6 +246,7 @@ export const translations = {
         "E-commerce": "이커머스",
         Technology: "IT·테크",
         Education: "교육",
+        Artist: "작가·예술가",
         Other: "기타",
       },
       toneLabels: {
@@ -521,6 +522,7 @@ export const translations = {
         "E-commerce": "E-commerce",
         Technology: "Technology",
         Education: "Education",
+        Artist: "Artist",
         Other: "Other",
       },
       toneLabels: {
