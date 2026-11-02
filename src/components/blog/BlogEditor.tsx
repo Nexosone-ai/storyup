@@ -36,6 +36,7 @@ export function BlogEditor({
   categories = [],
   schedulingAllowed = true,
   seoAllowed = false,
+  summaryImageAllowed = false,
 }: {
   businessId: string;
   post: BlogPostRow;
@@ -47,6 +48,8 @@ export function BlogEditor({
   schedulingAllowed?: boolean;
   /** 글별 SEO AI 진단 가능 플랜(유료, plan.seoTools)인지. */
   seoAllowed?: boolean;
+  /** 글 요약 이미지(1장) 생성 가능 플랜(Pro 전용)인지. */
+  summaryImageAllowed?: boolean;
 }) {
   const ko = useLocale() === "ko";
   const [title, setTitle] = useState(post.title);
@@ -73,6 +76,9 @@ export function BlogEditor({
   const [publishing, startPublish] = useTransition();
   const [coverPending, startCover] = useTransition();
   const coverFileRef = useRef<HTMLInputElement>(null);
+  // 글 요약 이미지(Pro) — 본문 내용을 요약한 1장.
+  const [summaryImg, setSummaryImg] = useState<string | null>(null);
+  const [summaryPending, startSummary] = useTransition();
 
   const generateCover = () =>
     startCover(async () => {
@@ -104,6 +110,49 @@ export function BlogEditor({
             ? "이미지 생성에 실패했습니다. 다시 시도해주세요."
             : "Image generation failed. Please try again.",
         );
+      }
+    });
+
+  const generateSummaryImage = () =>
+    startSummary(async () => {
+      setNote(null);
+      try {
+        const res = await fetch("/api/ai/blog-summary-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            businessId,
+            postId: post.id,
+            style: imageStyle,
+          }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json.url) {
+          setNote(
+            json.error ??
+              (ko ? "이미지 생성에 실패했습니다." : "Image generation failed."),
+          );
+          return;
+        }
+        setSummaryImg(json.url);
+        setNote(ko ? "요약 이미지가 생성되었습니다." : "Summary image created.");
+      } catch {
+        setNote(
+          ko
+            ? "이미지 생성에 실패했습니다. 다시 시도해주세요."
+            : "Image generation failed. Please try again.",
+        );
+      }
+    });
+
+  const useSummaryAsCover = () =>
+    startSummary(async () => {
+      if (!summaryImg) return;
+      const res = await updateBlogCoverAction(businessId, post.id, summaryImg);
+      if (res.error) setNote(res.error);
+      else {
+        setCover(summaryImg);
+        setNote(ko ? "요약 이미지를 커버로 설정했어요." : "Set as cover.");
       }
     });
 
@@ -648,6 +697,87 @@ export function BlogEditor({
             className="aspect-[16/7] w-full rounded-xl"
           />
         )}
+      </div>
+
+      {/* 글 요약 이미지(Pro) — 본문 내용을 요약한 1장(SNS 공유·썸네일용). */}
+      <div className="space-y-3 rounded-2xl border border-border bg-surface p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <Label>
+              {ko ? "요약 이미지" : "Summary image"}
+              <span className="ml-1.5 rounded-full bg-primary-soft px-2 py-0.5 text-xs font-semibold text-primary">
+                Pro
+              </span>
+            </Label>
+            <p className="mt-0.5 text-xs text-muted">
+              {ko
+                ? "글 내용을 요약한 1장 이미지를 만들어요. SNS 공유·썸네일로 쓰기 좋아요."
+                : "Generate one image summarizing this post — great for SNS or thumbnails."}
+            </p>
+          </div>
+          {summaryImageAllowed && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={generateSummaryImage}
+              disabled={summaryPending}
+            >
+              {summaryPending ? (
+                <Spinner className="size-4" />
+              ) : summaryImg ? (
+                ko ? "다시 생성" : "Regenerate"
+              ) : ko ? (
+                "요약 이미지 생성"
+              ) : (
+                "Generate"
+              )}
+            </Button>
+          )}
+        </div>
+        {!summaryImageAllowed ? (
+          <div className="flex items-start gap-2 rounded-xl border border-border bg-surface-muted p-3 text-xs text-muted">
+            <span aria-hidden>🔒</span>
+            <p>
+              {ko
+                ? "요약 이미지는 Pro 플랜 전용이에요. "
+                : "Summary images are a Pro feature. "}
+              <a
+                href="/dashboard/plans"
+                className="font-semibold text-primary underline"
+              >
+                {ko ? "업그레이드 →" : "Upgrade →"}
+              </a>
+            </p>
+          </div>
+        ) : summaryImg ? (
+          <div className="space-y-2">
+            {/* eslint-disable-next-line @next/next/no-img-element -- 원격 스토리지 URL */}
+            <img
+              src={summaryImg}
+              alt={ko ? "요약 이미지" : "Summary image"}
+              className="mx-auto aspect-square w-full max-w-xs rounded-xl object-cover"
+            />
+            <div className="flex flex-wrap justify-center gap-2">
+              <a
+                href={summaryImg}
+                target="_blank"
+                rel="noopener noreferrer"
+                download
+                className="inline-flex items-center rounded-lg border border-border-strong px-3 py-1.5 text-sm font-medium text-muted hover:bg-surface-muted hover:text-foreground"
+              >
+                {ko ? "새 탭에서 열기" : "Open"}
+              </a>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={useSummaryAsCover}
+                disabled={summaryPending}
+              >
+                {ko ? "커버로 사용" : "Use as cover"}
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {/* Content editor — 위지윅(WYSIWYG) */}

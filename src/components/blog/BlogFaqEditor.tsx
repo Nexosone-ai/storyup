@@ -27,6 +27,8 @@ export function BlogFaqEditor({
 }) {
   const ko = useLocale() === "ko";
   const [faq, setFaq] = useState<BlogFaqItem[]>(initialFaq);
+  // 기본 접힘 — 이미 생성된 FAQ가 있으면 펼친 채로 시작.
+  const [open, setOpen] = useState(initialFaq.length > 0);
   const [note, setNote] = useState<{ text: string; error: boolean } | null>(
     null,
   );
@@ -57,7 +59,12 @@ export function BlogFaqEditor({
   return (
     <div className="mx-auto max-w-3xl">
       <div className="rounded-2xl border border-border bg-surface p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          className="flex w-full items-center justify-between gap-3 text-left"
+        >
           <div>
             <h2 className="flex items-center gap-2 text-base font-semibold">
               💬 {ko ? "AEO FAQ" : "AEO FAQ"}
@@ -67,12 +74,30 @@ export function BlogFaqEditor({
             </h2>
             <p className="mt-0.5 text-xs text-muted">
               {ko
-                ? "본문에서 질문·답변을 만들어 공개 글 하단에 FAQ로 보여주고, 구글 AI Overviews·ChatGPT 같은 답변엔진이 인용하기 쉽게 FAQPage 구조화 데이터를 심어요."
-                : "Builds Q&A from your post and adds FAQPage structured data for AI answer engines."}
+                ? "본문에서 질문·답변을 만들어 공개 글 하단에 FAQ로 보여주고, 답변엔진이 인용하기 쉽게 FAQPage 구조화 데이터를 심어요. 펼쳐서 설정하세요."
+                : "Builds Q&A from your post and adds FAQPage structured data for AI answer engines. Expand to configure."}
             </p>
           </div>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+            className={`shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`}
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </button>
+
+        {open && (
+          <>
           {aeoAllowed && (
-            <div className="flex shrink-0 gap-2">
+            <div className="mt-4 flex shrink-0 justify-end gap-2">
               {faq.length > 0 && (
                 <Button
                   variant="ghost"
@@ -96,7 +121,6 @@ export function BlogFaqEditor({
               </Button>
             </div>
           )}
-        </div>
 
         {!aeoAllowed ? (
           <div className="mt-4 flex items-start gap-3 rounded-xl border border-border bg-surface-muted p-4">
@@ -143,6 +167,8 @@ export function BlogFaqEditor({
                 ))}
               </ul>
             )}
+          </>
+        )}
           </>
         )}
       </div>
