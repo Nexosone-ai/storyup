@@ -7,6 +7,7 @@ import type { ImageAspect } from "@/lib/ai/image";
 import { buildSitePhotoPrompt } from "@/lib/ai/image/prompt";
 import { storeGeneratedImage } from "@/lib/ai/imageStore";
 import { getLocale } from "@/lib/i18n";
+import { getPlanId } from "@/lib/subscription";
 
 export const maxDuration = 60;
 
@@ -72,7 +73,9 @@ export async function POST(request: Request) {
       .generateImageSubject({ category: business.category, text, kind: "scene" })
       .catch(() => text);
     const prompt = buildSitePhotoPrompt(business.category, scene);
-    const image = await getImageProvider().generateImage(prompt, aspect);
+    // 무료 플랜은 Pollinations(기본 화질), 유료는 고품질 모델.
+    const premium = (await getPlanId(user.id)) !== "free";
+    const image = await getImageProvider(premium).generateImage(prompt, aspect);
 
     const url = await storeGeneratedImage(businessId, "site-ai", image);
     if (!url) throw new Error("storage upload failed");

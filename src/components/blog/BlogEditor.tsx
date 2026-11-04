@@ -37,6 +37,7 @@ export function BlogEditor({
   schedulingAllowed = true,
   seoAllowed = false,
   summaryImageAllowed = false,
+  premiumImages = true,
 }: {
   businessId: string;
   post: BlogPostRow;
@@ -50,6 +51,8 @@ export function BlogEditor({
   seoAllowed?: boolean;
   /** 글 요약 이미지(1장) 생성 가능 플랜(Pro 전용)인지. */
   summaryImageAllowed?: boolean;
+  /** 고품질 AI 이미지(유료) 사용 가능 여부. false(무료)면 기본 화질 안내를 노출. */
+  premiumImages?: boolean;
 }) {
   const ko = useLocale() === "ko";
   const [title, setTitle] = useState(post.title);
@@ -594,6 +597,13 @@ export function BlogEditor({
 
       {/* Cover image */}
       <div>
+        {!premiumImages && (
+          <p className="mb-1.5 text-xs text-muted">
+            {ko
+              ? "무료 플랜은 기본 화질 이미지로 생성돼요. 유료로 전환하면 더 높은 화질의 AI 이미지를 사용할 수 있어요."
+              : "Free plan generates standard-quality images. Upgrade for higher-quality AI images."}
+          </p>
+        )}
         <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
           <Label>{ko ? "커버 이미지" : "Cover image"}</Label>
           <div className="flex flex-wrap items-center gap-2">

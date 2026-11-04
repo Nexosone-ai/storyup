@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n";
 import { generateAndStoreBlogCover } from "@/lib/ai/blogCover";
 import { coerceImageStyle } from "@/lib/ai/image/style";
+import { getPlanId } from "@/lib/subscription";
 
 export const maxDuration = 60;
 
@@ -62,6 +63,7 @@ export async function POST(request: Request) {
     style,
     instruction,
     language: ko ? "ko" : "en",
+    premium: (await getPlanId(user.id)) !== "free",
   });
   if (!url)
     return NextResponse.json(
