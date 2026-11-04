@@ -4,8 +4,21 @@ import type { CardNewsResult } from "@/types/domain";
 import type { PromptLanguage } from "@/lib/ai/prompts/brand-story";
 import { getAIProvider } from "@/lib/ai";
 import { chargeAiUsage } from "@/lib/ai/billing";
+import { getPlanId } from "@/lib/subscription";
 import { trackGrowthActivity } from "@/lib/gamification/engine";
 import { slugify } from "@/utils/slug";
+
+/** 무료 플랜은 카드뉴스를 제공하지 않는다(유료 전용 기능). 라우트가 403으로 응답한다. */
+export class CardNewsPlanError extends Error {
+  constructor(ko: boolean) {
+    super(
+      ko
+        ? "카드뉴스는 유료 플랜(Basic 이상) 기능입니다. 플랜을 업그레이드해주세요."
+        : "Card news is available on paid plans (Basic and up). Please upgrade.",
+    );
+    this.name = "CardNewsPlanError";
+  }
+}
 
 /**
  * 기존 블로그 글로 카드뉴스 생성+저장 공통 함수 — 과금(CARD_NEWS)→생성→
@@ -22,6 +35,11 @@ export async function generateAndSaveCardNews(args: {
   skipBilling?: boolean;
 }): Promise<{ cardNewsId: string | null; cardNews: CardNewsResult }> {
   const { supabase, userId, businessId, blogPostId } = args;
+
+  // 무료 플랜 차단 — 카드뉴스는 유료 전용. (파트너 패킷 과금 경로는 파트너 플랜이라 건너뛴다.)
+  if (!args.skipBilling && (await getPlanId(userId)) === "free") {
+    throw new CardNewsPlanError((args.locale ?? "ko") === "ko");
+  }
 
   const { data: business } = await supabase
     .from("businesses")

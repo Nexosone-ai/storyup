@@ -67,7 +67,7 @@ export const PLANS: Plan[] = [
     id: "free",
     name: { ko: "Free", en: "Free" },
     priceKrw: 0,
-    limits: { sites: 1, blogPosts: 30, cardNews: 1, shorts: 0, video: 0, aiImages: 30 }, // 블로그: 하루 1개·월 30개(월 재신청), aiImages: 미사용
+    limits: { sites: 1, blogPosts: 30, cardNews: 0, shorts: 0, video: 0, aiImages: 30 }, // 블로그: 하루 1개·월 30개(월 재신청), 카드뉴스: 미제공(유료 전용), aiImages: 미사용
     maxBusinesses: 1,
     maxMembers: 1,
     siteLayouts: 1,
@@ -185,16 +185,16 @@ export function planFeatureList(plan: Plan, ko: boolean): string[] {
           : `${l.blogPosts} blog posts${per}`,
   );
 
-  // SNS 카드뉴스
-  out.push(
-    l.cardNews === null
-      ? ko
-        ? `SNS 카드뉴스 ${talk}`
-        : `Card news: ${talk}`
-      : ko
+  // SNS 카드뉴스 — 0건(미제공, 유료 전용)은 카드에 표기하지 않는다.
+  if (l.cardNews === null) {
+    out.push(ko ? `SNS 카드뉴스 ${talk}` : `Card news: ${talk}`);
+  } else if (l.cardNews > 0) {
+    out.push(
+      ko
         ? `SNS 카드뉴스(${CARD_NEWS_PAGES}매) ${l.cardNews}${per}`
         : `${l.cardNews} card news (${CARD_NEWS_PAGES} pages)${per}`,
-  );
+    );
+  }
 
   // 쇼츠(카드뉴스 배경 9:16 영상) — 제공 플랜만 표기. 비활성(준비중)이면 꼬리표.
   const shortsSoon = SHORTS_ENABLED ? "" : ko ? " (준비중)" : " (soon)";
