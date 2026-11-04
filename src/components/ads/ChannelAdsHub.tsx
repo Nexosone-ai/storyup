@@ -2,9 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import PortOne from "@portone/browser-sdk/v2";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Select, Label } from "@/components/ui/Field";
+import { formatPhone } from "@/utils/phone";
 import {
   SHARE_PLATFORMS,
   SHARE_PLATFORM_LABELS,
@@ -13,9 +15,12 @@ import {
 import {
   saveChannelAction,
   setChannelHiddenAction,
+  createChannelShareOrderAction,
 } from "@/app/dashboard/ads/channel-actions";
 
 const won = (n: number) => `₩${n.toLocaleString()}`;
+const platLabel = (p: string) =>
+  SHARE_PLATFORM_LABELS[p as SharePlatform] ?? p;
 
 export interface MyChannel {
   id: string;
@@ -27,17 +32,57 @@ export interface MyChannel {
   description: string | null;
   status: string;
 }
+export interface DirectoryChannelView {
+  id: string;
+  platform: string;
+  handle: string | null;
+  followerCount: number;
+  priceKrw: number;
+  description: string | null;
+}
+export interface ContentItem {
+  contentType: "blog" | "card_news";
+  refId: string;
+  title: string;
+  businessName: string;
+}
+export interface JobView {
+  id: string;
+  platform: string;
+  priceKrw: number;
+  contentType: string;
+  contentUrl: string;
+  contentTitle: string | null;
+  message: string | null;
+  status: string;
+  proofUrl: string | null;
+  createdAt: string;
+}
 
-const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
+const CH_STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   pending: { label: "승인 대기", cls: "bg-surface-2 text-muted" },
   active: { label: "공개 중", cls: "bg-success/15 text-success" },
   rejected: { label: "반려", cls: "bg-danger/10 text-danger" },
   hidden: { label: "숨김", cls: "bg-surface-2 text-muted" },
 };
+const JOB_STATUS_LABEL: Record<string, string> = {
+  paid: "게시 대기",
+  shared: "증빙 제출됨",
+  confirmed: "확인 완료",
+  settled: "정산 완료",
+  disputed: "분쟁",
+};
 
 type Tab = "channels" | "request" | "jobs" | "earnings";
 
-export function ChannelAdsHub({ myChannels }: { myChannels: MyChannel[] }) {
+export function ChannelAdsHub(props: {
+  myChannels: MyChannel[];
+  directory: DirectoryChannelView[];
+  myContent: ContentItem[];
+  ownerJobs: JobView[];
+  buyerName: string;
+  buyerEmail: string;
+}) {
   const [tab, setTab] = useState<Tab>("channels");
   const TABS: { id: Tab; label: string }[] = [
     { id: "channels", label: "내 채널" },
@@ -54,9 +99,9 @@ export function ChannelAdsHub({ myChannels }: { myChannels: MyChannel[] }) {
           채널 공유 마켓플레이스
         </h1>
         <p className="mt-1.5 text-muted">
-          내 SNS 채널(유튜브·페북·인스타·틱톡·카카오·밴드 등)을 등록하고 공유 단가를
-          정하면, 광고주가 블로그·카드뉴스 공유를 의뢰합니다. 입금 확인 후 직접 게시하고
-          증빙을 올리면 수수료 20%를 제외한 금액이 정산됩니다.
+          내 SNS 채널을 등록해 공유 수익을 올리거나, 내 블로그·카드뉴스를 다른 채널에
+          공유 의뢰하세요. 입금 확인 후 직접 게시하고 증빙을 올리면 수수료 20%를
+          제외한 금액이 정산됩니다.
         </p>
       </div>
 
@@ -76,22 +121,26 @@ export function ChannelAdsHub({ myChannels }: { myChannels: MyChannel[] }) {
         ))}
       </div>
 
-      {tab === "channels" && <ChannelsTab channels={myChannels} />}
-      {tab === "request" && <ComingSoonTab text="광고 의뢰하기 기능을 준비 중입니다." />}
-      {tab === "jobs" && <ComingSoonTab text="받은 공유 의뢰가 여기에 표시됩니다." />}
-      {tab === "earnings" && <ComingSoonTab text="정산 내역이 여기에 표시됩니다." />}
+      {tab === "channels" && <ChannelsTab channels={props.myChannels} />}
+      {tab === "request" && (
+        <RequestTab
+          directory={props.directory}
+          myContent={props.myContent}
+          buyerName={props.buyerName}
+          buyerEmail={props.buyerEmail}
+        />
+      )}
+      {tab === "jobs" && <JobsTab jobs={props.ownerJobs} />}
+      {tab === "earnings" && (
+        <Card className="p-8">
+          <p className="text-sm text-muted">정산 내역이 여기에 표시됩니다.</p>
+        </Card>
+      )}
     </div>
   );
 }
 
-function ComingSoonTab({ text }: { text: string }) {
-  return (
-    <Card className="p-8">
-      <p className="text-sm text-muted">{text}</p>
-    </Card>
-  );
-}
-
+// ---------------- 내 채널 ----------------
 function ChannelsTab({ channels }: { channels: MyChannel[] }) {
   const [editing, setEditing] = useState<MyChannel | null>(null);
   const [creating, setCreating] = useState(false);
@@ -115,13 +164,13 @@ function ChannelsTab({ channels }: { channels: MyChannel[] }) {
           <p className="text-sm text-muted">아직 등록한 채널이 없습니다.</p>
         )}
         {channels.map((c) => {
-          const badge = STATUS_BADGE[c.status] ?? STATUS_BADGE.pending;
+          const badge = CH_STATUS_BADGE[c.status] ?? CH_STATUS_BADGE.pending;
           return (
             <Card key={c.id} className="p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-semibold">
-                    {SHARE_PLATFORM_LABELS[c.platform as SharePlatform] ?? c.platform}
+                    {platLabel(c.platform)}
                     {c.handle && (
                       <span className="ml-1.5 text-sm text-muted">{c.handle}</span>
                     )}
@@ -261,11 +310,7 @@ function ChannelForm({
       </div>
       <div>
         <Label>채널 URL</Label>
-        <Input
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://"
-        />
+        <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" />
       </div>
       <div>
         <Label>소개 · 공유 조건</Label>
@@ -285,5 +330,255 @@ function ChannelForm({
         </Button>
       </div>
     </Card>
+  );
+}
+
+// ---------------- 광고 의뢰하기 ----------------
+function RequestTab({
+  directory,
+  myContent,
+  buyerName,
+  buyerEmail,
+}: {
+  directory: DirectoryChannelView[];
+  myContent: ContentItem[];
+  buyerName: string;
+  buyerEmail: string;
+}) {
+  const [selected, setSelected] = useState<DirectoryChannelView | null>(null);
+
+  if (directory.length === 0)
+    return (
+      <Card className="p-8">
+        <p className="text-sm text-muted">
+          현재 공유 가능한 채널이 없습니다. 잠시 후 다시 확인해 주세요.
+        </p>
+      </Card>
+    );
+
+  if (selected)
+    return (
+      <RequestForm
+        channel={selected}
+        myContent={myContent}
+        buyerName={buyerName}
+        buyerEmail={buyerEmail}
+        onCancel={() => setSelected(null)}
+      />
+    );
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {directory.map((c) => (
+        <Card key={c.id} className="flex flex-col p-5">
+          <p className="font-semibold">
+            {platLabel(c.platform)}
+            {c.handle && <span className="ml-1.5 text-sm text-muted">{c.handle}</span>}
+          </p>
+          <p className="mt-0.5 text-sm text-muted">
+            팔로워 {c.followerCount.toLocaleString()}
+          </p>
+          {c.description && (
+            <p className="mt-2 line-clamp-3 text-xs text-muted">{c.description}</p>
+          )}
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-primary">{won(c.priceKrw)}</span>
+            <Button size="sm" onClick={() => setSelected(c)}>
+              의뢰하기
+            </Button>
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function RequestForm({
+  channel,
+  myContent,
+  buyerName,
+  buyerEmail,
+  onCancel,
+}: {
+  channel: DirectoryChannelView;
+  myContent: ContentItem[];
+  buyerName: string;
+  buyerEmail: string;
+  onCancel: () => void;
+}) {
+  const router = useRouter();
+  const [contentKey, setContentKey] = useState("");
+  const [message, setMessage] = useState("");
+  const [name, setName] = useState(buyerName);
+  const [email, setEmail] = useState(buyerEmail);
+  const [phone, setPhone] = useState("");
+  const [note, setNote] = useState<string | null>(null);
+  const [busy, start] = useTransition();
+
+  const pay = () =>
+    start(async () => {
+      setNote(null);
+      const picked = myContent.find(
+        (c) => `${c.contentType}:${c.refId}` === contentKey,
+      );
+      if (!picked) {
+        setNote("공유할 콘텐츠를 선택해주세요.");
+        return;
+      }
+      const { order, error } = await createChannelShareOrderAction({
+        channelId: channel.id,
+        contentType: picked.contentType,
+        contentRefId: picked.refId,
+        message: message || null,
+        buyer: { name: name.trim(), email: email.trim(), phone },
+      });
+      if (error || !order) {
+        setNote(error ?? "의뢰를 시작하지 못했습니다.");
+        return;
+      }
+      try {
+        const res = await PortOne.requestPayment({
+          storeId: order.storeId,
+          channelKey: order.channelKey,
+          paymentId: order.orderId,
+          orderName: order.orderName,
+          totalAmount: order.amount,
+          currency: "KRW",
+          payMethod: "CARD",
+          redirectUrl: `${window.location.origin}/dashboard/ads/result`,
+          customer: {
+            fullName: name.trim(),
+            phoneNumber: phone.replace(/[^0-9]/g, ""),
+            email: email.trim(),
+          },
+        });
+        if (res?.code) {
+          setNote(res.message ?? "결제가 완료되지 않았습니다.");
+          return;
+        }
+        router.push(
+          `/dashboard/ads/result?paymentId=${encodeURIComponent(order.orderId)}`,
+        );
+      } catch {
+        setNote("결제 모듈을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
+      }
+    });
+
+  return (
+    <Card className="space-y-4 p-6">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold">
+          {platLabel(channel.platform)} 공유 의뢰 · {won(channel.priceKrw)}
+        </h3>
+        <Button variant="ghost" size="sm" onClick={onCancel} disabled={busy}>
+          ← 목록
+        </Button>
+      </div>
+
+      <div>
+        <Label required>공유할 내 콘텐츠</Label>
+        {myContent.length === 0 ? (
+          <p className="mt-1 text-sm text-muted">
+            공유할 발행 블로그·카드뉴스가 없습니다. 먼저 글을 발행해 주세요.
+          </p>
+        ) : (
+          <Select value={contentKey} onChange={(e) => setContentKey(e.target.value)}>
+            <option value="">선택</option>
+            {myContent.map((c) => (
+              <option key={`${c.contentType}:${c.refId}`} value={`${c.contentType}:${c.refId}`}>
+                [{c.contentType === "blog" ? "블로그" : "카드뉴스"}] {c.title}
+              </option>
+            ))}
+          </Select>
+        )}
+      </div>
+      <div>
+        <Label>요청 메시지(선택)</Label>
+        <Textarea
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="예: 금요일 저녁에 게시 부탁드립니다."
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label required>이름</Label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
+        </div>
+        <div>
+          <Label>휴대폰</Label>
+          <Input
+            type="tel"
+            inputMode="numeric"
+            value={phone}
+            onChange={(e) => setPhone(formatPhone(e.target.value))}
+            placeholder="010-1234-5678"
+            maxLength={13}
+          />
+        </div>
+      </div>
+      <div>
+        <Label required>이메일</Label>
+        <Input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoComplete="email"
+        />
+      </div>
+      {note && <p className="text-sm text-danger">{note}</p>}
+      <Button className="w-full" onClick={pay} disabled={busy || myContent.length === 0}>
+        {busy ? "진행 중…" : `${won(channel.priceKrw)} 결제하고 의뢰`}
+      </Button>
+      <p className="text-xs text-muted">
+        결제 후 채널 보유자가 직접 게시하고 증빙을 제출하면, 확인 후 정산됩니다.
+      </p>
+    </Card>
+  );
+}
+
+// ---------------- 받은 의뢰 ----------------
+function JobsTab({ jobs }: { jobs: JobView[] }) {
+  if (jobs.length === 0)
+    return (
+      <Card className="p-8">
+        <p className="text-sm text-muted">아직 들어온 공유 의뢰가 없습니다.</p>
+      </Card>
+    );
+  return (
+    <div className="space-y-3">
+      {jobs.map((j) => (
+        <Card key={j.id} className="p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="font-semibold">
+                {platLabel(j.platform)} · {won(j.priceKrw)}
+              </p>
+              <p className="mt-0.5 text-sm text-muted">
+                [{j.contentType === "blog" ? "블로그" : "카드뉴스"}]{" "}
+                {j.contentTitle ?? ""}
+              </p>
+              <a
+                href={j.contentUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-0.5 block truncate text-xs text-primary hover:underline"
+              >
+                {j.contentUrl}
+              </a>
+              {j.message && (
+                <p className="mt-1 text-xs text-muted">요청: {j.message}</p>
+              )}
+            </div>
+            <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-xs font-semibold text-muted">
+              {JOB_STATUS_LABEL[j.status] ?? j.status}
+            </span>
+          </div>
+          <p className="mt-2 text-xs text-muted">
+            게시 후 증빙 제출 기능은 곧 제공됩니다.
+          </p>
+        </Card>
+      ))}
+    </div>
   );
 }

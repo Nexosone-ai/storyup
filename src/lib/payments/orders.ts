@@ -332,6 +332,12 @@ export async function syncProductOrder(
       const { fulfillInvoicePaid } = await import("@/lib/b2b2c/invoices");
       await fulfillInvoicePaid(invoiceId, orderId, order.buyer_email);
     }
+    // 채널 공유 광고 결제면 이행(정산 held 적립 + 작업 paid 전환, 멱등).
+    const shareOrderId = meta?.share_order_id;
+    if (typeof shareOrderId === "string") {
+      const { fulfillChannelSharePaid } = await import("@/lib/channelAds/orders");
+      await fulfillChannelSharePaid(shareOrderId, orderId);
+    }
 
     return { status: "PAID", productName: order.product_name, amount: order.amount };
   }
