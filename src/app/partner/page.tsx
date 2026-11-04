@@ -5,6 +5,7 @@ import {
   listPartnerClients,
   getPartnerCreditBalance,
   listCreditPrices,
+  isSubPartner,
 } from "@/lib/partner";
 import { listPartnerInquiries, getPartnerEarnings } from "@/lib/agency";
 import { getMySupporterProfile } from "@/lib/supporters";
@@ -32,16 +33,26 @@ export default async function PartnerPage() {
   const user = await getUser();
   if (!user) return null; // layout에서 이미 가드
 
-  const [clients, credits, inquiries, earnings, myProfile, creditPrices] =
-    await Promise.all([
-      listPartnerClients(user.id),
-      getPartnerCreditBalance(user.id),
-      listPartnerInquiries(user.id),
-      getPartnerEarnings(user.id),
-      getMySupporterProfile(user.id),
-      listCreditPrices(),
-    ]);
+  const [
+    clients,
+    credits,
+    inquiries,
+    earnings,
+    myProfile,
+    creditPrices,
+    amSub,
+  ] = await Promise.all([
+    listPartnerClients(user.id),
+    getPartnerCreditBalance(user.id),
+    listPartnerInquiries(user.id),
+    getPartnerEarnings(user.id),
+    getMySupporterProfile(user.id),
+    listCreditPrices(),
+    isSubPartner(user.id),
+  ]);
   const totalBiz = clients.reduce((s, c) => s + c.businesses.length, 0);
+  // 서브파트너는 또 서브를 둘 수 없다(깊이 2단계) — 상위파트너에게만 서브파트너 메뉴 노출.
+  const canManageSubs = B2B2C_ENABLED && !amSub;
 
   return (
     <div className="space-y-6">
@@ -138,6 +149,15 @@ export default async function PartnerPage() {
             {B2B2C_ENABLED && (
               <ButtonLink size="sm" variant="outline" href="/partner/sales">
                 {ko ? "상품 · 판매 관리" : "Products & sales"}
+              </ButtonLink>
+            )}
+            {canManageSubs && (
+              <ButtonLink
+                size="sm"
+                variant="outline"
+                href="/partner/sub-partners"
+              >
+                {ko ? "서브파트너 관리" : "Sub-partners"}
               </ButtonLink>
             )}
           </div>
