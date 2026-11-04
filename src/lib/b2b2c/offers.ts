@@ -99,6 +99,8 @@ export async function createOffer(
       base_plan: product.base_plan,
       base_plan_version: product.base_plan_version,
       base_price_krw: product.base_price_krw,
+      parent_partner_user_id: product.parent_partner_user_id,
+      parent_base_price_krw: product.parent_base_price_krw,
       sell_price_krw: sell,
       currency: product.currency,
       vat_mode: product.vat_mode,

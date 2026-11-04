@@ -3,6 +3,7 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getPlanById, type PlanId } from "@/lib/plans";
 import { PLAN_PRICE_VERSION, type VatMode, type BillingType } from "./config";
 import { supplyPriceForPlan } from "./basePlans";
+import { parentPartnerOf } from "@/lib/partner";
 import type { Database } from "@/types/database";
 
 export type ProductRow =
@@ -117,6 +118,8 @@ export interface ProductInput {
   description?: string | null;
   includedServices?: string | null;
   basePlan?: "basic" | "pro" | null;
+  /** 서브파트너 상품 — 상위파트너의 활성 상품 id. 있으면 그 상품 판매가를 원가로 삼는다. */
+  parentProductId?: string | null;
   sellPriceKrw: number;
   vatMode?: VatMode;
   billingType?: BillingType;
@@ -130,6 +133,26 @@ export interface ProductInput {
 }
 
 /**
+ * 서브파트너가 상품의 '원가'로 선택할 수 있는 상위파트너의 활성 상품 목록.
+ * 상위파트너가 없으면(일반 파트너) 빈 배열 — 호출부가 본사 요금제 선택으로 폴백.
+ */
+export async function listParentProductsFor(
+  subUserId: string,
+): Promise<PublicProduct[]> {
+  const parentId = await parentPartnerOf(subUserId);
+  if (!parentId) return [];
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("partner_products")
+    .select("*")
+    .eq("partner_user_id", parentId)
+    .eq("status", "active")
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false });
+  return (data ?? []).map(toPublicProduct);
+}
+
+/**
  * 파트너 상품 생성/수정 — 호출 전 isCurrentUserPartner 확인. 세션 RLS 클라이언트(파트너 본인).
  * 기본요금은 저장 시점의 plans.ts 값을 스냅샷(base_price_krw, base_plan_version)한다.
  * 판매가 하한은 두지 않는다(판매가<기본요금은 UI 경고만).
@@ -139,10 +162,42 @@ export async function upsertProduct(
   input: ProductInput,
 ): Promise<{ id?: string; error?: string }> {
   const supabase = await createClient();
-  const basePlan = input.basePlan ?? null;
-  // 본사 공급가는 관리자 설정값(base_plan_catalog) 우선, 없으면 plans.ts 폴백.
-  const basePrice = await supplyPriceForPlan(basePlan);
   const sell = Math.max(0, Math.floor(input.sellPriceKrw));
+
+  // 서브파트너 상품: 상위파트너의 활성 상품을 '원가'로 삼는다(가격 스냅샷 체인).
+  //  base_price_krw        = 상위 판매가(서브의 원가)
+  //  parent_base_price_krw = 본사 공급가(상위의 원가 스냅샷)
+  //  parent_partner_user_id/parent_product_id = 상위 참조(정산 분배용)
+  let basePlan = input.basePlan ?? null;
+  let basePrice: number;
+  let parentPartnerUserId: string | null = null;
+  let parentProductId: string | null = null;
+  let parentBasePriceKrw: number | null = null;
+
+  if (input.parentProductId) {
+    const admin = createAdminClient();
+    const { data: parentProduct } = await admin
+      .from("partner_products")
+      .select("*")
+      .eq("id", input.parentProductId)
+      .eq("status", "active")
+      .maybeSingle();
+    if (!parentProduct)
+      return { error: "선택한 상위파트너 상품을 찾을 수 없습니다." };
+    // 보안 — 상위 상품이 내 상위파트너의 것이어야 한다.
+    const myParent = await parentPartnerOf(partnerUserId);
+    if (!myParent || parentProduct.partner_user_id !== myParent)
+      return { error: "상위파트너 상품만 원가로 선택할 수 있습니다." };
+
+    basePlan = (parentProduct.base_plan as "basic" | "pro" | null) ?? null;
+    basePrice = parentProduct.sell_price_krw; // 서브 원가 = 상위 판매가
+    parentPartnerUserId = parentProduct.partner_user_id;
+    parentProductId = parentProduct.id;
+    parentBasePriceKrw = parentProduct.base_price_krw; // 본사 공급가 스냅샷
+  } else {
+    // 일반 파트너 — 본사 공급가(base_plan_catalog 우선, 없으면 plans.ts 폴백).
+    basePrice = await supplyPriceForPlan(basePlan);
+  }
 
   const row = {
     partner_user_id: partnerUserId,
@@ -152,6 +207,9 @@ export async function upsertProduct(
     base_plan: basePlan,
     base_plan_version: PLAN_PRICE_VERSION,
     base_price_krw: basePrice,
+    parent_partner_user_id: parentPartnerUserId,
+    parent_product_id: parentProductId,
+    parent_base_price_krw: parentBasePriceKrw,
     sell_price_krw: sell,
     vat_mode: input.vatMode ?? "included",
     billing_type: input.billingType ?? "one_time",
