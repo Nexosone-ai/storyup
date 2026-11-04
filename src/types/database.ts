@@ -1148,6 +1148,114 @@ export interface Database {
         >;
         Relationships: [];
       };
+      share_channels: {
+        Row: {
+          id: string;
+          user_id: string;
+          platform: string;
+          handle: string | null;
+          url: string | null;
+          follower_count: number;
+          price_krw: number;
+          description: string | null;
+          status: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          platform: string;
+          handle?: string | null;
+          url?: string | null;
+          follower_count?: number;
+          price_krw: number;
+          description?: string | null;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["share_channels"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      share_orders: {
+        Row: {
+          id: string;
+          advertiser_user_id: string;
+          channel_id: string | null;
+          channel_owner_user_id: string;
+          platform: string;
+          price_krw: number;
+          content_type: string;
+          content_ref_id: string | null;
+          content_url: string;
+          content_title: string | null;
+          message: string | null;
+          status: string;
+          order_id: string | null;
+          proof_url: string | null;
+          shared_at: string | null;
+          confirmed_at: string | null;
+          auto_confirm_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          advertiser_user_id: string;
+          channel_id?: string | null;
+          channel_owner_user_id: string;
+          platform: string;
+          price_krw: number;
+          content_type: string;
+          content_ref_id?: string | null;
+          content_url: string;
+          content_title?: string | null;
+          message?: string | null;
+          status?: string;
+          order_id?: string | null;
+          proof_url?: string | null;
+          shared_at?: string | null;
+          confirmed_at?: string | null;
+          auto_confirm_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["share_orders"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      share_earnings: {
+        Row: {
+          id: string;
+          channel_owner_user_id: string;
+          share_order_id: string;
+          gross_krw: number;
+          fee_krw: number;
+          net_krw: number;
+          status: string;
+          paid_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          channel_owner_user_id: string;
+          share_order_id: string;
+          gross_krw: number;
+          fee_krw?: number;
+          net_krw: number;
+          status?: string;
+          paid_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["share_earnings"]["Insert"]
+        >;
+        Relationships: [];
+      };
       base_plan_catalog: {
         Row: {
           plan: string;

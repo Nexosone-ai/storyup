@@ -1,6 +1,7 @@
 import type { NavItem } from "@/components/dashboard/DashboardShell";
 import type { Locale } from "@/lib/i18n";
 import { B2B2C_ENABLED } from "@/lib/b2b2c/config";
+import { CHANNEL_ADS_ENABLED } from "@/lib/channelAds/config";
 
 /** 모든 화면에서 동일하게 보이는 대시보드 메뉴. */
 export function dashboardNav(
@@ -48,7 +49,8 @@ export function dashboardNav(
       label: ko ? "광고 수익" : "Ad earnings",
       href: "/dashboard/ads",
       icon: "megaphone",
-      badge: ko ? "준비중" : "Soon",
+      // 채널 공유 마켓이 켜지면 정식 오픈 — '준비중' 뱃지 제거.
+      ...(CHANNEL_ADS_ENABLED ? {} : { badge: ko ? "준비중" : "Soon" }),
     },
     {
       label: ko ? "UP 적립" : "Earn UP",
