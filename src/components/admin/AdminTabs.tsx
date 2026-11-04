@@ -16,6 +16,7 @@ const TABS: { href: string; label: string }[] = [
   { href: "/dashboard/admin/products", label: "상품·주문" },
   { href: "/dashboard/admin/marketers", label: "마케터·정산" },
   { href: "/dashboard/admin/partners", label: "파트너" },
+  { href: "/dashboard/admin/partner-monitor", label: "파트너현황" },
   { href: "/dashboard/admin/partner-sales", label: "파트너판매" },
   { href: "/dashboard/admin/base-plans", label: "본사기본상품" },
   { href: "/dashboard/admin/agency", label: "대행" },

@@ -10,6 +10,14 @@ export interface SubPartnerItem {
   email: string | null;
   status: string;
   clientCount: number;
+  /** 활동 요약(랜딩·블로그·카드뉴스·리드·30일 조회). */
+  metrics?: {
+    sitesPublished: number;
+    blogPublished: number;
+    cardNews: number;
+    leads: number;
+    views30d: number;
+  };
 }
 
 type InviteResult = { ok?: boolean; error?: string };
@@ -114,6 +122,13 @@ export function SubPartnerManager({
                 <p className="truncate text-xs text-muted">
                   {s.email ?? ""} · 가입 고객 {s.clientCount}곳
                 </p>
+                {s.metrics && (
+                  <p className="mt-1 text-xs text-muted">
+                    랜딩 {s.metrics.sitesPublished} · 블로그{" "}
+                    {s.metrics.blogPublished} · 카드뉴스 {s.metrics.cardNews} ·
+                    리드 {s.metrics.leads} · 30일 조회 {s.metrics.views30d}
+                  </p>
+                )}
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
                 <Button

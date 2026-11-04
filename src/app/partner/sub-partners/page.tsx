@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getUser } from "@/lib/queries";
-import { isSubPartner, listSubPartners } from "@/lib/partner";
+import { isSubPartner } from "@/lib/partner";
+import { getSubPartnerMonitor } from "@/lib/partner/monitor";
 import { B2B2C_ENABLED } from "@/lib/b2b2c/config";
 import { SubPartnerManager } from "@/components/partner/SubPartnerManager";
 import {
@@ -17,7 +18,7 @@ export default async function SubPartnersPage() {
   // 서브파트너는 또 서브를 만들 수 없다(깊이 2단계) — 상위파트너만.
   if (await isSubPartner(user.id)) redirect("/partner");
 
-  const subs = await listSubPartners(user.id);
+  const subs = await getSubPartnerMonitor(user.id);
 
   return (
     <div className="space-y-6">
@@ -39,6 +40,13 @@ export default async function SubPartnersPage() {
           email: s.email,
           status: s.status,
           clientCount: s.clientCount,
+          metrics: {
+            sitesPublished: s.totals.sitesPublished,
+            blogPublished: s.totals.blogPublished,
+            cardNews: s.totals.cardNews,
+            leads: s.totals.leads,
+            views30d: s.totals.views30d,
+          },
         }))}
         invite={inviteSubPartnerAction}
         setStatus={setSubPartnerStatusAction}
