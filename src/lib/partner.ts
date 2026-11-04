@@ -256,6 +256,198 @@ export async function partnerForClient(
   return data?.partner_user_id ?? null;
 }
 
+// ============================================================
+//  서브파트너(2차 파트너) 계층 — partner_subs
+//  서브파트너 = partner 플랜 계정이면서 partner_subs.sub_partner_user_id 로 등록된 계정.
+//  상위파트너 = partner 플랜이면서 서브로 등록되지 않은 계정. 깊이는 2단계로 제한한다.
+// ============================================================
+
+/** 이 사용자가 누군가의 '활성' 서브파트너인지. */
+export async function isSubPartner(userId: string): Promise<boolean> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("partner_subs")
+    .select("id")
+    .eq("sub_partner_user_id", userId)
+    .eq("status", "active")
+    .maybeSingle();
+  return !!data;
+}
+
+/** 이 서브파트너의 상위파트너 user_id(활성). 없으면 null. */
+export async function parentPartnerOf(
+  subUserId: string,
+): Promise<string | null> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("partner_subs")
+    .select("parent_partner_user_id")
+    .eq("sub_partner_user_id", subUserId)
+    .eq("status", "active")
+    .maybeSingle();
+  return data?.parent_partner_user_id ?? null;
+}
+
+export interface SubPartnerRow {
+  id: string;
+  subUserId: string;
+  name: string | null;
+  email: string | null;
+  status: string;
+  clientCount: number;
+  createdAt: string;
+}
+
+/** 상위파트너의 서브파트너 목록 + 각 서브의 가입 고객 수. */
+export async function listSubPartners(
+  parentUserId: string,
+): Promise<SubPartnerRow[]> {
+  const admin = createAdminClient();
+  const { data: subs } = await admin
+    .from("partner_subs")
+    .select("id, sub_partner_user_id, status, created_at")
+    .eq("parent_partner_user_id", parentUserId)
+    .order("created_at", { ascending: false });
+  const rows = subs ?? [];
+  if (!rows.length) return [];
+
+  const subIds = rows.map((r) => r.sub_partner_user_id);
+  const [{ data: profiles }, { data: links }] = await Promise.all([
+    admin.from("profiles").select("user_id, name, email").in("user_id", subIds),
+    admin
+      .from("partner_clients")
+      .select("partner_user_id")
+      .in("partner_user_id", subIds),
+  ]);
+  const pMap = new Map((profiles ?? []).map((p) => [p.user_id, p]));
+  const countMap = new Map<string, number>();
+  for (const l of links ?? [])
+    countMap.set(
+      l.partner_user_id,
+      (countMap.get(l.partner_user_id) ?? 0) + 1,
+    );
+
+  return rows.map((r) => ({
+    id: r.id,
+    subUserId: r.sub_partner_user_id,
+    name: pMap.get(r.sub_partner_user_id)?.name ?? null,
+    email: pMap.get(r.sub_partner_user_id)?.email ?? null,
+    status: r.status,
+    clientCount: countMap.get(r.sub_partner_user_id) ?? 0,
+    createdAt: r.created_at,
+  }));
+}
+
+/** 상위파트너의 모든 서브파트너 user_id(활성) — 모니터링 롤업용. */
+export async function subPartnerUserIds(
+  parentUserId: string,
+): Promise<string[]> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("partner_subs")
+    .select("sub_partner_user_id")
+    .eq("parent_partner_user_id", parentUserId)
+    .eq("status", "active");
+  return [...new Set((data ?? []).map((r) => r.sub_partner_user_id))];
+}
+
+/**
+ * 상위파트너가 이메일로 서브파트너를 초대(즉시 활성). 호출 전 caller가 상위파트너임을 확인.
+ * 대상에게 partner 플랜을 부여(파트너 기능 재사용)하고 partner_subs 에 등록한다.
+ * 깊이 2단계 제한 — 대상이 이미 서브이거나(상위 1명) 이미 서브를 둔 상위파트너면 거부.
+ */
+export async function inviteSubPartner(
+  parentUserId: string,
+  email: string,
+): Promise<{ subUserId?: string; error?: string }> {
+  const admin = createAdminClient();
+  const target = email.trim().toLowerCase();
+  if (!target) return { error: "이메일을 입력해주세요." };
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("user_id")
+    .eq("email", target)
+    .maybeSingle();
+  if (!profile)
+    return {
+      error: "해당 이메일의 가입 사용자를 찾을 수 없습니다. 먼저 회원가입을 안내해주세요.",
+    };
+  const subId = profile.user_id;
+  if (subId === parentUserId)
+    return { error: "본인을 서브파트너로 등록할 수 없습니다." };
+
+  // 이미 (누군가의) 서브인지 — sub_partner_user_id 유니크.
+  const { data: existingSub } = await admin
+    .from("partner_subs")
+    .select("parent_partner_user_id, status")
+    .eq("sub_partner_user_id", subId)
+    .maybeSingle();
+  if (existingSub) {
+    if (existingSub.parent_partner_user_id === parentUserId)
+      return { error: "이미 등록된 서브파트너입니다." };
+    return { error: "이미 다른 파트너의 서브파트너로 등록된 사용자입니다." };
+  }
+
+  // 대상이 이미 서브를 둔 상위파트너면 3단계가 되므로 거부(깊이 2단계 제한).
+  const { count: ownSubs } = await admin
+    .from("partner_subs")
+    .select("id", { count: "exact", head: true })
+    .eq("parent_partner_user_id", subId);
+  if ((ownSubs ?? 0) > 0)
+    return {
+      error: "이미 서브파트너를 보유한 파트너는 서브파트너로 등록할 수 없습니다.",
+    };
+
+  // partner 플랜 부여(무기한 활성) — 파트너 기능 전체 재사용. 결제 없음.
+  const { error: planErr } = await admin.from("subscriptions").upsert(
+    {
+      user_id: subId,
+      plan: "partner",
+      status: "active",
+      current_period_end: null,
+      billing_key: null,
+      cancel_at_period_end: false,
+      trial: false,
+      billing_failures: 0,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" },
+  );
+  if (planErr) {
+    console.error("[sub-partner] plan grant failed", planErr);
+    return { error: "서브파트너 권한 부여에 실패했습니다." };
+  }
+
+  const { error: linkErr } = await admin.from("partner_subs").insert({
+    parent_partner_user_id: parentUserId,
+    sub_partner_user_id: subId,
+    status: "active",
+    created_by: parentUserId,
+  });
+  if (linkErr) {
+    console.error("[sub-partner] link insert failed", linkErr);
+    return { error: "서브파트너 등록에 실패했습니다." };
+  }
+  return { subUserId: subId };
+}
+
+/** 서브파트너 상태 변경(활성/중단). 상위파트너 본인의 서브만. */
+export async function setSubPartnerStatus(
+  parentUserId: string,
+  subUserId: string,
+  status: "active" | "suspended",
+): Promise<{ error?: string }> {
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("partner_subs")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("parent_partner_user_id", parentUserId)
+    .eq("sub_partner_user_id", subUserId);
+  if (error) return { error: "상태 변경에 실패했습니다." };
+  return {};
+}
+
 /** 관리자용 — 전체 파트너↔고객 배정 목록. */
 export async function listPartnerAssignments(): Promise<PartnerAssignmentRow[]> {
   const admin = createAdminClient();

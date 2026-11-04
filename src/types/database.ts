@@ -1069,6 +1069,7 @@ export interface Database {
           base_deduction_krw: number | null;
           pg_fee_krw: number;
           tax_krw: number;
+          beneficiary_role: string;
           status: string;
           paid_at: string | null;
           created_at: string;
@@ -1083,6 +1084,7 @@ export interface Database {
           base_deduction_krw?: number | null;
           pg_fee_krw?: number;
           tax_krw?: number;
+          beneficiary_role?: string;
           status?: string;
           paid_at?: string | null;
           created_at?: string;
@@ -1119,6 +1121,30 @@ export interface Database {
         };
         Update: Partial<
           Database["public"]["Tables"]["partner_storefronts"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      partner_subs: {
+        Row: {
+          id: string;
+          parent_partner_user_id: string;
+          sub_partner_user_id: string;
+          status: string;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          parent_partner_user_id: string;
+          sub_partner_user_id: string;
+          status?: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["partner_subs"]["Insert"]
         >;
         Relationships: [];
       };
@@ -1167,6 +1193,9 @@ export interface Database {
           terms: string | null;
           status: string;
           sort_order: number;
+          parent_partner_user_id: string | null;
+          parent_product_id: string | null;
+          parent_base_price_krw: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -1190,6 +1219,9 @@ export interface Database {
           terms?: string | null;
           status?: string;
           sort_order?: number;
+          parent_partner_user_id?: string | null;
+          parent_product_id?: string | null;
+          parent_base_price_krw?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1218,6 +1250,8 @@ export interface Database {
           billing_period: string | null;
           valid_until: string | null;
           status: string;
+          parent_partner_user_id: string | null;
+          parent_base_price_krw: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -1240,6 +1274,8 @@ export interface Database {
           billing_period?: string | null;
           valid_until?: string | null;
           status?: string;
+          parent_partner_user_id?: string | null;
+          parent_base_price_krw?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1272,6 +1308,8 @@ export interface Database {
           status: string;
           order_id: string | null;
           paid_at: string | null;
+          parent_partner_user_id: string | null;
+          parent_base_price_krw: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -1298,6 +1336,8 @@ export interface Database {
           status?: string;
           order_id?: string | null;
           paid_at?: string | null;
+          parent_partner_user_id?: string | null;
+          parent_base_price_krw?: number | null;
           created_at?: string;
           updated_at?: string;
         };
