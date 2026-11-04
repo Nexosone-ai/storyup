@@ -1,14 +1,15 @@
 import { createAdminClient } from "@/lib/supabase/server";
-import { getPlanId, currentPeriod } from "@/lib/subscription";
+import { getPlanId } from "@/lib/subscription";
 
 /**
- * 무료 플랜 블로그 이용권 — 하루 1개 / 한 달 30개, 월 단위 재신청(관리자 승인).
- * 각 이용 기간은 free_grants 1행([period_start, period_end]). 첫 기간은 첫 글
- * 작성 시 자동 발급(승인 불필요), 이후 갱신은 재신청(pending) → 관리자 승인.
- * 마이그레이션 0060 적용 전에는 모든 함수가 '막지 않음'으로 수렴해 기존 동작 유지.
+ * 무료 플랜 블로그 — 월 한도·재신청 없이 **하루 2개까지만** 제한한다(2026-11-03 변경).
+ * (이미지 생성도 무료 플랜은 무제한, 단 무료는 Pollinations 사용 — [[storyup-free-plan-gates]].)
+ * free_grants 테이블·재신청/승인 코드는 보존하되 더 이상 글쓰기를 막지 않는다(관리자 탭은 휴면).
+ * usage_events 조회 실패(마이그 전 등)면 '막지 않음'으로 수렴해 기존 동작 유지.
  */
 
-export const FREE_BLOG_DAILY = 1;
+export const FREE_BLOG_DAILY = 2;
+/** (레거시) 월 한도는 더 이상 적용하지 않는다 — 상태 표시 호환용으로만 유지. */
 export const FREE_BLOG_MONTHLY = 30;
 
 export type FreeBlogCode = "expired" | "pending" | "daily" | "monthly";
@@ -105,40 +106,17 @@ export async function getFreeBlogStatus(userId: string): Promise<FreeBlogStatus>
   const planId = await getPlanId(userId);
   if (planId !== "free") return base;
 
-  const grant = await latestGrant(userId);
-  if (grant === undefined) return base; // 시스템 미구축 — 표시 안 함(기존 동작)
-
-  const now = Date.now();
-  const active =
-    grant &&
-    grant.status === "active" &&
-    (!grant.period_end || new Date(grant.period_end).getTime() > now);
-  const periodStart = grant?.period_start ?? currentPeriod().startIso;
-
-  const [usedMonthly, usedDaily] = await Promise.all([
-    countBlogSince(userId, periodStart),
-    countBlogSince(userId, startOfTodaySeoulIso()),
-  ]);
-
-  const pending = !!grant && grant.status === "pending";
-  // 활성 이용권이 없고(만료/반려), 대기 중도 아니면 재신청 필요. 이용권이 아예
-  // 없으면(grant=null) 첫 글 작성 시 자동 발급되므로 아직 쓸 수 있다.
-  const expiredOrRejected =
-    !!grant && !active && !pending; // active 아님 + pending 아님 = 만료/반려
-  const canWrite =
-    !pending &&
-    !expiredOrRejected &&
-    usedDaily < FREE_BLOG_DAILY &&
-    usedMonthly < FREE_BLOG_MONTHLY;
+  // 하루 한도만 적용(월 한도·재신청 없음).
+  const usedDaily = await countBlogSince(userId, startOfTodaySeoulIso());
 
   return {
     isFree: true,
-    canWrite,
-    needsReapply: expiredOrRejected,
-    pending,
-    periodEnd: active ? (grant?.period_end ?? null) : null,
+    canWrite: usedDaily < FREE_BLOG_DAILY,
+    needsReapply: false,
+    pending: false,
+    periodEnd: null,
     usedDaily,
-    usedMonthly,
+    usedMonthly: 0,
     dailyLimit: FREE_BLOG_DAILY,
     monthlyLimit: FREE_BLOG_MONTHLY,
   };
@@ -163,64 +141,16 @@ export async function consumeFreeBlogIfApplicable(
   if (planId !== "free") return null;
 
   const admin = createAdminClient();
-  const grant = await latestGrant(userId);
-  if (grant === undefined) return null; // 0060 전 — 기존 경로로
 
-  const now = Date.now();
-  let periodStart: string;
-
-  if (!grant) {
-    // 첫 이용 기간 자동 발급(승인 불필요).
-    const startIso = new Date().toISOString();
-    const { error } = await admin.from("free_grants").insert({
-      user_id: userId,
-      status: "active",
-      period_start: startIso,
-      period_end: addOneMonthIso(startIso),
-      approved_at: startIso,
-    });
-    if (error) return null; // 발급 실패 — 막지 않음
-    periodStart = startIso;
-  } else if (grant.status === "pending") {
-    throw new FreeBlogLimitError(
-      "pending",
-      ko
-        ? "재신청이 접수되어 관리자 승인을 기다리고 있어요. 승인되면 다시 작성할 수 있습니다."
-        : "Your renewal is awaiting admin approval.",
-    );
-  } else if (
-    grant.status === "active" &&
-    (!grant.period_end || new Date(grant.period_end).getTime() > now)
-  ) {
-    periodStart = grant.period_start ?? new Date().toISOString();
-  } else {
-    // 만료 또는 반려 → 재신청 필요
-    throw new FreeBlogLimitError(
-      "expired",
-      ko
-        ? "무료 이용 기간이 끝났어요. '재신청'을 눌러 관리자 승인을 받으면 한 달 더 이용할 수 있어요."
-        : "Your free month has ended. Press 'Re-apply' to request another month.",
-    );
-  }
-
-  // 한도 검사(일·월)
-  const [usedDaily, usedMonthly] = await Promise.all([
-    countBlogSince(userId, startOfTodaySeoulIso()),
-    countBlogSince(userId, periodStart),
-  ]);
+  // 하루 한도(2개)만 적용 — 월 한도·재신청 없음. usage_events 조회 실패(마이그 전)면
+  // countBlogSince가 0을 돌려줘 자연히 막지 않는다.
+  const usedDaily = await countBlogSince(userId, startOfTodaySeoulIso());
   if (usedDaily >= FREE_BLOG_DAILY)
     throw new FreeBlogLimitError(
       "daily",
       ko
-        ? "무료 플랜은 하루에 1개까지 쓸 수 있어요. 내일 다시 이용해주세요."
-        : "The free plan allows 1 post per day. Please try again tomorrow.",
-    );
-  if (usedMonthly >= FREE_BLOG_MONTHLY)
-    throw new FreeBlogLimitError(
-      "monthly",
-      ko
-        ? `이번 달 무료 한도(${FREE_BLOG_MONTHLY}개)를 모두 사용했어요.`
-        : `You've used this month's free quota (${FREE_BLOG_MONTHLY}).`,
+        ? `무료 플랜은 하루에 ${FREE_BLOG_DAILY}개까지 쓸 수 있어요. 내일 다시 이용하거나 플랜을 업그레이드해주세요.`
+        : `The free plan allows ${FREE_BLOG_DAILY} posts per day. Try again tomorrow or upgrade.`,
     );
 
   // 사용 1건 기록
