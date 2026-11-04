@@ -128,6 +128,8 @@ export async function issueInvoiceFromOffer(
       product_snapshot: snapshot as unknown as Json,
       sell_price_krw: offer.sell_price_krw,
       base_price_krw: offer.base_price_krw,
+      parent_partner_user_id: offer.parent_partner_user_id,
+      parent_base_price_krw: offer.parent_base_price_krw,
       tax_krw: Math.max(0, Math.floor(input.taxKrw ?? 0)),
       currency: offer.currency,
       vat_mode: offer.vat_mode,
@@ -219,6 +221,8 @@ export async function issueInvoiceFromProduct(
       product_snapshot: snapshot as unknown as Json,
       sell_price_krw: product.sell_price_krw,
       base_price_krw: product.base_price_krw,
+      parent_partner_user_id: product.parent_partner_user_id,
+      parent_base_price_krw: product.parent_base_price_krw,
       tax_krw: 0,
       currency: product.currency,
       vat_mode: product.vat_mode,
@@ -280,27 +284,56 @@ export async function fulfillInvoicePaid(
   if (!inv) return;
   if (inv.status === "paid") return; // 빠른 멱등 경로
 
-  // --- 멱등 잠금: 청구서당 정산 1건(유니크). 선점 실패(23505)면 타 처리가 소유 → 종료.
-  // 정산 = (고객결제 − 본사 기본요금) 마진에서 플랫폼 수수료(10%)를 뗀 금액. 음수 방지.
-  // 수수료액은 파생값(마진 − amount_krw)으로 조회부에서 계산한다(별도 컬럼 없음).
+  // --- 멱등 잠금 + 정산 적립 ---
+  // 유니크 (invoice_id, partner_user_id). 판매자(파트너/서브파트너) 행을 먼저 넣어 잠근다.
+  // 선점 실패(23505)면 타 처리가 소유 → 종료. 수수료액은 파생값(마진 − amount_krw).
+  //
+  // 2단계(일반 파트너): 판매자 = 파트너, base = 본사 공급가.
+  // 3단계(서브파트너 판매): 판매자 = 서브파트너, base = 상위파트너 판매가(inv.base_price_krw).
+  //   추가로 상위파트너 정산행(gross = 상위 판매가, base = 본사 공급가 = parent_base_price_krw)을
+  //   더 넣는다. 본사는 본사 공급가 + 양측 수수료를 가져간다(파생 계산, 별도 행 없음).
   const gross = inv.sell_price_krw;
-  const { baseDeductionKrw: baseDeduction, netKrw: net } =
-    computePartnerSettlement(gross, inv.base_price_krw);
+  const isSubSale = !!inv.parent_partner_user_id;
+  const sellerRole = isSubSale ? "sub_partner" : "partner";
+
+  const seller = computePartnerSettlement(gross, inv.base_price_krw);
   const { error: lockErr } = await admin.from("partner_earnings").insert({
     partner_user_id: inv.partner_user_id,
     invoice_id: inv.id,
     quote_id: null,
     gross_krw: gross,
-    base_deduction_krw: baseDeduction,
+    base_deduction_krw: seller.baseDeductionKrw,
     pg_fee_krw: 0,
     tax_krw: 0,
-    amount_krw: net,
+    amount_krw: seller.netKrw,
+    beneficiary_role: sellerRole,
     status: "pending",
   });
   if (lockErr) {
     if (lockErr.code === "23505") return; // 이미 처리됨/처리중
     console.error("[b2b2c] settlement insert failed", invoiceId, lockErr);
     return;
+  }
+
+  // 서브파트너 판매면 상위파트너 정산행 추가(멱등 — 재시도는 위 잠금에서 이미 차단됨).
+  if (isSubSale && inv.parent_partner_user_id) {
+    const parentGross = inv.base_price_krw; // 상위파트너에게 올라가는 금액 = 상위 판매가
+    const parentBase = inv.parent_base_price_krw ?? 0; // 본사 공급가
+    const parent = computePartnerSettlement(parentGross, parentBase);
+    const { error: parentErr } = await admin.from("partner_earnings").insert({
+      partner_user_id: inv.parent_partner_user_id,
+      invoice_id: inv.id,
+      quote_id: null,
+      gross_krw: parentGross,
+      base_deduction_krw: parent.baseDeductionKrw,
+      pg_fee_krw: 0,
+      tax_krw: 0,
+      amount_krw: parent.netKrw,
+      beneficiary_role: "partner",
+      status: "pending",
+    });
+    if (parentErr && parentErr.code !== "23505")
+      console.error("[b2b2c] parent settlement insert failed", invoiceId, parentErr);
   }
 
   // --- 기본 요금제 부여(고객 계정 확인 — 파트너/에이전트 권한은 부여하지 않는다) ---
@@ -391,6 +424,7 @@ export async function reprocessInvoice(
     .from("partner_earnings")
     .select("id")
     .eq("invoice_id", invoiceId)
+    .limit(1)
     .maybeSingle();
   if (!earning) return { ok: false, note: "결제 확정 전(정산 없음)" };
 

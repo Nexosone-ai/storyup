@@ -34,6 +34,7 @@ interface Product {
   includedServices: string | null;
   basePlan: string | null;
   basePriceKrw: number;
+  parentProductId: string | null;
   sellPriceKrw: number;
   vatMode: string;
   billingType: string;
@@ -81,12 +82,22 @@ interface BasePlanInfo {
   summary: string | null;
   includedServices: string | null;
 }
+/** 서브파트너가 원가로 고를 수 있는 상위파트너 상품(요약). */
+interface ParentProductOpt {
+  id: string;
+  name: string;
+  basePlan: string | null;
+  sellPriceKrw: number;
+  includedServices: string | null;
+}
 
 type Tab = "store" | "products" | "offers" | "invoices" | "settlement";
 
 export function PartnerSalesView(props: {
   storefront: Storefront | null;
   basePlans: { basic: BasePlanInfo; pro: BasePlanInfo };
+  isSub: boolean;
+  parentProducts: ParentProductOpt[];
   products: Product[];
   clients: ClientOpt[];
   offers: Offer[];
@@ -137,7 +148,12 @@ export function PartnerSalesView(props: {
         <StoreTab storefront={props.storefront} origin={origin} />
       )}
       {tab === "products" && (
-        <ProductsTab products={props.products} basePlans={props.basePlans} />
+        <ProductsTab
+          products={props.products}
+          basePlans={props.basePlans}
+          isSub={props.isSub}
+          parentProducts={props.parentProducts}
+        />
       )}
       {tab === "offers" && (
         <OffersTab
@@ -273,9 +289,13 @@ function StoreTab({
 function ProductsTab({
   products,
   basePlans,
+  isSub,
+  parentProducts,
 }: {
   products: Product[];
   basePlans: { basic: BasePlanInfo; pro: BasePlanInfo };
+  isSub: boolean;
+  parentProducts: ParentProductOpt[];
 }) {
   const [editing, setEditing] = useState<Product | null>(null);
   const [creating, setCreating] = useState(false);
@@ -285,13 +305,19 @@ function ProductsTab({
       {!creating && !editing && (
         <>
           <Button onClick={() => setCreating(true)}>+ 새 상품</Button>
-          <BasePlanReference basePlans={basePlans} />
+          {isSub ? (
+            <ParentProductReference parentProducts={parentProducts} />
+          ) : (
+            <BasePlanReference basePlans={basePlans} />
+          )}
         </>
       )}
       {(creating || editing) && (
         <ProductForm
           product={editing}
           basePlans={basePlans}
+          isSub={isSub}
+          parentProducts={parentProducts}
           onDone={() => {
             setCreating(false);
             setEditing(null);
@@ -433,13 +459,62 @@ function BasePlanReference({
   );
 }
 
+// 서브파트너용 — 상위파트너가 제공하는 상품(원가) 참조 카드.
+function ParentProductReference({
+  parentProducts,
+}: {
+  parentProducts: ParentProductOpt[];
+}) {
+  return (
+    <Card className="space-y-3 p-5">
+      <div>
+        <p className="font-semibold">상위파트너 상품 (내 원가)</p>
+        <p className="mt-0.5 text-xs text-muted">
+          아래는 상위파트너가 판매 중인 상품입니다. 이 가격을 원가로 삼아 내
+          판매가를 붙여 상품을 만드세요. (상위파트너가 가격을 바꿀 수 있습니다.)
+        </p>
+      </div>
+      {parentProducts.length === 0 ? (
+        <p className="text-sm text-muted">
+          상위파트너가 아직 판매 중인 상품이 없습니다.
+        </p>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {parentProducts.map((p) => (
+            <div
+              key={p.id}
+              className="rounded-lg border border-border bg-surface-2 p-4"
+            >
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="font-semibold">{p.name}</p>
+                <p className="text-sm font-semibold text-primary">
+                  원가 {won(p.sellPriceKrw)}
+                </p>
+              </div>
+              {p.includedServices && (
+                <p className="mt-1 whitespace-pre-line text-xs text-muted">
+                  {p.includedServices}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 function ProductForm({
   product,
   basePlans,
+  isSub,
+  parentProducts,
   onDone,
 }: {
   product: Product | null;
   basePlans: { basic: BasePlanInfo; pro: BasePlanInfo };
+  isSub: boolean;
+  parentProducts: ParentProductOpt[];
   onDone: () => void;
 }) {
   const router = useRouter();
@@ -449,6 +524,9 @@ function ProductForm({
     product?.includedServices ?? "",
   );
   const [basePlan, setBasePlan] = useState(product?.basePlan ?? "");
+  const [parentProductId, setParentProductId] = useState(
+    product?.parentProductId ?? "",
+  );
   const [sellPrice, setSellPrice] = useState(
     product ? String(product.sellPriceKrw) : "",
   );
@@ -461,25 +539,36 @@ function ProductForm({
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, start] = useTransition();
 
+  // 서브파트너면 상위 상품 판매가가 원가, 일반 파트너면 본사 공급가가 원가.
+  const selectedParent = isSub
+    ? parentProducts.find((p) => p.id === parentProductId)
+    : undefined;
   const baseInfo =
-    basePlan === "basic"
+    !isSub && basePlan === "basic"
       ? basePlans.basic
-      : basePlan === "pro"
+      : !isSub && basePlan === "pro"
         ? basePlans.pro
         : null;
-  const basePrice = baseInfo?.supplyPriceKrw ?? 0;
+  const basePrice = isSub
+    ? (selectedParent?.sellPriceKrw ?? 0)
+    : (baseInfo?.supplyPriceKrw ?? 0);
   const sellNum = Number(sellPrice) || 0;
   const delta = sellNum - basePrice;
 
   const save = () =>
     start(async () => {
       setMsg(null);
+      if (isSub && !parentProductId) {
+        setMsg("상위파트너 상품을 선택해주세요.");
+        return;
+      }
       const res = await saveProductAction({
         id: product?.id,
         name,
         description: description || null,
         includedServices: includedServices || null,
-        basePlan: (basePlan || null) as "basic" | "pro" | null,
+        basePlan: isSub ? null : ((basePlan || null) as "basic" | "pro" | null),
+        parentProductId: isSub ? parentProductId : null,
         sellPriceKrw: sellNum,
         vatMode: vatMode as "included" | "excluded",
         billingType: billingType as "one_time" | "recurring",
@@ -518,15 +607,34 @@ function ProductForm({
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label>연결 요금제</Label>
-          <Select
-            value={basePlan}
-            onChange={(e) => setBasePlan(e.target.value)}
-          >
-            <option value="">요금제 미연동(커스텀)</option>
-            <option value="basic">Basic</option>
-            <option value="pro">Pro</option>
-          </Select>
+          {isSub ? (
+            <>
+              <Label required>상위파트너 상품(원가)</Label>
+              <Select
+                value={parentProductId}
+                onChange={(e) => setParentProductId(e.target.value)}
+              >
+                <option value="">선택</option>
+                {parentProducts.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} · {won(p.sellPriceKrw)}
+                  </option>
+                ))}
+              </Select>
+            </>
+          ) : (
+            <>
+              <Label>연결 요금제</Label>
+              <Select
+                value={basePlan}
+                onChange={(e) => setBasePlan(e.target.value)}
+              >
+                <option value="">요금제 미연동(커스텀)</option>
+                <option value="basic">Basic</option>
+                <option value="pro">Pro</option>
+              </Select>
+            </>
+          )}
         </div>
         <div>
           <Label required>판매가(원)</Label>
@@ -538,7 +646,36 @@ function ProductForm({
           />
         </div>
       </div>
-      {baseInfo && (
+      {isSub && selectedParent && (
+        <div className="space-y-2 rounded-lg bg-surface-2 p-3 text-sm">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="font-semibold">{selectedParent.name}</span>
+            <span className="font-semibold text-primary">
+              원가(상위 판매가) {won(basePrice)}
+            </span>
+          </div>
+          {selectedParent.includedServices && (
+            <p className="whitespace-pre-line text-xs text-muted">
+              {selectedParent.includedServices}
+            </p>
+          )}
+          <div className="border-t border-border pt-2">
+            {delta < 0 ? (
+              <p className="text-danger">
+                예상 마진: {won(delta)} — 원가보다 낮습니다 ⚠
+              </p>
+            ) : (
+              <p className="text-muted">
+                예상 마진 {won(delta)} · 플랫폼 수수료 10% 제외 → 예상 정산{" "}
+                <span className="font-semibold">
+                  {won(Math.round(delta * (1 - PLATFORM_COMMISSION_RATE)))}
+                </span>
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+      {!isSub && baseInfo && (
         <div className="space-y-2 rounded-lg bg-surface-2 p-3 text-sm">
           <div className="flex items-baseline justify-between gap-2">
             <span className="font-semibold">{baseInfo.displayName}</span>

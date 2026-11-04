@@ -23,6 +23,7 @@ export interface AdminSettlementView {
   invoiceId: string | null;
   quoteId: string | null;
   partnerLabel: string;
+  role: string;
   grossKrw: number | null;
   baseDeductionKrw: number | null;
   commissionKrw: number;
@@ -96,6 +97,7 @@ export async function listSettlements(
       invoiceId: r.invoice_id,
       quoteId: r.quote_id,
       partnerLabel: labels.get(r.partner_user_id) ?? r.partner_user_id.slice(0, 8),
+      role: r.beneficiary_role ?? "partner",
       grossKrw: r.gross_krw,
       baseDeductionKrw: r.base_deduction_krw,
       commissionKrw: Math.max(0, margin - r.amount_krw),
