@@ -67,6 +67,12 @@ export default async function PartnerPage() {
               ? "배정받은 고객 사업장에서 AI 에이전트로 블로그·카드뉴스·SNS를 대행하세요."
               : "Run the AI agent for your assigned client businesses."}
           </p>
+          <div className="mt-3">
+            <ButtonLink href="/partner/guide" variant="outline" size="sm">
+              <Icon.file className="size-4" />
+              {ko ? "파트너 사용 매뉴얼" : "Partner guide"}
+            </ButtonLink>
+          </div>
         </div>
         <Card className="px-4 py-3 text-right">
           <p className="text-xs text-muted">
