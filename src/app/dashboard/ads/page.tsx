@@ -10,7 +10,8 @@ import { CHANNEL_ADS_ENABLED } from "@/lib/channelAds/config";
 import { ChannelAdsHub } from "@/components/ads/ChannelAdsHub";
 import { listMyChannels, getChannelDirectory } from "@/lib/channelAds/channels";
 import { listMyShareableContent } from "@/lib/channelAds/content";
-import { listOwnerJobs } from "@/lib/channelAds/jobs";
+import { listOwnerJobs, listMyShareRequests } from "@/lib/channelAds/jobs";
+import { listOwnerEarnings } from "@/lib/channelAds/settlement";
 
 export const metadata = { title: "광고 수익" };
 
@@ -20,13 +21,16 @@ export default async function BloggerAdsPage() {
 
   // 채널 공유 마켓플레이스(신규 모델) 우선. 기존 CPC(ADS_ENABLED)는 폴백.
   if (CHANNEL_ADS_ENABLED) {
-    const [channels, directory, myContent, ownerJobs, name] = await Promise.all([
-      listMyChannels(user.id),
-      getChannelDirectory(),
-      listMyShareableContent(user.id),
-      listOwnerJobs(user.id),
-      getProfileName(),
-    ]);
+    const [channels, directory, myContent, ownerJobs, myRequests, earnings, name] =
+      await Promise.all([
+        listMyChannels(user.id),
+        getChannelDirectory(),
+        listMyShareableContent(user.id),
+        listOwnerJobs(user.id),
+        listMyShareRequests(user.id),
+        listOwnerEarnings(user.id),
+        getProfileName(),
+      ]);
     // 본인 채널은 디렉토리에서 제외(자기 채널에는 의뢰 불가).
     const directoryView = directory.filter((d) => d.ownerUserId !== user.id);
     return (
@@ -67,6 +71,24 @@ export default async function BloggerAdsPage() {
           proofUrl: j.proofUrl,
           createdAt: j.createdAt,
         }))}
+        myRequests={myRequests.map((j) => ({
+          id: j.id,
+          platform: j.platform,
+          priceKrw: j.priceKrw,
+          contentType: j.contentType,
+          contentUrl: j.contentUrl,
+          contentTitle: j.contentTitle,
+          message: j.message,
+          status: j.status,
+          proofUrl: j.proofUrl,
+          createdAt: j.createdAt,
+        }))}
+        earnings={{
+          rows: earnings.rows,
+          paidKrw: earnings.paidKrw,
+          pendingKrw: earnings.pendingKrw,
+          heldKrw: earnings.heldKrw,
+        }}
         buyerName={name ?? ""}
         buyerEmail={user.email ?? ""}
       />

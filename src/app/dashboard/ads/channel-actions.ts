@@ -13,6 +13,10 @@ import {
   type CreatedShareOrder,
   type ShareBuyer,
 } from "@/lib/channelAds/orders";
+import {
+  submitShareProof,
+  confirmShareOrder,
+} from "@/lib/channelAds/settlement";
 
 async function requireUser(): Promise<string | null> {
   if (!CHANNEL_ADS_ENABLED) return null;
@@ -68,4 +72,27 @@ export async function createChannelShareOrderAction(input: {
     message: input.message ?? null,
     buyer: input.buyer,
   });
+}
+
+/** 채널 보유자: 게시 증빙 URL 제출(paid → shared). */
+export async function submitShareProofAction(
+  shareOrderId: string,
+  proofUrl: string,
+): Promise<{ ok?: true; error?: string }> {
+  const uid = await requireUser();
+  if (!uid) return { error: "권한이 없습니다." };
+  const res = await submitShareProof(uid, shareOrderId, proofUrl);
+  if (res.ok) revalidatePath("/dashboard/ads");
+  return res;
+}
+
+/** 광고주: 증빙 확인(shared → settled, 정산 지급 대기 전환). */
+export async function confirmShareOrderAction(
+  shareOrderId: string,
+): Promise<{ ok?: true; error?: string }> {
+  const uid = await requireUser();
+  if (!uid) return { error: "권한이 없습니다." };
+  const res = await confirmShareOrder(uid, shareOrderId);
+  if (res.ok) revalidatePath("/dashboard/ads");
+  return res;
 }
