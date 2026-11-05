@@ -148,14 +148,18 @@ export default async function PartnerPage() {
             있어요(아래 고객 목록).
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <ButtonLink size="sm" href="/partner/similar-video">
-              {ko ? "유사 영상 10개 만들기" : "10 similar videos"}
-            </ButtonLink>
             {RECAP_SHORTS_ENABLED && (
               <ButtonLink size="sm" href="/partner/recap-shorts">
-                {ko ? "블로그 요약 쇼츠" : "Blog recap shorts"}
+                {ko ? "글감으로 쇼츠 만들기" : "Shorts from a blog post"}
               </ButtonLink>
             )}
+            <ButtonLink
+              size="sm"
+              variant={RECAP_SHORTS_ENABLED ? "outline" : "primary"}
+              href="/partner/similar-video"
+            >
+              {ko ? "유사 영상 10개 만들기" : "10 similar videos"}
+            </ButtonLink>
             {PROVIDEO_ENABLED && (
               <ButtonLink size="sm" variant="outline" href="/partner/video">
                 {ko ? "전문 영상 스튜디오" : "Pro video studio"}
