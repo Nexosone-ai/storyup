@@ -86,6 +86,7 @@ export function CardNewsStudio({
   postId: postIdProp,
   onPostChange,
   onStateChange,
+  view,
   shortsView,
   onShortsRendered,
   shortsBlobOverride,
@@ -116,6 +117,12 @@ export function CardNewsStudio({
     dataPostId: string | null;
     cardNewsId: string | null;
   }) => void;
+  /**
+   * (허브용) 보여줄 섹션. 'cards'=생성·그리드·편집, 'shorts'=쇼츠 패널, 'share'=공유 버튼·캡션,
+   * 'none'=아무것도(export 레이어·파일 input 만 유지). 미지정 = 전부(구 SNS 페이지 동작).
+   * export 레이어는 오프스크린(position:fixed)이라 어떤 view 에서도 항상 렌더해야 PNG 가 나온다.
+   */
+  view?: "cards" | "shorts" | "share" | "none";
   /** (허브용) 내장 ShortsPanel 에 그대로 전달. */
   shortsView?: "make" | "share";
   onShortsRendered?: (blob: Blob, ext: string) => void;
@@ -131,6 +138,10 @@ export function CardNewsStudio({
     setInnerPostId(id);
     onPostChange?.(id);
   };
+  // 섹션 표시 플래그 — view 미지정이면 전부(구 페이지), 지정 시 해당 섹션만.
+  const showCards = !view || view === "cards";
+  const showShare = !view || view === "share";
+  const showShorts = !view || view === "shorts" || view === "share";
   // 공개 공유용 카드뉴스 id(marketing_contents.id) + 감사·조회 집계
   const [cardNewsId, setCardNewsId] = useState<string | null>(
     initial?.id ?? null,
@@ -709,7 +720,9 @@ export function CardNewsStudio({
         className="hidden"
         onChange={onUploadFile}
       />
+      {showCards && (
       <Card className="space-y-4">
+        {!view && (
         <div>
           <Label htmlFor="cn-post">
             {ko ? "블로그 글 선택" : "Choose a blog post"}
@@ -726,6 +739,15 @@ export function CardNewsStudio({
             ))}
           </Select>
         </div>
+        )}
+        {view === "cards" && (
+          <p className="text-sm text-muted">
+            {ko ? "선택한 글: " : "Selected post: "}
+            <span className="font-medium text-foreground">
+              {posts.find((p) => p.id === postId)?.title ?? "—"}
+            </span>
+          </p>
+        )}
         {error && <p className="text-sm text-danger">{error}</p>}
         <div data-tour="card-actions" className="flex flex-wrap gap-2">
           <Button onClick={generate} disabled={loading || imgBusy}>
@@ -740,18 +762,31 @@ export function CardNewsStudio({
           </Button>
         </div>
       </Card>
+      )}
+
+      {view === "share" && !data && (
+        <Card className="p-6 text-center">
+          <p className="text-sm text-muted">
+            {ko
+              ? "공유할 카드뉴스가 아직 없어요. 먼저 카드뉴스 단계에서 만들어주세요."
+              : "No card news to share yet — make it in the Card news step."}
+          </p>
+        </Card>
+      )}
 
       {data && (
         <>
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
+              {showCards && (
               <p className="text-sm font-medium text-muted">
                 {ko
                   ? `인스타그램 카드 ${cards.length}장`
                   : `${cards.length} Instagram cards`}
               </p>
+              )}
               <div className="flex flex-wrap items-center gap-2">
-                {images.some(Boolean) && (
+                {showCards && images.some(Boolean) && (
                   <>
                     <Button
                       variant="outline"
@@ -785,6 +820,8 @@ export function CardNewsStudio({
                     )}
                   </>
                 )}
+                {showShare && (
+                <>
                 <Button size="sm" onClick={downloadAll} disabled={busy}>
                   {busy ? (
                     <Spinner className="size-4" />
@@ -862,25 +899,29 @@ export function CardNewsStudio({
                     {ko ? "카드 공유 링크" : "Share page"}
                   </button>
                 )}
+                </>
+                )}
               </div>
             </div>
-            {cardNewsId && (
+            {showShare && cardNewsId && (
               <p className="text-xs text-muted">
                 {ko
                   ? `공유 페이지 반응 — 👏 감사 ${shareStats.thanks.toLocaleString()} · 👀 조회 ${shareStats.views.toLocaleString()}`
                   : `Share page — 👏 ${shareStats.thanks.toLocaleString()} · 👀 ${shareStats.views.toLocaleString()}`}
               </p>
             )}
+            {showShare && (
             <p className="text-xs leading-relaxed text-muted">
               {ko
                 ? "인스타그램은 카드뉴스 공유 페이지로 이동해 거기서 공유·저장할 수 있어요. X는 카드 이미지를 공유하고(휴대폰은 공유 창에서 앱 선택, PC는 이미지 다운로드+작성창), 페이스북은 공유 링크를 올려 블로그 글처럼 대표 이미지가 미리보기로 먼저 보입니다."
                 : "Instagram opens the card share page, where you can share or save. X shares the card images (phone: pick an app; desktop: images download + composer). Facebook posts the share link so the preview image shows first, like a blog post."}
             </p>
-            {shareMsg && (
+            )}
+            {showShare && shareMsg && (
               <p className="text-xs font-medium text-primary">{shareMsg}</p>
             )}
 
-            {cards.length > 0 && (
+            {showShorts && cards.length > 0 && (
               <ShortsPanel
                 businessId={businessId}
                 slugName={slugName}
@@ -896,7 +937,7 @@ export function CardNewsStudio({
               />
             )}
 
-            {missingCount > 0 && (
+            {showCards && missingCount > 0 && (
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3">
                 <p className="text-sm text-warning">
                   {ko
@@ -924,8 +965,8 @@ export function CardNewsStudio({
               </div>
             )}
 
-            {/* 배경이 다 채워지면 다음 단계(저장 → 인스타 업로드)를 바로 안내한다 */}
-            {missingCount === 0 && images.some(Boolean) && (
+            {/* 배경이 다 채워지면 다음 단계(저장 → 인스타 업로드)를 바로 안내한다(구 페이지 전용 — 허브는 공유 단계가 담당) */}
+            {!view && missingCount === 0 && images.some(Boolean) && (
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary-soft/50 px-4 py-3">
                 <p className="text-sm text-foreground/85">
                   {ko
@@ -943,6 +984,8 @@ export function CardNewsStudio({
               </div>
             )}
 
+            {showCards && (
+            <>
             {/* 전체 폰트 선택 — 모든 카드에 일괄 적용 */}
             <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-surface p-3">
               <span className="mr-1 inline-flex items-center gap-1.5 text-sm font-semibold">
@@ -1184,8 +1227,11 @@ export function CardNewsStudio({
                 ? "PNG는 실제 크기(1080×1350)로 저장됩니다. 휴대폰은 '전체 PNG 다운로드'를 누르면 공유 창이 떠서 '사진(갤러리)에 저장'을 고르면 되고, PC는 모든 카드가 ZIP 한 파일로 받아집니다. 배경 이미지는 카드뉴스에 자동 저장되어 다음에 와도 유지돼요."
                 : "PNGs are full size (1080×1350). On phones, tap 'Download all PNGs' and pick 'Save to Photos' from the share sheet; on desktop all cards come as a single ZIP file. Background images are saved to your card news automatically and persist across visits."}
             </p>
+            </>
+            )}
           </div>
 
+          {showShare && (
           <div className="grid gap-5 md:grid-cols-2">
             <Card className="space-y-3">
               <div className="flex items-center justify-between gap-3">
@@ -1240,8 +1286,9 @@ export function CardNewsStudio({
               />
             </Card>
           </div>
+          )}
 
-          {/* Hidden full-size export layer */}
+          {/* Hidden full-size export layer — 어떤 view 에서도 항상 렌더(오프스크린, PNG·공유·쇼츠가 의존) */}
           <div
             aria-hidden
             style={{

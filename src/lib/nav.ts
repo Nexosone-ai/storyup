@@ -145,8 +145,13 @@ export function workspaceNav(
       step: 2,
     },
     { label: ko ? "블로그" : "Blog", href: `${base}/blog`, icon: "pen", step: 3 },
-    { label: "SNS", href: `${base}/marketing`, icon: "megaphone", step: 4 },
-    { label: ko ? "AI 영상" : "AI video", href: `${base}/video`, icon: "megaphone" },
+    // 콘텐츠 스튜디오 — 글 선택→카드뉴스→쇼츠→편집→공유→AI 동영상 (구 SNS + AI 영상 통합)
+    {
+      label: ko ? "콘텐츠 스튜디오" : "Content studio",
+      href: `${base}/marketing`,
+      icon: "megaphone",
+      step: 4,
+    },
     {
       label: ko ? "광고" : "Ads",
       href: `${base}/ads`,

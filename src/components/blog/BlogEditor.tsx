@@ -524,7 +524,7 @@ export function BlogEditor({
             </CopyButton>
           </div>
           <div className="border-t border-primary/15 pt-4">
-            <ButtonLink href={`/business/${businessId}/marketing`} size="sm">
+            <ButtonLink href={`/business/${businessId}/marketing?step=2&post=${post.id}`} size="sm">
               {ko
                 ? "이 글로 SNS 콘텐츠 만들기 →"
                 : "Turn this post into social content →"}
