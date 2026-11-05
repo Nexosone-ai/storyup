@@ -16,6 +16,7 @@ import { PartnerProfileEditor } from "@/components/partner/PartnerProfileEditor"
 import { savePartnerProfileAction } from "@/app/partner/actions";
 import { PROVIDEO_ENABLED } from "@/lib/provideo/config";
 import { B2B2C_ENABLED } from "@/lib/b2b2c/config";
+import { RECAP_SHORTS_ENABLED } from "@/lib/recapShorts/config";
 
 const INQ_STATUS: Record<string, string> = {
   open: "신규 문의",
@@ -138,6 +139,9 @@ export default async function PartnerPage() {
             <li>· AI 에이전트로 블로그·카드뉴스·SNS 생성과 예약 발행을 대행</li>
             <li>· 오토파일럿으로 고객별 자동 마케팅(제안/자동 실행)</li>
             <li>· 원본 영상 1개로 같은 컨셉의 유사 영상 10개를 한 번에 생성(패킷 차감)</li>
+            {RECAP_SHORTS_ENABLED && (
+              <li>· 고객 블로그 글 1개를 30~40초 내레이션 요약 쇼츠로(대본·음성·자막 자동, 패킷 차감)</li>
+            )}
           </ul>
           <p className="mt-2 text-xs text-muted">
             배정된 고객 사업장의 <strong>AI 에이전트</strong>에서 바로 사용할 수
@@ -147,6 +151,11 @@ export default async function PartnerPage() {
             <ButtonLink size="sm" href="/partner/similar-video">
               {ko ? "유사 영상 10개 만들기" : "10 similar videos"}
             </ButtonLink>
+            {RECAP_SHORTS_ENABLED && (
+              <ButtonLink size="sm" href="/partner/recap-shorts">
+                {ko ? "블로그 요약 쇼츠" : "Blog recap shorts"}
+              </ButtonLink>
+            )}
             {PROVIDEO_ENABLED && (
               <ButtonLink size="sm" variant="outline" href="/partner/video">
                 {ko ? "전문 영상 스튜디오" : "Pro video studio"}

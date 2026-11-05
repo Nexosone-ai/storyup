@@ -4,7 +4,8 @@ import { useRef, useState } from "react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { useLocale } from "@/components/i18n/LocaleProvider";
-import { reserveShortsQuota, mintYoutubeUploadToken } from "@/app/business/actions";
+import { reserveShortsQuota } from "@/app/business/actions";
+import { uploadShortToYoutube } from "@/lib/shorts/youtubeUpload";
 import type { PlanId } from "@/lib/plans";
 import {
   createMusicBed,
@@ -48,9 +49,6 @@ export interface ShortsYoutube {
   /** Pro/Partner — 업로드 사용 가능. */
   canUse: boolean;
 }
-
-const YT_UPLOAD_URL =
-  "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status";
 
 type SizeId = "youtube" | "tiktok";
 const SIZES: { id: SizeId; ko: string; en: string; w: number; h: number }[] = [
@@ -329,59 +327,20 @@ export function ShortsPanel({
     }
   };
 
-  /** 방금 만든 쇼츠를 유튜브에 직접 업로드(브라우저 → 유튜브, 서버 미경유). */
+  /** 방금 만든 쇼츠를 유튜브에 직접 업로드(브라우저 → 유튜브, 서버 미경유). 공용 헬퍼 사용. */
   const uploadToYoutube = async () => {
     if (ytBusy || !lastBlob) return;
     setYtBusy(true);
     setYtError(null);
     setYtLink(null);
-    try {
-      const t = await mintYoutubeUploadToken();
-      if (t.error || !t.token) {
-        setYtError(t.error ?? (ko ? "토큰 발급 실패" : "Token error"));
-        return;
-      }
-      const meta = {
-        snippet: {
-          title: (title || slugName() || "StoryUp Shorts").slice(0, 100),
-          description: ko
-            ? "STORYUP으로 만든 쇼츠입니다."
-            : "Created with STORYUP.",
-          categoryId: "22",
-        },
-        status: { privacyStatus: "private", selfDeclaredMadeForKids: false },
-      };
-      // 1) 재개 가능 업로드 세션 시작
-      const init = await fetch(YT_UPLOAD_URL, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${t.token}`,
-          "Content-Type": "application/json; charset=UTF-8",
-          "X-Upload-Content-Type": lastBlob.type || "video/mp4",
-          "X-Upload-Content-Length": String(lastBlob.size),
-        },
-        body: JSON.stringify(meta),
-      });
-      const loc = init.headers.get("location") || init.headers.get("Location");
-      if (!init.ok || !loc) throw new Error("init");
-      // 2) 영상 바이트 업로드
-      const put = await fetch(loc, {
-        method: "PUT",
-        headers: { "Content-Type": lastBlob.type || "video/mp4" },
-        body: lastBlob,
-      });
-      const data = (await put.json()) as { id?: string };
-      if (!put.ok || !data.id) throw new Error("put");
-      setYtLink(`https://youtu.be/${data.id}`);
-    } catch {
-      setYtError(
-        ko
-          ? "유튜브 업로드에 실패했어요. 잠시 후 다시 시도하거나 계정을 다시 연결해주세요."
-          : "YouTube upload failed. Please retry or reconnect your account.",
-      );
-    } finally {
-      setYtBusy(false);
-    }
+    const r = await uploadShortToYoutube(
+      lastBlob,
+      { title: title || slugName() || "StoryUp Shorts" },
+      ko,
+    );
+    if (r.error) setYtError(r.error);
+    else setYtLink(r.link ?? null);
+    setYtBusy(false);
   };
 
   const remainLabel =

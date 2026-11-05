@@ -124,6 +124,58 @@ export async function cardBackgroundsForPost(
   }
 }
 
+export interface RecapCandidatePost {
+  id: string;
+  title: string;
+  publishedAt: string | null;
+  /** 카드뉴스 배경 이미지가 있어 '카드뉴스' 소스를 쓸 수 있는지. */
+  hasCardBackgrounds: boolean;
+}
+
+/**
+ * 사업장의 발행 글 목록 + 카드뉴스 배경 보유 여부(소스 선택 UI용).
+ * 글은 세션 RLS(파트너 고객 포함), 카드뉴스는 관리자 클라이언트로 한 번에 조회.
+ */
+export async function listRecapCandidatePosts(
+  supabase: Awaited<ReturnType<typeof import("@/lib/supabase/server").createClient>>,
+  businessId: string,
+): Promise<RecapCandidatePost[]> {
+  const { data: posts } = await supabase
+    .from("blog_posts")
+    .select("id, title, published_at")
+    .eq("business_id", businessId)
+    .eq("status", "published")
+    .order("published_at", { ascending: false })
+    .limit(100);
+  const rows = posts ?? [];
+  if (rows.length === 0) return [];
+
+  const admin = createAdminClient();
+  const { data: cards } = await admin
+    .from("marketing_contents")
+    .select("blog_post_id, content")
+    .eq("business_id", businessId)
+    .eq("platform", "instagram_cards")
+    .in("blog_post_id", rows.map((p) => p.id));
+  const withBg = new Set<string>();
+  for (const c of cards ?? []) {
+    if (!c.blog_post_id) continue;
+    try {
+      const parsed = JSON.parse(c.content) as { images?: unknown };
+      if (Array.isArray(parsed.images) && parsed.images.some((u) => typeof u === "string" && u))
+        withBg.add(c.blog_post_id);
+    } catch {
+      /* skip */
+    }
+  }
+  return rows.map((p) => ({
+    id: p.id,
+    title: p.title ?? "",
+    publishedAt: p.published_at ?? null,
+    hasCardBackgrounds: withBg.has(p.id),
+  }));
+}
+
 /** 장면 상태로 잡의 다음 status를 정한다(모든 오디오·이미지가 준비되면 ready). */
 export function deriveStatus(
   scenes: RecapScene[],
