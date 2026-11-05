@@ -1,12 +1,12 @@
 /**
  * 채널 공유 광고 마켓플레이스 기능 플래그 + 상수.
  *
- * 기본 비활성 — 꺼져 있으면 /dashboard/ads 는 기존 동작(ADS_ENABLED의 CPC 뷰 또는
- * 준비중 플레이스홀더)을 유지한다. 채널 등록·의뢰·결제·정산은 모두 이 플래그 뒤에서만.
- * 운영 준비·검증 후 NEXT_PUBLIC_CHANNEL_ADS_ENABLED=true 로 켠다.
+ * 기본 '켜짐' — 끄려면 환경변수 NEXT_PUBLIC_CHANNEL_ADS_ENABLED=false.
+ * 켜져 있으면 /dashboard/ads 가 채널 공유 마켓(등록·의뢰·결제·정산)으로 열리고,
+ * 꺼져 있으면 기존 동작(ADS_ENABLED의 CPC 뷰 또는 준비중 플레이스홀더)을 유지한다.
  */
 export const CHANNEL_ADS_ENABLED =
-  process.env.NEXT_PUBLIC_CHANNEL_ADS_ENABLED === "true";
+  process.env.NEXT_PUBLIC_CHANNEL_ADS_ENABLED !== "false";
 
 /** 플랫폼 중개 수수료율 — 결제액에서 떼고 나머지를 채널 보유자에게 정산한다. */
 export const CHANNEL_SHARE_FEE_RATE = 0.2;
