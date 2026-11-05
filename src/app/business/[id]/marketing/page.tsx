@@ -1,17 +1,28 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { getBusiness, getBlogPosts, getWebsite } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
-import { getShortsQuota } from "@/lib/subscription";
+import { getShortsQuota, getPlanId } from "@/lib/subscription";
+import { getPlanById } from "@/lib/plans";
 import { getYoutubeStatus } from "@/lib/youtube";
+import { getVideoPricing, videoEngineConfigured } from "@/lib/video";
+import { listDeliverables } from "@/lib/agency";
 import { getLocale } from "@/lib/i18n";
-import { MarketingHub } from "@/components/marketing/MarketingHub";
-import { CardNewsStudio } from "@/components/cards/CardNewsStudio";
+import { CHANNEL_ADS_ENABLED } from "@/lib/channelAds/config";
 import { WorkflowSteps } from "@/components/dashboard/WorkflowSteps";
 import { GuidedTour } from "@/components/ui/GuidedTour";
+import {
+  ContentStudio,
+  type StudioVideoData,
+} from "@/components/studio/ContentStudio";
 import type { CardNewsResult } from "@/types/domain";
 
-export const metadata = { title: "SNS" };
+export const metadata = { title: "콘텐츠 스튜디오" };
 
+/**
+ * 콘텐츠 스튜디오 — 글 선택 → 카드뉴스 → 쇼츠 만들기 → 쇼츠 편집 → 공유 → AI 동영상을
+ * 한 페이지에서 단계적으로. (구 'SNS' 페이지를 개편; /video 는 6단계로 리다이렉트)
+ */
 export default async function MarketingPage({
   params,
 }: {
@@ -27,12 +38,17 @@ export default async function MarketingPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const shortsQuota = user ? await getShortsQuota(user.id) : null;
-  const ytStatus = user ? await getYoutubeStatus(user.id) : null;
-  const proPlan =
-    shortsQuota?.planId === "pro" || shortsQuota?.planId === "partner";
-  // 카드뉴스는 유료 전용 — 무료 플랜은 스튜디오를 숨기고 업그레이드 안내만 노출.
-  const isFreePlan = (shortsQuota?.planId ?? "free") === "free";
+  const [shortsQuota, ytStatus, planId] = user
+    ? await Promise.all([
+        getShortsQuota(user.id),
+        getYoutubeStatus(user.id),
+        getPlanId(user.id),
+      ])
+    : [null, null, "free" as const];
+  const plan = getPlanById(planId);
+  const proPlan = planId === "pro" || planId === "partner";
+  // 카드뉴스·쇼츠는 유료 전용 — 무료 플랜은 업그레이드 안내만.
+  const isFreePlan = planId === "free";
   const shortsYoutube = ytStatus
     ? {
         configured: ytStatus.configured,
@@ -42,44 +58,34 @@ export default async function MarketingPage({
       }
     : null;
 
-  // Latest Instagram/Facebook text posts.
-  const { data: textRows } = await supabase
-    .from("marketing_contents")
-    .select("blog_post_id,platform,content,created_at")
-    .eq("business_id", id)
-    .in("platform", ["instagram", "facebook"])
-    .order("created_at", { ascending: false })
-    .limit(2);
+  // 최신 SNS 캡션(인스타/페북) + 최신 카드뉴스 세트.
+  const [{ data: textRows }, { data: cardRow }] = await Promise.all([
+    supabase
+      .from("marketing_contents")
+      .select("blog_post_id,platform,content,created_at")
+      .eq("business_id", id)
+      .in("platform", ["instagram", "facebook"])
+      .order("created_at", { ascending: false })
+      .limit(2),
+    supabase
+      .from("marketing_contents")
+      .select("id,blog_post_id,content,thanks_count,view_count")
+      .eq("business_id", id)
+      .eq("platform", "instagram_cards")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
-  const initialText: {
-    instagram?: string;
-    facebook?: string;
-    blogPostId?: string;
-  } = {};
+  const initialText: { instagram?: string; facebook?: string; blogPostId?: string } = {};
   (textRows ?? []).forEach((row) => {
     if (row.platform === "instagram") initialText.instagram = row.content;
     if (row.platform === "facebook") initialText.facebook = row.content;
     initialText.blogPostId = row.blog_post_id ?? undefined;
   });
 
-  // Latest card-news set.
-  const { data: cardRow } = await supabase
-    .from("marketing_contents")
-    .select("id,blog_post_id,content,thanks_count,view_count")
-    .eq("business_id", id)
-    .eq("platform", "instagram_cards")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
   let initialCards:
-    | {
-        cardNews?: CardNewsResult;
-        blogPostId?: string;
-        id?: string;
-        thanks?: number;
-        views?: number;
-      }
+    | { cardNews?: CardNewsResult; blogPostId?: string; id?: string; thanks?: number; views?: number }
     | undefined;
   if (cardRow?.content) {
     try {
@@ -95,6 +101,32 @@ export default async function MarketingPage({
     }
   }
 
+  // AI 동영상(6단계) — 플랜이 제공할 때만 조회(무료는 업그레이드 안내, 쿼리 생략).
+  let video: StudioVideoData | null = null;
+  if (user && plan.limits.video !== 0) {
+    const [pricing, deliverables, pendingRes] = await Promise.all([
+      getVideoPricing(user.id),
+      listDeliverables(id),
+      supabase
+        .from("video_jobs")
+        .select("id, prompt, created_at")
+        .eq("business_id", id)
+        .eq("status", "processing")
+        .order("created_at", { ascending: false })
+        .limit(10),
+    ]);
+    video = {
+      pricing: { price: pricing.price, balance: pricing.balance },
+      engineReady: videoEngineConfigured(),
+      videos: deliverables.filter((d) => d.kind === "video"),
+      pendingJobs: (pendingRes.data ?? []).map((j) => ({
+        id: j.id,
+        prompt: j.prompt,
+        createdAt: j.created_at,
+      })),
+    };
+  }
+
   const postOptions = posts.map((p) => ({
     id: p.id,
     title: p.title,
@@ -104,115 +136,83 @@ export default async function MarketingPage({
   }));
   const siteSlug = website?.status === "published" ? website.slug : null;
 
+  // 초기 단계·글 — 서버에서 계산해 SSR/클라이언트가 일치하게.
+  const published = postOptions.filter((p) => p.published);
+  const initialPostId =
+    (initialCards?.blogPostId && published.some((p) => p.id === initialCards?.blogPostId)
+      ? initialCards.blogPostId
+      : published[0]?.id) ?? "";
+  const initialStep = !initialPostId
+    ? 1
+    : !initialCards
+      ? 2
+      : (shortsQuota?.used ?? 0) > 0
+        ? 5
+        : 3;
+
   return (
-    <div className="space-y-12">
+    <div className="space-y-8">
       <div>
-        <p className="eyebrow mb-2">SNS</p>
+        <p className="eyebrow mb-2">{ko ? "콘텐츠" : "Content"}</p>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          {ko ? "SNS 콘텐츠 스튜디오" : "Social content studio"}
+          {ko ? "콘텐츠 스튜디오" : "Content studio"}
         </h1>
         <p className="mt-1.5 text-muted">
           {ko
-            ? "블로그 글을 SNS 게시물과 카드뉴스 이미지로 바꿔보세요."
-            : "Turn blog posts into social posts and card news images."}
+            ? "블로그 글 하나로 카드뉴스 → 쇼츠 → 편집 → 공유 → AI 동영상까지, 한 곳에서 단계대로."
+            : "From one blog post: cards → short → edit → share → AI video, step by step in one place."}
         </p>
       </div>
 
       <WorkflowSteps businessId={id} current={4} />
 
       <GuidedTour
-        storageKey="tour.sns.v1"
-        autoStart={
-          website?.status !== "published" &&
-          !initialText.instagram &&
-          !initialText.facebook &&
-          !initialCards
-        }
+        storageKey="tour.studio.v1"
+        autoStart={!initialCards && !initialText.instagram && !initialText.facebook}
         steps={[
           {
-            target: "[data-tour=sns-posts]",
-            title: ko
-              ? "① 블로그 글을 SNS 글로 바꿔요"
-              : "① Turn a blog post into a caption",
+            target: "[data-tour=studio-steps]",
+            title: ko ? "① 6단계로 끝내요" : "① Six steps, one place",
             desc: ko
-              ? "블로그 글을 고르고 'SNS 콘텐츠 생성'을 누르면 인스타그램·페이스북에 붙여넣을 글(캡션)이 만들어져요. 자동으로 게시되지는 않아요 — 복사해서 앱에서 올려요."
-              : "Pick a blog post and press Generate to get captions for Instagram and Facebook. Nothing posts automatically — copy and paste in the app.",
+              ? "글 선택 → 카드뉴스 → 쇼츠 → 편집 → 공유 → AI 동영상 순서예요. 완료된 단계는 체크로 표시되고, 번호를 눌러 오갈 수 있어요."
+              : "Pick a post → cards → short → edit → share → AI video. Done steps get a check; click a number to jump.",
           },
           {
-            target: "[data-tour=card-news]",
-            title: ko
-              ? "② 같은 글로 카드뉴스 이미지를 만들어요"
-              : "② Make card news images from the same post",
+            target: "[data-tour=studio-post]",
+            title: ko ? "② 발행된 글을 고르세요" : "② Pick a published post",
             desc: ko
-              ? "'카드뉴스 생성'을 누르면 인스타그램에 여러 장으로 올리는 카드 이미지가 만들어져요. 위에서 만든 캡션과 짝지어 올리면 완성!"
-              : "Press Generate to create swipeable Instagram cards. Pair them with the caption above and you're done!",
+              ? "이 글 하나로 카드뉴스와 쇼츠를 만듭니다. 글이 없으면 '새 글 쓰기'로 먼저 발행하세요."
+              : "Everything is built from this one post. No posts yet? Write and publish one first.",
           },
           {
-            target: "[data-tour=card-actions]",
-            title: ko
-              ? "③ 카드 배경은 꼭 채워주세요!"
-              : "③ Don't forget card backgrounds!",
+            target: "[data-tour=studio-next]",
+            title: ko ? "③ 다음 단계로" : "③ Move on",
             desc: ko
-              ? "카드를 만들면 카드 목록 위에 'AI 이미지로 배경 채우기' 버튼이 나타나요. 그 버튼을 누르거나 카드마다 '사진 올리기'로 내 사진을 넣어주세요. 배경 없이 저장하면 글자만 있는 밋밋한 카드가 돼요."
-              : "Once cards are generated, a 'Fill backgrounds with AI' button appears above them. Press it, or upload your own photo per card — cards without a background look plain.",
+              ? "각 단계 아래 '다음 단계' 안내를 따라가면 돼요."
+              : "Follow the 'Next step' hint under each step.",
           },
         ]}
       />
 
-      <section data-tour="sns-posts" className="space-y-4">
-        <h2 className="text-lg font-semibold tracking-tight">
-          {ko ? "SNS 게시물" : "Social posts"}
-        </h2>
-        <MarketingHub
+      <Suspense fallback={null}>
+        <ContentStudio
           businessId={id}
+          ko={ko}
           posts={postOptions}
-          initial={initialText}
+          brandName={business.name}
+          handle={`@${business.slug}`}
+          siteSlug={siteSlug}
+          initialCards={initialCards}
+          initialText={initialText}
+          shortsQuota={shortsQuota}
+          shortsYoutube={shortsYoutube}
+          isFreePlan={isFreePlan}
+          video={video}
+          channelAdsEnabled={CHANNEL_ADS_ENABLED}
+          initialStep={initialStep}
+          initialPostId={initialPostId}
         />
-      </section>
-
-      <section id="card-news" data-tour="card-news" className="scroll-mt-24 space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">
-            {ko ? "카드뉴스 이미지" : "Card news images"}
-          </h2>
-          <p className="mt-1 text-sm text-muted">
-            {ko
-              ? "인스타그램 캐러셀로 저장하고, X·Facebook에는 링크로 바로 공유하세요."
-              : "Save as an Instagram carousel, or share the link straight to X and Facebook."}
-          </p>
-        </div>
-        {isFreePlan ? (
-          <div className="rounded-xl border border-dashed border-border bg-muted/20 p-6 text-center">
-            <p className="text-sm font-medium">
-              {ko
-                ? "SNS 카드뉴스는 유료 플랜(Basic 이상) 기능입니다."
-                : "Card news is available on paid plans (Basic and up)."}
-            </p>
-            <p className="mt-1 text-sm text-muted">
-              {ko
-                ? "플랜을 업그레이드하면 블로그 글을 인스타그램 카드뉴스로 바로 만들 수 있어요."
-                : "Upgrade to turn blog posts into Instagram card news in one click."}
-            </p>
-            <a
-              href="/dashboard/plans"
-              className="mt-3 inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-            >
-              {ko ? "플랜 보기" : "View plans"}
-            </a>
-          </div>
-        ) : (
-          <CardNewsStudio
-            businessId={id}
-            posts={postOptions}
-            brandName={business.name}
-            handle={`@${business.slug}`}
-            siteSlug={siteSlug}
-            initial={initialCards}
-            shorts={shortsQuota}
-            youtube={shortsYoutube}
-          />
-        )}
-      </section>
+      </Suspense>
     </div>
   );
 }

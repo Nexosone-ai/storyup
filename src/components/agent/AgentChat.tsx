@@ -166,7 +166,7 @@ export function AgentChat({
         href = `/business/${businessId}/blog/${r.postId}`;
         label = ko ? "초안 열기" : "Open draft";
       } else if ("cardNewsId" in r) {
-        href = `/business/${businessId}/marketing#card-news`;
+        href = `/business/${businessId}/marketing?step=2`;
         label = ko ? "카드뉴스 열기" : "Open card news";
       }
       setProposal(p.id, { status: "done", resultHref: href, resultLabel: label });

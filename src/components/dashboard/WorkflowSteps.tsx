@@ -65,10 +65,10 @@ export async function WorkflowSteps({
     },
     {
       n: 4,
-      label: "SNS",
+      label: ko ? "콘텐츠" : "Content",
       href: `${base}/marketing`,
       done: state.sns,
-      hint: ko ? "SNS 콘텐츠 만들기" : "Create SNS content",
+      hint: ko ? "카드뉴스·쇼츠·공유 만들기" : "Make cards, shorts and shareables",
     },
   ];
 
