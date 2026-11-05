@@ -155,12 +155,21 @@ export function VideoEditor({
   title,
   ko,
   onClose,
+  inline = false,
+  durationHint,
+  onResult,
 }: {
   businessId: string;
   fileUrl: string;
   title: string | null;
   ko: boolean;
   onClose: () => void;
+  /** (허브용) 모달 오버레이 대신 페이지 안에 그대로 배치. */
+  inline?: boolean;
+  /** 소스 길이(초) 힌트 — MediaRecorder 산출물(duration=Infinity)일 때 폴백으로 쓴다. */
+  durationHint?: number;
+  /** 다운로드/저장 결과를 바깥에 넘긴다(허브의 공유 단계 입력). */
+  onResult?: (r: { blob: Blob; ext: string; url?: string }) => void;
 }) {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -181,10 +190,34 @@ export function VideoEditor({
   const onMeta = () => {
     const v = videoRef.current;
     if (!v) return;
-    const d = isFinite(v.duration) ? v.duration : 0;
-    setDuration(d);
-    setEnd(d);
-    setStart(0);
+    const apply = (d: number) => {
+      setDuration(d);
+      setEnd(d);
+      setStart(0);
+    };
+    if (isFinite(v.duration) && v.duration > 0) {
+      apply(v.duration);
+      return;
+    }
+    // MediaRecorder 산출물(브라우저 쇼츠·편집본)은 duration=Infinity 로 보고된다.
+    // 힌트를 먼저 적용해 UI를 열고, 끝으로 seek 해 실제 길이를 얻으면 갱신한다.
+    if (durationHint && durationHint > 0) apply(durationHint);
+    const onSeeked = () => {
+      v.removeEventListener("seeked", onSeeked);
+      const d = isFinite(v.duration) && v.duration > 0 ? v.duration : durationHint ?? 0;
+      if (d > 0) apply(d);
+      try {
+        v.currentTime = 0;
+      } catch {
+        /* noop */
+      }
+    };
+    v.addEventListener("seeked", onSeeked);
+    try {
+      v.currentTime = 1e7;
+    } catch {
+      v.removeEventListener("seeked", onSeeked);
+    }
   };
 
   const run = async (after: (blob: Blob, ext: string) => Promise<void>) => {
@@ -298,6 +331,7 @@ export function VideoEditor({
   const handleDownload = () =>
     run(async (blob, ext) => {
       downloadBlob(blob, `${baseName()}-편집.${ext}`);
+      onResult?.({ blob, ext });
     });
 
   const handleSave = () =>
@@ -321,26 +355,39 @@ export function VideoEditor({
         );
         if (reg.error) throw new Error(reg.error);
         setSaved(true);
+        onResult?.({ blob, ext, url: (reg as { url?: string }).url });
         router.refresh();
-        setTimeout(() => onClose(), 1000);
+        if (!inline) setTimeout(() => onClose(), 1000);
       } finally {
         setSaving(false);
       }
     });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:items-center">
-      <div className="w-full max-w-lg rounded-2xl border border-border bg-surface p-4 shadow-xl sm:p-5">
+    <div
+      className={
+        inline
+          ? "w-full"
+          : "fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:items-center"
+      }
+    >
+      <div
+        className={`w-full rounded-2xl border border-border bg-surface p-4 sm:p-5 ${
+          inline ? "" : "max-w-lg shadow-xl"
+        }`}
+      >
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-base font-semibold">{ko ? "영상 편집" : "Edit video"}</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={busy}
-            className="text-sm text-muted hover:text-foreground disabled:opacity-50"
-          >
-            {ko ? "닫기" : "Close"}
-          </button>
+          {!inline && (
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={busy}
+              className="text-sm text-muted hover:text-foreground disabled:opacity-50"
+            >
+              {ko ? "닫기" : "Close"}
+            </button>
+          )}
         </div>
 
         <video

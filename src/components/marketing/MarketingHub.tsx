@@ -18,17 +18,32 @@ export function MarketingHub({
   businessId,
   posts,
   initial,
+  postId: postIdProp,
 }: {
   businessId: string;
   posts: PostOption[];
   initial: { instagram?: string; facebook?: string; blogPostId?: string };
+  /** (허브용) 선택 글을 바깥에서 제어 — 주면 글 선택 UI를 숨기고 이 값을 쓴다. */
+  postId?: string;
 }) {
   const ko = useLocale() === "ko";
-  const [postId, setPostId] = useState(
+  const [innerPostId, setInnerPostId] = useState(
     initial.blogPostId ?? posts[0]?.id ?? "",
   );
-  const [instagram, setInstagram] = useState(initial.instagram ?? "");
-  const [facebook, setFacebook] = useState(initial.facebook ?? "");
+  const postId = postIdProp ?? innerPostId;
+  // 캡션은 글별로 보관 — 저장된 최신 캡션은 '그 글'에만 시드돼 다른 글을 고르면 섞이지 않는다.
+  const [captionsByPost, setCaptionsByPost] = useState<
+    Record<string, { instagram: string; facebook: string }>
+  >(() => {
+    const seedKey = initial.blogPostId ?? posts[0]?.id ?? "";
+    return seedKey && (initial.instagram || initial.facebook)
+      ? { [seedKey]: { instagram: initial.instagram ?? "", facebook: initial.facebook ?? "" } }
+      : {};
+  });
+  const instagram = captionsByPost[postId]?.instagram ?? "";
+  const facebook = captionsByPost[postId]?.facebook ?? "";
+  const setCaptions = (ig: string, fb: string) =>
+    setCaptionsByPost((prev) => ({ ...prev, [postId]: { instagram: ig, facebook: fb } }));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,8 +62,7 @@ export function MarketingHub({
         throw new Error(
           json.error ?? (ko ? "생성에 실패했습니다." : "Generation failed."),
         );
-      setInstagram(json.instagram ?? "");
-      setFacebook(json.facebook ?? "");
+      setCaptions(json.instagram ?? "", json.facebook ?? "");
     } catch (e) {
       setError(
         e instanceof Error
@@ -85,20 +99,22 @@ export function MarketingHub({
   return (
     <div className="space-y-6">
       <Card className="space-y-4">
-        <div>
-          <Label htmlFor="post">{ko ? "블로그 글 선택" : "Choose a blog post"}</Label>
-          <Select
-            id="post"
-            value={postId}
-            onChange={(e) => setPostId(e.target.value)}
-          >
-            {posts.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.title}
-              </option>
-            ))}
-          </Select>
-        </div>
+        {postIdProp === undefined && (
+          <div>
+            <Label htmlFor="post">{ko ? "블로그 글 선택" : "Choose a blog post"}</Label>
+            <Select
+              id="post"
+              value={postId}
+              onChange={(e) => setInnerPostId(e.target.value)}
+            >
+              {posts.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
+                </option>
+              ))}
+            </Select>
+          </div>
+        )}
         <div className="flex flex-wrap gap-2 text-sm text-muted">
           {ko ? "변환 대상:" : "Formats:"}
           <span className="rounded-full bg-primary-soft px-3 py-0.5 text-primary">
@@ -154,14 +170,16 @@ export function MarketingHub({
                     },
                   ]}
                 />
-                <a
-                  href="#card-news"
-                  className="inline-block text-sm font-medium text-primary hover:underline"
-                >
-                  {ko
-                    ? "이미지가 필요하면 아래 '카드뉴스 이미지'에서 만들 수 있어요 ↓"
-                    : "Need images? Make them in 'Card news images' below ↓"}
-                </a>
+                {postIdProp === undefined && (
+                  <a
+                    href="#card-news"
+                    className="inline-block text-sm font-medium text-primary hover:underline"
+                  >
+                    {ko
+                      ? "이미지가 필요하면 아래 '카드뉴스 이미지'에서 만들 수 있어요 ↓"
+                      : "Need images? Make them in 'Card news images' below ↓"}
+                  </a>
+                )}
               </Card>
               <Card className="space-y-4">
                 <p className="flex items-center gap-2 font-semibold">
