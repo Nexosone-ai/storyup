@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getUser, getPrimaryBusiness } from "@/lib/queries";
+import { getUser, getPrimaryBusiness, getProfileName } from "@/lib/queries";
 import { createAdminClient } from "@/lib/supabase/server";
 import { listInventory, listBloggerPlacements } from "@/lib/ads/placements";
 import { getBloggerEarningsReport } from "@/lib/ads/report";
@@ -8,7 +8,9 @@ import { AdsComingSoon } from "@/components/ads/AdsComingSoon";
 import { ADS_ENABLED } from "@/lib/ads/config";
 import { CHANNEL_ADS_ENABLED } from "@/lib/channelAds/config";
 import { ChannelAdsHub } from "@/components/ads/ChannelAdsHub";
-import { listMyChannels } from "@/lib/channelAds/channels";
+import { listMyChannels, getChannelDirectory } from "@/lib/channelAds/channels";
+import { listMyShareableContent } from "@/lib/channelAds/content";
+import { listOwnerJobs } from "@/lib/channelAds/jobs";
 
 export const metadata = { title: "광고 수익" };
 
@@ -18,7 +20,15 @@ export default async function BloggerAdsPage() {
 
   // 채널 공유 마켓플레이스(신규 모델) 우선. 기존 CPC(ADS_ENABLED)는 폴백.
   if (CHANNEL_ADS_ENABLED) {
-    const channels = await listMyChannels(user.id);
+    const [channels, directory, myContent, ownerJobs, name] = await Promise.all([
+      listMyChannels(user.id),
+      getChannelDirectory(),
+      listMyShareableContent(user.id),
+      listOwnerJobs(user.id),
+      getProfileName(),
+    ]);
+    // 본인 채널은 디렉토리에서 제외(자기 채널에는 의뢰 불가).
+    const directoryView = directory.filter((d) => d.ownerUserId !== user.id);
     return (
       <ChannelAdsHub
         myChannels={channels.map((c) => ({
@@ -31,6 +41,34 @@ export default async function BloggerAdsPage() {
           description: c.description,
           status: c.status,
         }))}
+        directory={directoryView.map((d) => ({
+          id: d.id,
+          platform: d.platform,
+          handle: d.handle,
+          followerCount: d.followerCount,
+          priceKrw: d.priceKrw,
+          description: d.description,
+        }))}
+        myContent={myContent.map((c) => ({
+          contentType: c.contentType,
+          refId: c.refId,
+          title: c.title,
+          businessName: c.businessName,
+        }))}
+        ownerJobs={ownerJobs.map((j) => ({
+          id: j.id,
+          platform: j.platform,
+          priceKrw: j.priceKrw,
+          contentType: j.contentType,
+          contentUrl: j.contentUrl,
+          contentTitle: j.contentTitle,
+          message: j.message,
+          status: j.status,
+          proofUrl: j.proofUrl,
+          createdAt: j.createdAt,
+        }))}
+        buyerName={name ?? ""}
+        buyerEmail={user.email ?? ""}
       />
     );
   }

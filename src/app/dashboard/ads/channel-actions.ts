@@ -8,6 +8,11 @@ import {
   setChannelHidden,
   type ChannelInput,
 } from "@/lib/channelAds/channels";
+import {
+  createChannelShareOrder,
+  type CreatedShareOrder,
+  type ShareBuyer,
+} from "@/lib/channelAds/orders";
 
 async function requireUser(): Promise<string | null> {
   if (!CHANNEL_ADS_ENABLED) return null;
@@ -40,4 +45,27 @@ export async function setChannelHiddenAction(
   const res = await setChannelHidden(uid, id, hidden);
   if (!res.error) revalidatePath("/dashboard/ads");
   return res;
+}
+
+export async function createChannelShareOrderAction(input: {
+  channelId: string;
+  contentType: "blog" | "card_news";
+  contentRefId: string;
+  message?: string | null;
+  buyer: ShareBuyer;
+}): Promise<{ order?: CreatedShareOrder; error?: string }> {
+  const uid = await requireUser();
+  if (!uid) return { error: "권한이 없습니다." };
+  if (!input.channelId) return { error: "채널을 선택해주세요." };
+  if (!input.contentRefId) return { error: "공유할 콘텐츠를 선택해주세요." };
+  if (!input.buyer?.name?.trim() || !input.buyer?.email?.trim())
+    return { error: "이름과 이메일을 입력해주세요." };
+  return createChannelShareOrder({
+    advertiserUserId: uid,
+    channelId: input.channelId,
+    contentType: input.contentType,
+    contentRefId: input.contentRefId,
+    message: input.message ?? null,
+    buyer: input.buyer,
+  });
 }
