@@ -171,7 +171,8 @@ export function ShortsPanel({
     );
 
   const planId = quota?.planId ?? "free";
-  const limit = quota?.limit ?? 0;
+  // 한도 null = 무제한(Partner). `?? 0`로 받으면 null이 0(미제공)이 돼 파트너가 막히므로 null을 보존한다.
+  const limit: number | null = quota ? quota.limit : 0;
   const planOk = planId !== "free" && limit !== 0;
   const limitReached = limit !== null && used >= limit;
 
