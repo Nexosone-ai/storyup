@@ -12,7 +12,8 @@ export const CARD = {
   primary: "#1f6f5a",
   primarySoft: "#e7f0ec",
   onPrimary: "#ffffff",
-  font: '"Geist", "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif',
+  // "Pretendard Variable"는 루트 레이아웃이 CDN으로 로드하는 실제 패밀리명 — 캔버스·html-to-image 모두 이 이름으로 매칭된다.
+  font: '"Geist", "Pretendard Variable", "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif',
   mono: '"Geist Mono", ui-monospace, monospace',
 } as const;
 

@@ -7,9 +7,10 @@
 export type ShortsMood = "bright" | "calm" | "energetic" | "none";
 
 export interface MusicBed {
-  /** 녹화에 합칠 오디오 스트림. mood='none'이면 null. */
+  /** 녹화에 합칠 오디오 스트림. mood='none' 이거나 `out`(공유 버스)으로 연결했으면 null. */
   stream: MediaStream | null;
-  start: () => void;
+  /** `at`(ctx.currentTime 기준) 을 주면 그 시각에 시작 — 내레이션·렌더 클록과 시간축을 맞출 때 사용. */
+  start: (at?: number) => void;
   stop: () => void;
 }
 
@@ -31,20 +32,23 @@ export function createCustomBed(
   durationSec: number,
   fadeInSec = 1,
   fadeOutSec = 1,
+  out?: AudioNode,
 ): MusicBed {
-  const dest = ctx.createMediaStreamDestination();
+  // out(공유 믹스 버스)이 주어지면 자체 destination 을 만들지 않고 거기에 연결한다.
+  const dest = out ? null : ctx.createMediaStreamDestination();
+  const sink: AudioNode = out ?? (dest as MediaStreamAudioDestinationNode);
   const gain = ctx.createGain();
   gain.gain.value = 0;
-  gain.connect(dest);
+  gain.connect(sink);
   let src: AudioBufferSourceNode | null = null;
   return {
-    stream: dest.stream,
-    start() {
+    stream: dest?.stream ?? null,
+    start(at?: number) {
       src = ctx.createBufferSource();
       src.buffer = buffer;
       src.loop = buffer.duration < durationSec; // 길이가 짧으면 반복
       src.connect(gain);
-      const t = ctx.currentTime + 0.05;
+      const t = at ?? ctx.currentTime + 0.05;
       const end = t + durationSec;
       // 페이드가 전체 길이의 절반을 넘지 않도록 제한.
       const fi = Math.max(0, Math.min(fadeInSec, durationSec / 2));
@@ -97,17 +101,19 @@ export function createMusicBed(
   durationSec: number,
   fadeInSec = 1,
   fadeOutSec = 1,
+  out?: AudioNode,
 ): MusicBed {
   if (mood === "none") return { stream: null, start() {}, stop() {} };
   const spec = MOODS[mood];
-  const dest = ctx.createMediaStreamDestination();
+  // out(공유 믹스 버스)이 주어지면 자체 destination 대신 거기에 연결한다.
+  const dest = out ? null : ctx.createMediaStreamDestination();
   const master = ctx.createGain();
   master.gain.value = 0.0001;
   const comp = ctx.createDynamicsCompressor();
   comp.threshold.value = -14;
   comp.ratio.value = 4;
   master.connect(comp);
-  comp.connect(dest);
+  comp.connect(out ?? (dest as MediaStreamAudioDestinationNode));
 
   // 드럼용 노이즈 버퍼(1초).
   const nbuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
@@ -227,10 +233,10 @@ export function createMusicBed(
   };
 
   return {
-    stream: dest.stream,
-    start() {
+    stream: dest?.stream ?? null,
+    start(at?: number) {
       if (stopped) return;
-      const t = ctx.currentTime + 0.08;
+      const t = at ?? ctx.currentTime + 0.08;
       const end = t + durationSec;
       const fi = Math.max(0, Math.min(fadeInSec, durationSec / 2));
       const fo = Math.max(0, Math.min(fadeOutSec, durationSec / 2));
