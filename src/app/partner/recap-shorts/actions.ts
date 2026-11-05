@@ -33,7 +33,21 @@ import {
   setRecapStatus,
   cardBackgroundsForPost,
   deriveStatus,
+  listRecapCandidatePosts,
+  type RecapCandidatePost,
 } from "@/lib/recapShorts/jobs";
+
+/** 0) 사업장의 발행 글 목록(+카드뉴스 배경 보유 여부) — 만들기 폼의 글 선택용. */
+export async function listRecapPostsAction(
+  businessId: string,
+): Promise<{ posts: RecapCandidatePost[]; error?: string }> {
+  const auth = await requireRecapPartner();
+  if ("error" in auth) return { posts: [], error: auth.error };
+  const business = await getBusiness(businessId);
+  if (!business) return { posts: [], error: "사업장을 찾을 수 없어요." };
+  const supabase = await createClient();
+  return { posts: await listRecapCandidatePosts(supabase, business.id) };
+}
 
 const PATH = "/partner/recap-shorts";
 const BGM_RE = /^(bright|calm|energetic|none|library:\d{2})$/;

@@ -7,6 +7,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/icons";
 import { PROVIDEO_ENABLED } from "@/lib/provideo/config";
 import { B2B2C_ENABLED } from "@/lib/b2b2c/config";
+import { RECAP_SHORTS_ENABLED } from "@/lib/recapShorts/config";
 
 export const metadata = {
   title: "파트너 사용 매뉴얼",
@@ -111,6 +112,33 @@ export default async function PartnerGuidePage() {
       },
     },
   ];
+
+  if (RECAP_SHORTS_ENABLED) {
+    sections.push({
+      icon: "megaphone",
+      title: "블로그 요약 쇼츠",
+      titleEn: "Blog recap shorts",
+      items: [
+        "고객 사업장의 발행 블로그 글 1개를 골라 30~40초 내레이션 요약 쇼츠를 만듭니다.",
+        "순서: 대본 만들기(패킷 차감, AI가 장면 5~7개로 요약) → 내레이션 만들기(음성 합성) → (AI 이미지 선택 시) 이미지 만들기 → 영상 만들기(브라우저에서 자막·음악 합성, mp4 저장).",
+        "이미지 소스는 '카드뉴스 배경'(추가 패킷 없음) 또는 'AI 생성'(장당 패킷) 중 선택합니다.",
+        "대본·자막은 장면별로 직접 고칠 수 있고, 내레이션을 고치면 그 장면만 다시 합성됩니다.",
+        "원문에 없는 수치·효과·가격은 대본에 넣지 않도록 설계돼 있지만, 올리기 전 한 번 확인하세요.",
+      ],
+      itemsEn: [
+        "Pick one published blog post of a client business and make a 30–40s narrated recap short.",
+        "Flow: Make script (credits; AI condenses into 5–7 scenes) → Make narration (TTS) → (if AI images) Make images → Make video (captions + music mixed in the browser, saved as mp4).",
+        "Image source: 'card news backgrounds' (no extra credits) or 'AI generated' (credits per image).",
+        "Edit narration/captions per scene; changing narration re-synthesizes only that scene.",
+        "The script is designed not to invent numbers, claims, or prices, but review before publishing.",
+      ],
+      link: {
+        href: "/partner/recap-shorts",
+        label: "요약 쇼츠 만들기",
+        labelEn: "Make recap shorts",
+      },
+    });
+  }
 
   if (B2B2C_ENABLED) {
     sections.push({
