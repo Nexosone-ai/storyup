@@ -1846,6 +1846,46 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["homepage_templates"]["Insert"]>;
         Relationships: [];
       };
+      recap_shorts_jobs: {
+        Row: {
+          id: string;
+          user_id: string;
+          business_id: string | null;
+          blog_post_id: string | null;
+          title: string;
+          status: "script" | "audio" | "images" | "ready" | "failed";
+          voice: string;
+          image_source: "cardnews" | "ai";
+          font: string;
+          bgm: string;
+          scenes: Json;
+          credits_charged: number;
+          error: string | null;
+          video_url: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          business_id?: string | null;
+          blog_post_id?: string | null;
+          title?: string;
+          status?: "script" | "audio" | "images" | "ready" | "failed";
+          voice?: string;
+          image_source?: "cardnews" | "ai";
+          font?: string;
+          bgm?: string;
+          scenes?: Json;
+          credits_charged?: number;
+          error?: string | null;
+          video_url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["recap_shorts_jobs"]["Insert"]>;
+        Relationships: [];
+      };
       provideo_projects: {
         Row: {
           id: string;
