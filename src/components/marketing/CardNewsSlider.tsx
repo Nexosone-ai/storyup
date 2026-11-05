@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { InstagramCard, toIGCards } from "@/components/cards/InstagramCard";
+import { cardFontStack } from "@/components/cards/cardTheme";
 import { IG } from "@/components/cards/cardTheme";
 import { cn } from "@/utils/cn";
 import type { ShowcaseCardItem } from "@/components/marketing/showcaseData";
@@ -86,6 +87,7 @@ export function CardNewsSlider({ item }: { item: ShowcaseCardItem }) {
                     item.cardNews.images?.[i] ??
                     (i === 0 ? (item.image ?? undefined) : undefined)
                   }
+                  fontStack={cardFontStack(item.cardNews.font)}
                 />
               </div>
             )}

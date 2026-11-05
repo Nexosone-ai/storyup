@@ -2,6 +2,20 @@ import { forwardRef } from "react";
 import { CARD, IG } from "./cardTheme";
 import type { CardNewsResult, CardTextStyle } from "@/types/domain";
 
+/** 가로 정렬 → CSS 값. */
+const alignToText = { left: "left", center: "center", right: "right" } as const;
+const alignToItems = {
+  left: "flex-start",
+  center: "center",
+  right: "flex-end",
+} as const;
+/** 세로 배치 → flex justifyContent. */
+const vAlignToJustify = {
+  top: "flex-start",
+  center: "center",
+  bottom: "flex-end",
+} as const;
+
 export type IGCardModel = (
   | { kind: "cover"; title: string; subtitle: string }
   | { kind: "content"; index: number; heading: string; body: string }
@@ -42,9 +56,11 @@ export const InstagramCard = forwardRef<
     brandName: string;
     handle: string;
     image?: string;
+    /** 카드뉴스 전체 폰트 스택 (cardFontStack). 없으면 기본 CARD.font. */
+    fontStack?: string;
   }
 >(function InstagramCard(
-  { card, total, pageNo, brandName, handle, image },
+  { card, total, pageNo, brandName, handle, image, fontStack },
   ref,
 ) {
   const photo = !!image;
@@ -53,9 +69,12 @@ export const InstagramCard = forwardRef<
   const accent = photo ? "#ffffff" : CARD.primary;
   const line = photo ? "rgba(255,255,255,0.32)" : CARD.border;
 
-  // 사용자 편집 스타일(글자 크기 배율·자간·줄간격) + 수동 줄바꿈(pre-wrap) 적용.
+  // 사용자 편집 스타일(글자 크기 배율·자간·줄간격·정렬·배치) + 수동 줄바꿈(pre-wrap) 적용.
   const st = card.style ?? {};
   const scale = st.scale ?? 1;
+  const align = st.align ?? "left";
+  // 세로 배치 기본값 — 내용 카드는 위, 표지·CTA는 가운데.
+  const vAlign = st.vAlign ?? (card.kind === "content" ? "top" : "center");
   const txt = (
     fontSize: number,
     lineHeight: number,
@@ -66,6 +85,7 @@ export const InstagramCard = forwardRef<
     letterSpacing:
       st.letterSpacing != null ? `${st.letterSpacing}em` : letterSpacing,
     whiteSpace: "pre-wrap",
+    textAlign: alignToText[align],
   });
 
   return (
@@ -76,7 +96,7 @@ export const InstagramCard = forwardRef<
         height: IG.h,
         background: CARD.paper,
         color: ink,
-        fontFamily: CARD.font,
+        fontFamily: fontStack ?? CARD.font,
         position: "relative",
         overflow: "hidden",
       }}
@@ -167,8 +187,10 @@ export const InstagramCard = forwardRef<
             flex: 1,
             display: "flex",
             flexDirection: "column",
-            justifyContent: card.kind === "content" ? "flex-start" : "center",
-            paddingTop: card.kind === "content" ? 120 : 0,
+            justifyContent: vAlignToJustify[vAlign],
+            // 텍스트 블록은 full-width(stretch) 유지 → 정렬은 textAlign로.
+            // 내용 카드를 '위' 배치할 때만 헤더와 간격을 둔다.
+            paddingTop: card.kind === "content" && vAlign === "top" ? 120 : 0,
           }}
         >
           {card.kind === "cover" && (
@@ -180,6 +202,7 @@ export const InstagramCard = forwardRef<
                   borderRadius: 999,
                   background: accent,
                   marginBottom: 44,
+                  alignSelf: alignToItems[align],
                 }}
               />
               <h1 style={{ ...txt(92, 1.08, "-0.03em"), fontWeight: 700, margin: 0 }}>
@@ -200,6 +223,7 @@ export const InstagramCard = forwardRef<
                   fontWeight: 600,
                   color: accent,
                   marginBottom: 28,
+                  alignSelf: alignToItems[align],
                 }}
               >
                 {String(card.index).padStart(2, "0")}
@@ -222,7 +246,7 @@ export const InstagramCard = forwardRef<
                 style={{
                   marginTop: 56,
                   display: "inline-flex",
-                  alignSelf: "flex-start",
+                  alignSelf: alignToItems[align],
                   background: photo ? "rgba(255,255,255,0.16)" : CARD.primary,
                   border: photo ? "1px solid rgba(255,255,255,0.5)" : "none",
                   color: "#ffffff",

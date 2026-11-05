@@ -6,6 +6,10 @@ import {
   Noto_Sans_KR,
   Noto_Serif_KR,
   Gowun_Dodum,
+  Nanum_Gothic,
+  Nanum_Myeongjo,
+  Black_Han_Sans,
+  Jua,
 } from "next/font/google";
 import "./globals.css";
 
@@ -40,6 +44,35 @@ const notoSerifKr = Noto_Serif_KR({
 
 const gowunDodum = Gowun_Dodum({
   variable: "--font-gowun-dodum",
+  weight: "400",
+  subsets: ["latin"],
+  preload: false,
+});
+
+// 카드뉴스 폰트 선택지 (cardTheme.ts의 CARD_FONTS가 이 변수들을 참조한다).
+const nanumGothic = Nanum_Gothic({
+  variable: "--font-nanum-gothic",
+  weight: ["400", "700", "800"],
+  subsets: ["latin"],
+  preload: false,
+});
+
+const nanumMyeongjo = Nanum_Myeongjo({
+  variable: "--font-nanum-myeongjo",
+  weight: ["400", "700", "800"],
+  subsets: ["latin"],
+  preload: false,
+});
+
+const blackHanSans = Black_Han_Sans({
+  variable: "--font-black-han-sans",
+  weight: "400",
+  subsets: ["latin"],
+  preload: false,
+});
+
+const jua = Jua({
+  variable: "--font-jua",
   weight: "400",
   subsets: ["latin"],
   preload: false,
@@ -98,7 +131,7 @@ export default function RootLayout({
   return (
     <html
       lang="ko"
-      className={`${outfit.variable} ${fraunces.variable} ${geistMono.variable} ${notoSansKr.variable} ${notoSerifKr.variable} ${gowunDodum.variable} h-full antialiased`}
+      className={`${outfit.variable} ${fraunces.variable} ${geistMono.variable} ${notoSansKr.variable} ${notoSerifKr.variable} ${gowunDodum.variable} ${nanumGothic.variable} ${nanumMyeongjo.variable} ${blackHanSans.variable} ${jua.variable} h-full antialiased`}
     >
       <body className="min-h-full">
         {/* 프리텐다드 — 사이트 에디터 폰트 옵션용 (구글 폰트 미제공, 동적 서브셋 CDN 사용) */}

@@ -105,6 +105,8 @@ export function ShortsPanel({
   const [size, setSize] = useState<SizeId>("youtube");
   const [motion, setMotion] = useState<ShortsMotion>("static");
   const [music, setMusic] = useState<MusicChoice>("bright");
+  // 음원 시작·끝 페이드 길이(초). 0=없음.
+  const [fadeSec, setFadeSec] = useState<number>(1);
   const [libraryUrl, setLibraryUrl] = useState<string>(BGM_TRACKS[0]?.url ?? "");
   const [customFile, setCustomFile] = useState<File | null>(null);
   const [consent, setConsent] = useState(false);
@@ -259,7 +261,7 @@ export function ShortsPanel({
         } catch {
           throw new Error("decode");
         }
-        bed = createCustomBed(AC, buffer, totalSec);
+        bed = createCustomBed(AC, buffer, totalSec, fadeSec, fadeSec);
       } else if (music === "library" && libraryUrl) {
         // 라이브러리 곡을 받아 디코딩(custom과 같은 경로로 녹화 스트림에 합침).
         let buffer: AudioBuffer;
@@ -269,10 +271,10 @@ export function ShortsPanel({
         } catch {
           throw new Error("decode");
         }
-        bed = createCustomBed(AC, buffer, totalSec);
+        bed = createCustomBed(AC, buffer, totalSec, fadeSec, fadeSec);
       } else {
         const mood = music === "custom" || music === "library" ? "none" : music;
-        bed = createMusicBed(AC, mood, totalSec);
+        bed = createMusicBed(AC, mood, totalSec, fadeSec, fadeSec);
       }
       bed.start();
 
@@ -586,6 +588,36 @@ export function ShortsPanel({
                     : "I confirm I have the rights to use this audio and take full responsibility for any copyright claims; STORYUP is not liable."}
                 </span>
               </label>
+            </div>
+          )}
+
+          {/* 음원 페이드(시작·끝) — 없음/0.5/1/2초 */}
+          {music !== "none" && (
+            <div className="mt-3">
+              <Field label={ko ? "음원 페이드 (시작·끝)" : "Audio fade (in·out)"}>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { v: 0, ko: "없음", en: "None" },
+                    { v: 0.5, ko: "0.5초", en: "0.5s" },
+                    { v: 1, ko: "1초", en: "1s" },
+                    { v: 2, ko: "2초", en: "2s" },
+                  ].map((o) => (
+                    <Chip
+                      key={o.v}
+                      active={fadeSec === o.v}
+                      onClick={() => setFadeSec(o.v)}
+                      disabled={busy}
+                    >
+                      {ko ? o.ko : o.en}
+                    </Chip>
+                  ))}
+                </div>
+              </Field>
+              <p className="mt-1.5 text-[11px] leading-relaxed text-muted">
+                {ko
+                  ? "음악이 시작에서 서서히 커지고 끝에서 서서히 작아져요."
+                  : "Music fades in at the start and fades out at the end."}
+              </p>
             </div>
           )}
 
