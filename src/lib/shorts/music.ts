@@ -29,10 +29,12 @@ export function createCustomBed(
   ctx: AudioContext,
   buffer: AudioBuffer,
   durationSec: number,
+  fadeInSec = 1,
+  fadeOutSec = 1,
 ): MusicBed {
   const dest = ctx.createMediaStreamDestination();
   const gain = ctx.createGain();
-  gain.gain.value = 0.0001;
+  gain.gain.value = 0;
   gain.connect(dest);
   let src: AudioBufferSourceNode | null = null;
   return {
@@ -44,10 +46,15 @@ export function createCustomBed(
       src.connect(gain);
       const t = ctx.currentTime + 0.05;
       const end = t + durationSec;
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(0.95, t + 0.4);
-      gain.gain.setValueAtTime(0.95, Math.max(t + 0.4, end - 0.6));
-      gain.gain.exponentialRampToValueAtTime(0.0001, end);
+      // 페이드가 전체 길이의 절반을 넘지 않도록 제한.
+      const fi = Math.max(0, Math.min(fadeInSec, durationSec / 2));
+      const fo = Math.max(0, Math.min(fadeOutSec, durationSec / 2));
+      const peak = 0.95;
+      // 선형 램프로 완전한 무음(0)→피크→무음을 만든다.
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(peak, t + fi);
+      gain.gain.setValueAtTime(peak, Math.max(t + fi, end - fo));
+      gain.gain.linearRampToValueAtTime(0, end);
       src.start(t);
     },
     stop() {
@@ -88,6 +95,8 @@ export function createMusicBed(
   ctx: AudioContext,
   mood: ShortsMood,
   durationSec: number,
+  fadeInSec = 1,
+  fadeOutSec = 1,
 ): MusicBed {
   if (mood === "none") return { stream: null, start() {}, stop() {} };
   const spec = MOODS[mood];
@@ -222,12 +231,16 @@ export function createMusicBed(
     start() {
       if (stopped) return;
       const t = ctx.currentTime + 0.08;
-      master.gain.setValueAtTime(0.0001, t);
-      master.gain.exponentialRampToValueAtTime(0.9, t + 0.6);
-      // 끝에서 페이드아웃
       const end = t + durationSec;
-      master.gain.setValueAtTime(0.9, Math.max(t + 0.6, end - 0.6));
-      master.gain.exponentialRampToValueAtTime(0.0001, end);
+      const fi = Math.max(0, Math.min(fadeInSec, durationSec / 2));
+      const fo = Math.max(0, Math.min(fadeOutSec, durationSec / 2));
+      const peak = 0.9;
+      // 시작 페이드인
+      master.gain.setValueAtTime(0, t);
+      master.gain.linearRampToValueAtTime(peak, t + fi);
+      // 끝에서 페이드아웃
+      master.gain.setValueAtTime(peak, Math.max(t + fi, end - fo));
+      master.gain.linearRampToValueAtTime(0, end);
       schedule(t);
     },
     stop() {

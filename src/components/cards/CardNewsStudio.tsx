@@ -15,12 +15,18 @@ import {
   saveCardNewsAction,
   saveCardShareImageAction,
 } from "@/app/business/actions";
-import { IG } from "./cardTheme";
+import { IG, CARD_FONTS, cardFontStack } from "./cardTheme";
 import { resizeImage } from "@/components/website/templates/ImageSlot";
 import { trackEvent } from "@/lib/track";
 import { recordShareAction } from "@/app/dashboard/growth/actions";
 import { useLocale } from "@/components/i18n/LocaleProvider";
-import type { CardNewsResult, CardTextStyle } from "@/types/domain";
+import type {
+  CardNewsResult,
+  CardTextStyle,
+  CardFontId,
+  CardTextAlign,
+  CardVAlign,
+} from "@/types/domain";
 
 interface PostOption {
   id: string;
@@ -37,6 +43,12 @@ const PREVIEW_W = 264;
 async function nodeToBlob(node: HTMLElement | null): Promise<Blob | null> {
   if (!node) return null;
   const { toBlob } = await import("html-to-image");
+  // 선택한 한글 웹폰트가 완전히 로드된 뒤 캡처해야 PNG에 폰트가 그대로 embed된다.
+  try {
+    await document.fonts.ready;
+  } catch {
+    /* 폰트 API 미지원 브라우저는 그냥 진행 */
+  }
   const opts = { pixelRatio: 1, cacheBust: true } as const;
   let blob = await toBlob(node, opts);
   if (!blob) blob = await toBlob(node, opts); // 폰트·원격이미지 로딩 타이밍 보정
@@ -140,6 +152,7 @@ export function CardNewsStudio({
         slides: next.slides,
         cta: next.cta,
         cardStyles: next.cardStyles ?? [],
+        font: next.font ?? "default",
       });
     }, 900);
   };
@@ -176,6 +189,45 @@ export function CardNewsStudio({
       styles[idx] = { ...(styles[idx] ?? {}), ...patch };
       d.cardStyles = styles;
     });
+  const setFont = (font: CardFontId) =>
+    editCard((d) => {
+      d.font = font;
+    });
+
+  /**
+   * 내용 카드(표지·CTA 제외) 순서 변경. 카드 절대 인덱스 i(1..slides.length)를
+   * dir(±1)만큼 이동 — slides·cardStyles·배경이미지를 함께 재정렬하고 저장한다.
+   */
+  const moveContentCard = (i: number, dir: -1 | 1) => {
+    const slideCount = data?.slides.length ?? 0;
+    const j = i + dir;
+    // 내용 카드 범위(1..slideCount) 안에서만 이동.
+    if (i < 1 || i > slideCount || j < 1 || j > slideCount) return;
+    editCard((d) => {
+      const s = d.slides;
+      [s[i - 1], s[j - 1]] = [s[j - 1], s[i - 1]];
+      const styles = d.cardStyles ?? [];
+      // 인덱스가 비어있을 수 있으니 길이를 맞춘 뒤 교환.
+      while (styles.length <= Math.max(i, j)) styles.push({});
+      [styles[i], styles[j]] = [styles[j], styles[i]];
+      d.cardStyles = styles;
+    });
+    // 배경 이미지도 같은 위치로 재정렬 후 저장(별도 상태).
+    setImages((prev) => {
+      const next = [...prev];
+      while (next.length <= Math.max(i, j)) next.push(undefined);
+      [next[i], next[j]] = [next[j], next[i]];
+      if (dataPostId) {
+        void saveCardImagesAction(
+          businessId,
+          dataPostId,
+          next.map((u) => u ?? null),
+        );
+      }
+      return next;
+    });
+    setSelectedCard(j);
+  };
   const curStyle: CardTextStyle = data?.cardStyles?.[selectedCard] ?? {};
   const slugName = () => handle.replace(/^@/, "") || "storyup";
 
@@ -853,6 +905,31 @@ export function CardNewsStudio({
               </div>
             )}
 
+            {/* 전체 폰트 선택 — 모든 카드에 일괄 적용 */}
+            <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-surface p-3">
+              <span className="mr-1 inline-flex items-center gap-1.5 text-sm font-semibold">
+                <Icon.pen className="size-4" />
+                {ko ? "폰트" : "Font"}
+              </span>
+              {CARD_FONTS.map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setFont(f.id)}
+                  disabled={busy}
+                  style={{ fontFamily: f.stack }}
+                  className={
+                    "rounded-full border px-3 py-1 text-sm transition-colors disabled:opacity-50 " +
+                    ((data?.font ?? "default") === f.id
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border text-foreground hover:border-primary/50")
+                  }
+                >
+                  {ko ? f.name : f.nameEn}
+                </button>
+              ))}
+            </div>
+
             <div className="flex gap-4 overflow-x-auto rounded-2xl border border-border bg-surface-muted/40 p-4">
               {cards.map((card, i) => (
                 <div key={i} className="shrink-0">
@@ -881,6 +958,29 @@ export function CardNewsStudio({
                       {ko ? `${i + 1}번 다운로드` : `Download #${i + 1}`}
                     </button>
                   </div>
+                  {/* 내용 카드만 순서 변경(표지·CTA는 고정) */}
+                  {card.kind === "content" && (
+                    <div className="mb-2 flex gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => moveContentCard(i, -1)}
+                        disabled={busy || i <= 1}
+                        title={ko ? "앞으로" : "Move earlier"}
+                        className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-border bg-surface py-1 text-xs font-medium text-muted transition-colors hover:border-primary/50 hover:text-primary disabled:opacity-40"
+                      >
+                        ← {ko ? "앞으로" : "Earlier"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveContentCard(i, 1)}
+                        disabled={busy || i >= (data?.slides.length ?? 0)}
+                        title={ko ? "뒤로" : "Move later"}
+                        className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-border bg-surface py-1 text-xs font-medium text-muted transition-colors hover:border-primary/50 hover:text-primary disabled:opacity-40"
+                      >
+                        {ko ? "뒤로" : "Later"} →
+                      </button>
+                    </div>
+                  )}
                   <div
                     role="button"
                     tabIndex={0}
@@ -911,6 +1011,7 @@ export function CardNewsStudio({
                         brandName={brandName}
                         handle={handle}
                         image={images[i]}
+                        fontStack={cardFontStack(data?.font)}
                       />
                     </div>
                   </div>
@@ -988,9 +1089,52 @@ export function CardNewsStudio({
                     onChange={(v) => setCardStyle(selectedCard, { lineHeight: v })}
                   />
                 </div>
+
+                {/* 정렬·세로 배치 */}
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <Segmented
+                    label={ko ? "가로 정렬" : "Align"}
+                    value={curStyle.align ?? "left"}
+                    options={[
+                      { id: "left", label: ko ? "왼쪽" : "Left" },
+                      { id: "center", label: ko ? "가운데" : "Center" },
+                      { id: "right", label: ko ? "오른쪽" : "Right" },
+                    ]}
+                    onChange={(v) =>
+                      setCardStyle(selectedCard, { align: v as CardTextAlign })
+                    }
+                  />
+                  <Segmented
+                    label={ko ? "세로 위치" : "Vertical"}
+                    value={
+                      curStyle.vAlign ??
+                      (cards[selectedCard]?.kind === "content" ? "top" : "center")
+                    }
+                    options={[
+                      { id: "top", label: ko ? "위" : "Top" },
+                      { id: "center", label: ko ? "가운데" : "Middle" },
+                      { id: "bottom", label: ko ? "아래" : "Bottom" },
+                    ]}
+                    onChange={(v) =>
+                      setCardStyle(selectedCard, { vAlign: v as CardVAlign })
+                    }
+                  />
+                </div>
+
                 <button
                   type="button"
-                  onClick={() => setCardStyle(selectedCard, { scale: 1, letterSpacing: 0, lineHeight: 1 })}
+                  onClick={() =>
+                    setCardStyle(selectedCard, {
+                      scale: 1,
+                      letterSpacing: 0,
+                      lineHeight: 1,
+                      align: "left",
+                      vAlign:
+                        cards[selectedCard]?.kind === "content"
+                          ? "top"
+                          : "center",
+                    })
+                  }
                   className="mt-3 text-xs font-medium text-muted underline hover:text-foreground"
                 >
                   {ko ? "스타일 초기화" : "Reset style"}
@@ -1081,6 +1225,7 @@ export function CardNewsStudio({
                 brandName={brandName}
                 handle={handle}
                 image={images[i]}
+                fontStack={cardFontStack(data?.font)}
               />
             ))}
           </div>
@@ -1112,6 +1257,42 @@ function CardField({
         className="w-full resize-y rounded-lg border border-border bg-surface px-3 py-2 text-sm leading-relaxed focus:border-primary focus:outline-none"
       />
     </label>
+  );
+}
+
+/** 세그먼트 선택 — 라벨 + 버튼 그룹(정렬·세로 위치용). */
+function Segmented({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: Array<{ id: string; label: string }>;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="block">
+      <span className="mb-1 block text-xs font-medium text-muted">{label}</span>
+      <div className="flex gap-1.5">
+        {options.map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            onClick={() => onChange(o.id)}
+            className={
+              "flex-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors " +
+              (value === o.id
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border text-foreground hover:border-primary/50")
+            }
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 

@@ -853,6 +853,7 @@ export async function getSiteCards(
           cardStyles: Array.isArray(parsed.cardStyles)
             ? parsed.cardStyles
             : undefined,
+          font: typeof parsed.font === "string" ? parsed.font : undefined,
         },
       });
     } catch {

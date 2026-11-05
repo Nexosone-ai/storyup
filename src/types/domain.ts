@@ -557,7 +557,21 @@ export interface CardNewsSlide {
   body: string;
 }
 
-/** 카드 텍스트 사용자 편집 스타일 (기본값 대비 배율·em 단위). */
+/** 카드뉴스 폰트 선택 id (cardTheme.ts의 CARD_FONTS와 동일). */
+export type CardFontId =
+  | "default"
+  | "nanum-gothic"
+  | "nanum-myeongjo"
+  | "gowun"
+  | "black-han"
+  | "jua";
+
+/** 카드 텍스트 가로 정렬. */
+export type CardTextAlign = "left" | "center" | "right";
+/** 카드 본문 세로 배치. */
+export type CardVAlign = "top" | "center" | "bottom";
+
+/** 카드 텍스트 사용자 편집 스타일 (기본값 대비 배율·em 단위 + 정렬·배치). */
 export interface CardTextStyle {
   /** 글자 크기 배율 (기본 1, 0.7~1.4) */
   scale?: number;
@@ -565,6 +579,10 @@ export interface CardTextStyle {
   letterSpacing?: number;
   /** 줄간격 배율 (기본 1, 0.9~1.8) */
   lineHeight?: number;
+  /** 가로 정렬 (기본 left) */
+  align?: CardTextAlign;
+  /** 세로 배치 (기본: 표지·CTA는 center, 내용은 top) */
+  vAlign?: CardVAlign;
 }
 
 export interface CardNewsResult {
@@ -578,6 +596,8 @@ export interface CardNewsResult {
   images?: (string | null)[];
   /** 카드별 텍스트 스타일 (toIGCards 순서와 동일한 인덱스). 사용자 편집값. */
   cardStyles?: CardTextStyle[];
+  /** 카드뉴스 전체 폰트 (기본 default). 사용자 편집값. */
+  font?: CardFontId;
   /**
    * 공유용 대표 이미지 URL — 렌더된 커버 카드(텍스트 포함)를 저장한 것.
    * /cards/{id} 공유 페이지의 og:image로 쓰여 SNS에서 글처럼 이미지가 먼저 보인다.
