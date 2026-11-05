@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getServicePrice } from "@/lib/payments/prices";
+import { DEFAULT_VIDEO_RESOLUTION } from "@/lib/videoQuality";
 
 /**
  * 유료고객 AI 영상 — 생성 1편당 UP 포인트 차감(관리자 단가 service_prices 'AI_VIDEO').
@@ -156,9 +157,10 @@ export async function submitVideo(
   const key = falKey();
   const useImage = !!imageUrl && /^https?:\/\//.test(imageUrl);
   const model = useImage ? FAL_IMAGE_MODEL : FAL_MODEL;
-  // 호출부가 넘긴 extra(비율·해상도 등)는 env 기본값 뒤에 병합하되, prompt·image_url은
-  // 끝에 둬서 extra가 덮어쓰지 못하게 한다.
+  // 우선순위: 호출부 extra > env FAL_VIDEO_EXTRA > 엔진 기본값(해상도 480p — 원가 최저).
+  // prompt·image_url은 끝에 둬서 extra가 덮어쓰지 못하게 한다.
   const body = {
+    resolution: DEFAULT_VIDEO_RESOLUTION,
     ...falVideoExtra(),
     ...(extra ?? {}),
     prompt,

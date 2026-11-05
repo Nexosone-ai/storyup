@@ -21,9 +21,9 @@ import {
   SIMILAR_VIDEO_ACTION,
 } from "@/lib/similarVideo";
 import { videoLengthById } from "@/lib/videoLength";
+import { videoQualityById } from "@/lib/videoQuality";
 
 const ASPECTS = new Set(["9:16", "16:9", "1:1"]);
-const QUALITIES = new Set(["480p", "720p", "1080p"]);
 
 export interface CreateBatchState {
   batchId?: string;
@@ -54,7 +54,9 @@ export async function createSimilarBatchAction(
   const url = sourceUrl.trim();
   if (!isHttpUrl(url)) return { error: "올바른 영상 URL(http/https)을 입력해주세요." };
   const asp = ASPECTS.has(aspect) ? aspect : "9:16";
-  const q = QUALITIES.has(quality) ? quality : "720p";
+  // 화질 — 기본 480p, 720p/1080p 는 크레딧 배수 가산(원가가 초당 ×2.1/×5.3).
+  const qual = videoQualityById(quality);
+  const q = qual.id;
   // 영상 길이 — 길수록 크레딧을 배수로 더 차감(원본 fal 비용도 길이에 비례).
   const length = videoLengthById(lengthId);
 
@@ -88,8 +90,8 @@ export async function createSimilarBatchAction(
   if ((active ?? 0) > 0)
     return { error: "처리 중인 생성이 있어요. 완료된 뒤 다시 시도해주세요." };
 
-  // 파트너 패킷(크레딧) 선차감 — 배치 1회당. 잔액 부족/단가 미설정이면 생성 차단(fail-closed).
-  // 전체 실패 시 환급. 일부만 실패하면 유지(대부분 생성됨).
+  // 파트너 패킷(크레딧) 선차감 — 배치 1회당, 단가 × 길이 배수 × 화질 배수.
+  // 잔액 부족/단가 미설정이면 생성 차단(fail-closed). 전체 실패 시 환급. 일부만 실패하면 유지.
   let billing;
   try {
     billing = await chargePartnerCredits(
@@ -97,7 +99,7 @@ export async function createSimilarBatchAction(
       SIMILAR_VIDEO_ACTION,
       undefined,
       true,
-      length.multiplier,
+      length.multiplier * qual.multiplier,
     );
   } catch (err) {
     if (err instanceof InsufficientCreditsError || err instanceof CreditChargeError)
