@@ -40,10 +40,11 @@ export interface RecapJobView {
   createdAt: string;
 }
 
+// 상태 라벨 = '다음에 눌러야 할 단계'. 백그라운드 자동 처리는 없으므로 '진행 중' 같은 표현은 쓰지 않는다.
 const STATUS_LABEL: Record<string, string> = {
-  script: "대본 완료 · 내레이션 대기",
-  audio: "내레이션 진행 중",
-  images: "이미지 생성 대기",
+  script: "다음: 내레이션 만들기",
+  audio: "다음: 내레이션 만들기",
+  images: "다음: AI 이미지 만들기",
   ready: "영상 만들기 가능",
   failed: "실패",
 };
