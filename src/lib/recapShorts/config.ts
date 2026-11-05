@@ -1,11 +1,12 @@
 /**
  * 파트너 '블로그 글감 → 요약 쇼츠'(Recap Shorts) 플래그 + 상수.
  *
- * 기본 비활성 — 운영 검증(0100 적용·GEMINI_API_KEY) 후 NEXT_PUBLIC_RECAP_SHORTS_ENABLED=true 로 켠다.
+ * 기본 '켜짐' — 끄려면 환경변수 NEXT_PUBLIC_RECAP_SHORTS_ENABLED=false (쇼츠·채널광고와 동일 패턴).
+ * 전제: 마이그 0100 적용·GEMINI_API_KEY·ANTHROPIC_API_KEY. 키가 없으면 UI에 '설정 필요'로 표시된다.
  * 파이프라인: Claude 대본 → Gemini TTS(장면별) → 이미지(카드뉴스 배경 재사용 | AI) → 브라우저 렌더.
  */
 export const RECAP_SHORTS_ENABLED =
-  process.env.NEXT_PUBLIC_RECAP_SHORTS_ENABLED === "true";
+  process.env.NEXT_PUBLIC_RECAP_SHORTS_ENABLED !== "false";
 
 /** 패킷(크레딧) 단가 액션 키 — partner_credit_prices.action (0100 시드). */
 export const RECAP_SHORTS_ACTION = "RECAP_SHORTS";
