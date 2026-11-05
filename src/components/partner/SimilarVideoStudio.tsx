@@ -9,6 +9,11 @@ import {
   type JobView,
 } from "@/app/partner/similar-video/actions";
 import { VIDEO_LENGTHS, videoLengthById } from "@/lib/videoLength";
+import {
+  VIDEO_QUALITIES,
+  videoQualityById,
+  DEFAULT_VIDEO_RESOLUTION,
+} from "@/lib/videoQuality";
 
 export interface BatchView {
   id: string;
@@ -55,7 +60,7 @@ export function SimilarVideoStudio({
   const [sourceUrl, setSourceUrl] = useState("");
   const [concept, setConcept] = useState("");
   const [aspect, setAspect] = useState("9:16");
-  const [quality, setQuality] = useState("720p");
+  const [quality, setQuality] = useState<string>(DEFAULT_VIDEO_RESOLUTION);
   const [lengthId, setLengthId] = useState("s5");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,9 +100,10 @@ export function SimilarVideoStudio({
     return () => clearInterval(t);
   }, [batches, pollAll]);
 
-  // 선택한 길이의 배수를 단가에 반영 — 길수록 크레딧을 더 차감.
+  // 선택한 길이·화질의 배수를 단가에 반영 — 길수록·화질이 높을수록 크레딧을 더 차감.
   const length = videoLengthById(lengthId);
-  const effCost = cost === null ? null : cost * length.multiplier;
+  const qual = videoQualityById(quality);
+  const effCost = cost === null ? null : cost * length.multiplier * qual.multiplier;
 
   // 단가 미설정(null)이면 서버가 차단하므로 비활성, 잔액 부족도 사전 차단.
   const priceKnown = effCost !== null;
@@ -240,9 +246,12 @@ export function SimilarVideoStudio({
               className={`mt-1 ${field}`}
               disabled={!configured || creating}
             >
-              <option value="480p">480p (빠름)</option>
-              <option value="720p">720p (권장)</option>
-              <option value="1080p">1080p (고화질)</option>
+              {VIDEO_QUALITIES.map((q) => (
+                <option key={q.id} value={q.id}>
+                  {q.label}
+                  {q.multiplier > 1 ? ` · ${q.multiplier}배 크레딧` : ""}
+                </option>
+              ))}
             </select>
           </label>
         </div>
