@@ -52,10 +52,13 @@ export function ProVideoStudio({
   projects,
   businesses,
   providers,
+  embedded = false,
 }: {
   projects: ProjectRow[];
   businesses: BizOption[];
   providers: ProviderStatus;
+  /** 허브(탭) 안에 내장될 때 — 자체 제목을 숨기고 준비 상태 배지만 보여준다. */
+  embedded?: boolean;
 }) {
   const router = useRouter();
   const [busy, start] = useTransition();
@@ -80,12 +83,16 @@ export function ProVideoStudio({
   return (
     <div className="space-y-6">
       <div>
-        <p className="eyebrow mb-2">파트너 · 전문 영상</p>
-        <h1 className="text-2xl font-semibold tracking-tight">전문 영상 스튜디오</h1>
-        <p className="mt-1.5 text-sm text-muted">
-          스토리는 Claude, 이미지는 GPT, 영상은 Seedance, 음악은 SUNO로 전문 영상을 제작해요.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
+        {!embedded && (
+          <>
+            <p className="eyebrow mb-2">파트너 · 전문 영상</p>
+            <h1 className="text-2xl font-semibold tracking-tight">전문 영상 스튜디오</h1>
+            <p className="mt-1.5 text-sm text-muted">
+              스토리는 Claude, 이미지는 GPT, 영상은 Seedance, 음악은 SUNO로 전문 영상을 제작해요.
+            </p>
+          </>
+        )}
+        <div className={`flex flex-wrap gap-2 ${embedded ? "" : "mt-3"}`}>
           <Pill ok={providers.story} label="스토리(Claude)" />
           <Pill ok={providers.image} label="이미지(GPT)" />
           <Pill ok={providers.video} label="영상(Seedance)" />

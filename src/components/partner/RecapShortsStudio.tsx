@@ -74,35 +74,39 @@ export function RecapShortsStudio(props: {
   imagePrice: number | null;
   providers: { script: boolean; tts: boolean };
   youtube: { configured: boolean; connected: boolean; channelTitle: string | null };
+  /** 허브(탭) 안에 내장될 때 — 자체 제목·패킷 카드·홈 링크를 숨긴다. */
+  embedded?: boolean;
 }) {
   const { providers } = props;
   const configured = providers.script && providers.tts;
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="eyebrow mb-2">파트너 대행</p>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            블로그 요약 쇼츠
-          </h1>
-          <p className="mt-1.5 text-muted">
-            고객의 발행 블로그 글 하나를 30~40초 내레이션 쇼츠로 만듭니다 — 대본(AI) →
-            음성(TTS) → 이미지 → 자막·음악까지 브라우저에서 바로 영상으로.
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Card className="px-4 py-3 text-right">
-            <p className="text-xs text-muted">보유 패킷</p>
-            <p className="text-2xl font-semibold tabular-nums">
-              {props.credits.toLocaleString()}
+      {!props.embedded && (
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="eyebrow mb-2">파트너 대행</p>
+            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              블로그 요약 쇼츠
+            </h1>
+            <p className="mt-1.5 text-muted">
+              고객의 발행 블로그 글 하나를 30~40초 내레이션 쇼츠로 만듭니다 — 대본(AI) →
+              음성(TTS) → 이미지 → 자막·음악까지 브라우저에서 바로 영상으로.
             </p>
-          </Card>
-          <ButtonLink href="/partner" variant="outline" size="sm">
-            ← 파트너 홈
-          </ButtonLink>
+          </div>
+          <div className="flex gap-3">
+            <Card className="px-4 py-3 text-right">
+              <p className="text-xs text-muted">보유 패킷</p>
+              <p className="text-2xl font-semibold tabular-nums">
+                {props.credits.toLocaleString()}
+              </p>
+            </Card>
+            <ButtonLink href="/partner" variant="outline" size="sm">
+              ← 파트너 홈
+            </ButtonLink>
+          </div>
         </div>
-      </div>
+      )}
 
       {!configured && (
         <Card className="p-4">

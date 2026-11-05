@@ -106,9 +106,9 @@ export default async function PartnerGuidePage() {
         "Download the finished videos and upload them to YouTube, TikTok, Reels, etc.",
       ],
       link: {
-        href: "/partner/similar-video",
-        label: "유사 영상 만들기",
-        labelEn: "Make similar videos",
+        href: "/partner/videos?tab=similar",
+        label: "영상 만들기",
+        labelEn: "Make videos",
       },
     },
   ];
@@ -133,9 +133,9 @@ export default async function PartnerGuidePage() {
         "The script is designed not to invent numbers, claims, or prices, but review before publishing.",
       ],
       link: {
-        href: "/partner/recap-shorts",
-        label: "요약 쇼츠 만들기",
-        labelEn: "Make recap shorts",
+        href: "/partner/videos?tab=recap",
+        label: "글로 영상 만들기",
+        labelEn: "Make shorts from a post",
       },
     });
   }

@@ -138,27 +138,18 @@ export default async function PartnerPage() {
           <ul className="mt-2 space-y-1 text-sm text-muted">
             <li>· AI 에이전트로 블로그·카드뉴스·SNS 생성과 예약 발행을 대행</li>
             <li>· 오토파일럿으로 고객별 자동 마케팅(제안/자동 실행)</li>
-            <li>· 원본 영상 1개로 같은 컨셉의 유사 영상 10개를 한 번에 생성(패킷 차감)</li>
-            {RECAP_SHORTS_ENABLED && (
-              <li>· 고객 블로그 글 1개를 30~40초 내레이션 요약 쇼츠로(대본·음성·자막 자동, 패킷 차감)</li>
-            )}
+            <li>
+              · 영상 만들기 — {RECAP_SHORTS_ENABLED ? "블로그 글로 요약 쇼츠, " : ""}
+              원본 영상 1개로 관련 영상 10개를 한 곳에서(패킷 차감)
+            </li>
           </ul>
           <p className="mt-2 text-xs text-muted">
             배정된 고객 사업장의 <strong>AI 에이전트</strong>에서 바로 사용할 수
             있어요(아래 고객 목록).
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            {RECAP_SHORTS_ENABLED && (
-              <ButtonLink size="sm" href="/partner/recap-shorts">
-                {ko ? "글감으로 쇼츠 만들기" : "Shorts from a blog post"}
-              </ButtonLink>
-            )}
-            <ButtonLink
-              size="sm"
-              variant={RECAP_SHORTS_ENABLED ? "outline" : "primary"}
-              href="/partner/similar-video"
-            >
-              {ko ? "유사 영상 10개 만들기" : "10 similar videos"}
+            <ButtonLink size="sm" href="/partner/videos">
+              {ko ? "영상 만들기" : "Make videos"}
             </ButtonLink>
             {PROVIDEO_ENABLED && (
               <ButtonLink size="sm" variant="outline" href="/partner/video">

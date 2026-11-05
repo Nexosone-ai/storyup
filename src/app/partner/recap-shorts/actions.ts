@@ -49,7 +49,8 @@ export async function listRecapPostsAction(
   return { posts: await listRecapCandidatePosts(supabase, business.id) };
 }
 
-const PATH = "/partner/recap-shorts";
+// 요약 쇼츠 UI는 파트너 영상 허브(탭)에 있다. revalidatePath 는 search param 을 무시하므로 모든 탭이 갱신된다.
+const PATH = "/partner/videos";
 const BGM_RE = /^(bright|calm|energetic|none|library:\d{2})$/;
 /** TTS 서버 동시성 — 장면 5~7개를 한 액션 안에서 처리(서버 액션은 클라이언트별 직렬이라 클라이언트 루프보다 빠름). */
 const TTS_CONCURRENCY = 3;
