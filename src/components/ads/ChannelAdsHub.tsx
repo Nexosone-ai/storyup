@@ -16,6 +16,8 @@ import {
   saveChannelAction,
   setChannelHiddenAction,
   createChannelShareOrderAction,
+  submitShareProofAction,
+  confirmShareOrderAction,
 } from "@/app/dashboard/ads/channel-actions";
 
 const won = (n: number) => `₩${n.toLocaleString()}`;
@@ -58,6 +60,24 @@ export interface JobView {
   proofUrl: string | null;
   createdAt: string;
 }
+export interface EarningRowView {
+  id: string;
+  shareOrderId: string;
+  grossKrw: number;
+  feeKrw: number;
+  netKrw: number;
+  status: string;
+  platform: string;
+  contentTitle: string | null;
+  orderStatus: string;
+  createdAt: string;
+}
+export interface EarningsView {
+  rows: EarningRowView[];
+  paidKrw: number;
+  pendingKrw: number;
+  heldKrw: number;
+}
 
 const CH_STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   pending: { label: "승인 대기", cls: "bg-surface-2 text-muted" },
@@ -66,20 +86,30 @@ const CH_STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   hidden: { label: "숨김", cls: "bg-surface-2 text-muted" },
 };
 const JOB_STATUS_LABEL: Record<string, string> = {
+  pending_payment: "결제 대기",
   paid: "게시 대기",
   shared: "증빙 제출됨",
   confirmed: "확인 완료",
   settled: "정산 완료",
+  cancelled: "취소됨",
+  refunded: "환불됨",
   disputed: "분쟁",
 };
+const EARN_STATUS_LABEL: Record<string, string> = {
+  held: "확정 전",
+  pending: "지급 대기",
+  paid: "지급 완료",
+};
 
-type Tab = "channels" | "request" | "jobs" | "earnings";
+type Tab = "channels" | "request" | "requests" | "jobs" | "earnings";
 
 export function ChannelAdsHub(props: {
   myChannels: MyChannel[];
   directory: DirectoryChannelView[];
   myContent: ContentItem[];
   ownerJobs: JobView[];
+  myRequests: JobView[];
+  earnings: EarningsView;
   buyerName: string;
   buyerEmail: string;
 }) {
@@ -87,6 +117,7 @@ export function ChannelAdsHub(props: {
   const TABS: { id: Tab; label: string }[] = [
     { id: "channels", label: "내 채널" },
     { id: "request", label: "광고 의뢰하기" },
+    { id: "requests", label: "내 의뢰" },
     { id: "jobs", label: "받은 의뢰" },
     { id: "earnings", label: "수익" },
   ];
@@ -130,12 +161,9 @@ export function ChannelAdsHub(props: {
           buyerEmail={props.buyerEmail}
         />
       )}
+      {tab === "requests" && <MyRequestsTab requests={props.myRequests} />}
       {tab === "jobs" && <JobsTab jobs={props.ownerJobs} />}
-      {tab === "earnings" && (
-        <Card className="p-8">
-          <p className="text-sm text-muted">정산 내역이 여기에 표시됩니다.</p>
-        </Card>
-      )}
+      {tab === "earnings" && <EarningsTab earnings={props.earnings} />}
     </div>
   );
 }
@@ -537,7 +565,7 @@ function RequestForm({
   );
 }
 
-// ---------------- 받은 의뢰 ----------------
+// ---------------- 받은 의뢰(채널 보유자) ----------------
 function JobsTab({ jobs }: { jobs: JobView[] }) {
   if (jobs.length === 0)
     return (
@@ -574,11 +602,184 @@ function JobsTab({ jobs }: { jobs: JobView[] }) {
               {JOB_STATUS_LABEL[j.status] ?? j.status}
             </span>
           </div>
-          <p className="mt-2 text-xs text-muted">
-            게시 후 증빙 제출 기능은 곧 제공됩니다.
-          </p>
+          {j.status === "paid" ? (
+            <ProofForm jobId={j.id} />
+          ) : j.proofUrl ? (
+            <p className="mt-2 text-xs text-muted">
+              제출한 증빙:{" "}
+              <a
+                href={j.proofUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary hover:underline"
+              >
+                {j.proofUrl}
+              </a>
+            </p>
+          ) : null}
         </Card>
       ))}
+    </div>
+  );
+}
+
+function ProofForm({ jobId }: { jobId: string }) {
+  const router = useRouter();
+  const [url, setUrl] = useState("");
+  const [msg, setMsg] = useState<string | null>(null);
+  const [busy, start] = useTransition();
+  return (
+    <div className="mt-3 rounded-xl border border-border bg-surface-2/40 p-3">
+      <Label>게시 증빙 링크(게시물 URL)</Label>
+      <div className="mt-1 flex flex-col gap-2 sm:flex-row">
+        <Input
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://… 게시한 글/영상 주소"
+        />
+        <Button
+          className="shrink-0"
+          disabled={busy || !url.trim()}
+          onClick={() =>
+            start(async () => {
+              setMsg(null);
+              const res = await submitShareProofAction(jobId, url.trim());
+              if (res.error) setMsg(res.error);
+              else router.refresh();
+            })
+          }
+        >
+          {busy ? "제출 중…" : "증빙 제출"}
+        </Button>
+      </div>
+      <p className="mt-1.5 text-xs text-muted">
+        직접 게시한 뒤 해당 게시물 주소를 제출하세요. 광고주 확인(또는 7일 후 자동확정)
+        시 정산됩니다.
+      </p>
+      {msg && <p className="mt-1 text-sm text-danger">{msg}</p>}
+    </div>
+  );
+}
+
+// ---------------- 내 의뢰(광고주) ----------------
+function MyRequestsTab({ requests }: { requests: JobView[] }) {
+  if (requests.length === 0)
+    return (
+      <Card className="p-8">
+        <p className="text-sm text-muted">
+          아직 보낸 공유 의뢰가 없습니다. ‘광고 의뢰하기’에서 시작하세요.
+        </p>
+      </Card>
+    );
+  return (
+    <div className="space-y-3">
+      {requests.map((j) => (
+        <Card key={j.id} className="p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="font-semibold">
+                {platLabel(j.platform)} · {won(j.priceKrw)}
+              </p>
+              <p className="mt-0.5 text-sm text-muted">
+                [{j.contentType === "blog" ? "블로그" : "카드뉴스"}]{" "}
+                {j.contentTitle ?? ""}
+              </p>
+              {j.proofUrl && (
+                <a
+                  href={j.proofUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-0.5 block truncate text-xs text-primary hover:underline"
+                >
+                  게시 증빙: {j.proofUrl}
+                </a>
+              )}
+            </div>
+            <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-xs font-semibold text-muted">
+              {JOB_STATUS_LABEL[j.status] ?? j.status}
+            </span>
+          </div>
+          {j.status === "shared" && <ConfirmButton jobId={j.id} />}
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function ConfirmButton({ jobId }: { jobId: string }) {
+  const router = useRouter();
+  const [msg, setMsg] = useState<string | null>(null);
+  const [busy, start] = useTransition();
+  return (
+    <div className="mt-3">
+      <Button
+        disabled={busy}
+        onClick={() =>
+          start(async () => {
+            setMsg(null);
+            const res = await confirmShareOrderAction(jobId);
+            if (res.error) setMsg(res.error);
+            else router.refresh();
+          })
+        }
+      >
+        {busy ? "처리 중…" : "게시 확인 · 정산 승인"}
+      </Button>
+      <p className="mt-1.5 text-xs text-muted">
+        게시물을 확인했다면 승인해 주세요. 7일 내 미확인 시 자동으로 확정됩니다.
+      </p>
+      {msg && <p className="mt-1 text-sm text-danger">{msg}</p>}
+    </div>
+  );
+}
+
+// ---------------- 수익(채널 보유자) ----------------
+function EarningsTab({ earnings }: { earnings: EarningsView }) {
+  const { rows, paidKrw, pendingKrw, heldKrw } = earnings;
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-3">
+        <Card className="p-4">
+          <p className="text-xs text-muted">지급 완료</p>
+          <p className="mt-1 text-lg font-semibold text-success">{won(paidKrw)}</p>
+        </Card>
+        <Card className="p-4">
+          <p className="text-xs text-muted">지급 대기</p>
+          <p className="mt-1 text-lg font-semibold text-primary">{won(pendingKrw)}</p>
+        </Card>
+        <Card className="p-4">
+          <p className="text-xs text-muted">확정 전</p>
+          <p className="mt-1 text-lg font-semibold text-muted">{won(heldKrw)}</p>
+        </Card>
+      </div>
+      {rows.length === 0 ? (
+        <Card className="p-8">
+          <p className="text-sm text-muted">아직 정산 내역이 없습니다.</p>
+        </Card>
+      ) : (
+        <div className="space-y-2">
+          {rows.map((e) => (
+            <Card key={e.id} className="flex items-center justify-between gap-3 p-4">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">
+                  {platLabel(e.platform)} · {e.contentTitle ?? ""}
+                </p>
+                <p className="mt-0.5 text-xs text-muted">
+                  결제 {won(e.grossKrw)} · 수수료 {won(e.feeKrw)} · 정산{" "}
+                  <span className="font-semibold text-foreground">{won(e.netKrw)}</span>
+                </p>
+              </div>
+              <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-xs font-semibold text-muted">
+                {EARN_STATUS_LABEL[e.status] ?? e.status}
+              </span>
+            </Card>
+          ))}
+        </div>
+      )}
+      <p className="text-xs text-muted">
+        정산 금액은 수수료 20%를 제외한 금액입니다. 실제 지급은 담당자가 확인 후
+        처리합니다.
+      </p>
     </div>
   );
 }
