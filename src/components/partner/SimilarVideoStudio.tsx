@@ -41,6 +41,7 @@ export function SimilarVideoStudio({
   batches: initial,
   credits,
   cost,
+  embedded = false,
 }: {
   configured: boolean;
   batches: BatchView[];
@@ -48,6 +49,8 @@ export function SimilarVideoStudio({
   credits: number;
   /** 1회(10편) 생성 크레딧 단가. null = 미설정(생성 차단). */
   cost: number | null;
+  /** 허브(탭) 안에 내장될 때 — 자체 제목·크레딧 표시를 숨긴다. */
+  embedded?: boolean;
 }) {
   const [sourceUrl, setSourceUrl] = useState("");
   const [concept, setConcept] = useState("");
@@ -143,29 +146,31 @@ export function SimilarVideoStudio({
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="eyebrow mb-2">파트너 · 영상 10배</p>
-        <h1 className="text-2xl font-semibold tracking-tight">유사 영상 10개 만들기</h1>
-        <p className="mt-1.5 text-muted">
-          원본 영상(유튜브 등) 링크와 컨셉 한 줄을 넣으면, 같은 분위기의 새 영상 10개를
-          서로 다른 연출로 한 번에 생성해요.
-        </p>
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-          <span className="rounded-full border border-border bg-surface px-2.5 py-1">
-            1회(10편 · {length.label}) ={" "}
-            <strong className="text-foreground">
-              {effCost === null
-                ? "미설정"
-                : effCost === 0
-                  ? "무료"
-                  : `${effCost} 크레딧`}
-            </strong>
-          </span>
-          <span className="rounded-full border border-border bg-surface px-2.5 py-1">
-            보유 <strong className="text-foreground">{credits.toLocaleString()}</strong> 크레딧
-          </span>
+      {!embedded && (
+        <div>
+          <p className="eyebrow mb-2">파트너 · 영상 10배</p>
+          <h1 className="text-2xl font-semibold tracking-tight">유사 영상 10개 만들기</h1>
+          <p className="mt-1.5 text-muted">
+            원본 영상(유튜브 등) 링크와 컨셉 한 줄을 넣으면, 같은 분위기의 새 영상 10개를
+            서로 다른 연출로 한 번에 생성해요.
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+            <span className="rounded-full border border-border bg-surface px-2.5 py-1">
+              1회(10편 · {length.label}) ={" "}
+              <strong className="text-foreground">
+                {effCost === null
+                  ? "미설정"
+                  : effCost === 0
+                    ? "무료"
+                    : `${effCost} 크레딧`}
+              </strong>
+            </span>
+            <span className="rounded-full border border-border bg-surface px-2.5 py-1">
+              보유 <strong className="text-foreground">{credits.toLocaleString()}</strong> 크레딧
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       {!configured && (
         <Card className="border-amber-300/50 bg-amber-50/40 p-4 text-sm dark:bg-amber-500/10">
