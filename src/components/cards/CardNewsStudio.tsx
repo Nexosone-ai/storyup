@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Label, Select } from "@/components/ui/Field";
@@ -83,6 +83,12 @@ export function CardNewsStudio({
   initial,
   shorts,
   youtube,
+  postId: postIdProp,
+  onPostChange,
+  onStateChange,
+  shortsView,
+  onShortsRendered,
+  shortsBlobOverride,
 }: {
   businessId: string;
   posts: PostOption[];
@@ -101,11 +107,30 @@ export function CardNewsStudio({
   shorts?: ShortsQuota | null;
   /** 유튜브 연결 상태 — 쇼츠 자동 업로드용(Pro). */
   youtube?: ShortsYoutube | null;
+  /** (허브용) 선택 글을 바깥에서 제어 — 주면 내부 state 대신 이 값을 쓴다. */
+  postId?: string;
+  onPostChange?: (id: string) => void;
+  /** (허브용) 단계 완료 판정에 필요한 최소 상태를 바깥에 알린다. */
+  onStateChange?: (s: {
+    hasData: boolean;
+    dataPostId: string | null;
+    cardNewsId: string | null;
+  }) => void;
+  /** (허브용) 내장 ShortsPanel 에 그대로 전달. */
+  shortsView?: "make" | "share";
+  onShortsRendered?: (blob: Blob, ext: string) => void;
+  shortsBlobOverride?: { blob: Blob; ext: string } | null;
 }) {
   const ko = useLocale() === "ko";
-  const [postId, setPostId] = useState(
+  const [innerPostId, setInnerPostId] = useState(
     initial?.blogPostId ?? posts[0]?.id ?? "",
   );
+  // 바깥(허브)이 제어하면 그 값을, 아니면 내부 state 를 쓴다.
+  const postId = postIdProp ?? innerPostId;
+  const setPostId = (id: string) => {
+    setInnerPostId(id);
+    onPostChange?.(id);
+  };
   // 공개 공유용 카드뉴스 id(marketing_contents.id) + 감사·조회 집계
   const [cardNewsId, setCardNewsId] = useState<string | null>(
     initial?.id ?? null,
@@ -229,6 +254,16 @@ export function CardNewsStudio({
     setSelectedCard(j);
   };
   const curStyle: CardTextStyle = data?.cardStyles?.[selectedCard] ?? {};
+
+  // (허브용) 단계 완료 판정에 쓰는 최소 상태를 바깥에 알린다.
+  // 콜백 identity 가 렌더마다 바뀌어도 루프가 돌지 않도록 ref 로 보관하고, 값이 바뀔 때만 호출.
+  const stateCb = useRef(onStateChange);
+  useEffect(() => {
+    stateCb.current = onStateChange;
+  });
+  useEffect(() => {
+    stateCb.current?.({ hasData: !!data, dataPostId, cardNewsId });
+  }, [data, dataPostId, cardNewsId]);
   const slugName = () => handle.replace(/^@/, "") || "storyup";
 
   const generate = async () => {
@@ -855,6 +890,9 @@ export function CardNewsStudio({
                 quota={shorts ?? null}
                 youtube={youtube ?? null}
                 title={data?.cover.title}
+                view={shortsView}
+                onRendered={onShortsRendered}
+                blobOverride={shortsBlobOverride}
               />
             )}
 

@@ -69,7 +69,9 @@ export function GuidedTour({
     let raf = 0;
     const update = () => {
       const el = document.querySelector(target);
-      setRect(el ? el.getBoundingClientRect() : null);
+      // 숨겨진(크기 0) 요소를 타깃으로 잡으면 (0,0)을 하이라이트하므로 없는 것으로 취급.
+      const r = el?.getBoundingClientRect();
+      setRect(r && r.width > 0 && r.height > 0 ? r : null);
     };
     raf = requestAnimationFrame(() => {
       document

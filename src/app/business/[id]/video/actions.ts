@@ -313,5 +313,7 @@ export async function registerEditedVideo(
   if (error) return { error: "저장에 실패했습니다(권한 확인)." };
 
   revalidatePath(`/business/${businessId}/video`);
+  // 콘텐츠 스튜디오(쇼츠 편집 단계)에서도 편집본을 저장하므로 함께 갱신.
+  revalidatePath(`/business/${businessId}/marketing`);
   return { ok: true, url: publicUrl };
 }

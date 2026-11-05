@@ -86,6 +86,9 @@ export function ShortsPanel({
   quota,
   youtube,
   title,
+  view,
+  onRendered,
+  blobOverride,
 }: {
   businessId: string;
   slugName: () => string;
@@ -98,6 +101,12 @@ export function ShortsPanel({
   youtube?: ShortsYoutube | null;
   /** 유튜브 업로드 제목 기본값(카드 표지 제목). */
   title?: string;
+  /** (허브용) 'make' = 설정·편집·만들기만, 'share' = 다운로드·유튜브만. 미지정 = 전부. */
+  view?: "make" | "share";
+  /** (허브용) 렌더 완료 시 결과 Blob 을 바깥에 넘긴다(편집 단계 입력). */
+  onRendered?: (blob: Blob, ext: string) => void;
+  /** (허브용) 편집본으로 교체 — 다운로드·유튜브 업로드에 이 Blob 을 쓴다. */
+  blobOverride?: { blob: Blob; ext: string } | null;
 }) {
   const ko = useLocale() === "ko";
   const [size, setSize] = useState<SizeId>("youtube");
@@ -114,8 +123,13 @@ export function ShortsPanel({
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [used, setUsed] = useState(quota?.used ?? 0);
-  // 방금 만든 영상(유튜브 업로드용) + 업로드 상태
+  // 방금 만든 영상(유튜브 업로드용) + 업로드 상태. 편집본(blobOverride)이 있으면 그것을 우선 쓴다.
   const [lastBlob, setLastBlob] = useState<Blob | null>(null);
+  const [lastExt, setLastExt] = useState("mp4");
+  const shareBlob = blobOverride?.blob ?? lastBlob;
+  const shareExt = blobOverride?.ext ?? lastExt;
+  const showMake = !view || view === "make";
+  const showShare = !view || view === "share";
   const [ytBusy, setYtBusy] = useState(false);
   const [ytLink, setYtLink] = useState<string | null>(null);
   const [ytError, setYtError] = useState<string | null>(null);
@@ -289,9 +303,11 @@ export function ShortsPanel({
       });
       bed.stop();
 
-      // 5) 저장 + 유튜브 업로드용으로 보관
+      // 5) 저장 + 유튜브 업로드용으로 보관(허브에도 전달 → 편집 단계 입력)
       saveBlob(result.blob, `${slugName()}-shorts.${result.ext}`);
       setLastBlob(result.blob);
+      setLastExt(result.ext);
+      onRendered?.(result.blob, result.ext);
       setYtLink(null);
       setYtError(null);
       setMsg(
@@ -330,12 +346,12 @@ export function ShortsPanel({
 
   /** 방금 만든 쇼츠를 유튜브에 직접 업로드(브라우저 → 유튜브, 서버 미경유). 공용 헬퍼 사용. */
   const uploadToYoutube = async () => {
-    if (ytBusy || !lastBlob) return;
+    if (ytBusy || !shareBlob) return;
     setYtBusy(true);
     setYtError(null);
     setYtLink(null);
     const r = await uploadShortToYoutube(
-      lastBlob,
+      shareBlob,
       { title: title || slugName() || "StoryUp Shorts" },
       ko,
     );
@@ -398,6 +414,8 @@ export function ShortsPanel({
 
       {planOk ? (
         <>
+          {showMake && (
+          <>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             {/* 사이즈 */}
             <Field label={ko ? "사이즈" : "Size"}>
@@ -722,6 +740,37 @@ export function ShortsPanel({
               ? "브라우저에서 바로 만들어요. 만드는 동안 탭을 닫지 말아주세요. (mp4를 지원하지 않는 브라우저는 webm으로 저장됩니다)"
               : "Made right in your browser — keep this tab open while rendering. (Browsers without mp4 support save as webm.)"}
           </p>
+          </>
+          )}
+
+          {showShare && (
+          <>
+          {/* 공유 전용 뷰: 만든(또는 편집한) 쇼츠 다시 받기 */}
+          {view === "share" && (
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!shareBlob}
+                onClick={() =>
+                  shareBlob && saveBlob(shareBlob, `${slugName()}-shorts.${shareExt}`)
+                }
+              >
+                <FilmIcon />
+                {ko ? "쇼츠 다운로드" : "Download short"}
+                {blobOverride ? (ko ? " (편집본)" : " (edited)") : ""}
+              </Button>
+              <span className="text-xs text-muted">
+                {shareBlob
+                  ? ko
+                    ? "유튜브 쇼츠·틱톡·릴스에 올려보세요."
+                    : "Upload to YouTube Shorts, TikTok, or Reels."
+                  : ko
+                    ? "먼저 '쇼츠 만들기' 단계에서 영상을 만들어주세요."
+                    : "Make a short first."}
+              </span>
+            </div>
+          )}
 
           {/* 유튜브 자동 업로드 (Pro + 구글 연결) */}
           {youtube?.canUse && youtube.configured && (
@@ -744,7 +793,7 @@ export function ShortsPanel({
                     variant="outline"
                     size="sm"
                     onClick={uploadToYoutube}
-                    disabled={ytBusy || !lastBlob}
+                    disabled={ytBusy || !shareBlob}
                   >
                     {ytBusy ? (
                       <>
@@ -758,20 +807,20 @@ export function ShortsPanel({
                     )}
                   </Button>
                   <span className="text-xs text-muted">
-                    {lastBlob
+                    {shareBlob
                       ? ko
                         ? "비공개(private)로 올라가요. 유튜브에서 공개로 바꿀 수 있어요."
                         : "Uploads as private; make it public on YouTube."
                       : ko
-                        ? "먼저 위에서 쇼츠를 만들어주세요."
-                        : "Make a short above first."}
+                        ? "먼저 쇼츠를 만들어주세요."
+                        : "Make a short first."}
                   </span>
                 </div>
               ) : (
                 <div className="mt-3 flex flex-wrap items-center gap-3">
                   <a
                     href={`/api/youtube/connect?next=${encodeURIComponent(
-                      `/business/${businessId}/marketing`,
+                      `/business/${businessId}/marketing?step=5`,
                     )}`}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-border-strong px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:border-primary/50 hover:text-primary"
                   >
@@ -807,6 +856,8 @@ export function ShortsPanel({
                 ? "유튜브 자동 업로드는 준비 중입니다 (관리자 연동 후 활성화)."
                 : "YouTube auto-upload is being set up."}
             </p>
+          )}
+          </>
           )}
         </>
       ) : (
