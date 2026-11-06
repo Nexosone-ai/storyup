@@ -51,7 +51,8 @@ export async function assignClientAction(
     userIdByEmail(partnerEmail),
     userIdByEmail(clientEmail),
   ]);
-  if (!partnerId) return { error: "파트너 이메일의 사용자를 찾을 수 없습니다." };
+  if (!partnerId)
+    return { error: "파트너 이메일의 사용자를 찾을 수 없습니다." };
   if (!clientId) return { error: "고객 이메일의 사용자를 찾을 수 없습니다." };
   if (partnerId === clientId)
     return { error: "파트너와 고객이 같을 수 없습니다." };
@@ -93,7 +94,8 @@ export async function grantCreditsAction(
   if (!Number.isInteger(amount) || amount === 0)
     return { error: "지급할 크레딧(0 아님)을 입력해주세요." };
   const partnerId = await userIdByEmail(partnerEmail);
-  if (!partnerId) return { error: "파트너 이메일의 사용자를 찾을 수 없습니다." };
+  if (!partnerId)
+    return { error: "파트너 이메일의 사용자를 찾을 수 없습니다." };
   const me_ = await me();
   await grantPartnerCredits(
     partnerId,
@@ -125,4 +127,39 @@ export async function setCreditPriceAction(
   if (error) return { error: "단가 저장에 실패했습니다." };
   revalidatePath("/dashboard/admin/partners");
   return { ok: true, message: "단가를 저장했어요." };
+}
+
+/** 파트너 패킷 계좌이체 주문: 입금 확인 → 패킷 지급(수동, 멱등). */
+export async function confirmPacketTransferAction(
+  id: string,
+  note: string,
+): Promise<PartnerAdminState> {
+  if (!(await isCurrentUserAdmin())) return { error: "권한이 없습니다." };
+  const me_ = await me();
+  if (!me_) return { error: "로그인이 필요합니다." };
+  const { confirmPacketTransfer } = await import("@/lib/partner/packets");
+  const res = await confirmPacketTransfer(id, me_.id, note);
+  if (res.error) return { error: res.error };
+  revalidatePath("/dashboard/admin/partners");
+  revalidatePath("/partner/packets");
+  return {
+    ok: true,
+    message: `입금 확인 · 패킷 ${res.packets?.toLocaleString()}개 지급했어요.`,
+  };
+}
+
+/** 파트너 패킷 주문 취소(미입금·오발행). 지급된 주문은 취소되지 않음. */
+export async function cancelPacketOrderAction(
+  id: string,
+  note: string,
+): Promise<PartnerAdminState> {
+  if (!(await isCurrentUserAdmin())) return { error: "권한이 없습니다." };
+  const me_ = await me();
+  if (!me_) return { error: "로그인이 필요합니다." };
+  const { cancelPacketOrderAdmin } = await import("@/lib/partner/packets");
+  const res = await cancelPacketOrderAdmin(id, me_.id, note);
+  if (res.error) return { error: res.error };
+  revalidatePath("/dashboard/admin/partners");
+  revalidatePath("/partner/packets");
+  return { ok: true, message: "주문을 취소했어요." };
 }

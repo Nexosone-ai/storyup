@@ -338,6 +338,12 @@ export async function syncProductOrder(
       const { fulfillChannelSharePaid } = await import("@/lib/channelAds/orders");
       await fulfillChannelSharePaid(shareOrderId, orderId);
     }
+    // 파트너 패킷 구매(카드) 결제면 패킷 지급(granted_at 단일 전이로 멱등).
+    const packetOrderId = meta?.packet_order_id;
+    if (typeof packetOrderId === "string") {
+      const { fulfillPacketOrderPaid } = await import("@/lib/partner/packets");
+      await fulfillPacketOrderPaid(packetOrderId, orderId);
+    }
 
     return { status: "PAID", productName: order.product_name, amount: order.amount };
   }

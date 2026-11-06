@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { listPartnerAssignments } from "@/lib/partner";
 import { listAllAccountShares } from "@/lib/accountShare";
+import { listPacketOrdersAdmin } from "@/lib/partner/packets";
 import {
   AdminPartnersView,
   type CreditPriceRow,
@@ -10,14 +11,16 @@ export const metadata = { title: "관리자 · 파트너" };
 
 export default async function AdminPartnersPage() {
   const admin = createAdminClient();
-  const [assignments, pricesRes, accountShares] = await Promise.all([
-    listPartnerAssignments(),
-    admin
-      .from("partner_credit_prices")
-      .select("action, label, credits, active")
-      .order("credits", { ascending: false }),
-    listAllAccountShares(),
-  ]);
+  const [assignments, pricesRes, accountShares, packetOrders] =
+    await Promise.all([
+      listPartnerAssignments(),
+      admin
+        .from("partner_credit_prices")
+        .select("action, label, credits, active")
+        .order("credits", { ascending: false }),
+      listAllAccountShares(),
+      listPacketOrdersAdmin(),
+    ]);
   const prices = (pricesRes.data ?? []) as CreditPriceRow[];
 
   return (
@@ -26,6 +29,7 @@ export default async function AdminPartnersPage() {
         assignments={assignments}
         prices={prices}
         accountShares={accountShares}
+        packetOrders={packetOrders}
       />
     </div>
   );

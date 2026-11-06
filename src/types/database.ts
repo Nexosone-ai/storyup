@@ -1183,6 +1183,59 @@ export interface Database {
         >;
         Relationships: [];
       };
+      partner_packet_orders: {
+        Row: {
+          id: string;
+          partner_user_id: string;
+          packets: number;
+          unit_price_krw: number;
+          supply_krw: number;
+          vat_krw: number;
+          total_krw: number;
+          method: string;
+          status: string;
+          order_id: string | null;
+          invoice_no: string | null;
+          depositor_name: string | null;
+          buyer_name: string | null;
+          buyer_email: string | null;
+          buyer_phone: string | null;
+          admin_note: string | null;
+          reviewed_by: string | null;
+          paid_at: string | null;
+          granted_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          partner_user_id: string;
+          packets: number;
+          unit_price_krw?: number;
+          supply_krw: number;
+          vat_krw?: number;
+          total_krw: number;
+          method: string;
+          status?: string;
+          order_id?: string | null;
+          invoice_no?: string | null;
+          depositor_name?: string | null;
+          buyer_name?: string | null;
+          buyer_email?: string | null;
+          buyer_phone?: string | null;
+          admin_note?: string | null;
+          reviewed_by?: string | null;
+          paid_at?: string | null;
+          granted_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["partner_packet_orders"]["Insert"]
+        >;
+        Relationships: [];
+      };
+
       share_orders: {
         Row: {
           id: string;

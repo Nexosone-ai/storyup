@@ -8,7 +8,10 @@ import {
   unassignClientAction,
   grantCreditsAction,
   setCreditPriceAction,
+  confirmPacketTransferAction,
+  cancelPacketOrderAction,
 } from "@/app/dashboard/admin/partners/actions";
+import type { AdminPacketOrderRow } from "@/lib/partner/packets";
 import type { PartnerAssignmentRow } from "@/lib/partner";
 import type { AdminShareRow } from "@/lib/accountShare";
 
@@ -26,10 +29,12 @@ export function AdminPartnersView({
   assignments,
   prices,
   accountShares = [],
+  packetOrders = [],
 }: {
   assignments: PartnerAssignmentRow[];
   prices: CreditPriceRow[];
   accountShares?: AdminShareRow[];
+  packetOrders?: AdminPacketOrderRow[];
 }) {
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
@@ -42,9 +47,15 @@ export function AdminPartnersView({
   const [grantAmount, setGrantAmount] = useState(1000);
   const [grantMemo, setGrantMemo] = useState("");
   const [list, setList] = useState(assignments);
+  const [packetNote, setPacketNote] = useState<Record<string, string>>({});
+  const waitingPackets = packetOrders.filter(
+    (o) => o.method === "transfer" && o.status === "pending",
+  );
   const [priceState, setPriceState] = useState(prices);
 
-  const run = (fn: () => Promise<{ ok?: boolean; error?: string; message?: string }>) =>
+  const run = (
+    fn: () => Promise<{ ok?: boolean; error?: string; message?: string }>,
+  ) =>
     startTransition(async () => {
       setMsg(null);
       setError(null);
@@ -71,9 +82,12 @@ export function AdminPartnersView({
       {/* 계정 공유 현황(소유자가 직접 초대한 파트너 위임 접근) */}
       {accountShares.length > 0 && (
         <section className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
-          <h3 className="text-sm font-semibold">계정 공유 현황 (소유자 → 파트너)</h3>
+          <h3 className="text-sm font-semibold">
+            계정 공유 현황 (소유자 → 파트너)
+          </h3>
           <p className="mt-1 text-xs text-muted">
-            고객(소유자)이 직접 파트너를 초대해 사업장 작업 권한을 위임한 현황입니다. (파트너 배정과 별개)
+            고객(소유자)이 직접 파트너를 초대해 사업장 작업 권한을 위임한
+            현황입니다. (파트너 배정과 별개)
           </p>
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[520px] text-sm">
@@ -87,8 +101,12 @@ export function AdminPartnersView({
               <tbody className="divide-y divide-border">
                 {accountShares.map((s) => (
                   <tr key={s.id}>
-                    <td className="py-1.5 pr-3">{s.ownerName || s.ownerEmail || "—"}</td>
-                    <td className="py-1.5 pr-3">{s.partnerName || s.partnerEmail}</td>
+                    <td className="py-1.5 pr-3">
+                      {s.ownerName || s.ownerEmail || "—"}
+                    </td>
+                    <td className="py-1.5 pr-3">
+                      {s.partnerName || s.partnerEmail}
+                    </td>
                     <td className="py-1.5">
                       <span
                         className={`rounded-full border px-2 py-0.5 text-xs ${
@@ -135,7 +153,8 @@ export function AdminPartnersView({
       <section className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
         <h3 className="text-sm font-semibold">2. 대행 고객 배정</h3>
         <p className="mt-1 text-xs text-muted">
-          파트너가 운영할 고객(사업주) 계정을 배정합니다. 한 파트너에 여러 고객 가능.
+          파트너가 운영할 고객(사업주) 계정을 배정합니다. 한 파트너에 여러 고객
+          가능.
         </p>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <input
@@ -185,7 +204,8 @@ export function AdminPartnersView({
                   onClick={() =>
                     run(async () => {
                       const res = await unassignClientAction(a.id);
-                      if (res.ok) setList((l) => l.filter((x) => x.id !== a.id));
+                      if (res.ok)
+                        setList((l) => l.filter((x) => x.id !== a.id));
                       return res;
                     })
                   }
@@ -196,6 +216,159 @@ export function AdminPartnersView({
               </li>
             ))}
           </ul>
+        )}
+      </section>
+
+      {/* 2.5) 파트너 패킷 구매 주문 — 계좌이체 입금 확인(수동 지급) + 전체 내역 */}
+      <section className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
+        <h3 className="text-sm font-semibold">
+          패킷 구매 주문 · 입금 확인
+          {waitingPackets.length > 0 && (
+            <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+              대기 {waitingPackets.length}
+            </span>
+          )}
+        </h3>
+        <p className="mt-1 text-xs text-muted">
+          파트너가 발행한 계좌이체 청구서입니다. 통장 입금(입금자명·금액)을
+          확인한 뒤 &lsquo;입금 확인·지급&rsquo;을 누르면 패킷이
+          지급됩니다(1회만 반영, 되돌릴 수 없음). 카드결제 주문은 결제 즉시 자동
+          지급됩니다.
+        </p>
+        {packetOrders.length === 0 ? (
+          <p className="mt-3 text-sm text-muted">주문이 없습니다.</p>
+        ) : (
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full min-w-[760px] text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs text-muted">
+                  <th className="py-1.5 pr-3">일자</th>
+                  <th className="py-1.5 pr-3">파트너</th>
+                  <th className="py-1.5 pr-3">번호 / 입금자명</th>
+                  <th className="py-1.5 pr-3 text-right">패킷</th>
+                  <th className="py-1.5 pr-3 text-right">입금액</th>
+                  <th className="py-1.5 pr-3">상태</th>
+                  <th className="py-1.5">처리</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {packetOrders.map((o) => {
+                  const waiting =
+                    o.method === "transfer" && o.status === "pending";
+                  return (
+                    <tr key={o.id} className={waiting ? "bg-primary/5" : ""}>
+                      <td className="py-2 pr-3 text-xs tabular-nums">
+                        {o.created_at.slice(0, 10)}
+                      </td>
+                      <td className="py-2 pr-3">
+                        <div className="max-w-[180px] truncate">
+                          {o.partnerEmail ?? o.partner_user_id}
+                        </div>
+                        {o.partnerName && (
+                          <div className="text-xs text-muted">
+                            {o.partnerName}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-2 pr-3">
+                        <div className="font-mono text-xs">
+                          {o.invoice_no ?? o.order_id?.slice(0, 16) ?? "—"}
+                        </div>
+                        <div className="text-xs text-muted">
+                          {o.method === "card"
+                            ? "카드"
+                            : `입금자 ${o.depositor_name ?? "—"}`}
+                        </div>
+                      </td>
+                      <td className="py-2 pr-3 text-right tabular-nums">
+                        {o.packets.toLocaleString()}
+                      </td>
+                      <td className="py-2 pr-3 text-right tabular-nums">
+                        {o.total_krw.toLocaleString()}원
+                      </td>
+                      <td className="py-2 pr-3">
+                        <span
+                          className={`rounded-full border px-2 py-0.5 text-xs ${
+                            o.status === "paid"
+                              ? "border-success/40 text-success"
+                              : o.status === "cancelled"
+                                ? "border-border text-muted"
+                                : "border-primary/40 text-primary"
+                          }`}
+                        >
+                          {o.status === "paid"
+                            ? "지급 완료"
+                            : o.status === "cancelled"
+                              ? "취소"
+                              : o.method === "card"
+                                ? "결제 대기"
+                                : "입금 대기"}
+                        </span>
+                        {o.admin_note && (
+                          <div className="mt-0.5 max-w-[160px] truncate text-[11px] text-muted">
+                            {o.admin_note}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-2">
+                        {waiting ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={packetNote[o.id] ?? ""}
+                              onChange={(e) =>
+                                setPacketNote((s) => ({
+                                  ...s,
+                                  [o.id]: e.target.value,
+                                }))
+                              }
+                              placeholder="메모"
+                              className={`${field} h-8 w-24 py-0 text-xs`}
+                            />
+                            <Button
+                              size="sm"
+                              onClick={() =>
+                                run(() =>
+                                  confirmPacketTransferAction(
+                                    o.id,
+                                    packetNote[o.id] ?? "",
+                                  ),
+                                )
+                              }
+                              disabled={pending}
+                            >
+                              입금 확인·지급
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                run(() =>
+                                  cancelPacketOrderAction(
+                                    o.id,
+                                    packetNote[o.id] ?? "",
+                                  ),
+                                )
+                              }
+                              disabled={pending}
+                            >
+                              취소
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted">
+                            {o.granted_at
+                              ? `지급 ${o.granted_at.slice(0, 10)}`
+                              : ""}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
 
@@ -242,9 +415,7 @@ export function AdminPartnersView({
           <Button
             className="ml-auto"
             onClick={() =>
-              run(() =>
-                grantCreditsAction(grantEmail, grantAmount, grantMemo),
-              )
+              run(() => grantCreditsAction(grantEmail, grantAmount, grantMemo))
             }
             disabled={pending || !grantEmail.trim()}
           >
@@ -300,9 +471,7 @@ export function AdminPartnersView({
                 size="sm"
                 variant="outline"
                 onClick={() =>
-                  run(() =>
-                    setCreditPriceAction(p.action, p.credits, p.active),
-                  )
+                  run(() => setCreditPriceAction(p.action, p.credits, p.active))
                 }
                 disabled={pending}
               >
