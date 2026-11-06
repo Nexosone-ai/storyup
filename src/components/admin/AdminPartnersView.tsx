@@ -10,9 +10,10 @@ import {
   setCreditPriceAction,
   confirmPacketTransferAction,
   cancelPacketOrderAction,
+  removePartnerAction,
 } from "@/app/dashboard/admin/partners/actions";
 import type { AdminPacketOrderRow } from "@/lib/partner/packets";
-import type { PartnerAssignmentRow } from "@/lib/partner";
+import type { PartnerAssignmentRow, PartnerListRow } from "@/lib/partner";
 import type { AdminShareRow } from "@/lib/accountShare";
 
 export interface CreditPriceRow {
@@ -30,11 +31,13 @@ export function AdminPartnersView({
   prices,
   accountShares = [],
   packetOrders = [],
+  partners = [],
 }: {
   assignments: PartnerAssignmentRow[];
   prices: CreditPriceRow[];
   accountShares?: AdminShareRow[];
   packetOrders?: AdminPacketOrderRow[];
+  partners?: PartnerListRow[];
 }) {
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
@@ -47,6 +50,8 @@ export function AdminPartnersView({
   const [grantAmount, setGrantAmount] = useState(1000);
   const [grantMemo, setGrantMemo] = useState("");
   const [list, setList] = useState(assignments);
+  const [partnerList, setPartnerList] = useState(partners);
+  const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [packetNote, setPacketNote] = useState<Record<string, string>>({});
   const waitingPackets = packetOrders.filter(
     (o) => o.method === "transfer" && o.status === "pending",
@@ -147,6 +152,78 @@ export function AdminPartnersView({
             파트너로 설정
           </Button>
         </div>
+      </section>
+
+      {/* 1.5) 현재 파트너 목록 + 해제(삭제) */}
+      <section className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
+        <h3 className="text-sm font-semibold">
+          현재 파트너 ({partnerList.length})
+        </h3>
+        <p className="mt-1 text-xs text-muted">
+          파트너 해제 시 계정은 무료 플랜으로 돌아가고 파트너 영역 접근·고객 배정·서브파트너
+          관계가 정리됩니다. 패킷 원장·구매 주문·정산 기록은 보존되며, 다시 파트너로 설정하면
+          남은 패킷을 그대로 씁니다.
+        </p>
+        {partnerList.length === 0 ? (
+          <p className="mt-3 text-sm text-muted">파트너가 없습니다.</p>
+        ) : (
+          <ul className="mt-3 space-y-1.5 text-sm">
+            {partnerList.map((p) => (
+              <li
+                key={p.userId}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-background px-3 py-2"
+              >
+                <span className="min-w-0 flex-1 truncate">
+                  <span className="font-medium">{p.email ?? p.userId}</span>
+                  {p.name && <span className="text-muted"> · {p.name}</span>}
+                  {p.isSub && (
+                    <span className="ml-1 rounded-full border border-border px-1.5 py-0.5 text-[11px] text-muted">
+                      서브
+                    </span>
+                  )}
+                  <span className="ml-2 text-xs text-muted tabular-nums">
+                    패킷 {p.credits.toLocaleString()} · 고객 {p.clientCount}
+                  </span>
+                </span>
+                {confirmRemove === p.userId ? (
+                  <span className="flex items-center gap-1">
+                    <span className="text-xs text-danger">정말 해제할까요?</span>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      onClick={() =>
+                        run(async () => {
+                          const res = await removePartnerAction(p.userId);
+                          if (res.ok) {
+                            setPartnerList((l) => l.filter((x) => x.userId !== p.userId));
+                            setList((l) => l.filter((a) => a.partnerEmail !== p.email));
+                          }
+                          setConfirmRemove(null);
+                          return res;
+                        })
+                      }
+                      disabled={pending}
+                    >
+                      해제
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setConfirmRemove(null)}>
+                      취소
+                    </Button>
+                  </span>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setConfirmRemove(p.userId)}
+                    disabled={pending}
+                  >
+                    파트너 해제
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {/* 2) 대행 고객 배정 */}

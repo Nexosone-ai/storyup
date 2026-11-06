@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
-import { listPartnerAssignments } from "@/lib/partner";
+import { listPartnerAssignments, listPartners } from "@/lib/partner";
 import { listAllAccountShares } from "@/lib/accountShare";
 import { listPacketOrdersAdmin } from "@/lib/partner/packets";
 import {
@@ -11,7 +11,7 @@ export const metadata = { title: "관리자 · 파트너" };
 
 export default async function AdminPartnersPage() {
   const admin = createAdminClient();
-  const [assignments, pricesRes, accountShares, packetOrders] =
+  const [assignments, pricesRes, accountShares, packetOrders, partners] =
     await Promise.all([
       listPartnerAssignments(),
       admin
@@ -20,6 +20,7 @@ export default async function AdminPartnersPage() {
         .order("credits", { ascending: false }),
       listAllAccountShares(),
       listPacketOrdersAdmin(),
+      listPartners(),
     ]);
   const prices = (pricesRes.data ?? []) as CreditPriceRow[];
 
@@ -30,6 +31,7 @@ export default async function AdminPartnersPage() {
         prices={prices}
         accountShares={accountShares}
         packetOrders={packetOrders}
+        partners={partners}
       />
     </div>
   );
