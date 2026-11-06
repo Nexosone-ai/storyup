@@ -68,7 +68,7 @@ export function dashboardNav(
       icon: "users",
     },
     {
-      label: ko ? "계정 공유" : "Account sharing",
+      label: ko ? "담당 파트너" : "My partner",
       href: "/dashboard/share",
       icon: "link",
     },

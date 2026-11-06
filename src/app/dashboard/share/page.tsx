@@ -8,7 +8,7 @@ import {
 } from "@/lib/accountShare";
 import { AccountShareView } from "@/components/share/AccountShareView";
 
-export const metadata = { title: "계정 공유" };
+export const metadata = { title: "담당 파트너" };
 
 export default async function AccountSharePage() {
   const user = await getUser();

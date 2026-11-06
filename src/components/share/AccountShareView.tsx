@@ -4,9 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { Spinner } from "@/components/ui/Spinner";
 import {
-  invitePartnerShareAction,
   revokeShareAction,
   acceptShareAction,
   declineShareAction,
@@ -29,7 +27,6 @@ export function AccountShareView({
   sharedAccounts: SharedAccount[];
 }) {
   const router = useRouter();
-  const [email, setEmail] = useState("");
   const [busy, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -50,46 +47,28 @@ export function AccountShareView({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">계정 공유 (파트너)</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">담당 파트너</h1>
         <p className="mt-1.5 text-sm text-muted">
-          내 스토리업 계정을 파트너에게 이메일로 공유하면, 파트너가 수락 후 자기 계정으로
-          로그인해 내 사업장에서 작업할 수 있어요. (결제·구독 등 계정 설정은 공유되지 않아요.)
+          파트너(대행사)가 내 이메일을 고객으로 등록하면 여기에 표시되고, 파트너는 자기 계정으로
+          로그인해 내 사업장의 콘텐츠를 대신 운영해요. (결제·구독 등 계정 설정은 공유되지 않아요.)
+          원치 않으면 언제든 접근을 해제할 수 있어요.
         </p>
       </div>
 
       {msg && <p className="text-sm text-primary">{msg}</p>}
       {error && <p className="text-sm text-danger">{error}</p>}
 
-      {/* 소유자: 파트너 초대 */}
+      {/* 소유자: 나를 담당하는 파트너 (파트너가 등록 → 여기서 해제 가능) */}
       <section className="rounded-2xl border border-border bg-surface p-4">
-        <p className="mb-2 font-semibold">파트너 초대</p>
-        <div className="flex flex-wrap gap-2">
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="파트너 이메일"
-            disabled={busy}
-            className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-60"
-          />
-          <Button
-            onClick={() => {
-              const e = email.trim();
-              if (!e) return;
-              run(async () => {
-                const r = await invitePartnerShareAction(e);
-                if (!r.error) setEmail("");
-                return r;
-              });
-            }}
-            disabled={busy || !email.trim()}
-          >
-            {busy ? <Spinner className="size-4" /> : "초대"}
-          </Button>
-        </div>
+        <p className="mb-2 font-semibold">나를 담당하는 파트너</p>
+        {ownerShares.length === 0 && (
+          <p className="text-sm text-muted">
+            아직 담당 파트너가 없어요. 파트너가 내 계정 이메일을 등록하면 여기에 표시됩니다.
+          </p>
+        )}
 
         {ownerShares.length > 0 && (
-          <ul className="mt-3 divide-y divide-border">
+          <ul className="divide-y divide-border">
             {ownerShares.map((s) => (
               <li key={s.id} className="flex items-center justify-between gap-2 py-2 text-sm">
                 <span className="min-w-0">

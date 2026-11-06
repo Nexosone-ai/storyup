@@ -1183,6 +1183,33 @@ export interface Database {
         >;
         Relationships: [];
       };
+      partner_client_invites: {
+        Row: {
+          id: string;
+          partner_user_id: string;
+          client_email: string;
+          status: string;
+          client_user_id: string | null;
+          linked_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          partner_user_id: string;
+          client_email: string;
+          status?: string;
+          client_user_id?: string | null;
+          linked_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["partner_client_invites"]["Insert"]
+        >;
+        Relationships: [];
+      };
+
       partner_packet_orders: {
         Row: {
           id: string;
