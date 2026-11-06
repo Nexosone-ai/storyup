@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { isCurrentUserAdmin } from "@/lib/points";
-import { grantPartnerCredits } from "@/lib/partner";
+import { grantPartnerCredits, removePartner, isPartner } from "@/lib/partner";
 import { setUserPlanAction } from "@/app/dashboard/admin/actions";
 
 export interface PartnerAdminState {
@@ -39,6 +39,27 @@ export async function makePartnerAction(
   return res.error
     ? { error: res.error }
     : { ok: true, message: res.message ?? "파트너로 설정했어요." };
+}
+
+/** 파트너 자격 해제(삭제) — free 전환 + 배정·서브 관계 삭제. 원장·주문은 보존. */
+export async function removePartnerAction(
+  partnerUserId: string,
+): Promise<PartnerAdminState> {
+  if (!(await isCurrentUserAdmin())) return { error: "권한이 없습니다." };
+  const me_ = await me();
+  if (!me_) return { error: "로그인이 필요합니다." };
+  if (me_.id === partnerUserId)
+    return { error: "본인 계정은 여기서 해제할 수 없습니다." };
+  if (!(await isPartner(partnerUserId)))
+    return { error: "현재 파트너가 아닌 계정입니다." };
+  const res = await removePartner(partnerUserId);
+  if (res.error) return { error: res.error };
+  revalidatePath("/dashboard/admin/partners");
+  revalidatePath("/partner");
+  return {
+    ok: true,
+    message: `파트너를 해제했어요. (배정 ${res.removedClients}건, 서브 관계 ${res.removedSubs}건 정리)`,
+  };
 }
 
 /** 파트너 ↔ 고객(사업주) 배정. 두 이메일 모두 가입 사용자여야 함. */

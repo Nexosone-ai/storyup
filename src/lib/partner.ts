@@ -449,6 +449,97 @@ export async function setSubPartnerStatus(
 }
 
 /** 관리자용 — 전체 파트너↔고객 배정 목록. */
+export interface PartnerListRow {
+  userId: string;
+  email: string | null;
+  name: string | null;
+  credits: number;
+  clientCount: number;
+  isSub: boolean;
+  since: string;
+}
+
+/** 관리자: 현재 파트너(plan=partner·active) 전체 — 잔여 패킷·배정 고객 수 포함. */
+export async function listPartners(): Promise<PartnerListRow[]> {
+  const admin = createAdminClient();
+  const { data: subs } = await admin
+    .from("subscriptions")
+    .select("user_id, updated_at, current_period_end")
+    .eq("plan", "partner")
+    .eq("status", "active")
+    .limit(500);
+  const now = Date.now();
+  const rows = (subs ?? []).filter(
+    (s) => !s.current_period_end || new Date(s.current_period_end).getTime() >= now,
+  );
+  const ids = rows.map((s) => s.user_id);
+  if (ids.length === 0) return [];
+  const [{ data: profiles }, { data: ledger }, { data: clients }, { data: subPartners }] =
+    await Promise.all([
+      admin.from("profiles").select("user_id, email, name").in("user_id", ids),
+      admin.from("partner_credit_ledger").select("partner_user_id, amount").in("partner_user_id", ids),
+      admin.from("partner_clients").select("partner_user_id").in("partner_user_id", ids),
+      admin.from("partner_subs").select("sub_partner_user_id").in("sub_partner_user_id", ids),
+    ]);
+  const prof = new Map((profiles ?? []).map((p) => [p.user_id, p]));
+  const credits = new Map<string, number>();
+  for (const l of ledger ?? [])
+    credits.set(l.partner_user_id, (credits.get(l.partner_user_id) ?? 0) + l.amount);
+  const clientCount = new Map<string, number>();
+  for (const c of clients ?? [])
+    clientCount.set(c.partner_user_id, (clientCount.get(c.partner_user_id) ?? 0) + 1);
+  const subSet = new Set((subPartners ?? []).map((s) => s.sub_partner_user_id));
+  return rows
+    .map((s) => ({
+      userId: s.user_id,
+      email: prof.get(s.user_id)?.email ?? null,
+      name: prof.get(s.user_id)?.name ?? null,
+      credits: credits.get(s.user_id) ?? 0,
+      clientCount: clientCount.get(s.user_id) ?? 0,
+      isSub: subSet.has(s.user_id),
+      since: s.updated_at,
+    }))
+    .sort((a, b) => (a.email ?? "").localeCompare(b.email ?? ""));
+}
+
+/**
+ * 관리자: 파트너 자격 해제(삭제).
+ * - 본인 구독을 free 로 전환(파트너 영역 접근 차단)
+ * - 고객 배정(partner_clients)·서브파트너 관계(partner_subs, 상위/하위 양쪽) 삭제
+ * - 패킷 원장·구매 주문·정산 기록은 보존(재무 기록은 삭제하지 않음)
+ */
+export async function removePartner(
+  partnerUserId: string,
+): Promise<{ ok?: true; error?: string; removedClients: number; removedSubs: number }> {
+  const admin = createAdminClient();
+  const { error } = await admin.from("subscriptions").upsert(
+    {
+      user_id: partnerUserId,
+      plan: "free",
+      status: "active",
+      current_period_end: null,
+      billing_key: null,
+      cancel_at_period_end: false,
+      trial: false,
+      billing_failures: 0,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" },
+  );
+  if (error) return { error: "플랜 전환에 실패했습니다.", removedClients: 0, removedSubs: 0 };
+  const { data: c } = await admin
+    .from("partner_clients")
+    .delete()
+    .eq("partner_user_id", partnerUserId)
+    .select("id");
+  const { data: s } = await admin
+    .from("partner_subs")
+    .delete()
+    .or(`parent_partner_user_id.eq.${partnerUserId},sub_partner_user_id.eq.${partnerUserId}`)
+    .select("id");
+  return { ok: true, removedClients: c?.length ?? 0, removedSubs: s?.length ?? 0 };
+}
+
 export async function listPartnerAssignments(): Promise<PartnerAssignmentRow[]> {
   const admin = createAdminClient();
   const { data: links } = await admin
