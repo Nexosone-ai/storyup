@@ -82,11 +82,14 @@ export default async function PartnerPage() {
           <p className="text-2xl font-semibold tabular-nums">
             {credits.toLocaleString()}
           </p>
-          {credits <= 0 && (
-            <p className="mt-1 text-xs text-danger">
-              {ko ? "관리자에게 충전 요청" : "Ask admin to top up"}
-            </p>
-          )}
+          <Link
+            href="/partner/packets"
+            className={`mt-1 inline-block text-xs font-medium underline-offset-2 hover:underline ${
+              credits <= 0 ? "text-danger" : "text-primary"
+            }`}
+          >
+            {ko ? "패킷 구매 →" : "Buy packets →"}
+          </Link>
         </Card>
         <Card className="px-4 py-3 text-right">
           <p className="text-xs text-muted">{ko ? "정산 예정 수익" : "Pending earnings"}</p>
@@ -151,6 +154,10 @@ export default async function PartnerPage() {
             <ButtonLink size="sm" href="/partner/videos">
               {ko ? "영상 만들기" : "Make videos"}
             </ButtonLink>
+            <ButtonLink size="sm" variant="outline" href="/partner/packets">
+              <Icon.coin className="size-4" />
+              {ko ? "패킷 구매" : "Buy packets"}
+            </ButtonLink>
             {PROVIDEO_ENABLED && (
               <ButtonLink size="sm" variant="outline" href="/partner/video">
                 {ko ? "전문 영상 스튜디오" : "Pro video studio"}
@@ -196,7 +203,11 @@ export default async function PartnerPage() {
             ))}
           </ul>
           <p className="mt-2 text-[11px] text-muted">
-            패킷은 관리자가 계약 시 지급합니다. 부족하면 충전을 요청하세요.
+            1패킷 = 100원(부가세 별도). 카드결제 또는 계좌이체로{" "}
+            <Link href="/partner/packets" className="font-medium text-primary hover:underline">
+              직접 구매
+            </Link>
+            할 수 있어요.
           </p>
         </Card>
       </div>
