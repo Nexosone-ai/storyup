@@ -686,9 +686,18 @@ export async function updateSiteSlugAction(
     return { error: bizErr.code === "23505" ? takenMsg : failMsg };
 
   // 웹사이트가 아직 없으면 0행 업데이트로 무해하게 지나간다.
+  // 옛 슬러그는 previous_slugs 에 남겨 검색엔진에 남은 옛 URL을 미들웨어가 새 주소로 301 한다(0101).
+  const { data: site } = await supabase
+    .from("websites")
+    .select("slug, previous_slugs")
+    .eq("business_id", businessId)
+    .maybeSingle();
+  const previousSlugs = Array.from(
+    new Set([...(site?.previous_slugs ?? []), site?.slug ?? ""]),
+  ).filter((s) => s && s !== slug);
   const { error: siteErr } = await supabase
     .from("websites")
-    .update({ slug })
+    .update({ slug, previous_slugs: previousSlugs })
     .eq("business_id", businessId);
   if (siteErr) {
     // 원자성이 없으므로 실패 시 비즈니스 슬러그를 되돌린다.

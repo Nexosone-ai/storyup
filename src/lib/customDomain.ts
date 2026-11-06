@@ -64,3 +64,56 @@ export async function resolveCustomDomain(host: string): Promise<string | null> 
   cache.set(host, { slug, exp: now + CACHE_TTL_MS });
   return slug;
 }
+
+export interface SiteLocation {
+  /** 현재(최신) 슬러그. */
+  slug: string;
+  /** 활성 커스텀 도메인(없으면 null). */
+  domain: string | null;
+}
+
+const locCache = new Map<string, { loc: SiteLocation | null; exp: number }>();
+
+/**
+ * 주 도메인의 /site/<slug> 요청 슬러그 → 현재 위치(현재 슬러그 + 활성 커스텀 도메인).
+ * 옛 슬러그(websites.previous_slugs)도 해석한다. 없으면 null(=기존대로 404).
+ * resolve_site_location(0101) SECURITY DEFINER RPC를 anon 키로 호출. Edge 캐시 60초.
+ */
+export async function resolveSiteLocation(slug: string): Promise<SiteLocation | null> {
+  const key = slug.toLowerCase();
+  const now = Date.now();
+  const hit = locCache.get(key);
+  if (hit && hit.exp > now) return hit.loc;
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anon) return null;
+
+  let loc: SiteLocation | null = null;
+  try {
+    const res = await fetch(`${url}/rest/v1/rpc/resolve_site_location`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: anon,
+        Authorization: `Bearer ${anon}`,
+      },
+      body: JSON.stringify({ p_slug: key }),
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const data = (await res.json()) as { slug?: unknown; domain?: unknown } | null;
+      if (data && typeof data.slug === "string" && data.slug) {
+        loc = {
+          slug: data.slug,
+          domain: typeof data.domain === "string" && data.domain ? data.domain : null,
+        };
+      }
+    }
+  } catch {
+    loc = null;
+  }
+
+  locCache.set(key, { loc, exp: now + CACHE_TTL_MS });
+  return loc;
+}

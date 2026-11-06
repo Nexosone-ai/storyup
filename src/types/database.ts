@@ -128,6 +128,8 @@ export interface Database {
           id: string;
           business_id: string;
           slug: string;
+          /** 옛 슬러그 이력(0101) — 미들웨어가 옛 URL을 새 위치로 301 한다. */
+          previous_slugs: string[];
           content: WebsiteContent;
           status: PublishStatus;
           published_at: string | null;
@@ -136,6 +138,7 @@ export interface Database {
           id?: string;
           business_id: string;
           slug: string;
+          previous_slugs?: string[];
           content: WebsiteContent;
           status?: PublishStatus;
           published_at?: string | null;
