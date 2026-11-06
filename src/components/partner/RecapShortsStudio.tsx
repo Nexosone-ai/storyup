@@ -8,7 +8,13 @@ import { Input, Textarea, Select, Label } from "@/components/ui/Field";
 import { Spinner } from "@/components/ui/Spinner";
 import { CARD_FONTS } from "@/components/cards/cardTheme";
 import { RECAP_VOICES, type RecapScene } from "@/lib/recapShorts/config";
-import { SHORTS_MOODS, createMusicBed, createCustomBed } from "@/lib/shorts/music";
+import {
+  SHORTS_MOODS,
+  createMusicBed,
+  createCustomBed,
+  type ShortsMood,
+} from "@/lib/shorts/music";
+import { BgmPreview } from "@/components/shorts/BgmPreview";
 import { BGM_TRACKS, BGM_AVAILABLE } from "@/lib/shorts/bgm";
 import { renderShortsVideo, urlToImage } from "@/lib/shorts/render";
 import { createMixBus, createNarrationTrack } from "@/lib/shorts/narration";
@@ -73,7 +79,11 @@ export function RecapShortsStudio(props: {
   basePrice: number | null;
   imagePrice: number | null;
   providers: { script: boolean; tts: boolean };
-  youtube: { configured: boolean; connected: boolean; channelTitle: string | null };
+  youtube: {
+    configured: boolean;
+    connected: boolean;
+    channelTitle: string | null;
+  };
   /** 허브(탭) 안에 내장될 때 — 자체 제목·패킷 카드·홈 링크를 숨긴다. */
   embedded?: boolean;
 }) {
@@ -90,8 +100,9 @@ export function RecapShortsStudio(props: {
               블로그 요약 쇼츠
             </h1>
             <p className="mt-1.5 text-muted">
-              고객의 발행 블로그 글 하나를 30~40초 내레이션 쇼츠로 만듭니다 — 대본(AI) →
-              음성(TTS) → 이미지 → 자막·음악까지 브라우저에서 바로 영상으로.
+              고객의 발행 블로그 글 하나를 30~40초 내레이션 쇼츠로 만듭니다 —
+              대본(AI) → 음성(TTS) → 이미지 → 자막·음악까지 브라우저에서 바로
+              영상으로.
             </p>
           </div>
           <div className="flex gap-3">
@@ -111,8 +122,10 @@ export function RecapShortsStudio(props: {
       {!configured && (
         <Card className="p-4">
           <p className="text-sm text-danger">
-            {!providers.script && "대본 엔진(ANTHROPIC_API_KEY)이 설정되지 않았어요. "}
-            {!providers.tts && "음성 합성(GEMINI_API_KEY)이 설정되지 않았어요. "}
+            {!providers.script &&
+              "대본 엔진(ANTHROPIC_API_KEY)이 설정되지 않았어요. "}
+            {!providers.tts &&
+              "음성 합성(GEMINI_API_KEY)이 설정되지 않았어요. "}
             관리자에게 문의하세요.
           </p>
         </Card>
@@ -130,11 +143,18 @@ export function RecapShortsStudio(props: {
         <h2 className="text-sm font-semibold">내 작업</h2>
         {props.jobs.length === 0 ? (
           <Card className="p-8">
-            <p className="text-sm text-muted">아직 만든 요약 쇼츠가 없습니다.</p>
+            <p className="text-sm text-muted">
+              아직 만든 요약 쇼츠가 없습니다.
+            </p>
           </Card>
         ) : (
           props.jobs.map((j) => (
-            <JobCard key={j.id} job={j} youtube={props.youtube} imagePrice={props.imagePrice} />
+            <JobCard
+              key={j.id}
+              job={j}
+              youtube={props.youtube}
+              imagePrice={props.imagePrice}
+            />
           ))
         )}
       </div>
@@ -205,8 +225,10 @@ function CreateForm({
 
   const estScenes = 6;
   const estCredits =
-    (basePrice ?? 0) + (effectiveSource === "ai" ? (imagePrice ?? 0) * estScenes : 0);
-  const priceKnown = basePrice !== null && (effectiveSource !== "ai" || imagePrice !== null);
+    (basePrice ?? 0) +
+    (effectiveSource === "ai" ? (imagePrice ?? 0) * estScenes : 0);
+  const priceKnown =
+    basePrice !== null && (effectiveSource !== "ai" || imagePrice !== null);
   const tooLow = priceKnown && credits < estCredits;
 
   const create = () =>
@@ -226,7 +248,9 @@ function CreateForm({
       });
       if (res.error) setMsg(res.error);
       else {
-        setMsg("대본을 만들었어요. 아래 작업에서 내레이션을 이어서 만들어주세요.");
+        setMsg(
+          "대본을 만들었어요. 아래 작업에서 내레이션을 이어서 만들어주세요.",
+        );
         router.refresh();
       }
     });
@@ -237,8 +261,14 @@ function CreateForm({
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <Label required>고객 사업장</Label>
-          <Select value={bizId} onChange={(e) => changeBusiness(e.target.value)} disabled={busy}>
-            {businesses.length === 0 && <option value="">배정된 사업장이 없습니다</option>}
+          <Select
+            value={bizId}
+            onChange={(e) => changeBusiness(e.target.value)}
+            disabled={busy}
+          >
+            {businesses.length === 0 && (
+              <option value="">배정된 사업장이 없습니다</option>
+            )}
             {businesses.map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name}
@@ -272,7 +302,13 @@ function CreateForm({
           <Label>목소리</Label>
           <div className="flex flex-wrap gap-1.5">
             {RECAP_VOICES.map((v) => (
-              <Chip key={v.id} active={voice === v.id} onClick={() => setVoice(v.id)} disabled={busy} title={v.desc}>
+              <Chip
+                key={v.id}
+                active={voice === v.id}
+                onClick={() => setVoice(v.id)}
+                disabled={busy}
+                title={v.desc}
+              >
                 {v.label}
               </Chip>
             ))}
@@ -289,12 +325,19 @@ function CreateForm({
             >
               카드뉴스 배경
             </Chip>
-            <Chip active={effectiveSource === "ai"} onClick={() => setImageSource("ai")} disabled={busy} title="장면마다 AI 이미지 생성(장당 패킷)">
+            <Chip
+              active={effectiveSource === "ai"}
+              onClick={() => setImageSource("ai")}
+              disabled={busy}
+              title="장면마다 AI 이미지 생성(장당 패킷)"
+            >
               AI 생성
             </Chip>
           </div>
           {selected && !selected.hasCardBackgrounds && (
-            <p className="mt-1 text-xs text-muted">이 글은 카드뉴스가 없어 AI 생성만 가능해요.</p>
+            <p className="mt-1 text-xs text-muted">
+              이 글은 카드뉴스가 없어 AI 생성만 가능해요.
+            </p>
           )}
         </div>
       </div>
@@ -304,23 +347,53 @@ function CreateForm({
           <Label>자막 폰트</Label>
           <div className="flex flex-wrap gap-1.5">
             {CARD_FONTS.map((f) => (
-              <Chip key={f.id} active={font === f.id} onClick={() => setFont(f.id)} disabled={busy}>
+              <Chip
+                key={f.id}
+                active={font === f.id}
+                onClick={() => setFont(f.id)}
+                disabled={busy}
+              >
                 <span style={{ fontFamily: f.stack }}>{f.name}</span>
               </Chip>
             ))}
           </div>
         </div>
         <div>
-          <Label>배경 음악</Label>
+          <div className="flex items-center justify-between gap-2">
+            <Label>배경 음악</Label>
+            <BgmPreview
+              mood={
+                bgm.startsWith("library:") ? undefined : (bgm as ShortsMood)
+              }
+              trackUrl={
+                bgm.startsWith("library:")
+                  ? (BGM_TRACKS.find(
+                      (t) => t.id === bgm.slice("library:".length),
+                    )?.url ?? null)
+                  : null
+              }
+              disabled={busy}
+            />
+          </div>
           <div className="flex flex-wrap gap-1.5">
             {SHORTS_MOODS.map((m) => (
-              <Chip key={m.id} active={bgm === m.id} onClick={() => setBgm(m.id)} disabled={busy}>
+              <Chip
+                key={m.id}
+                active={bgm === m.id}
+                onClick={() => setBgm(m.id)}
+                disabled={busy}
+              >
                 {m.ko}
               </Chip>
             ))}
           </div>
           {BGM_AVAILABLE && (
-            <Select className="mt-2" value={bgm.startsWith("library:") ? bgm : ""} onChange={(e) => e.target.value && setBgm(e.target.value)} disabled={busy}>
+            <Select
+              className="mt-2"
+              value={bgm.startsWith("library:") ? bgm : ""}
+              onChange={(e) => e.target.value && setBgm(e.target.value)}
+              disabled={busy}
+            >
               <option value="">라이브러리에서 고르기…</option>
               {BGM_TRACKS.map((t) => (
                 <option key={t.id} value={`library:${t.id}`}>
@@ -339,11 +412,19 @@ function CreateForm({
             {priceKnown ? estCredits : "단가 미설정"}
           </span>
           {effectiveSource === "ai" && priceKnown && (
-            <span className="ml-1 text-xs">(대본·내레이션 {basePrice} + AI 이미지 약 {estScenes}장 × {imagePrice})</span>
+            <span className="ml-1 text-xs">
+              (대본·내레이션 {basePrice} + AI 이미지 약 {estScenes}장 ×{" "}
+              {imagePrice})
+            </span>
           )}
           {tooLow && <span className="ml-2 text-danger">패킷이 부족해요</span>}
         </p>
-        <Button onClick={create} disabled={disabled || busy || !bizId || !postId || !priceKnown || tooLow}>
+        <Button
+          onClick={create}
+          disabled={
+            disabled || busy || !bizId || !postId || !priceKnown || tooLow
+          }
+        >
           {busy ? (
             <>
               <Spinner className="size-4" /> 대본 만드는 중…
@@ -365,16 +446,24 @@ function JobCard({
   imagePrice,
 }: {
   job: RecapJobView;
-  youtube: { configured: boolean; connected: boolean; channelTitle: string | null };
+  youtube: {
+    configured: boolean;
+    connected: boolean;
+    channelTitle: string | null;
+  };
   imagePrice: number | null;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(job.status !== "ready");
   const [log, setLog] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [running, setRunning] = useState<null | "audio" | "images" | "render" | "upload" | "delete">(null);
+  const [running, setRunning] = useState<
+    null | "audio" | "images" | "render" | "upload" | "delete"
+  >(null);
   const [progress, setProgress] = useState(0);
-  const [lastBlob, setLastBlob] = useState<{ blob: Blob; ext: string } | null>(null);
+  const [lastBlob, setLastBlob] = useState<{ blob: Blob; ext: string } | null>(
+    null,
+  );
   const [ytLink, setYtLink] = useState<string | null>(null);
   const abortRef = useRef(false);
 
@@ -383,11 +472,14 @@ function JobCard({
   const imageDone = scenes.filter((s) => !!s.imageUrl).length;
   const needImages = job.imageSource === "ai";
   const canRender =
-    scenes.length > 0 && audioDone === scenes.length && imageDone === scenes.length;
+    scenes.length > 0 &&
+    audioDone === scenes.length &&
+    imageDone === scenes.length;
   const totalSec = useMemo(
     () =>
       scenes.reduce(
-        (a, s) => a + Math.max(SCENE_MIN_MS, (s.durationMs ?? 0) + SCENE_PAD_MS),
+        (a, s) =>
+          a + Math.max(SCENE_MIN_MS, (s.durationMs ?? 0) + SCENE_PAD_MS),
         0,
       ) / 1000,
     [scenes],
@@ -404,7 +496,9 @@ function JobCard({
         if (r.error) throw new Error(r.error);
         if (r.done) break;
         if (r.failed.length > 0 && round === 3)
-          throw new Error(`일부 장면(${r.failed.map((i) => i + 1).join(", ")}번) 합성에 실패했어요. 다시 시도해주세요.`);
+          throw new Error(
+            `일부 장면(${r.failed.map((i) => i + 1).join(", ")}번) 합성에 실패했어요. 다시 시도해주세요.`,
+          );
       }
       setLog("내레이션 완료");
       router.refresh();
@@ -444,7 +538,8 @@ function JobCard({
     // Safari: 사용자 제스처 안에서 동기적으로 AudioContext 생성·resume.
     const AudioCtx =
       window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext;
     const AC = new AudioCtx();
     void AC.resume();
     setRunning("render");
@@ -454,15 +549,21 @@ function JobCard({
       if (document.visibilityState !== "visible")
         throw new Error("이 탭이 화면에 보이는 상태에서 만들어주세요.");
       setLog("이미지·음성 불러오는 중…");
-      imgs = await Promise.all(scenes.map((s) => urlToImage(s.imageUrl as string)));
+      imgs = await Promise.all(
+        scenes.map((s) => urlToImage(s.imageUrl as string)),
+      );
       const bufs = await Promise.all(
         scenes.map(async (s) => {
-          const ab = await (await fetch(s.audioUrl as string, { mode: "cors" })).arrayBuffer();
+          const ab = await (
+            await fetch(s.audioUrl as string, { mode: "cors" })
+          ).arrayBuffer();
           return AC.decodeAudioData(ab);
         }),
       );
       // 타임라인 — 장면 길이 = 내레이션 길이 + 여백(최소 1.5초).
-      const durations = bufs.map((b) => Math.max(SCENE_MIN_MS, b.duration * 1000 + SCENE_PAD_MS));
+      const durations = bufs.map((b) =>
+        Math.max(SCENE_MIN_MS, b.duration * 1000 + SCENE_PAD_MS),
+      );
       const starts: number[] = [];
       let acc = 0;
       for (const d of durations) {
@@ -475,7 +576,12 @@ function JobCard({
       const captions = scenes.map((s) => s.caption || null);
       const { family, weight } = canvasFontForCard(job.font);
       setLog("폰트 준비 중…");
-      await ensureCanvasFont(weight, 56, family, captions.filter(Boolean).join(" "));
+      await ensureCanvasFont(
+        weight,
+        56,
+        family,
+        captions.filter(Boolean).join(" "),
+      );
 
       // 믹스 버스: BGM → duck → limiter → dest ← 내레이션
       const bus = createMixBus(AC);
@@ -494,7 +600,10 @@ function JobCard({
       }
       const narr = createNarrationTrack(
         AC,
-        bufs.map((b, i) => ({ buffer: b, atSec: starts[i] / 1000 + NARRATION_LEAD_SEC })),
+        bufs.map((b, i) => ({
+          buffer: b,
+          atSec: starts[i] / 1000 + NARRATION_LEAD_SEC,
+        })),
         bus.limiter,
         bus.duckGain,
       );
@@ -517,7 +626,11 @@ function JobCard({
         audioStream: bus.dest.stream,
         clock: () => Math.max(0, (AC.currentTime - base) * 1000),
         captions,
-        captionStyle: { fontFamily: family, fontWeight: weight, fontSizePx: 56 },
+        captionStyle: {
+          fontFamily: family,
+          fontWeight: weight,
+          fontSizePx: 56,
+        },
         onProgress: setProgress,
       });
       narr.stop();
@@ -554,7 +667,12 @@ function JobCard({
   };
 
   const remove = async () => {
-    if (!confirm("이 작업을 삭제할까요? (내레이션이 하나도 없으면 패킷이 환불됩니다)")) return;
+    if (
+      !confirm(
+        "이 작업을 삭제할까요? (내레이션이 하나도 없으면 패킷이 환불됩니다)",
+      )
+    )
+      return;
     setRunning("delete");
     const r = await deleteRecapJobAction(job.id);
     if (r.error) setErr(r.error);
@@ -565,12 +683,18 @@ function JobCard({
   return (
     <Card className="p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
-        <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setOpen((o) => !o)}>
+        <button
+          type="button"
+          className="min-w-0 flex-1 text-left"
+          onClick={() => setOpen((o) => !o)}
+        >
           <p className="truncate font-semibold">{job.title || "(제목 없음)"}</p>
           <p className="mt-0.5 text-xs text-muted">
             {job.businessName ? `${job.businessName} · ` : ""}
             장면 {scenes.length} · 내레이션 {audioDone}/{scenes.length}
-            {needImages ? ` · 이미지 ${imageDone}/${scenes.length}` : " · 카드뉴스 배경"}
+            {needImages
+              ? ` · 이미지 ${imageDone}/${scenes.length}`
+              : " · 카드뉴스 배경"}
             {totalSec > 0 ? ` · 약 ${totalSec.toFixed(0)}초` : ""}
           </p>
         </button>
@@ -583,19 +707,34 @@ function JobCard({
         <div className="mt-4 space-y-4">
           {/* 단계 버튼 */}
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={makeAudio} disabled={!!running || audioDone === scenes.length}>
+            <Button
+              size="sm"
+              onClick={makeAudio}
+              disabled={!!running || audioDone === scenes.length}
+            >
               {running === "audio" ? <Spinner className="size-4" /> : null}
-              {audioDone === scenes.length ? "내레이션 완료" : `내레이션 만들기 (${scenes.length - audioDone}장면)`}
+              {audioDone === scenes.length
+                ? "내레이션 완료"
+                : `내레이션 만들기 (${scenes.length - audioDone}장면)`}
             </Button>
             {needImages && (
-              <Button size="sm" variant="outline" onClick={makeImages} disabled={!!running || imageDone === scenes.length}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={makeImages}
+                disabled={!!running || imageDone === scenes.length}
+              >
                 {running === "images" ? <Spinner className="size-4" /> : null}
                 {imageDone === scenes.length
                   ? "이미지 완료"
                   : `AI 이미지 만들기 (${scenes.length - imageDone}장${imagePrice !== null ? ` · 장당 ${imagePrice}` : ""})`}
               </Button>
             )}
-            <Button size="sm" onClick={render} disabled={!!running || !canRender}>
+            <Button
+              size="sm"
+              onClick={render}
+              disabled={!!running || !canRender}
+            >
               {running === "render" ? (
                 <>
                   <Spinner className="size-4" /> {Math.round(progress * 100)}%
@@ -605,18 +744,31 @@ function JobCard({
               )}
             </Button>
             {youtube.configured && youtube.connected && (
-              <Button size="sm" variant="outline" onClick={upload} disabled={!!running || !lastBlob}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={upload}
+                disabled={!!running || !lastBlob}
+              >
                 {running === "upload" ? <Spinner className="size-4" /> : null}
                 유튜브에 올리기(비공개)
               </Button>
             )}
-            <Button size="sm" variant="ghost" onClick={remove} disabled={!!running}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={remove}
+              disabled={!!running}
+            >
               삭제
             </Button>
           </div>
           {running === "render" && (
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-muted">
-              <div className="h-full bg-primary transition-[width] duration-200" style={{ width: `${Math.round(progress * 100)}%` }} />
+              <div
+                className="h-full bg-primary transition-[width] duration-200"
+                style={{ width: `${Math.round(progress * 100)}%` }}
+              />
             </div>
           )}
           {log && <p className="text-sm text-primary">{log}</p>}
@@ -624,28 +776,42 @@ function JobCard({
           {ytLink && (
             <p className="text-sm text-primary">
               업로드 완료!{" "}
-              <a href={ytLink} target="_blank" rel="noopener noreferrer" className="underline">
+              <a
+                href={ytLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
                 {ytLink}
               </a>
             </p>
           )}
           {!youtube.configured && (
-            <p className="text-[11px] text-muted">유튜브 자동 업로드는 관리자 연동 후 활성화됩니다.</p>
+            <p className="text-[11px] text-muted">
+              유튜브 자동 업로드는 관리자 연동 후 활성화됩니다.
+            </p>
           )}
           {youtube.configured && !youtube.connected && (
             <p className="text-[11px] text-muted">
-              유튜브에 바로 올리려면 파트너 홈의 고객 워크스페이스(마케팅)에서 구글 계정을 연결하세요.
+              유튜브에 바로 올리려면 파트너 홈의 고객 워크스페이스(마케팅)에서
+              구글 계정을 연결하세요.
             </p>
           )}
 
           {/* 장면 편집 */}
           <div className="space-y-2">
             {scenes.map((s) => (
-              <SceneEditor key={s.idx} jobId={job.id} scene={s} disabled={!!running} />
+              <SceneEditor
+                key={s.idx}
+                jobId={job.id}
+                scene={s}
+                disabled={!!running}
+              />
             ))}
           </div>
           <p className="text-[11px] text-muted">
-            내레이션 문장을 고치면 그 장면만 다시 합성됩니다(추가 패킷 없음). 영상은 브라우저에서 만들어지니 완료될 때까지 탭을 닫지 마세요.
+            내레이션 문장을 고치면 그 장면만 다시 합성됩니다(추가 패킷 없음).
+            영상은 브라우저에서 만들어지니 완료될 때까지 탭을 닫지 마세요.
           </p>
         </div>
       )}
@@ -670,7 +836,10 @@ function SceneEditor({
 
   const save = () =>
     start(async () => {
-      const r = await updateRecapSceneAction(jobId, scene.idx, { narration, caption });
+      const r = await updateRecapSceneAction(jobId, scene.idx, {
+        narration,
+        caption,
+      });
       if (!r.error) router.refresh();
     });
 
@@ -679,7 +848,11 @@ function SceneEditor({
       <div className="w-14 shrink-0">
         {scene.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- 장면 썸네일(스토리지)
-          <img src={scene.imageUrl} alt="" className="aspect-[9/16] w-14 rounded border border-border object-cover" />
+          <img
+            src={scene.imageUrl}
+            alt=""
+            className="aspect-[9/16] w-14 rounded border border-border object-cover"
+          />
         ) : (
           <div className="flex aspect-[9/16] w-14 items-center justify-center rounded border border-dashed border-border text-[10px] text-muted">
             이미지
@@ -687,21 +860,45 @@ function SceneEditor({
         )}
         <p className="mt-1 text-center text-[10px] text-muted">
           #{scene.idx + 1}
-          {scene.durationMs ? ` · ${(scene.durationMs / 1000).toFixed(1)}s` : ""}
+          {scene.durationMs
+            ? ` · ${(scene.durationMs / 1000).toFixed(1)}s`
+            : ""}
         </p>
       </div>
       <div className="min-w-0 flex-1 space-y-2">
         <div>
-          <Label>내레이션 {scene.audioUrl ? <span className="text-success">· 음성 있음</span> : <span className="text-muted">· 음성 대기</span>}</Label>
-          <Textarea value={narration} onChange={(e) => setNarration(e.target.value)} rows={2} disabled={disabled || busy} />
+          <Label>
+            내레이션{" "}
+            {scene.audioUrl ? (
+              <span className="text-success">· 음성 있음</span>
+            ) : (
+              <span className="text-muted">· 음성 대기</span>
+            )}
+          </Label>
+          <Textarea
+            value={narration}
+            onChange={(e) => setNarration(e.target.value)}
+            rows={2}
+            disabled={disabled || busy}
+          />
         </div>
         <div>
           <Label>자막</Label>
-          <Input value={caption} onChange={(e) => setCaption(e.target.value)} disabled={disabled || busy} maxLength={80} />
+          <Input
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            disabled={disabled || busy}
+            maxLength={80}
+          />
         </div>
         {scene.error && <p className="text-xs text-danger">{scene.error}</p>}
         {dirty && (
-          <Button size="sm" variant="outline" onClick={save} disabled={disabled || busy}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={save}
+            disabled={disabled || busy}
+          >
             {busy ? "저장 중…" : "저장"}
           </Button>
         )}
@@ -731,7 +928,9 @@ function Chip({
       title={title}
       className={
         "rounded-full border px-3 py-1 text-xs font-medium transition-colors disabled:opacity-50 " +
-        (active ? "border-primary bg-primary text-primary-foreground" : "border-border text-foreground hover:border-primary/50")
+        (active
+          ? "border-primary bg-primary text-primary-foreground"
+          : "border-border text-foreground hover:border-primary/50")
       }
     >
       {children}
@@ -740,5 +939,10 @@ function Chip({
 }
 
 function slug(s: string) {
-  return (s || "storyup").replace(/[^\w가-힣-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "storyup";
+  return (
+    (s || "storyup")
+      .replace(/[^\w가-힣-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "storyup"
+  );
 }

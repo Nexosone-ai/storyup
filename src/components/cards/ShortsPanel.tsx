@@ -13,6 +13,7 @@ import {
   SHORTS_MOODS,
   type ShortsMood,
 } from "@/lib/shorts/music";
+import { BgmPreview } from "@/components/shorts/BgmPreview";
 
 /** 음악 선택 — 합성 분위기 / 라이브러리(library) / 내 음악 올리기(custom). */
 type MusicChoice = ShortsMood | "library" | "custom";
@@ -114,7 +115,9 @@ export function ShortsPanel({
   const [music, setMusic] = useState<MusicChoice>("bright");
   // 음원 시작·끝 페이드 길이(초). 0=없음.
   const [fadeSec, setFadeSec] = useState<number>(1);
-  const [libraryUrl, setLibraryUrl] = useState<string>(BGM_TRACKS[0]?.url ?? "");
+  const [libraryUrl, setLibraryUrl] = useState<string>(
+    BGM_TRACKS[0]?.url ?? "",
+  );
   const [customFile, setCustomFile] = useState<File | null>(null);
   const [consent, setConsent] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -145,7 +148,9 @@ export function ShortsPanel({
     try {
       const files = await renderCards();
       if (files.length === 0) {
-        setError(ko ? "카드가 없어요. 먼저 카드뉴스를 만들어주세요." : "No cards yet.");
+        setError(
+          ko ? "카드가 없어요. 먼저 카드뉴스를 만들어주세요." : "No cards yet.",
+        );
         return;
       }
       const d = motion === "dynamic" ? 1800 : 3000;
@@ -177,11 +182,15 @@ export function ShortsPanel({
     });
   const editToggle = (id: string) =>
     setEditCards((list) =>
-      list ? list.map((c) => (c.id === id ? { ...c, include: !c.include } : c)) : list,
+      list
+        ? list.map((c) => (c.id === id ? { ...c, include: !c.include } : c))
+        : list,
     );
   const editDuration = (id: string, ms: number) =>
     setEditCards((list) =>
-      list ? list.map((c) => (c.id === id ? { ...c, durationMs: ms } : c)) : list,
+      list
+        ? list.map((c) => (c.id === id ? { ...c, durationMs: ms } : c))
+        : list,
     );
 
   const planId = quota?.planId ?? "free";
@@ -212,7 +221,11 @@ export function ShortsPanel({
     }
     if (music === "custom") {
       if (!customFile) {
-        setError(ko ? "사용할 음원 파일을 선택해주세요." : "Please choose an audio file.");
+        setError(
+          ko
+            ? "사용할 음원 파일을 선택해주세요."
+            : "Please choose an audio file.",
+        );
         return;
       }
       if (!consent) {
@@ -415,449 +428,486 @@ export function ShortsPanel({
       {planOk ? (
         <>
           {showMake && (
-          <>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            {/* 사이즈 */}
-            <Field label={ko ? "사이즈" : "Size"}>
-              <div className="flex flex-wrap gap-1.5">
-                {SIZES.map((s) => (
-                  <Chip
-                    key={s.id}
-                    active={size === s.id}
-                    onClick={() => setSize(s.id)}
-                    disabled={busy}
-                  >
-                    {ko ? s.ko : s.en}
-                  </Chip>
-                ))}
-              </div>
-            </Field>
-            {/* 모션 */}
-            <Field label={ko ? "움직임" : "Motion"}>
-              <div className="flex flex-wrap gap-1.5">
-                {MOTIONS.map((m) => (
-                  <Chip
-                    key={m.id}
-                    active={motion === m.id}
-                    onClick={() => setMotion(m.id)}
-                    disabled={busy}
-                  >
-                    {ko ? m.ko : m.en}
-                  </Chip>
-                ))}
-              </div>
-            </Field>
-            {/* 음악 */}
-            <Field label={ko ? "배경 음악" : "Music"}>
-              <div className="flex flex-wrap gap-1.5">
-                {SHORTS_MOODS.map((m) => (
-                  <Chip
-                    key={m.id}
-                    active={music === m.id}
-                    onClick={() => setMusic(m.id)}
-                    disabled={busy}
-                  >
-                    {ko ? m.ko : m.en}
-                  </Chip>
-                ))}
-                {BGM_AVAILABLE && (
-                  <Chip
-                    active={music === "library"}
-                    onClick={() => setMusic("library")}
-                    disabled={busy}
-                  >
-                    {ko ? "음악 라이브러리" : "Music library"}
-                  </Chip>
-                )}
-                <Chip
-                  active={music === "custom"}
-                  onClick={() => setMusic("custom")}
-                  disabled={busy}
-                >
-                  {ko ? "내 음악 올리기" : "Upload music"}
-                </Chip>
-              </div>
-            </Field>
-          </div>
-
-          {/* 음악 라이브러리 — 미리듣기 후 선택 */}
-          {music === "library" && (
-            <div className="mt-3 rounded-xl border border-border bg-surface-muted/50 p-3">
-              <p className="mb-2 text-xs text-muted">
-                {ko
-                  ? "곡을 들어보고 하나를 선택하세요. 선택한 곡이 쇼츠 배경음악으로 들어가요."
-                  : "Preview and pick one track for your short's background music."}
-              </p>
-              <ul className="max-h-64 space-y-1.5 overflow-y-auto">
-                {BGM_TRACKS.map((t) => (
-                  <li
-                    key={t.id}
-                    className={`flex items-center gap-2 rounded-lg border p-2 ${
-                      libraryUrl === t.url ? "border-primary bg-primary-soft/40" : "border-border"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="bgm"
-                      checked={libraryUrl === t.url}
-                      onChange={() => setLibraryUrl(t.url)}
-                      className="size-4 shrink-0 accent-[var(--primary)]"
-                    />
-                    <span className="w-24 shrink-0 text-sm font-medium">{t.label}</span>
-                    <audio controls preload="none" src={t.url} className="h-8 min-w-0 flex-1" />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* 내 음악 업로드 + 저작권 책임 동의 */}
-          {music === "custom" && (
-            <div className="mt-3 rounded-xl border border-border bg-surface-muted/50 p-3">
-              <input
-                ref={fileRef}
-                type="file"
-                accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  setError(null);
-                  if (!f) return;
-                  if (f.size > MAX_AUDIO_BYTES) {
-                    setError(
-                      ko
-                        ? "음원은 20MB 이하만 올릴 수 있어요."
-                        : "Audio files must be 20MB or smaller.",
-                    );
-                    return;
-                  }
-                  setCustomFile(f);
-                }}
-              />
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fileRef.current?.click()}
-                  disabled={busy}
-                >
-                  {ko ? "음원 파일 선택" : "Choose audio file"}
-                </Button>
-                <span className="text-xs text-muted">
-                  {customFile
-                    ? customFile.name
-                    : ko
-                      ? "mp3·m4a·wav 등 (20MB 이하)"
-                      : "mp3/m4a/wav (≤20MB)"}
-                </span>
-              </div>
-              <label className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-muted">
-                <input
-                  type="checkbox"
-                  checked={consent}
-                  onChange={(e) => setConsent(e.target.checked)}
-                  disabled={busy}
-                  className="mt-0.5 size-4 shrink-0 accent-[var(--primary)]"
-                />
-                <span>
-                  {ko
-                    ? "업로드하는 음원의 저작권 및 사용 권한에 대한 책임은 전적으로 본인에게 있으며, 이로 인한 분쟁의 책임이 STORYUP에 없음에 동의합니다."
-                    : "I confirm I have the rights to use this audio and take full responsibility for any copyright claims; STORYUP is not liable."}
-                </span>
-              </label>
-            </div>
-          )}
-
-          {/* 음원 페이드(시작·끝) — 없음/0.5/1/2초 */}
-          {music !== "none" && (
-            <div className="mt-3">
-              <Field label={ko ? "음원 페이드 (시작·끝)" : "Audio fade (in·out)"}>
-                <div className="flex flex-wrap gap-1.5">
-                  {[
-                    { v: 0, ko: "없음", en: "None" },
-                    { v: 0.5, ko: "0.5초", en: "0.5s" },
-                    { v: 1, ko: "1초", en: "1s" },
-                    { v: 2, ko: "2초", en: "2s" },
-                  ].map((o) => (
+            <>
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                {/* 사이즈 */}
+                <Field label={ko ? "사이즈" : "Size"}>
+                  <div className="flex flex-wrap gap-1.5">
+                    {SIZES.map((s) => (
+                      <Chip
+                        key={s.id}
+                        active={size === s.id}
+                        onClick={() => setSize(s.id)}
+                        disabled={busy}
+                      >
+                        {ko ? s.ko : s.en}
+                      </Chip>
+                    ))}
+                  </div>
+                </Field>
+                {/* 모션 */}
+                <Field label={ko ? "움직임" : "Motion"}>
+                  <div className="flex flex-wrap gap-1.5">
+                    {MOTIONS.map((m) => (
+                      <Chip
+                        key={m.id}
+                        active={motion === m.id}
+                        onClick={() => setMotion(m.id)}
+                        disabled={busy}
+                      >
+                        {ko ? m.ko : m.en}
+                      </Chip>
+                    ))}
+                  </div>
+                </Field>
+                {/* 음악 */}
+                <Field label={ko ? "배경 음악" : "Music"}>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {SHORTS_MOODS.map((m) => (
+                      <Chip
+                        key={m.id}
+                        active={music === m.id}
+                        onClick={() => setMusic(m.id)}
+                        disabled={busy}
+                      >
+                        {ko ? m.ko : m.en}
+                      </Chip>
+                    ))}
+                    {BGM_AVAILABLE && (
+                      <Chip
+                        active={music === "library"}
+                        onClick={() => setMusic("library")}
+                        disabled={busy}
+                      >
+                        {ko ? "음악 라이브러리" : "Music library"}
+                      </Chip>
+                    )}
                     <Chip
-                      key={o.v}
-                      active={fadeSec === o.v}
-                      onClick={() => setFadeSec(o.v)}
+                      active={music === "custom"}
+                      onClick={() => setMusic("custom")}
                       disabled={busy}
                     >
-                      {ko ? o.ko : o.en}
+                      {ko ? "내 음악 올리기" : "Upload music"}
                     </Chip>
-                  ))}
-                </div>
-              </Field>
-              <p className="mt-1.5 text-[11px] leading-relaxed text-muted">
-                {ko
-                  ? "음악이 시작에서 서서히 커지고 끝에서 서서히 작아져요."
-                  : "Music fades in at the start and fades out at the end."}
-              </p>
-            </div>
-          )}
-
-          {/* 시간 조율·간단 편집 — 카드별 순서·포함·노출시간 */}
-          <div className="mt-4 rounded-xl border border-border bg-surface p-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-sm font-medium">
-                {ko ? "시간 조율·편집" : "Timing & edit"}
-              </span>
-              <Button size="sm" variant="outline" onClick={loadEdit} disabled={loadingEdit || busy}>
-                {loadingEdit ? (
-                  <Spinner className="size-4" />
-                ) : editCards ? (
-                  ko ? "카드 다시 불러오기" : "Reload cards"
-                ) : ko ? (
-                  "카드 불러와 편집"
-                ) : (
-                  "Load cards"
-                )}
-              </Button>
-            </div>
-            {editCards && editCards.length > 0 ? (
-              <>
-                <ul className="mt-3 space-y-2">
-                  {editCards.map((c, i) => (
-                    <li
-                      key={c.id}
-                      className={`flex items-center gap-3 rounded-lg border border-border p-2 ${c.include ? "" : "opacity-50"}`}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element -- 로컬 썸네일 */}
-                      <img
-                        src={c.url}
-                        alt=""
-                        className="h-16 w-9 shrink-0 rounded border border-border object-cover"
+                    {SHORTS_MOODS.some((m) => m.id === music) && (
+                      <BgmPreview
+                        mood={music as ShortsMood}
+                        disabled={busy}
+                        ko={ko}
                       />
-                      <label className="flex items-center gap-1.5 text-xs">
-                        <input
-                          type="checkbox"
-                          checked={c.include}
-                          onChange={() => editToggle(c.id)}
-                          className="size-4 accent-[var(--primary)]"
-                        />
-                        {ko ? "포함" : "On"}
-                      </label>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between text-xs text-muted">
-                          <span>{ko ? "노출 시간" : "Duration"}</span>
-                          <span>{(c.durationMs / 1000).toFixed(1)}s</span>
-                        </div>
-                        <input
-                          type="range"
-                          min={1000}
-                          max={6000}
-                          step={250}
-                          value={c.durationMs}
-                          onChange={(e) => editDuration(c.id, Number(e.target.value))}
-                          disabled={!c.include}
-                          className="w-full accent-[var(--primary)]"
-                        />
-                      </div>
-                      <div className="flex shrink-0 flex-col gap-1">
-                        <button
-                          type="button"
-                          onClick={() => editMove(i, -1)}
-                          disabled={i === 0}
-                          className="rounded border border-border px-1.5 text-xs text-muted hover:text-primary disabled:opacity-40"
-                          aria-label={ko ? "위로" : "Up"}
-                        >
-                          ↑
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => editMove(i, 1)}
-                          disabled={i === editCards.length - 1}
-                          className="rounded border border-border px-1.5 text-xs text-muted hover:text-primary disabled:opacity-40"
-                          aria-label={ko ? "아래로" : "Down"}
-                        >
-                          ↓
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-                <p className="mt-2 text-xs text-muted">
-                  {(() => {
-                    const inc = editCards.filter((c) => c.include);
-                    const sec = inc.reduce((a, c) => a + c.durationMs, 0) / 1000;
-                    return ko
-                      ? `포함 ${inc.length}장 · 총 약 ${sec.toFixed(1)}초`
-                      : `${inc.length} cards · ~${sec.toFixed(1)}s`;
-                  })()}
-                </p>
-              </>
-            ) : (
-              <p className="mt-2 text-xs text-muted">
-                {ko
-                  ? "카드를 불러오면 순서 변경·포함 선택·카드별 노출 시간을 조절할 수 있어요. 불러오지 않으면 전체 카드를 기본 시간으로 만듭니다."
-                  : "Load cards to reorder, toggle, and set per-card duration. Otherwise all cards use the default timing."}
-              </p>
-            )}
-          </div>
+                    )}
+                  </div>
+                </Field>
+              </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <Button
-              onClick={make}
-              disabled={
-                busy ||
-                limitReached ||
-                (music === "custom" && (!customFile || !consent))
-              }
-            >
-              {busy ? (
-                <>
-                  <Spinner className="size-4" />
-                  {ko
-                    ? `만드는 중... ${Math.round(progress * 100)}%`
-                    : `Rendering... ${Math.round(progress * 100)}%`}
-                </>
-              ) : (
-                <>
-                  <FilmIcon />
-                  {ko ? "쇼츠 만들기" : "Make Short"}
-                </>
+              {/* 음악 라이브러리 — 미리듣기 후 선택 */}
+              {music === "library" && (
+                <div className="mt-3 rounded-xl border border-border bg-surface-muted/50 p-3">
+                  <p className="mb-2 text-xs text-muted">
+                    {ko
+                      ? "곡을 들어보고 하나를 선택하세요. 선택한 곡이 쇼츠 배경음악으로 들어가요."
+                      : "Preview and pick one track for your short's background music."}
+                  </p>
+                  <ul className="max-h-64 space-y-1.5 overflow-y-auto">
+                    {BGM_TRACKS.map((t) => (
+                      <li
+                        key={t.id}
+                        className={`flex items-center gap-2 rounded-lg border p-2 ${
+                          libraryUrl === t.url
+                            ? "border-primary bg-primary-soft/40"
+                            : "border-border"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="bgm"
+                          checked={libraryUrl === t.url}
+                          onChange={() => setLibraryUrl(t.url)}
+                          className="size-4 shrink-0 accent-[var(--primary)]"
+                        />
+                        <span className="w-24 shrink-0 text-sm font-medium">
+                          {t.label}
+                        </span>
+                        <audio
+                          controls
+                          preload="none"
+                          src={t.url}
+                          className="h-8 min-w-0 flex-1"
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
-            </Button>
-            <span className="text-xs text-muted">
-              {ko
-                ? `카드 ${cardCount}장 · 약 ${Math.round((cardCount * (motion === "dynamic" ? 1.8 : 3)) )}초`
-                : `${cardCount} cards · ~${Math.round(cardCount * (motion === "dynamic" ? 1.8 : 3))}s`}
-            </span>
-          </div>
-          {busy && (
-            <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-surface-muted">
-              <div
-                className="h-full bg-primary transition-[width] duration-200"
-                style={{ width: `${Math.round(progress * 100)}%` }}
-              />
-            </div>
-          )}
-          <p className="mt-2 text-[11px] leading-relaxed text-muted">
-            {ko
-              ? "브라우저에서 바로 만들어요. 만드는 동안 탭을 닫지 말아주세요. (mp4를 지원하지 않는 브라우저는 webm으로 저장됩니다)"
-              : "Made right in your browser — keep this tab open while rendering. (Browsers without mp4 support save as webm.)"}
-          </p>
-          </>
+
+              {/* 내 음악 업로드 + 저작권 책임 동의 */}
+              {music === "custom" && (
+                <div className="mt-3 rounded-xl border border-border bg-surface-muted/50 p-3">
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      setError(null);
+                      if (!f) return;
+                      if (f.size > MAX_AUDIO_BYTES) {
+                        setError(
+                          ko
+                            ? "음원은 20MB 이하만 올릴 수 있어요."
+                            : "Audio files must be 20MB or smaller.",
+                        );
+                        return;
+                      }
+                      setCustomFile(f);
+                    }}
+                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileRef.current?.click()}
+                      disabled={busy}
+                    >
+                      {ko ? "음원 파일 선택" : "Choose audio file"}
+                    </Button>
+                    <span className="text-xs text-muted">
+                      {customFile
+                        ? customFile.name
+                        : ko
+                          ? "mp3·m4a·wav 등 (20MB 이하)"
+                          : "mp3/m4a/wav (≤20MB)"}
+                    </span>
+                  </div>
+                  <label className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-muted">
+                    <input
+                      type="checkbox"
+                      checked={consent}
+                      onChange={(e) => setConsent(e.target.checked)}
+                      disabled={busy}
+                      className="mt-0.5 size-4 shrink-0 accent-[var(--primary)]"
+                    />
+                    <span>
+                      {ko
+                        ? "업로드하는 음원의 저작권 및 사용 권한에 대한 책임은 전적으로 본인에게 있으며, 이로 인한 분쟁의 책임이 STORYUP에 없음에 동의합니다."
+                        : "I confirm I have the rights to use this audio and take full responsibility for any copyright claims; STORYUP is not liable."}
+                    </span>
+                  </label>
+                </div>
+              )}
+
+              {/* 음원 페이드(시작·끝) — 없음/0.5/1/2초 */}
+              {music !== "none" && (
+                <div className="mt-3">
+                  <Field
+                    label={ko ? "음원 페이드 (시작·끝)" : "Audio fade (in·out)"}
+                  >
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        { v: 0, ko: "없음", en: "None" },
+                        { v: 0.5, ko: "0.5초", en: "0.5s" },
+                        { v: 1, ko: "1초", en: "1s" },
+                        { v: 2, ko: "2초", en: "2s" },
+                      ].map((o) => (
+                        <Chip
+                          key={o.v}
+                          active={fadeSec === o.v}
+                          onClick={() => setFadeSec(o.v)}
+                          disabled={busy}
+                        >
+                          {ko ? o.ko : o.en}
+                        </Chip>
+                      ))}
+                    </div>
+                  </Field>
+                  <p className="mt-1.5 text-[11px] leading-relaxed text-muted">
+                    {ko
+                      ? "음악이 시작에서 서서히 커지고 끝에서 서서히 작아져요."
+                      : "Music fades in at the start and fades out at the end."}
+                  </p>
+                </div>
+              )}
+
+              {/* 시간 조율·간단 편집 — 카드별 순서·포함·노출시간 */}
+              <div className="mt-4 rounded-xl border border-border bg-surface p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-sm font-medium">
+                    {ko ? "시간 조율·편집" : "Timing & edit"}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={loadEdit}
+                    disabled={loadingEdit || busy}
+                  >
+                    {loadingEdit ? (
+                      <Spinner className="size-4" />
+                    ) : editCards ? (
+                      ko ? (
+                        "카드 다시 불러오기"
+                      ) : (
+                        "Reload cards"
+                      )
+                    ) : ko ? (
+                      "카드 불러와 편집"
+                    ) : (
+                      "Load cards"
+                    )}
+                  </Button>
+                </div>
+                {editCards && editCards.length > 0 ? (
+                  <>
+                    <ul className="mt-3 space-y-2">
+                      {editCards.map((c, i) => (
+                        <li
+                          key={c.id}
+                          className={`flex items-center gap-3 rounded-lg border border-border p-2 ${c.include ? "" : "opacity-50"}`}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element -- 로컬 썸네일 */}
+                          <img
+                            src={c.url}
+                            alt=""
+                            className="h-16 w-9 shrink-0 rounded border border-border object-cover"
+                          />
+                          <label className="flex items-center gap-1.5 text-xs">
+                            <input
+                              type="checkbox"
+                              checked={c.include}
+                              onChange={() => editToggle(c.id)}
+                              className="size-4 accent-[var(--primary)]"
+                            />
+                            {ko ? "포함" : "On"}
+                          </label>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between text-xs text-muted">
+                              <span>{ko ? "노출 시간" : "Duration"}</span>
+                              <span>{(c.durationMs / 1000).toFixed(1)}s</span>
+                            </div>
+                            <input
+                              type="range"
+                              min={1000}
+                              max={6000}
+                              step={250}
+                              value={c.durationMs}
+                              onChange={(e) =>
+                                editDuration(c.id, Number(e.target.value))
+                              }
+                              disabled={!c.include}
+                              className="w-full accent-[var(--primary)]"
+                            />
+                          </div>
+                          <div className="flex shrink-0 flex-col gap-1">
+                            <button
+                              type="button"
+                              onClick={() => editMove(i, -1)}
+                              disabled={i === 0}
+                              className="rounded border border-border px-1.5 text-xs text-muted hover:text-primary disabled:opacity-40"
+                              aria-label={ko ? "위로" : "Up"}
+                            >
+                              ↑
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => editMove(i, 1)}
+                              disabled={i === editCards.length - 1}
+                              className="rounded border border-border px-1.5 text-xs text-muted hover:text-primary disabled:opacity-40"
+                              aria-label={ko ? "아래로" : "Down"}
+                            >
+                              ↓
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-2 text-xs text-muted">
+                      {(() => {
+                        const inc = editCards.filter((c) => c.include);
+                        const sec =
+                          inc.reduce((a, c) => a + c.durationMs, 0) / 1000;
+                        return ko
+                          ? `포함 ${inc.length}장 · 총 약 ${sec.toFixed(1)}초`
+                          : `${inc.length} cards · ~${sec.toFixed(1)}s`;
+                      })()}
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-2 text-xs text-muted">
+                    {ko
+                      ? "카드를 불러오면 순서 변경·포함 선택·카드별 노출 시간을 조절할 수 있어요. 불러오지 않으면 전체 카드를 기본 시간으로 만듭니다."
+                      : "Load cards to reorder, toggle, and set per-card duration. Otherwise all cards use the default timing."}
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <Button
+                  onClick={make}
+                  disabled={
+                    busy ||
+                    limitReached ||
+                    (music === "custom" && (!customFile || !consent))
+                  }
+                >
+                  {busy ? (
+                    <>
+                      <Spinner className="size-4" />
+                      {ko
+                        ? `만드는 중... ${Math.round(progress * 100)}%`
+                        : `Rendering... ${Math.round(progress * 100)}%`}
+                    </>
+                  ) : (
+                    <>
+                      <FilmIcon />
+                      {ko ? "쇼츠 만들기" : "Make Short"}
+                    </>
+                  )}
+                </Button>
+                <span className="text-xs text-muted">
+                  {ko
+                    ? `카드 ${cardCount}장 · 약 ${Math.round(cardCount * (motion === "dynamic" ? 1.8 : 3))}초`
+                    : `${cardCount} cards · ~${Math.round(cardCount * (motion === "dynamic" ? 1.8 : 3))}s`}
+                </span>
+              </div>
+              {busy && (
+                <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-surface-muted">
+                  <div
+                    className="h-full bg-primary transition-[width] duration-200"
+                    style={{ width: `${Math.round(progress * 100)}%` }}
+                  />
+                </div>
+              )}
+              <p className="mt-2 text-[11px] leading-relaxed text-muted">
+                {ko
+                  ? "브라우저에서 바로 만들어요. 만드는 동안 탭을 닫지 말아주세요. (mp4를 지원하지 않는 브라우저는 webm으로 저장됩니다)"
+                  : "Made right in your browser — keep this tab open while rendering. (Browsers without mp4 support save as webm.)"}
+              </p>
+            </>
           )}
 
           {showShare && (
-          <>
-          {/* 공유 전용 뷰: 만든(또는 편집한) 쇼츠 다시 받기 */}
-          {view === "share" && (
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!shareBlob}
-                onClick={() =>
-                  shareBlob && saveBlob(shareBlob, `${slugName()}-shorts.${shareExt}`)
-                }
-              >
-                <FilmIcon />
-                {ko ? "쇼츠 다운로드" : "Download short"}
-                {blobOverride ? (ko ? " (편집본)" : " (edited)") : ""}
-              </Button>
-              <span className="text-xs text-muted">
-                {shareBlob
-                  ? ko
-                    ? "유튜브 쇼츠·틱톡·릴스에 올려보세요."
-                    : "Upload to YouTube Shorts, TikTok, or Reels."
-                  : ko
-                    ? "먼저 '쇼츠 만들기' 단계에서 영상을 만들어주세요."
-                    : "Make a short first."}
-              </span>
-            </div>
-          )}
-
-          {/* 유튜브 자동 업로드 (Pro + 구글 연결) */}
-          {youtube?.canUse && youtube.configured && (
-            <div className="mt-4 rounded-xl border border-border bg-surface-muted/40 p-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-2 text-sm font-semibold">
-                  <YtIcon />
-                  {ko ? "유튜브에 올리기" : "Upload to YouTube"}
-                </span>
-                {youtube.connected ? (
-                  <span className="text-xs text-muted">
-                    {ko ? "연결됨" : "Connected"}
-                    {youtube.channelTitle ? ` · ${youtube.channelTitle}` : ""}
-                  </span>
-                ) : null}
-              </div>
-              {youtube.connected ? (
-                <div className="mt-3 flex flex-wrap items-center gap-3">
+            <>
+              {/* 공유 전용 뷰: 만든(또는 편집한) 쇼츠 다시 받기 */}
+              {view === "share" && (
+                <div className="mt-4 flex flex-wrap items-center gap-3">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={uploadToYoutube}
-                    disabled={ytBusy || !shareBlob}
+                    disabled={!shareBlob}
+                    onClick={() =>
+                      shareBlob &&
+                      saveBlob(shareBlob, `${slugName()}-shorts.${shareExt}`)
+                    }
                   >
-                    {ytBusy ? (
-                      <>
-                        <Spinner className="size-4" />
-                        {ko ? "업로드 중..." : "Uploading..."}
-                      </>
-                    ) : ko ? (
-                      "방금 만든 쇼츠 올리기"
-                    ) : (
-                      "Upload the latest short"
-                    )}
+                    <FilmIcon />
+                    {ko ? "쇼츠 다운로드" : "Download short"}
+                    {blobOverride ? (ko ? " (편집본)" : " (edited)") : ""}
                   </Button>
                   <span className="text-xs text-muted">
                     {shareBlob
                       ? ko
-                        ? "비공개(private)로 올라가요. 유튜브에서 공개로 바꿀 수 있어요."
-                        : "Uploads as private; make it public on YouTube."
+                        ? "유튜브 쇼츠·틱톡·릴스에 올려보세요."
+                        : "Upload to YouTube Shorts, TikTok, or Reels."
                       : ko
-                        ? "먼저 쇼츠를 만들어주세요."
+                        ? "먼저 '쇼츠 만들기' 단계에서 영상을 만들어주세요."
                         : "Make a short first."}
                   </span>
                 </div>
-              ) : (
-                <div className="mt-3 flex flex-wrap items-center gap-3">
-                  <a
-                    href={`/api/youtube/connect?next=${encodeURIComponent(
-                      `/business/${businessId}/marketing?step=5`,
-                    )}`}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-border-strong px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:border-primary/50 hover:text-primary"
-                  >
-                    <YtIcon />
-                    {ko ? "구글 계정(유튜브) 연결" : "Connect Google (YouTube)"}
-                  </a>
-                  <span className="text-xs text-muted">
-                    {ko
-                      ? "연결하면 만든 쇼츠를 내 유튜브 채널에 바로 올릴 수 있어요."
-                      : "Connect to upload shorts straight to your channel."}
-                  </span>
+              )}
+
+              {/* 유튜브 자동 업로드 (Pro + 구글 연결) */}
+              {youtube?.canUse && youtube.configured && (
+                <div className="mt-4 rounded-xl border border-border bg-surface-muted/40 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="inline-flex items-center gap-2 text-sm font-semibold">
+                      <YtIcon />
+                      {ko ? "유튜브에 올리기" : "Upload to YouTube"}
+                    </span>
+                    {youtube.connected ? (
+                      <span className="text-xs text-muted">
+                        {ko ? "연결됨" : "Connected"}
+                        {youtube.channelTitle
+                          ? ` · ${youtube.channelTitle}`
+                          : ""}
+                      </span>
+                    ) : null}
+                  </div>
+                  {youtube.connected ? (
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={uploadToYoutube}
+                        disabled={ytBusy || !shareBlob}
+                      >
+                        {ytBusy ? (
+                          <>
+                            <Spinner className="size-4" />
+                            {ko ? "업로드 중..." : "Uploading..."}
+                          </>
+                        ) : ko ? (
+                          "방금 만든 쇼츠 올리기"
+                        ) : (
+                          "Upload the latest short"
+                        )}
+                      </Button>
+                      <span className="text-xs text-muted">
+                        {shareBlob
+                          ? ko
+                            ? "비공개(private)로 올라가요. 유튜브에서 공개로 바꿀 수 있어요."
+                            : "Uploads as private; make it public on YouTube."
+                          : ko
+                            ? "먼저 쇼츠를 만들어주세요."
+                            : "Make a short first."}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                      <a
+                        href={`/api/youtube/connect?next=${encodeURIComponent(
+                          `/business/${businessId}/marketing?step=5`,
+                        )}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border-strong px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:border-primary/50 hover:text-primary"
+                      >
+                        <YtIcon />
+                        {ko
+                          ? "구글 계정(유튜브) 연결"
+                          : "Connect Google (YouTube)"}
+                      </a>
+                      <span className="text-xs text-muted">
+                        {ko
+                          ? "연결하면 만든 쇼츠를 내 유튜브 채널에 바로 올릴 수 있어요."
+                          : "Connect to upload shorts straight to your channel."}
+                      </span>
+                    </div>
+                  )}
+                  {ytLink && (
+                    <p className="mt-2 text-sm text-primary">
+                      {ko ? "업로드 완료! " : "Uploaded! "}
+                      <a
+                        href={ytLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline"
+                      >
+                        {ytLink}
+                      </a>
+                    </p>
+                  )}
+                  {ytError && (
+                    <p className="mt-2 text-sm text-danger">{ytError}</p>
+                  )}
                 </div>
               )}
-              {ytLink && (
-                <p className="mt-2 text-sm text-primary">
-                  {ko ? "업로드 완료! " : "Uploaded! "}
-                  <a
-                    href={ytLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline"
-                  >
-                    {ytLink}
-                  </a>
+              {youtube?.canUse && !youtube.configured && (
+                <p className="mt-3 text-[11px] text-muted">
+                  {ko
+                    ? "유튜브 자동 업로드는 준비 중입니다 (관리자 연동 후 활성화)."
+                    : "YouTube auto-upload is being set up."}
                 </p>
               )}
-              {ytError && <p className="mt-2 text-sm text-danger">{ytError}</p>}
-            </div>
-          )}
-          {youtube?.canUse && !youtube.configured && (
-            <p className="mt-3 text-[11px] text-muted">
-              {ko
-                ? "유튜브 자동 업로드는 준비 중입니다 (관리자 연동 후 활성화)."
-                : "YouTube auto-upload is being set up."}
-            </p>
-          )}
-          </>
+            </>
           )}
         </>
       ) : (
@@ -879,7 +929,13 @@ export function ShortsPanel({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
       <p className="mb-1.5 text-xs font-medium text-muted">{label}</p>
