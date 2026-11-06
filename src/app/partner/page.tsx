@@ -13,6 +13,12 @@ import { Card } from "@/components/ui/Card";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/icons";
 import { PartnerProfileEditor } from "@/components/partner/PartnerProfileEditor";
+import { ClientRegister } from "@/components/partner/ClientRegister";
+import { ClientUnlinkButton } from "@/components/partner/ClientUnlinkButton";
+import {
+  linkPendingInvitesForPartner,
+  listPendingInvites,
+} from "@/lib/partner/clients";
 import { savePartnerProfileAction } from "@/app/partner/actions";
 import { PROVIDEO_ENABLED } from "@/lib/provideo/config";
 import { B2B2C_ENABLED } from "@/lib/b2b2c/config";
@@ -34,6 +40,9 @@ export default async function PartnerPage() {
   const user = await getUser();
   if (!user) return null; // layout에서 이미 가드
 
+  // 가입 대기 중이던 고객 이메일이 그 사이 가입했으면 먼저 연결한다(목록에 바로 반영).
+  await linkPendingInvitesForPartner(user.id, user.email ?? "");
+
   const [
     clients,
     credits,
@@ -42,6 +51,7 @@ export default async function PartnerPage() {
     myProfile,
     creditPrices,
     amSub,
+    pendingInvites,
   ] = await Promise.all([
     listPartnerClients(user.id),
     getPartnerCreditBalance(user.id),
@@ -50,6 +60,7 @@ export default async function PartnerPage() {
     getMySupporterProfile(user.id),
     listCreditPrices(),
     isSubPartner(user.id),
+    listPendingInvites(user.id),
   ]);
   const totalBiz = clients.reduce((s, c) => s + c.businesses.length, 0);
   // 서브파트너는 또 서브를 둘 수 없다(깊이 2단계) — 상위파트너에게만 서브파트너 메뉴 노출.
@@ -65,8 +76,8 @@ export default async function PartnerPage() {
           </h1>
           <p className="mt-1.5 text-muted">
             {ko
-              ? "배정받은 고객 사업장에서 AI 에이전트로 블로그·카드뉴스·SNS를 대행하세요."
-              : "Run the AI agent for your assigned client businesses."}
+              ? "고객(가맹점) 이메일을 등록해 내 고객으로 연결하고, AI 에이전트로 블로그·카드뉴스·SNS를 대행하세요."
+              : "Register clients by email and run the AI agent for their businesses."}
           </p>
           <div className="mt-3">
             <ButtonLink href="/partner/guide" variant="outline" size="sm">
@@ -212,6 +223,8 @@ export default async function PartnerPage() {
         </Card>
       </div>
 
+      <ClientRegister pending={pendingInvites} ko={ko} />
+
       <PartnerProfileEditor
         action={savePartnerProfileAction}
         init={
@@ -233,12 +246,12 @@ export default async function PartnerPage() {
       {clients.length === 0 ? (
         <Card className="flex flex-col items-start gap-2 p-8">
           <p className="font-semibold">
-            {ko ? "배정된 고객이 없습니다." : "No clients assigned yet."}
+            {ko ? "아직 등록된 고객이 없습니다." : "No clients yet."}
           </p>
           <p className="text-sm text-muted">
             {ko
-              ? "관리자가 고객 사업장을 배정하면 여기에 표시됩니다."
-              : "Clients assigned by the admin will appear here."}
+              ? "위 '고객 등록'에 고객 이메일을 입력하면 바로 여기에 표시되고 사업장을 대행할 수 있어요."
+              : "Register a client email above and their businesses will appear here."}
           </p>
         </Card>
       ) : (
@@ -258,6 +271,9 @@ export default async function PartnerPage() {
                 {c.clientEmail && c.clientName && (
                   <span className="text-xs text-muted">{c.clientEmail}</span>
                 )}
+                <span className="ml-auto">
+                  <ClientUnlinkButton clientUserId={c.clientUserId} ko={ko} />
+                </span>
               </div>
               {c.businesses.length === 0 ? (
                 <p className="text-sm text-muted">

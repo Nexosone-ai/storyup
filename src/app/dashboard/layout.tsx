@@ -12,6 +12,7 @@ import {
 import { isCurrentUserAdmin } from "@/lib/points";
 import { isCurrentUserNetworkMember } from "@/lib/network";
 import { isCurrentUserPartner } from "@/lib/partner";
+import { linkPendingInvitesForUser } from "@/lib/partner/clients";
 import { dashboardNav, workspaceNav } from "@/lib/nav";
 import { getLocale } from "@/lib/i18n";
 import { getUnreadNotificationCount } from "@/lib/notifications";
@@ -32,6 +33,8 @@ export default async function DashboardLayout({
 }) {
   const user = await getUser();
   if (!user) redirect("/login");
+  // 파트너가 이 이메일을 고객으로 미리 등록해 뒀으면 첫 진입에 자동 연결(실패해도 무시).
+  await linkPendingInvitesForUser(user.id, user.email);
   const [
     name,
     admin,
