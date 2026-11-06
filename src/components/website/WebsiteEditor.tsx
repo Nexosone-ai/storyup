@@ -28,6 +28,9 @@ import { Badge } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Field";
 import { Spinner } from "@/components/ui/Spinner";
 import { Icon } from "@/components/ui/icons";
+
+/** 공개 사이트 주소의 오리진 — 미들웨어의 주 도메인(NEXT_PUBLIC_APP_DOMAIN)과 동일. */
+const SITE_ORIGIN = `https://${process.env.NEXT_PUBLIC_APP_DOMAIN || "storyup.me"}`;
 import { cn } from "@/utils/cn";
 import { TemplateRenderer, TEMPLATE_META, setPath } from "./templates";
 import { SiteSections } from "./templates/SiteSections";
@@ -1207,11 +1210,11 @@ export function WebsiteEditor({
         </div>
       </div>
 
-      {/* Site address */}
+      {/* Site address — 전체 주소(https://도메인/site/슬러그)를 그대로 보여준다 */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-border bg-surface p-3">
         <span className="eyebrow mr-1">{ko ? "사이트 주소" : "Site address"}</span>
         <div className="flex items-center gap-1.5">
-          <span className="font-mono text-sm text-muted">/site/</span>
+          <span className="font-mono text-sm text-muted">{SITE_ORIGIN}/site/</span>
           <Input
             value={slugInput}
             onChange={(e) => setSlugInput(e.target.value)}
@@ -1228,10 +1231,38 @@ export function WebsiteEditor({
         >
           {slugSaving ? <Spinner className="size-4" /> : ko ? "주소 변경" : "Change address"}
         </Button>
+        <div className="flex w-full flex-wrap items-center gap-2 text-xs">
+          <a
+            href={`${SITE_ORIGIN}/site/${slug}`}
+            target="_blank"
+            rel="noreferrer"
+            className="font-mono text-foreground underline-offset-2 hover:underline"
+          >
+            {SITE_ORIGIN}/site/{slug}
+          </a>
+          <button
+            type="button"
+            onClick={() =>
+              navigator.clipboard
+                ?.writeText(`${SITE_ORIGIN}/site/${slug}`)
+                .then(() =>
+                  setSlugNote({
+                    text: ko ? "주소를 복사했어요." : "Address copied.",
+                    error: false,
+                  }),
+                )
+                .catch(() => undefined)
+            }
+            className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-muted hover:border-primary hover:text-primary"
+          >
+            <Icon.copy className="size-3.5" />
+            {ko ? "복사" : "Copy"}
+          </button>
+        </div>
         <p className="w-full text-xs text-muted">
           {ko
-            ? "영문 소문자·숫자·하이픈(-)만, 3자 이상. 게시된 사이트의 주소를 바꾸면 기존에 공유한 링크는 열리지 않아요."
-            : "Lowercase letters, numbers, and hyphens (-) only, 3+ characters. Changing a published site’s address breaks links you already shared."}
+            ? "영문 소문자·숫자·하이픈(-)만, 3자 이상. 주소를 바꾸면 옛 주소로 들어온 방문자는 새 주소로 자동 이동(301)돼요."
+            : "Lowercase letters, numbers, and hyphens (-) only, 3+ characters. After a change, visitors using the old address are redirected (301) to the new one."}
         </p>
         {slugNote && (
           <p
