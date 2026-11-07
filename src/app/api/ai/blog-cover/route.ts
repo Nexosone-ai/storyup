@@ -4,6 +4,7 @@ import { getLocale } from "@/lib/i18n";
 import { generateAndStoreBlogCover } from "@/lib/ai/blogCover";
 import { coerceImageStyle } from "@/lib/ai/image/style";
 import { getPlanId } from "@/lib/subscription";
+import { reserveFreeImage } from "@/lib/ai/imageQuota";
 
 export const maxDuration = 60;
 
@@ -55,6 +56,11 @@ export async function POST(request: Request) {
       { status: 404 },
     );
 
+  // 무료 플랜은 월 한도 안에서만 생성. 유료는 무제한.
+  const planId = await getPlanId(user.id);
+  const quota = await reserveFreeImage(user.id, { planId, ko });
+  if (!quota.ok) return NextResponse.json({ error: quota.error }, { status: 429 });
+
   const url = await generateAndStoreBlogCover({
     businessId,
     category: business.category,
@@ -63,9 +69,10 @@ export async function POST(request: Request) {
     style,
     instruction,
     language: ko ? "ko" : "en",
-    premium: (await getPlanId(user.id)) !== "free",
+    premium: planId !== "free",
   });
-  if (!url)
+  if (!url) {
+    await quota.release();
     return NextResponse.json(
       {
         error: ko
@@ -74,6 +81,7 @@ export async function POST(request: Request) {
       },
       { status: 502 },
     );
+  }
 
   const { error } = await supabase
     .from("blog_posts")

@@ -6,6 +6,7 @@ import { trackGrowthActivity } from "@/lib/gamification/engine";
 import { generateAndStoreBlogCover } from "@/lib/ai/blogCover";
 import { applyEventDefaultsToNewPost } from "@/lib/events";
 import { getPlanId } from "@/lib/subscription";
+import { reserveFreeImage } from "@/lib/ai/imageQuota";
 
 /**
  * AI가 생성한 글을 blog_posts draft로 저장하는 공통 시퀀스.
@@ -56,17 +57,22 @@ export async function createBlogDraft(args: {
   await applyEventDefaultsToNewPost(supabase, businessId, inserted.id);
 
   // 커버 이미지는 실패하거나 늦어도 글 생성을 막지 않는다 (플레이스홀더로 대체).
-  // 무료 플랜은 Pollinations(기본 화질), 유료는 고품질 모델.
-  const premium = (await getPlanId(userId)) !== "free";
-  const cover = await generateAndStoreBlogCover({
-    businessId,
-    category,
-    title: article.title,
-    keywords: article.keywords ?? [],
-    imageSubject: article.image_subject,
-    premium,
-    timeoutMs: 25_000,
-  });
+  // 무료 플랜은 fal(월 한도 안에서), 유료는 고품질 모델(무제한).
+  const planId = await getPlanId(userId);
+  const quota = await reserveFreeImage(userId, { planId });
+  let cover: string | null = null;
+  if (quota.ok) {
+    cover = await generateAndStoreBlogCover({
+      businessId,
+      category,
+      title: article.title,
+      keywords: article.keywords ?? [],
+      imageSubject: article.image_subject,
+      premium: planId !== "free",
+      timeoutMs: 25_000,
+    });
+    if (!cover) await quota.release();
+  }
   if (cover) {
     await supabase
       .from("blog_posts")

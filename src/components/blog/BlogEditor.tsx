@@ -1,5 +1,6 @@
 "use client";
 
+import { getPlanById } from "@/lib/plans";
 import { useRef, useState, useTransition } from "react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Input, Label, Select } from "@/components/ui/Field";
@@ -28,6 +29,8 @@ import { useLocale } from "@/components/i18n/LocaleProvider";
 import { resizeImage } from "@/components/website/templates/ImageSlot";
 import type { BlogPostRow } from "@/types/database";
 
+const FREE_IMAGES_PER_MONTH = getPlanById("free").limits.aiImages ?? 0;
+
 export function BlogEditor({
   businessId,
   post,
@@ -38,6 +41,7 @@ export function BlogEditor({
   seoAllowed = false,
   summaryImageAllowed = false,
   premiumImages = true,
+  freeImagesRemaining = null,
 }: {
   businessId: string;
   post: BlogPostRow;
@@ -51,8 +55,10 @@ export function BlogEditor({
   seoAllowed?: boolean;
   /** 글 요약 이미지(1장) 생성 가능 플랜(Pro 전용)인지. */
   summaryImageAllowed?: boolean;
-  /** 고품질 AI 이미지(유료) 사용 가능 여부. false(무료)면 기본 화질 안내를 노출. */
+  /** 유료 플랜(이미지 무제한)인지. false(무료)면 월 한도 안내를 노출. */
   premiumImages?: boolean;
+  /** 무료 플랜의 이번 달 남은 AI 이미지 장수(표시용). 유료는 null. */
+  freeImagesRemaining?: number | null;
 }) {
   const ko = useLocale() === "ko";
   const [title, setTitle] = useState(post.title);
@@ -600,8 +606,12 @@ export function BlogEditor({
         {!premiumImages && (
           <p className="mb-1.5 text-xs text-muted">
             {ko
-              ? "무료 플랜은 기본 화질 이미지로 생성돼요. 유료로 전환하면 더 높은 화질의 AI 이미지를 사용할 수 있어요."
-              : "Free plan generates standard-quality images. Upgrade for higher-quality AI images."}
+              ? `무료 플랜은 AI 이미지를 월 ${FREE_IMAGES_PER_MONTH}장까지 만들 수 있어요${
+                  freeImagesRemaining !== null ? ` (이번 달 남은 ${freeImagesRemaining}장)` : ""
+                }. 유료로 전환하면 제한 없이 생성할 수 있어요.`
+              : `The free plan includes ${FREE_IMAGES_PER_MONTH} AI images per month${
+                  freeImagesRemaining !== null ? ` (${freeImagesRemaining} left this month)` : ""
+                }. Upgrade for unlimited AI images.`}
           </p>
         )}
         <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">

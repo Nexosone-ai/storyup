@@ -9,15 +9,11 @@ export type { ImageProvider, ImageAspect } from "./provider";
 let cached: ImageProvider | null = null;
 
 /**
- * Active image provider (server-only). Selected by IMAGE_PROVIDER
- * ("pollinations" | "fal" | "gemini"), else inferred from whichever key is
- * present (fal → gemini), else the free Pollinations fallback.
- *
- * premium=false(무료 플랜)이면 설정과 무관하게 무료 Pollinations를 쓴다 — 고품질 유료
- * 모델(fal/gemini)은 유료 플랜 전용. (서버에서 플랜을 확인한 뒤 전달한다.)
+ * 유료 플랜 기본 프로바이더 (server-only). IMAGE_PROVIDER
+ * ("pollinations" | "fal" | "gemini")로 선택, 없으면 키가 있는 쪽(fal → gemini),
+ * 둘 다 없으면 무키 Pollinations.
  */
-export function getImageProvider(premium = true): ImageProvider {
-  if (!premium) return new PollinationsImageProvider();
+function getPremiumProvider(): ImageProvider {
   if (cached) return cached;
   const choice = process.env.IMAGE_PROVIDER?.toLowerCase();
 
@@ -31,36 +27,56 @@ export function getImageProvider(premium = true): ImageProvider {
   return cached;
 }
 
+/**
+ * 활성 이미지 프로바이더.
+ * - premium=true(유료): 위 설정 프로바이더(운영은 Gemini).
+ * - premium=false(무료): fal(FLUX schnell, 장당 ~₩4). 무료 이미지는 월 한도로 제한한다
+ *   (src/lib/ai/imageQuota.ts). FAL_KEY가 없으면 유료 프로바이더로 대신 처리.
+ *
+ * 2026-11 이전 무료 플랜이 쓰던 무키 Pollinations는 IP당 ~17초에 1장으로 제한되기
+ * 시작해(402) 연속 생성이 전부 실패하므로 더는 1차 프로바이더로 쓰지 않는다.
+ */
+export function getImageProvider(premium = true): ImageProvider {
+  if (!premium && process.env.FAL_KEY) return new FalImageProvider();
+  return getPremiumProvider();
+}
+
 /** Image generation is always available (Pollinations needs no key). */
 export function isImageGenConfigured(): boolean {
   return true;
 }
 
 /**
- * 이미지 생성 — 설정된 프로바이더로 시도하되 실패하면 무키 Pollinations로 폴백한다.
- * (Gemini/Fal 키 만료·쿼터·오류로 이미지가 아예 안 나오는 상황을 방지.)
+ * 이미지 생성 — 플랜별 프로바이더로 시도하되 실패하면 다른 프로바이더로 폴백한다.
+ * 폴백 순서: 1차 → fal(키 있고 1차가 fal이 아닐 때) → 무키 Pollinations(최후).
+ * (Gemini 키 만료·쿼터·일시 오류로 이미지가 아예 안 나오는 상황을 방지.)
  */
 export async function generateImageResilient(
   prompt: string,
   aspect?: ImageAspect,
   opts?: { premium?: boolean },
 ): Promise<GeneratedImage> {
-  // 무료 플랜(premium=false)은 무료 Pollinations를 그대로 사용(폴백 불필요).
-  if (opts?.premium === false) {
-    return new PollinationsImageProvider().generateImage(prompt, aspect);
-  }
   let primary: ImageProvider | null = null;
   try {
-    primary = getImageProvider();
+    primary = getImageProvider(opts?.premium ?? true);
     return await primary.generateImage(prompt, aspect);
   } catch (err) {
-    // 이미 폴백 프로바이더였다면 그대로 실패를 던진다.
+    const msg = err instanceof Error ? err.message : String(err);
+    // 2차: fal (1차가 fal이 아니고 키가 있을 때)
+    if (!(primary instanceof FalImageProvider) && process.env.FAL_KEY) {
+      console.error("[image] 1차 프로바이더 실패 → fal로 폴백", msg);
+      try {
+        return await new FalImageProvider().generateImage(prompt, aspect);
+      } catch (err2) {
+        console.error(
+          "[image] fal 폴백 실패",
+          err2 instanceof Error ? err2.message : err2,
+        );
+      }
+    }
+    // 최후: 무키 Pollinations (느리고 제한이 커서 마지막 수단).
     if (primary instanceof PollinationsImageProvider) throw err;
-    // 프로바이더 생성 실패(키 누락) 또는 생성 오류(쿼터·만료) → 무키 Pollinations로 폴백.
-    console.error(
-      "[image] 기본 프로바이더 실패 → Pollinations로 폴백",
-      err instanceof Error ? err.message : err,
-    );
+    console.error("[image] Pollinations로 최종 폴백", msg);
     return await new PollinationsImageProvider().generateImage(prompt, aspect);
   }
 }

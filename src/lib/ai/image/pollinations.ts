@@ -19,8 +19,9 @@ const MAX_ATTEMPTS = 3;
 const PER_ATTEMPT_MS = 18000;
 
 /**
- * Pollinations — free, keyless image generation. Server-only 폴백 프로바이더.
- * 유료 프로바이더(Gemini/Fal)가 실패할 때만 쓰인다. 기본 모델은 속도·안정성을
+ * Pollinations — free, keyless image generation. Server-only 최후 폴백 프로바이더.
+ * 1차(Gemini)·2차(fal)가 모두 실패할 때만 쓰인다. 2026-11부터 익명 호출은 IP당
+ * 약 17초에 1장(초과 시 402)이라 연속 생성에는 쓸 수 없다. 기본 모델은 속도·안정성을
  * 위해 turbo(SDXL-Turbo); 품질 우선이면 POLLINATIONS_MODEL=flux 로 바꿀 수 있다.
  * 이미지를 받아 base64로 반환한다(클라이언트 export의 CORS taint 방지).
  */
@@ -52,9 +53,15 @@ export class PollinationsImageProvider implements ImageProvider {
           signal: AbortSignal.timeout(PER_ATTEMPT_MS),
         });
         if (!res.ok) {
-          // 5xx·429는 일시적 → 재시도, 그 외(4xx)는 즉시 실패.
+          // 5xx·429·402(익명 IP 속도 제한, 2026-11~)는 일시적 → Retry-After 만큼 쉬고 재시도.
+          // 그 외(4xx)는 즉시 실패.
           lastErr = new ImageGenerationError(`이미지 생성 실패 (${res.status})`);
-          if (res.status >= 500 || res.status === 429) continue;
+          if (res.status >= 500 || res.status === 429 || res.status === 402) {
+            const retryAfter = Number(res.headers.get("retry-after"));
+            if (retryAfter > 0)
+              await new Promise((r) => setTimeout(r, Math.min(retryAfter, 20) * 1000));
+            continue;
+          }
           throw lastErr;
         }
         const mime = res.headers.get("content-type") ?? "image/jpeg";

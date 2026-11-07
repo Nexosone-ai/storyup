@@ -26,8 +26,9 @@ export interface Plan {
     /** AI 영상 생성 월 무료 편수. 0 = 미제공(Free), null = 협의(무제한) */
     video: number | null;
     /**
-     * (레거시) 과거 월 이미지 제공량. 이미지는 이제 딜리버리(랜딩·블로그·카드뉴스)에
-     * 포함되어 무과금이라 이 값은 청구/표기에 쓰지 않는다. null = 협의(Partner) 구분용으로만 유지.
+     * AI 이미지 월 한도. 무료 플랜만 실제로 적용된다(src/lib/ai/imageQuota.ts, 월 30장).
+     * 유료는 딜리버리(랜딩·블로그·카드뉴스)에 포함되어 제한·과금 없음(값은 표기에 쓰지 않음).
+     * null = 협의(Partner).
      */
     aiImages: number | null;
   };
@@ -215,15 +216,19 @@ export function planFeatureList(plan: Plan, ko: boolean): string[] {
     out.push(ko ? "AI 영상 생성 (UP 차감)" : "AI video (UP points)");
   }
 
-  // AI 이미지 — 딜리버리(랜딩·블로그·카드뉴스)에 포함되어 별도 제공량/과금 없음.
+  // AI 이미지 — 무료는 월 한도, 유료는 딜리버리에 포함(제한·과금 없음).
   out.push(
     l.aiImages === null
       ? ko
         ? `AI 이미지 ${talk}`
         : `AI images: ${talk}`
-      : ko
-        ? "AI 이미지 생성 포함"
-        : "AI image generation included",
+      : oneTime
+        ? ko
+          ? `AI 이미지 생성 월 ${l.aiImages}장`
+          : `${l.aiImages} AI images/mo`
+        : ko
+          ? "AI 이미지 생성 포함"
+          : "AI image generation included",
   );
 
   // 도메인
