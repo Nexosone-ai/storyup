@@ -12,6 +12,7 @@ import {
   getReservationCount,
 } from "@/lib/events";
 import { getPlanId } from "@/lib/subscription";
+import { freeImageRemaining } from "@/lib/ai/imageQuota";
 import { getPlanById } from "@/lib/plans";
 import { BlogEditor } from "@/components/blog/BlogEditor";
 import { EventEditor } from "@/components/blog/EventEditor";
@@ -53,6 +54,9 @@ export default async function BlogEditorPage({
   const seoAllowed = plan?.seoTools === true;
   // 글 요약 이미지(1장)는 Pro 전용.
   const summaryImageAllowed = plan?.id === "pro";
+  // 무료 플랜 AI 이미지 월 한도 — 남은 장수 안내.
+  const freeImagesRemaining =
+    user && plan?.id === "free" ? await freeImageRemaining(user.id, "free") : null;
 
   return (
     <div className="space-y-8">
@@ -66,6 +70,7 @@ export default async function BlogEditorPage({
         seoAllowed={seoAllowed}
         summaryImageAllowed={summaryImageAllowed}
         premiumImages={plan?.id !== "free"}
+        freeImagesRemaining={freeImagesRemaining}
       />
       <EventEditor
         businessId={id}

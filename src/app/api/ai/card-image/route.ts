@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getAIProvider } from "@/lib/ai";
 import { reserveImageSlot, releaseImageSlot } from "@/lib/ai/imageSlot";
-import { getImageProvider, ImageGenerationError } from "@/lib/ai/image";
+import { generateImageResilient, ImageGenerationError } from "@/lib/ai/image";
 import type { ImageAspect } from "@/lib/ai/image";
 import { buildCardImagePrompt } from "@/lib/ai/image/prompt";
 import { getLocale } from "@/lib/i18n";
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       .generateImageSubject({ category: business.category, text: subject })
       .catch(() => subject);
     const prompt = buildCardImagePrompt(business.category, scene, ko ? "ko" : "en");
-    const { b64, mime } = await getImageProvider().generateImage(prompt, aspect);
+    const { b64, mime } = await generateImageResilient(prompt, aspect);
 
     // 이미지 모델이 뱉는 대형 PNG(장당 ~2MB)를 WebP로 압축·리사이즈한다.
     // 카드는 1080×1350로 표시되므로 그 안으로 맞추고 화질 80이면 눈에 띄는 손실 없이

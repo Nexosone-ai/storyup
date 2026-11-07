@@ -16,6 +16,8 @@ export function GET() {
       SUPABASE_SERVICE_ROLE_KEY: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
       ANTHROPIC_API_KEY: !!process.env.ANTHROPIC_API_KEY,
       IMAGE_PROVIDER: process.env.IMAGE_PROVIDER ?? null,
+      FAL_KEY: !!process.env.FAL_KEY,
+      GEMINI_API_KEY: !!process.env.GEMINI_API_KEY,
       NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL ?? null,
     },
   });

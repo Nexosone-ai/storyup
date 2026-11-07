@@ -19,7 +19,7 @@ export async function generateAndStoreBlogBodyImage(opts: {
   instruction?: string;
   /** 콘텐츠 언어 — ko면 등장 인물을 한국인(동양인)으로. 기본 ko. */
   language?: PromptLanguage;
-  /** 유료 플랜이면 고품질 모델, false(무료)면 Pollinations. 기본 유료. */
+  /** 유료 플랜이면 고품질 모델, false(무료)면 fal(FLUX schnell). 기본 유료. */
   premium?: boolean;
 }): Promise<string | null> {
   try {

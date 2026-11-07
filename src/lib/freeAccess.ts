@@ -3,7 +3,7 @@ import { getPlanId } from "@/lib/subscription";
 
 /**
  * 무료 플랜 블로그 — 월 한도·재신청 없이 **하루 2개까지만** 제한한다(2026-11-03 변경).
- * (이미지 생성도 무료 플랜은 무제한, 단 무료는 Pollinations 사용 — [[storyup-free-plan-gates]].)
+ * (이미지 생성은 무료 플랜 월 30장(fal) — src/lib/ai/imageQuota.ts, [[storyup-free-plan-gates]].)
  * free_grants 테이블·재신청/승인 코드는 보존하되 더 이상 글쓰기를 막지 않는다(관리자 탭은 휴면).
  * usage_events 조회 실패(마이그 전 등)면 '막지 않음'으로 수렴해 기존 동작 유지.
  */

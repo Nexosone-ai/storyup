@@ -117,9 +117,13 @@ export default async function PricingPage() {
           ? ko
             ? "협의"
             : "Custom"
-          : ko
-            ? "포함"
-            : "Included",
+          : p.priceKrw === 0
+            ? ko
+              ? `월 ${p.limits.aiImages}장`
+              : `${p.limits.aiImages}/mo`
+            : ko
+              ? "포함"
+              : "Included",
     ],
     [
       ko ? "자체 도메인" : "Custom domain",

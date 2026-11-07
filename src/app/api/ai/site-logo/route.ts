@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAIProvider } from "@/lib/ai";
 import { reserveImageSlot, releaseImageSlot } from "@/lib/ai/imageSlot";
-import { getImageProvider, ImageGenerationError } from "@/lib/ai/image";
+import { generateImageResilient, ImageGenerationError } from "@/lib/ai/image";
+import { reserveFreeImage } from "@/lib/ai/imageQuota";
 import { buildLogoPrompt } from "@/lib/ai/image/prompt";
 import { storeGeneratedImage } from "@/lib/ai/imageStore";
 import { getLocale } from "@/lib/i18n";
@@ -60,6 +61,15 @@ export async function POST(request: Request) {
       { status: 429 },
     );
 
+  // 무료 플랜은 월 한도 안에서만 생성. 유료는 무제한.
+  const planId = await getPlanId(user.id);
+  const premium = planId !== "free";
+  const quota = await reserveFreeImage(user.id, { planId, ko });
+  if (!quota.ok) {
+    await releaseImageSlot(supabase, businessId, slotKey);
+    return NextResponse.json({ error: quota.error }, { status: 429 });
+  }
+
   try {
     // 상호/업종/힌트 → 영문 상징 묘사(이미지 모델은 한글을 이해하지 못함).
     const text = hint || business.name;
@@ -67,8 +77,7 @@ export async function POST(request: Request) {
       .generateImageSubject({ category: business.category, text, kind: "still-life" })
       .catch(() => text);
     const prompt = buildLogoPrompt(business.category, symbol);
-    const premium = (await getPlanId(user.id)) !== "free";
-    const image = await getImageProvider(premium).generateImage(prompt, "1:1");
+    const image = await generateImageResilient(prompt, "1:1", { premium });
 
     const url = await storeGeneratedImage(businessId, "site-logo", image);
     if (!url) throw new Error("storage upload failed");
@@ -76,6 +85,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, url });
   } catch (err) {
     await releaseImageSlot(supabase, businessId, slotKey);
+    await quota.release();
     const message =
       err instanceof ImageGenerationError
         ? err.message
