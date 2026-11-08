@@ -4,6 +4,7 @@ import { getUser } from "@/lib/queries";
 import { isCurrentUserPartner } from "@/lib/partner";
 import { getLocale } from "@/lib/i18n";
 import { LocaleProvider } from "@/components/i18n/LocaleProvider";
+import { PartnerBreadcrumb } from "@/components/partner/PartnerBreadcrumb";
 
 export const metadata: Metadata = {
   title: "파트너 대행",
@@ -23,7 +24,10 @@ export default async function PartnerLayout({
 
   return (
     <LocaleProvider locale={locale}>
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">{children}</div>
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+        <PartnerBreadcrumb />
+        {children}
+      </div>
     </LocaleProvider>
   );
 }
