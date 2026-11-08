@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Card } from "@/components/ui/Card";
-import { ButtonLink } from "@/components/ui/Button";
 import {
   RecapShortsStudio,
   type RecapJobView,
@@ -108,9 +107,6 @@ export function PartnerVideoHub(props: {
               {props.credits.toLocaleString()}
             </p>
           </Card>
-          <ButtonLink href="/partner" variant="outline" size="sm">
-            ← 파트너 홈
-          </ButtonLink>
         </div>
       </div>
 

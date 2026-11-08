@@ -3,8 +3,6 @@ import { getLocale } from "@/lib/i18n";
 import { getPartnerCreditBalance } from "@/lib/partner";
 import { listMyPacketOrders, PACKET_BANK } from "@/lib/partner/packets";
 import { createAdminClient } from "@/lib/supabase/server";
-import { ButtonLink } from "@/components/ui/Button";
-import { Icon } from "@/components/ui/icons";
 import { PacketStore } from "@/components/partner/PacketStore";
 
 export const dynamic = "force-dynamic";
@@ -57,10 +55,6 @@ export default async function PartnerPacketsPage() {
               {balance.toLocaleString()}
             </p>
           </div>
-          <ButtonLink href="/partner" variant="outline" size="sm">
-            <Icon.arrowLeft className="size-4" />
-            {ko ? "파트너 홈" : "Partner home"}
-          </ButtonLink>
         </div>
       </div>
 

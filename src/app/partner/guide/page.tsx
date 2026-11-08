@@ -259,10 +259,6 @@ export default async function PartnerGuidePage() {
               : "Everything in the partner area and how to use it, at a glance."}
           </p>
         </div>
-        <ButtonLink href="/partner" variant="outline" size="sm">
-          <Icon.arrowLeft className="size-4" />
-          {ko ? "파트너 홈" : "Partner home"}
-        </ButtonLink>
       </div>
 
       {!partner && (
