@@ -44,15 +44,21 @@ export function AgencySection({
   inquiries,
   assignedPartner,
   availableSupporters,
+  presetService = null,
 }: {
   services: Service[];
   businesses: BizOption[];
   inquiries: Inquiry[];
   assignedPartner: SupporterProfileView | null;
   availableSupporters: SupporterProfileView[];
+  /** 한도 초과 안내에서 넘어온 경우(?service=KEY) — 해당 분야로 의뢰 폼을 바로 연다. */
+  presetService?: string | null;
 }) {
-  const [formOpen, setFormOpen] = useState(false);
-  const [serviceKey, setServiceKey] = useState(services[0]?.key ?? "");
+  const presetOk = !!presetService && services.some((s) => s.key === presetService);
+  const [formOpen, setFormOpen] = useState(presetOk);
+  const [serviceKey, setServiceKey] = useState(
+    presetOk ? (presetService as string) : (services[0]?.key ?? ""),
+  );
   const [businessId, setBusinessId] = useState(businesses[0]?.id ?? "");
   const [message, setMessage] = useState("");
   const [error, setError] = useState<string | null>(null);

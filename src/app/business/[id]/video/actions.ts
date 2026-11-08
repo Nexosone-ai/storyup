@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { upsellSentence } from "@/lib/upsell";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getBusiness } from "@/lib/queries";
 import { getPlanId } from "@/lib/subscription";
@@ -49,7 +50,7 @@ export async function generateCharacterAction(
 
   const plan = getPlanById(await getPlanId(user.id));
   if (plan.limits.video === 0)
-    return { error: "AI 영상은 유료 플랜(Basic/Pro)에서 사용할 수 있어요." };
+    return { error: `AI 영상은 이 플랜에 포함되어 있지 않아요. ${upsellSentence(true)}` };
 
   const ko = (await getLocale()) === "ko";
   try {
@@ -96,7 +97,7 @@ export async function submitVideoAction(
 
   const plan = getPlanById(await getPlanId(user.id));
   if (plan.limits.video === 0)
-    return { error: "AI 영상은 유료 플랜(Basic/Pro)에서 사용할 수 있어요." };
+    return { error: `AI 영상은 이 플랜에 포함되어 있지 않아요. ${upsellSentence(true)}` };
   if (!videoEngineConfigured())
     return { error: "영상 엔진이 아직 설정되지 않았어요(관리자 설정 필요)." };
 
@@ -258,7 +259,7 @@ export async function createVideoFrameUploadUrl(
   if (!business) return { error: "권한이 없습니다." };
   const plan = getPlanById(await getPlanId(user.id));
   if (plan.limits.video === 0)
-    return { error: "AI 영상은 유료 플랜(Basic/Pro)에서 사용할 수 있어요." };
+    return { error: `AI 영상은 이 플랜에 포함되어 있지 않아요. ${upsellSentence(true)}` };
 
   const admin = createAdminClient();
   const path = `${businessId}/frames/${Date.now()}-${Math.random()

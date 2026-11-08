@@ -44,6 +44,13 @@ export interface QuoteByCode {
 const SERVICE_LABELS: Record<string, string> = {
   BLOG_AGENCY: "블로그 대행",
   VIDEO_AGENCY: "영상제작 대행",
+  // 0104 — 기본 상품 한도 초과 시 파트너 업세일 분야(src/lib/upsell.ts UPSELL_SERVICE 와 동일 키)
+  EXTRA_BLOG: "블로그 추가 작성",
+  EXTRA_CARDNEWS: "카드뉴스 추가 제작",
+  SHORTS_NARRATION: "AI 카드뉴스 영상 + 내레이션",
+  AI_VIDEO: "AI 영상 제작",
+  EXTRA_IMAGES: "AI 이미지 추가",
+  PLAN_UPGRADE: "Pro 상품으로 업그레이드",
 };
 
 /** 활성 대행 서비스 + 공급가. */

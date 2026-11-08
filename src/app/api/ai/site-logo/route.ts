@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAIProvider } from "@/lib/ai";
 import { reserveImageSlot, releaseImageSlot } from "@/lib/ai/imageSlot";
 import { generateImageResilient, ImageGenerationError } from "@/lib/ai/image";
-import { reserveFreeImage } from "@/lib/ai/imageQuota";
+import { reserveImageQuota } from "@/lib/ai/imageQuota";
 import { buildLogoPrompt } from "@/lib/ai/image/prompt";
 import { storeGeneratedImage } from "@/lib/ai/imageStore";
 import { getLocale } from "@/lib/i18n";
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
   // 무료 플랜은 월 한도 안에서만 생성. 유료는 무제한.
   const planId = await getPlanId(user.id);
   const premium = planId !== "free";
-  const quota = await reserveFreeImage(user.id, { planId, ko });
+  const quota = await reserveImageQuota(user.id, { planId, ko });
   if (!quota.ok) {
     await releaseImageSlot(supabase, businessId, slotKey);
     return NextResponse.json({ error: quota.error }, { status: 429 });

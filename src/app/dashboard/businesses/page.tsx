@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { UPSELL_SERVICE, upsellCtaLabel, upsellHref, upsellSentence } from "@/lib/upsell";
 import { getUser, getDashboardData } from "@/lib/queries";
 import { getLocale } from "@/lib/i18n";
 import { getPlanId } from "@/lib/subscription";
@@ -27,8 +28,8 @@ export default async function BusinessesPage() {
           {ko ? "내 비즈니스" : "My businesses"}
         </h1>
         {atLimit ? (
-          <ButtonLink href="/dashboard/plans" variant="outline">
-            {ko ? "플랜 업그레이드" : "Upgrade plan"}
+          <ButtonLink href={upsellHref(UPSELL_SERVICE.PLAN_UPGRADE)} variant="outline">
+            {upsellCtaLabel(ko)}
           </ButtonLink>
         ) : (
           <ButtonLink href="/onboarding">
@@ -41,8 +42,8 @@ export default async function BusinessesPage() {
       {atLimit && (
         <p className="rounded-xl border border-border bg-surface-muted px-4 py-3 text-sm text-muted">
           {ko
-            ? `현재 ${plan.name.ko} 플랜은 사업장 ${plan.maxBusinesses}개까지 관리할 수 있어요. 더 추가하려면 플랜을 업그레이드해주세요.`
-            : `Your ${plan.name.en} plan manages up to ${plan.maxBusinesses} business${plan.maxBusinesses === 1 ? "" : "es"}. Upgrade to add more.`}
+            ? `현재 ${plan.name.ko} 플랜은 사업장 ${plan.maxBusinesses}개까지 관리할 수 있어요. ${upsellSentence(true)}`
+            : `Your ${plan.name.en} plan manages up to ${plan.maxBusinesses} business${plan.maxBusinesses === 1 ? "" : "es"}. ${upsellSentence(false)}`}
         </p>
       )}
 

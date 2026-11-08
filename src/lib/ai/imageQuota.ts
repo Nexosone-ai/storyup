@@ -2,13 +2,14 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getPlanById, type PlanId } from "@/lib/plans";
 import { countMonthlyUsage, getPlanId } from "@/lib/subscription";
+import { upsellSentence } from "@/lib/upsell";
 
 /**
- * 무료 플랜 AI 이미지 월 한도 (plans.limits.aiImages, free=30).
- * 유료 플랜은 제한 없음(딜리버리 포함). 사용량은 usage_events(kind='ai_image', 서울 기준 월)로
- * 센다 — 0012 테이블·kind 그대로 재사용, 마이그레이션 불필요.
+ * AI 이미지 월 한도 (plans.limits.aiImages — Free 30 · Basic 100 · Pro 300 · Partner 무제한).
+ * 사용량은 usage_events(kind='ai_image', 서울 기준 월)로 센다 — 0012 테이블·kind 그대로 재사용,
+ * 마이그레이션 불필요. 한도 초과 시 생성이 막히고 안내(B2B2C: 담당 파트너 문의)가 나간다.
  *
- * 사용: 생성 전 reserveFreeImage() → 실패 시 release()로 되돌린다.
+ * 사용: 생성 전 reserveImageQuota() → 실패 시 release()로 되돌린다.
  * 카운트→삽입이 원자적이진 않아 동시 클릭으로 1~2장 넘길 수 있으나 비용 상한용이라 허용.
  */
 
@@ -23,32 +24,37 @@ export interface ImageQuotaExceeded {
   limit: number;
 }
 
-export function freeImageLimit(): number {
-  return getPlanById("free").limits.aiImages ?? 0;
+/** 플랜의 월 한도(null = 무제한). */
+export function imageLimitFor(planId: PlanId): number | null {
+  return getPlanById(planId).limits.aiImages;
 }
 
-export function imageQuotaMessage(ko: boolean, limit: number): string {
+export function imageQuotaMessage(ko: boolean, limit: number, planId: PlanId): string {
+  if (planId === "free")
+    return ko
+      ? `무료 플랜의 AI 이미지는 월 ${limit}장까지예요. 이번 달 한도를 모두 사용했어요. 직접 업로드하거나 다음 달에 다시 생성해주세요. 유료 플랜은 더 많이 생성할 수 있어요.`
+      : `The free plan includes ${limit} AI images per month and you've used them all. Upload your own image or upgrade for more.`;
   return ko
-    ? `무료 플랜의 AI 이미지는 월 ${limit}장까지예요. 이번 달 한도를 모두 사용했어요. 직접 업로드하거나 다음 달에 다시 생성해주세요. 유료 플랜은 제한 없이 생성할 수 있어요.`
-    : `The free plan includes ${limit} AI images per month and you've used them all. Upload your own image or upgrade for unlimited AI images.`;
+    ? `이번 달 AI 이미지 한도(${limit}장)를 모두 사용했어요. 직접 업로드하거나 다음 달에 다시 생성해주세요. ${upsellSentence(true)}`
+    : `You've used this month's AI image limit (${limit}). Upload your own image or try again next month. ${upsellSentence(false)}`;
 }
 
 /**
- * 무료 플랜이면 이번 달 사용량을 확인해 1장을 예약한다. 유료는 항상 ok(기록 없음).
+ * 플랜에 월 한도가 있으면 이번 달 사용량을 확인해 1장을 예약한다. 무제한(Partner)은 항상 ok(기록 없음).
  * planId를 넘기면 재조회하지 않는다.
  */
-export async function reserveFreeImage(
+export async function reserveImageQuota(
   userId: string,
   opts?: { planId?: PlanId; ko?: boolean },
 ): Promise<ImageReservation | ImageQuotaExceeded> {
   const planId = opts?.planId ?? (await getPlanId(userId));
-  if (planId !== "free") return { ok: true, release: async () => {} };
+  const limit = imageLimitFor(planId);
+  if (limit === null) return { ok: true, release: async () => {} };
 
-  const limit = freeImageLimit();
   const used = await countMonthlyUsage(userId, "ai_image");
   // 카운트 조회 실패(인프라)는 생성을 막지 않는다(가용성 우선).
   if (used !== null && used >= limit)
-    return { ok: false, error: imageQuotaMessage(opts?.ko ?? true, limit), limit };
+    return { ok: false, error: imageQuotaMessage(opts?.ko ?? true, limit, planId), limit };
 
   const admin = createAdminClient();
   const { data, error } = await admin
@@ -65,13 +71,14 @@ export async function reserveFreeImage(
   };
 }
 
-/** 무료 플랜 남은 장수(표시용). 유료는 null(무제한). */
-export async function freeImageRemaining(
+/** 남은 장수(표시용). 무제한 플랜은 null. */
+export async function imageRemaining(
   userId: string,
   planId?: PlanId,
 ): Promise<number | null> {
   const plan = planId ?? (await getPlanId(userId));
-  if (plan !== "free") return null;
+  const limit = imageLimitFor(plan);
+  if (limit === null) return null;
   const used = (await countMonthlyUsage(userId, "ai_image")) ?? 0;
-  return Math.max(freeImageLimit() - used, 0);
+  return Math.max(limit - used, 0);
 }

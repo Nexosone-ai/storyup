@@ -13,6 +13,7 @@ import { MarketingHub } from "@/components/marketing/MarketingHub";
 import { VideoEditor } from "@/components/video/VideoEditor";
 import { VideoStudio } from "@/components/video/VideoStudio";
 import type { CardNewsResult } from "@/types/domain";
+import { UPSELL_SERVICE, upsellCtaLabel, upsellHref, upsellSentence, type UpsellService } from "@/lib/upsell";
 
 export interface StudioPost {
   id: string;
@@ -132,12 +133,13 @@ export function ContentStudio(props: {
     step === 2 ? "cards" : step === 3 ? "shorts" : step === 5 ? "share" : "none";
   const selectedPost = props.posts.find((p) => p.id === postId);
 
-  const upgrade = (title: string, desc: string) => (
+  // 플랜 미제공 안내 — B2B2C 모드에선 담당 파트너 문의(분야 프리셋)로, B2C 에선 플랜 화면으로.
+  const upgrade = (title: string, desc: string, service?: UpsellService) => (
     <Card className="p-6 text-center">
       <p className="text-sm font-medium">{title}</p>
       <p className="mt-1 text-sm text-muted">{desc}</p>
-      <ButtonLink href="/dashboard/plans" className="mt-3" size="sm">
-        {ko ? "플랜 보기" : "View plans"}
+      <ButtonLink href={upsellHref(service)} className="mt-3" size="sm">
+        {upsellCtaLabel(ko)}
       </ButtonLink>
     </Card>
   );
@@ -215,7 +217,8 @@ export function ContentStudio(props: {
         (step === 2 || step === 3 || step === 5) &&
         upgrade(
           ko ? "카드뉴스·쇼츠는 유료 플랜(Basic 이상) 기능입니다." : "Card news & shorts need a paid plan (Basic+).",
-          ko ? "플랜을 업그레이드하면 글을 카드뉴스와 쇼츠로 바로 만들 수 있어요." : "Upgrade to turn posts into cards and shorts.",
+          ko ? `글을 카드뉴스와 쇼츠로 바로 만들 수 있어요. ${upsellSentence(true)}` : `Turn posts into cards and shorts. ${upsellSentence(false)}`,
+          UPSELL_SERVICE.PLAN_UPGRADE,
         )
       ) : (
         <>
@@ -347,8 +350,11 @@ export function ContentStudio(props: {
           </div>
         ) : (
           upgrade(
-            ko ? "AI 영상은 유료 플랜(Basic/Pro)에서 사용할 수 있어요." : "AI video needs a paid plan (Basic/Pro).",
-            ko ? "AI 영상은 생성 1편당 UP 포인트가 차감됩니다." : "AI video costs UP points per generation.",
+            ko ? "AI 영상은 이 플랜에 포함되어 있지 않아요." : "AI video isn't included in this plan.",
+            ko
+              ? `AI 동영상·관련 영상 10편은 별도 제작 서비스예요. ${upsellSentence(true)}`
+              : `AI video is a separate production service. ${upsellSentence(false)}`,
+            UPSELL_SERVICE.AI_VIDEO,
           )
         ))}
     </div>

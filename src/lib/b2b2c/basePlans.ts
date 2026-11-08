@@ -30,7 +30,7 @@ function defaultInfo(plan: SellableBasePlan): BasePlanInfo {
   return {
     plan,
     displayName: `STORYUP ${p.name.en}`,
-    supplyPriceKrw: p.priceKrw ?? 0,
+    supplyPriceKrw: p.partnerSupplyPriceKrw ?? p.priceKrw ?? 0,
     summary: null,
     includedServices: planFeatureList(p, true).join("\n"),
     source: "default",

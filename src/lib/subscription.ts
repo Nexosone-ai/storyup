@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { PLANS, getPlanById, type Plan, type PlanId } from "@/lib/plans";
 import { getServicePrice } from "@/lib/payments/prices";
+import { upsellSentence } from "@/lib/upsell";
 
 /**
  * 구독/월 제공량 조회·소비 — 플랜 정의는 src/lib/plans.ts가 단일 소스.
@@ -139,11 +140,11 @@ export class InsufficientPointsError extends Error {
     super(
       (context === "quota"
         ? ko
-          ? "이번 달 제공량을 모두 사용했고, 추가 생성에 필요한 UP이 부족합니다. 플랜을 업그레이드해주세요."
-          : "You've used this month's quota and don't have enough UP for extra generations. Please upgrade your plan."
+          ? `이번 달 제공량을 모두 사용했고, 추가 생성에 필요한 UP이 부족합니다. ${upsellSentence(true)}`
+          : `You've used this month's quota and don't have enough UP for extra generations. ${upsellSentence(false)}`
         : ko
-          ? "UP이 부족합니다. 플랜을 업그레이드해주세요."
-          : "Not enough UP. Please upgrade your plan.") + suffix,
+          ? `UP이 부족합니다. ${upsellSentence(true)}`
+          : `Not enough UP. ${upsellSentence(false)}`) + suffix,
     );
     this.name = "InsufficientPointsError";
   }

@@ -1,6 +1,7 @@
 "use client";
 
-import { getPlanById } from "@/lib/plans";
+import type { PlanId } from "@/lib/plans";
+import { UPSELL_SERVICE, upsellHref, upsellSentence } from "@/lib/upsell";
 import { useRef, useState, useTransition } from "react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Input, Label, Select } from "@/components/ui/Field";
@@ -29,7 +30,6 @@ import { useLocale } from "@/components/i18n/LocaleProvider";
 import { resizeImage } from "@/components/website/templates/ImageSlot";
 import type { BlogPostRow } from "@/types/database";
 
-const FREE_IMAGES_PER_MONTH = getPlanById("free").limits.aiImages ?? 0;
 
 export function BlogEditor({
   businessId,
@@ -40,8 +40,9 @@ export function BlogEditor({
   schedulingAllowed = true,
   seoAllowed = false,
   summaryImageAllowed = false,
-  premiumImages = true,
-  freeImagesRemaining = null,
+  planId = "free",
+  imagesLimit = null,
+  imagesRemaining = null,
 }: {
   businessId: string;
   post: BlogPostRow;
@@ -55,10 +56,12 @@ export function BlogEditor({
   seoAllowed?: boolean;
   /** 글 요약 이미지(1장) 생성 가능 플랜(Pro 전용)인지. */
   summaryImageAllowed?: boolean;
-  /** 유료 플랜(이미지 무제한)인지. false(무료)면 월 한도 안내를 노출. */
-  premiumImages?: boolean;
-  /** 무료 플랜의 이번 달 남은 AI 이미지 장수(표시용). 유료는 null. */
-  freeImagesRemaining?: number | null;
+  /** 현재 플랜 — 이미지 한도 안내 문구 분기용. */
+  planId?: PlanId;
+  /** AI 이미지 월 한도(null = 무제한 → 안내 숨김). */
+  imagesLimit?: number | null;
+  /** 이번 달 남은 AI 이미지 장수(표시용). 무제한이면 null. */
+  imagesRemaining?: number | null;
 }) {
   const ko = useLocale() === "ko";
   const [title, setTitle] = useState(post.title);
@@ -603,15 +606,23 @@ export function BlogEditor({
 
       {/* Cover image */}
       <div>
-        {!premiumImages && (
+        {imagesLimit !== null && (
           <p className="mb-1.5 text-xs text-muted">
             {ko
-              ? `무료 플랜은 AI 이미지를 월 ${FREE_IMAGES_PER_MONTH}장까지 만들 수 있어요${
-                  freeImagesRemaining !== null ? ` (이번 달 남은 ${freeImagesRemaining}장)` : ""
-                }. 유료로 전환하면 제한 없이 생성할 수 있어요.`
-              : `The free plan includes ${FREE_IMAGES_PER_MONTH} AI images per month${
-                  freeImagesRemaining !== null ? ` (${freeImagesRemaining} left this month)` : ""
-                }. Upgrade for unlimited AI images.`}
+              ? `${planId === "free" ? "무료 플랜은" : "이 플랜은"} AI 이미지를 월 ${imagesLimit}장까지 만들 수 있어요${
+                  imagesRemaining !== null ? ` (이번 달 남은 ${imagesRemaining}장)` : ""
+                }. ${planId === "free" ? "유료로 전환하면 더 많이 생성할 수 있어요." : upsellSentence(true)}`
+              : `${planId === "free" ? "The free plan" : "This plan"} includes ${imagesLimit} AI images per month${
+                  imagesRemaining !== null ? ` (${imagesRemaining} left this month)` : ""
+                }. ${planId === "free" ? "Upgrade for more." : upsellSentence(false)}`}
+            {planId !== "free" && (
+              <>
+                {" "}
+                <a href={upsellHref(UPSELL_SERVICE.EXTRA_IMAGES)} className="font-semibold text-primary underline">
+                  {ko ? "문의하기 →" : "Contact →"}
+                </a>
+              </>
+            )}
           </p>
         )}
         <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
@@ -762,10 +773,10 @@ export function BlogEditor({
                 ? "요약 이미지는 Pro 플랜 전용이에요. "
                 : "Summary images are a Pro feature. "}
               <a
-                href="/dashboard/plans"
+                href={upsellHref(UPSELL_SERVICE.PLAN_UPGRADE)}
                 className="font-semibold text-primary underline"
               >
-                {ko ? "업그레이드 →" : "Upgrade →"}
+                {ko ? "업그레이드 문의 →" : "Ask about upgrading →"}
               </a>
             </p>
           </div>

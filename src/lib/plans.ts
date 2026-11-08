@@ -12,8 +12,13 @@ export type PlanId = "free" | "basic" | "pro" | "partner";
 export interface Plan {
   id: PlanId;
   name: { ko: string; en: string };
-  /** 월 가격(원). null = 별도 협의 */
+  /** 월 가격(원, B2C 정가). null = 별도 협의 */
   priceKrw: number | null;
+  /**
+   * 파트너 공급가(원, 부가세 별도) — B2B2C 모드에서 본사가 파트너에게 공급하는 기준가.
+   * 파트너는 이 위에 마진을 붙여 고객에게 판매(업세일). base_plan_catalog 행이 없을 때의 기본값.
+   */
+  partnerSupplyPriceKrw?: number;
   limits: {
     /** AI 랜딩페이지 (누적 보유 개수). null = 협의 */
     sites: number | null;
@@ -26,9 +31,8 @@ export interface Plan {
     /** AI 영상 생성 월 무료 편수. 0 = 미제공(Free), null = 협의(무제한) */
     video: number | null;
     /**
-     * AI 이미지 월 한도. 무료 플랜만 실제로 적용된다(src/lib/ai/imageQuota.ts, 월 30장).
-     * 유료는 딜리버리(랜딩·블로그·카드뉴스)에 포함되어 제한·과금 없음(값은 표기에 쓰지 않음).
-     * null = 협의(Partner).
+     * AI 이미지 월 한도(src/lib/ai/imageQuota.ts가 모든 플랜에 적용 — Free 30 · Basic 100 · Pro 300).
+     * 초과 시 생성이 막히고 B2B2C 모드에선 담당 파트너 문의 안내. null = 무제한(Partner).
      */
     aiImages: number | null;
   };
@@ -76,13 +80,16 @@ export const PLANS: Plan[] = [
     analyticsTier: "basic",
   },
   {
+    // 파트너 기본 상품(2026-11-09) — 파트너 공급가 ₩20,000(VAT 별도), 1계정 1사업장.
+    // 한도를 넘는 이용(블로그·카드뉴스·영상·이미지 추가, Pro 전환)은 담당 파트너 문의(업세일).
     id: "basic",
     name: { ko: "Basic", en: "Basic" },
     priceKrw: 59000,
-    limits: { sites: 3, blogPosts: 100, cardNews: 30, shorts: 30, video: 8, aiImages: 50 },
-    maxBusinesses: 3,
+    partnerSupplyPriceKrw: 20000,
+    limits: { sites: 1, blogPosts: 20, cardNews: 5, shorts: 5, video: 0, aiImages: 100 },
+    maxBusinesses: 1,
     maxMembers: 1,
-    siteLayouts: 3,
+    siteLayouts: 9,
     domain: "subdomain",
     watermarkRemoved: true,
     couponBlock: true,
@@ -95,7 +102,7 @@ export const PLANS: Plan[] = [
     id: "pro",
     name: { ko: "Pro", en: "Pro" },
     priceKrw: 119000,
-    limits: { sites: 6, blogPosts: 300, cardNews: 90, shorts: 90, video: 10, aiImages: 90 },
+    limits: { sites: 6, blogPosts: 300, cardNews: 90, shorts: 90, video: 10, aiImages: 300 },
     maxBusinesses: 6,
     maxMembers: 3,
     siteLayouts: 9,
@@ -142,6 +149,9 @@ export function getPlanById(id: PlanId): Plan {
 /** 카드뉴스 1건당 이미지 매수. */
 export const CARD_NEWS_PAGES = 6;
 
+/** 랜딩페이지 레이아웃 총수 — siteLayouts 가 이 값 이상이면 "모두 사용"으로 표기. */
+export const ALL_SITE_LAYOUTS = 9;
+
 /**
  * 요금제 카드/목록에 노출할 기능 불릿 — 마케팅 요금제 페이지와 대시보드가 공유한다.
  * (UP 제공량은 카드에 표기하지 않는다. 사용량·잔액은 포인트 화면에서 확인.)
@@ -160,9 +170,13 @@ export function planFeatureList(plan: Plan, ko: boolean): string[] {
   } else {
     const layout =
       plan.siteLayouts != null
-        ? ko
-          ? ` (레이아웃 ${plan.siteLayouts}개)`
-          : ` (${plan.siteLayouts} layouts)`
+        ? plan.siteLayouts >= ALL_SITE_LAYOUTS
+          ? ko
+            ? " (레이아웃 모두 사용)"
+            : " (all layouts)"
+          : ko
+            ? ` (레이아웃 ${plan.siteLayouts}개)`
+            : ` (${plan.siteLayouts} layouts)`
         : "";
     out.push(
       ko
@@ -216,19 +230,15 @@ export function planFeatureList(plan: Plan, ko: boolean): string[] {
     out.push(ko ? "AI 영상 생성 (UP 차감)" : "AI video (UP points)");
   }
 
-  // AI 이미지 — 무료는 월 한도, 유료는 딜리버리에 포함(제한·과금 없음).
+  // AI 이미지 — 모든 플랜 월 한도 표기(Partner 는 협의).
   out.push(
     l.aiImages === null
       ? ko
         ? `AI 이미지 ${talk}`
         : `AI images: ${talk}`
-      : oneTime
-        ? ko
-          ? `AI 이미지 생성 월 ${l.aiImages}장`
-          : `${l.aiImages} AI images/mo`
-        : ko
-          ? "AI 이미지 생성 포함"
-          : "AI image generation included",
+      : ko
+        ? `AI 이미지 생성 월 ${l.aiImages}장`
+        : `${l.aiImages} AI images/mo`,
   );
 
   // 도메인
