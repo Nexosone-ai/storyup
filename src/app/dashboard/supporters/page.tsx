@@ -10,7 +10,12 @@ import { AgencySection } from "@/components/agency/AgencySection";
 
 export const metadata = { title: "서포터즈" };
 
-export default async function SupportersPage() {
+export default async function SupportersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ service?: string }>;
+}) {
+  const { service } = await searchParams;
   const user = await getUser();
   if (!user) redirect("/login");
 
@@ -44,6 +49,7 @@ export default async function SupportersPage() {
           status: i.status,
           createdAt: i.createdAt,
         }))}
+        presetService={service ?? null}
         assignedPartner={
           assignedPartner
             ? {

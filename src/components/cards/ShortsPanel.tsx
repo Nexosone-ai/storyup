@@ -7,6 +7,7 @@ import { useLocale } from "@/components/i18n/LocaleProvider";
 import { reserveShortsQuota } from "@/app/business/actions";
 import { uploadShortToYoutube } from "@/lib/shorts/youtubeUpload";
 import type { PlanId } from "@/lib/plans";
+import { upsellSentence } from "@/lib/upsell";
 import {
   createMusicBed,
   createCustomBed,
@@ -214,8 +215,8 @@ export function ShortsPanel({
     if (limitReached) {
       setError(
         ko
-          ? `이번 달 쇼츠 ${limit}회를 모두 사용했어요.`
-          : `You've used all ${limit} shorts this month.`,
+          ? `이번 달 카드뉴스 영상 ${limit}편을 모두 사용했어요. ${upsellSentence(true)}`
+          : `You've used all ${limit} shorts this month. ${upsellSentence(false)}`,
       );
       return;
     }

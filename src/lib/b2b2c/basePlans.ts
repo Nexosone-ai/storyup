@@ -30,7 +30,7 @@ function defaultInfo(plan: SellableBasePlan): BasePlanInfo {
   return {
     plan,
     displayName: `STORYUP ${p.name.en}`,
-    supplyPriceKrw: p.priceKrw ?? 0,
+    supplyPriceKrw: p.partnerSupplyPriceKrw ?? p.priceKrw ?? 0,
     summary: null,
     includedServices: planFeatureList(p, true).join("\n"),
     source: "default",
@@ -118,6 +118,26 @@ export async function upsertBasePlanCatalog(
   if (error) {
     console.error("[b2b2c] base_plan_catalog upsert failed", error);
     return { error: "본사 기본상품 저장에 실패했습니다." };
+  }
+  return {};
+}
+
+/**
+ * 관리자 전용 — 본사 기본상품 설정 행 삭제. 삭제하면 해당 플랜은 plans.ts 기본값
+ * (partnerSupplyPriceKrw/priceKrw·planFeatureList)으로 되돌아간다(source: "default").
+ * 이미 저장된 파트너 상품의 스냅샷 공급가는 변하지 않는다. 호출 전 isCurrentUserAdmin() 확인.
+ */
+export async function deleteBasePlanCatalog(
+  plan: SellableBasePlan,
+): Promise<{ error?: string }> {
+  if (plan !== "basic" && plan !== "pro") {
+    return { error: "알 수 없는 요금제입니다." };
+  }
+  const admin = createAdminClient();
+  const { error } = await admin.from("base_plan_catalog").delete().eq("plan", plan);
+  if (error) {
+    console.error("[b2b2c] base_plan_catalog delete failed", error);
+    return { error: "본사 기본상품 설정 삭제에 실패했습니다." };
   }
   return {};
 }

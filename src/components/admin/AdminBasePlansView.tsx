@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Label } from "@/components/ui/Field";
-import { saveBasePlanAction } from "@/app/dashboard/admin/base-plans/actions";
+import {
+  saveBasePlanAction,
+  deleteBasePlanAction,
+} from "@/app/dashboard/admin/base-plans/actions";
 
 const won = (n: number) => `₩${n.toLocaleString()}`;
 
@@ -33,6 +36,7 @@ export function AdminBasePlansView({
           파트너가 상품을 만들 때 참조하는 본사 기준 요금제의 상품명·공급가·포함
           내역을 관리합니다. 여기서 바꾸면 파트너 상품 등록 화면과 정산 공제 기준이
           즉시 반영됩니다(이미 저장된 파트너 상품의 스냅샷 공급가는 변하지 않습니다).
+          설정을 삭제하면 해당 상품은 코드 기본값(plans.ts)으로 되돌아갑니다.
           {!enabled && (
             <span className="ml-1 text-danger">
               (B2B2C 기능 플래그 꺼짐 — 파트너 판매는 비활성)
@@ -41,7 +45,10 @@ export function AdminBasePlansView({
         </p>
       </div>
       {plans.map((p) => (
-        <PlanForm key={p.plan} info={p} />
+        <PlanForm
+          key={`${p.plan}:${p.source}:${p.supplyPriceKrw}:${p.displayName}`}
+          info={p}
+        />
       ))}
     </div>
   );
@@ -57,6 +64,24 @@ function PlanForm({ info }: { info: BasePlanInfo }) {
   const [busy, start] = useTransition();
 
   const label = info.plan === "basic" ? "Basic" : "Pro";
+
+  const remove = () => {
+    if (
+      !window.confirm(
+        `${label} 기본상품 설정을 삭제할까요?\n\n삭제하면 상품명·공급가·포함 내역이 코드 기본값으로 되돌아가고, 파트너 상품 등록 화면과 이후 정산 공제 기준에 즉시 반영됩니다. 이미 저장된 파트너 상품의 스냅샷 공급가는 그대로입니다.`,
+      )
+    )
+      return;
+    start(async () => {
+      setMsg(null);
+      const res = await deleteBasePlanAction(info.plan);
+      if (res.error) setMsg(res.error);
+      else {
+        setMsg("설정을 삭제하고 기본값으로 되돌렸습니다.");
+        router.refresh();
+      }
+    });
+  };
 
   const save = () =>
     start(async () => {
@@ -126,9 +151,16 @@ function PlanForm({ info }: { info: BasePlanInfo }) {
         </p>
       </div>
       {msg && <p className="text-sm text-primary">{msg}</p>}
-      <Button onClick={save} disabled={busy}>
-        {busy ? "저장 중…" : `${label} 저장`}
-      </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button onClick={save} disabled={busy}>
+          {busy ? "처리 중…" : `${label} 저장`}
+        </Button>
+        {info.source === "db" && (
+          <Button variant="ghost" onClick={remove} disabled={busy}>
+            설정 삭제(기본값으로)
+          </Button>
+        )}
+      </div>
     </Card>
   );
 }

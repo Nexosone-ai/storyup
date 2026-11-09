@@ -11,9 +11,9 @@ export const B2B2C_ENABLED = process.env.NEXT_PUBLIC_B2B2C_ENABLED === "true";
 /**
  * 요금제 기준가 버전 — 파트너 상품/청구서에 '연결된 요금제 버전'으로 스냅샷한다.
  * plans.ts 의 priceKrw 가 바뀌면 이 날짜도 함께 올린다(과거 청구서 불변성과 무관,
- * 어떤 기준가 세대에 묶였는지 추적용). 메모리 기준 2026-10-06 가격 개정.
+ * 어떤 기준가 세대에 묶였는지 추적용). 2026-11-09: Basic = 파트너 기본 상품(공급가 ₩20,000).
  */
-export const PLAN_PRICE_VERSION = "2026-10-06";
+export const PLAN_PRICE_VERSION = "2026-11-09";
 
 /** 파트너가 '요금제 연동 상품'으로 판매할 수 있는 기준 요금제(Free 제외). null = 커스텀(요금제 미연동). */
 export const SELLABLE_BASE_PLANS = ["basic", "pro"] as const;

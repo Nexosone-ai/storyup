@@ -6,6 +6,7 @@ import { getPlanById } from "@/lib/plans";
 import { B2B2C_ENABLED } from "@/lib/b2b2c/config";
 import { listClientInvoices, toPublicInvoice } from "@/lib/b2b2c/invoices";
 import { Card } from "@/components/ui/Card";
+import { upsellHref } from "@/lib/upsell";
 
 export const metadata = { title: "내 청구서" };
 
@@ -51,8 +52,15 @@ export default async function MyInvoicesPage() {
           <li>랜딩페이지 {limitText(plan.limits.sites)}</li>
           <li>블로그 {limitText(plan.limits.blogPosts)}/월</li>
           <li>카드뉴스 {limitText(plan.limits.cardNews)}/월</li>
-          <li>쇼츠 {limitText(plan.limits.shorts)}/월</li>
+          <li>카드뉴스 영상(쇼츠) {limitText(plan.limits.shorts)}/월</li>
+          <li>AI 이미지 {limitText(plan.limits.aiImages)}/월</li>
         </ul>
+        <p className="mt-3 text-xs text-muted">
+          한도를 넘는 블로그·카드뉴스·영상·이미지나 Pro 상품 전환은 담당 파트너가 도와드려요.{" "}
+          <Link href={upsellHref()} className="font-semibold text-primary underline">
+            담당 파트너에게 문의 →
+          </Link>
+        </p>
       </Card>
 
       <div className="space-y-2">

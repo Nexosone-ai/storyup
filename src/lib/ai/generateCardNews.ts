@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { upsellSentence } from "@/lib/upsell";
 import type { Database } from "@/types/database";
 import type { CardNewsResult } from "@/types/domain";
 import type { PromptLanguage } from "@/lib/ai/prompts/brand-story";
@@ -13,8 +14,8 @@ export class CardNewsPlanError extends Error {
   constructor(ko: boolean) {
     super(
       ko
-        ? "카드뉴스는 유료 플랜(Basic 이상) 기능입니다. 플랜을 업그레이드해주세요."
-        : "Card news is available on paid plans (Basic and up). Please upgrade.",
+        ? `카드뉴스는 유료 플랜(Basic 이상) 기능입니다. ${upsellSentence(true)}`
+        : `Card news is available on paid plans (Basic and up). ${upsellSentence(false)}`,
     );
     this.name = "CardNewsPlanError";
   }
