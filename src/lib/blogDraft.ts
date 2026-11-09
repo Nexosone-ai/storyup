@@ -6,6 +6,7 @@ import { trackGrowthActivity } from "@/lib/gamification/engine";
 import { generateAndStoreBlogCover } from "@/lib/ai/blogCover";
 import { applyEventDefaultsToNewPost } from "@/lib/events";
 import { getPlanId } from "@/lib/subscription";
+import { premiumImagesFor } from "@/lib/plans";
 import { reserveImageQuota } from "@/lib/ai/imageQuota";
 
 /**
@@ -68,7 +69,7 @@ export async function createBlogDraft(args: {
       title: article.title,
       keywords: article.keywords ?? [],
       imageSubject: article.image_subject,
-      premium: planId !== "free",
+      premium: premiumImagesFor(planId),
       timeoutMs: 25_000,
     });
     if (!cover) await quota.release();

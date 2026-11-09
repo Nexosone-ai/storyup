@@ -7,6 +7,8 @@ import { generateImageResilient, ImageGenerationError } from "@/lib/ai/image";
 import type { ImageAspect } from "@/lib/ai/image";
 import { buildCardImagePrompt } from "@/lib/ai/image/prompt";
 import { getLocale } from "@/lib/i18n";
+import { getPlanId } from "@/lib/subscription";
+import { premiumImagesFor } from "@/lib/plans";
 
 export const maxDuration = 60;
 
@@ -70,7 +72,9 @@ export async function POST(request: Request) {
       .generateImageSubject({ category: business.category, text: subject })
       .catch(() => subject);
     const prompt = buildCardImagePrompt(business.category, scene, ko ? "ko" : "en");
-    const { b64, mime } = await generateImageResilient(prompt, aspect);
+    // 카드 배경도 플랜별 프로바이더(Basic=fal, Pro/파트너=Gemini).
+    const premium = premiumImagesFor(await getPlanId(user.id));
+    const { b64, mime } = await generateImageResilient(prompt, aspect, { premium });
 
     // 이미지 모델이 뱉는 대형 PNG(장당 ~2MB)를 WebP로 압축·리사이즈한다.
     // 카드는 1080×1350로 표시되므로 그 안으로 맞추고 화질 80이면 눈에 띄는 손실 없이

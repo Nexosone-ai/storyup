@@ -36,6 +36,12 @@ export interface Plan {
      */
     aiImages: number | null;
   };
+  /**
+   * 고화질 AI 이미지(Gemini). 미지정 = fal FLUX(장당 ~₩4, 기본 상품·무료).
+   * 기본 상품 원가의 절반이 이미지라 Basic 은 fal 로 두고, 고화질은 Pro/파트너 및
+   * '담당 파트너 문의(AI 이미지 추가)' 업세일로 제공한다. (src/lib/ai/image/index.ts)
+   */
+  premiumImages?: boolean;
   /** 관리 가능한 브랜드/사업장 최대 개수. null = 협의(무제한 취급) */
   maxBusinesses: number | null;
   /** 랜딩페이지에서 선택 가능한 레이아웃 수. 미지정 시 카드에 표기하지 않는다. */
@@ -72,7 +78,7 @@ export const PLANS: Plan[] = [
     id: "free",
     name: { ko: "Free", en: "Free" },
     priceKrw: 0,
-    limits: { sites: 1, blogPosts: 30, cardNews: 0, shorts: 0, video: 0, aiImages: 30 }, // 블로그: 하루 1개·월 30개(월 재신청), 카드뉴스: 미제공(유료 전용), aiImages: 미사용
+    limits: { sites: 1, blogPosts: 30, cardNews: 0, shorts: 0, video: 0, aiImages: 30 }, // 블로그: 하루 1개·월 30개(월 재신청), 카드뉴스: 미제공(유료 전용), aiImages: 월 30장(fal)
     maxBusinesses: 1,
     maxMembers: 1,
     siteLayouts: 1,
@@ -117,6 +123,7 @@ export const PLANS: Plan[] = [
     report: "weekly",
     analyticsTier: "advanced",
     aeo: true,
+    premiumImages: true,
   },
   {
     id: "partner",
@@ -126,6 +133,7 @@ export const PLANS: Plan[] = [
     maxBusinesses: null,
     maxMembers: null,
     domain: "custom",
+    premiumImages: true,
     watermarkRemoved: true,
     couponBlock: true,
     aiStrategy: true,
@@ -141,6 +149,11 @@ export const PLANS: Plan[] = [
 ];
 
 const PLAN_BY_ID = new Map(PLANS.map((p) => [p.id, p]));
+
+/** 이 플랜의 AI 이미지를 고화질(Gemini)로 만들지. false = fal FLUX(저원가). */
+export function premiumImagesFor(id: PlanId): boolean {
+  return getPlanById(id).premiumImages === true;
+}
 
 export function getPlanById(id: PlanId): Plan {
   return PLAN_BY_ID.get(id) ?? PLANS[0];
@@ -237,8 +250,8 @@ export function planFeatureList(plan: Plan, ko: boolean): string[] {
         ? `AI 이미지 ${talk}`
         : `AI images: ${talk}`
       : ko
-        ? `AI 이미지 생성 월 ${l.aiImages}장`
-        : `${l.aiImages} AI images/mo`,
+        ? `AI 이미지 생성 월 ${l.aiImages}장${plan.premiumImages ? " (고화질)" : ""}`
+        : `${l.aiImages} AI images/mo${plan.premiumImages ? " (HD)" : ""}`,
   );
 
   // 도메인

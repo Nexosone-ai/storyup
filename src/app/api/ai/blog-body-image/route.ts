@@ -5,6 +5,7 @@ import { getLocale } from "@/lib/i18n";
 import { generateAndStoreBlogBodyImage } from "@/lib/ai/blogBodyImage";
 import { coerceImageStyle } from "@/lib/ai/image/style";
 import { getPlanId } from "@/lib/subscription";
+import { premiumImagesFor } from "@/lib/plans";
 import { reserveImageQuota } from "@/lib/ai/imageQuota";
 
 export const maxDuration = 60;
@@ -92,7 +93,7 @@ export async function POST(request: Request) {
     style,
     instruction,
     language: ko ? "ko" : "en",
-    premium: planId !== "free",
+    premium: premiumImagesFor(planId),
   });
   if (!url) {
     await releaseImageSlot(supabase, businessId, bodySlot);

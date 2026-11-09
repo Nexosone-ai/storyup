@@ -29,9 +29,10 @@ function getPremiumProvider(): ImageProvider {
 
 /**
  * 활성 이미지 프로바이더.
- * - premium=true(유료): 위 설정 프로바이더(운영은 Gemini).
- * - premium=false(무료): fal(FLUX schnell, 장당 ~₩4). 무료 이미지는 월 한도로 제한한다
- *   (src/lib/ai/imageQuota.ts). FAL_KEY가 없으면 유료 프로바이더로 대신 처리.
+ * - premium=true(고화질 — Pro·파트너, plans.premiumImages): 위 설정 프로바이더(운영은 Gemini ~₩55/장).
+ * - premium=false(무료·기본 상품 Basic): fal(FLUX schnell, 장당 ~₩4). 월 한도는
+ *   src/lib/ai/imageQuota.ts. FAL_KEY가 없으면 고화질 프로바이더로 대신 처리.
+ *   호출부는 premiumImagesFor(planId) 로 판정한다(2026-11-09, 기본 상품 원가 절감).
  *
  * 2026-11 이전 무료 플랜이 쓰던 무키 Pollinations는 IP당 ~17초에 1장으로 제한되기
  * 시작해(402) 연속 생성이 전부 실패하므로 더는 1차 프로바이더로 쓰지 않는다.
