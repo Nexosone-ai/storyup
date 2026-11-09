@@ -5,7 +5,7 @@ import { slugWithFallback, randomSuffix } from "@/utils/slug";
 import { trackGrowthActivity } from "@/lib/gamification/engine";
 import { generateAndStoreBlogCover } from "@/lib/ai/blogCover";
 import { applyEventDefaultsToNewPost } from "@/lib/events";
-import { getPlanId } from "@/lib/subscription";
+import { getUserPlan } from "@/lib/subscription";
 import { premiumImagesFor } from "@/lib/plans";
 import { reserveImageQuota } from "@/lib/ai/imageQuota";
 
@@ -59,8 +59,8 @@ export async function createBlogDraft(args: {
 
   // 커버 이미지는 실패하거나 늦어도 글 생성을 막지 않는다 (플레이스홀더로 대체).
   // 무료 플랜은 fal(월 한도 안에서), 유료는 고품질 모델(무제한).
-  const planId = await getPlanId(userId);
-  const quota = await reserveImageQuota(userId, { planId });
+  const plan = await getUserPlan(userId);
+  const quota = await reserveImageQuota(userId, { plan });
   let cover: string | null = null;
   if (quota.ok) {
     cover = await generateAndStoreBlogCover({
@@ -69,7 +69,7 @@ export async function createBlogDraft(args: {
       title: article.title,
       keywords: article.keywords ?? [],
       imageSubject: article.image_subject,
-      premium: premiumImagesFor(planId),
+      premium: premiumImagesFor(plan),
       timeoutMs: 25_000,
     });
     if (!cover) await quota.release();

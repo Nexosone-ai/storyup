@@ -14,8 +14,8 @@ import type {
   WebsiteContent,
   SiteSection,
 } from "@/types/domain";
-import { getPlanId } from "@/lib/subscription";
-import { getPlanById } from "@/lib/plans";
+import { getUserPlan } from "@/lib/subscription";
+
 import { getLocale } from "@/lib/i18n";
 import { WRITER_PRESETS } from "@/lib/website/writerPresets";
 
@@ -107,7 +107,7 @@ export async function createBusinessAction(
     };
 
   // 플랜별 사업장 개수 제한 (Free 1 · Basic 1 · Pro 5 · Partner 협의=무제한).
-  const plan = getPlanById(await getPlanId(user.id));
+  const plan = await getUserPlan(user.id);
   if (plan.maxBusinesses !== null) {
     const { count } = await supabase
       .from("businesses")

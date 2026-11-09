@@ -11,9 +11,9 @@ import {
   getCouponClaimCount,
   getReservationCount,
 } from "@/lib/events";
-import { getPlanId } from "@/lib/subscription";
+import { getUserPlan } from "@/lib/subscription";
 import { imageRemaining } from "@/lib/ai/imageQuota";
-import { getPlanById } from "@/lib/plans";
+
 import { BlogEditor } from "@/components/blog/BlogEditor";
 import { EventEditor } from "@/components/blog/EventEditor";
 import { BlogFaqEditor } from "@/components/blog/BlogFaqEditor";
@@ -46,7 +46,7 @@ export default async function BlogEditorPage({
 
   // 플랜별 기능 게이팅 — 쿠폰 발행(Basic+), 예약 발행(Pro+).
   const user = await getUser();
-  const plan = user ? getPlanById(await getPlanId(user.id)) : null;
+  const plan = user ? await getUserPlan(user.id) : null;
   const couponAllowed = plan?.couponBlock === true;
   const reservationAllowed = plan?.reservation === true;
   const schedulingAllowed = plan?.scheduledPublish === true;
@@ -57,7 +57,7 @@ export default async function BlogEditorPage({
   // AI 이미지 월 한도(Free 30 · Basic 100 · Pro 300) — 남은 장수 안내. Partner 는 무제한(null).
   const imagesLimit = plan?.limits.aiImages ?? null;
   const imagesRemaining =
-    user && plan && imagesLimit !== null ? await imageRemaining(user.id, plan.id) : null;
+    user && plan && imagesLimit !== null ? await imageRemaining(user.id, plan) : null;
 
   return (
     <div className="space-y-8">

@@ -8,7 +8,7 @@ import type { ImageAspect } from "@/lib/ai/image";
 import { buildSitePhotoPrompt } from "@/lib/ai/image/prompt";
 import { storeGeneratedImage } from "@/lib/ai/imageStore";
 import { getLocale } from "@/lib/i18n";
-import { getPlanId } from "@/lib/subscription";
+import { getUserPlan } from "@/lib/subscription";
 import { premiumImagesFor } from "@/lib/plans";
 
 export const maxDuration = 60;
@@ -69,9 +69,9 @@ export async function POST(request: Request) {
     );
 
   // 플랜별 월 한도(plans.limits.aiImages) 안에서만 생성. Partner 는 무제한.
-  const planId = await getPlanId(user.id);
-  const premium = premiumImagesFor(planId);
-  const quota = await reserveImageQuota(user.id, { planId, ko });
+  const plan = await getUserPlan(user.id);
+  const premium = premiumImagesFor(plan);
+  const quota = await reserveImageQuota(user.id, { plan, ko });
   if (!quota.ok) {
     await releaseImageSlot(supabase, businessId, slotKey);
     return NextResponse.json({ error: quota.error }, { status: 429 });

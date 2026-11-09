@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { getBusiness, getBlogPosts, getWebsite } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
-import { getShortsQuota, getPlanId } from "@/lib/subscription";
+import { getShortsQuota, getUserPlan } from "@/lib/subscription";
 import { getPlanById } from "@/lib/plans";
 import { getYoutubeStatus } from "@/lib/youtube";
 import { getVideoPricing, videoEngineConfigured } from "@/lib/video";
@@ -38,14 +38,14 @@ export default async function MarketingPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const [shortsQuota, ytStatus, planId] = user
+  const [shortsQuota, ytStatus, plan] = user
     ? await Promise.all([
         getShortsQuota(user.id),
         getYoutubeStatus(user.id),
-        getPlanId(user.id),
+        getUserPlan(user.id),
       ])
-    : [null, null, "free" as const];
-  const plan = getPlanById(planId);
+    : [null, null, getPlanById("free")];
+  const planId = plan.id;
   const proPlan = planId === "pro" || planId === "partner";
   // 카드뉴스·쇼츠는 유료 전용 — 무료 플랜은 업그레이드 안내만.
   const isFreePlan = planId === "free";
