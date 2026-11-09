@@ -13,8 +13,8 @@ import { WebsiteGenerator } from "@/components/website/WebsiteGenerator";
 import { WebsiteEditor } from "@/components/website/WebsiteEditor";
 import { WorkflowSteps } from "@/components/dashboard/WorkflowSteps";
 import { getLocale } from "@/lib/i18n";
-import { getPlanId } from "@/lib/subscription";
-import { getPlanById } from "@/lib/plans";
+import { getUserPlan } from "@/lib/subscription";
+
 import { isPartner } from "@/lib/partner";
 
 export const metadata = { title: "랜딩페이지" };
@@ -61,8 +61,8 @@ export default async function WebsitePage({
   } else {
     // 플랜별 사용 가능한 레이아웃 수 (Free 1 · Basic 3 · Pro 9). 직원은 소유자 플랜 상속.
     const user = await getUser();
-    const planId = user ? await getPlanId(user.id) : null;
-    const plan = planId ? getPlanById(planId) : null;
+    const plan = user ? await getUserPlan(user.id) : null;
+    const planId = plan?.id ?? null;
     const maxLayouts = plan?.siteLayouts ?? 1;
     // 음악 앨범(mp3 업로드)은 유료 플랜만 — 저장 비용 통제.
     const musicAllowed =

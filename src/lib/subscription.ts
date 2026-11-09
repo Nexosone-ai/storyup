@@ -1,5 +1,12 @@
 import { createAdminClient } from "@/lib/supabase/server";
-import { PLANS, getPlanById, type Plan, type PlanId } from "@/lib/plans";
+import {
+  PLANS,
+  getPlanById,
+  legacyPlanFor,
+  PLAN_TERMS_CUTOVER_ISO,
+  type Plan,
+  type PlanId,
+} from "@/lib/plans";
 import { getServicePrice } from "@/lib/payments/prices";
 import { upsellSentence } from "@/lib/upsell";
 
@@ -24,8 +31,24 @@ export function currentPeriod(): { key: string; startIso: string } {
   return { key: seoul, startIso: `${seoul}-01T00:00:00+09:00` };
 }
 
-/** 사용자의 현재 플랜. 구독 행이 없거나 조회 실패, 기간 만료 시 free. */
-export async function getPlanId(userId: string): Promise<PlanId> {
+export interface SubscriptionTerms {
+  planId: PlanId;
+  /** 전환일(PLAN_TERMS_CUTOVER_ISO) 이전에 시작한 구독이 현재 기간을 끝내기 전 → 이전 조건 유지. */
+  legacy: boolean;
+}
+
+const CUTOVER_MS = Date.parse(PLAN_TERMS_CUTOVER_ISO);
+/** 전환 시점에 진행 중이던 기간의 만기 상한(월 구독 + 여유). 갱신으로 이보다 뒤로 밀리면 현행 조건. */
+const LEGACY_PERIOD_END_MAX_MS = CUTOVER_MS + 35 * 24 * 60 * 60 * 1000;
+
+/**
+ * 사용자의 현재 플랜 + 이전 조건 유지 여부. 구독 행이 없거나 조회 실패, 기간 만료 시 free.
+ * 이전 조건(legacy): Basic·Pro 이고 created_at < 전환일 이며, 만기(current_period_end)가
+ * 없거나(관리자 부여·무기한) 전환 시점 기간 안(전환일+35일 이내)일 때. 갱신되면 해제.
+ */
+export async function getSubscriptionTerms(
+  userId: string,
+): Promise<SubscriptionTerms> {
   const admin = createAdminClient();
   // 직원 계정이면 소유자의 플랜을 상속한다(0044 account_owner_id).
   const { data: ownerData } = await admin.rpc("account_owner_id", {
@@ -35,18 +58,39 @@ export async function getPlanId(userId: string): Promise<PlanId> {
     typeof ownerData === "string" && ownerData ? ownerData : userId;
   const { data, error } = await admin
     .from("subscriptions")
-    .select("plan, status, current_period_end")
+    .select("plan, status, current_period_end, created_at")
     .eq("user_id", effectiveId)
     .maybeSingle();
-  if (error || !data || data.status !== "active") return "free";
+  const free: SubscriptionTerms = { planId: "free", legacy: false };
+  if (error || !data || data.status !== "active") return free;
   // 기간이 지난 구독(체험 종료·갱신 실패)은 크론 처리 전이라도 free로 취급
-  if (
-    data.current_period_end &&
-    new Date(data.current_period_end).getTime() < Date.now()
-  )
-    return "free";
+  const endMs = data.current_period_end
+    ? new Date(data.current_period_end).getTime()
+    : null;
+  if (endMs !== null && endMs < Date.now()) return free;
   const plan = data.plan as PlanId;
-  return PLAN_IDS.has(plan) ? plan : "free";
+  if (!PLAN_IDS.has(plan)) return free;
+  const createdMs = data.created_at ? new Date(data.created_at).getTime() : NaN;
+  const legacy =
+    (plan === "basic" || plan === "pro") &&
+    Number.isFinite(createdMs) &&
+    createdMs < CUTOVER_MS &&
+    (endMs === null || endMs <= LEGACY_PERIOD_END_MAX_MS);
+  return { planId: plan, legacy };
+}
+
+/** 사용자의 현재 플랜 id. 구독 행이 없거나 조회 실패, 기간 만료 시 free. */
+export async function getPlanId(userId: string): Promise<PlanId> {
+  return (await getSubscriptionTerms(userId)).planId;
+}
+
+/**
+ * 사용자에게 실제 적용되는 플랜 객체 — 한도·사업장·레이아웃·이미지 화질 판정은 이걸 써야 한다.
+ * 전환 전 구독자는 만기까지 legacyPlanFor() 조건, 그 외는 getPlanById().
+ */
+export async function getUserPlan(userId: string): Promise<Plan> {
+  const t = await getSubscriptionTerms(userId);
+  return t.legacy ? legacyPlanFor(t.planId) : getPlanById(t.planId);
 }
 
 /** 이번 달(서울 기준) kind별 사용 건수. 조회 실패 시 null. */
@@ -72,8 +116,9 @@ export async function countMonthlyUsage(
 export async function getShortsQuota(
   userId: string,
 ): Promise<{ planId: PlanId; limit: number | null; used: number }> {
-  const planId = await getPlanId(userId);
-  const limit = getPlanById(planId).limits.shorts;
+  const plan = await getUserPlan(userId);
+  const planId = plan.id;
+  const limit = plan.limits.shorts;
   const admin = createAdminClient();
   const { count } = await admin
     .from("usage_events")
@@ -182,8 +227,8 @@ export async function consumeQuota(
   usedOverride?: number,
 ): Promise<QuotaCharge | null> {
   const admin = createAdminClient();
-  const planId = await getPlanId(userId);
-  const plan = getPlanById(planId);
+  const plan = await getUserPlan(userId);
+  const planId = plan.id;
 
   // usage_events 조회는 가용성 프로브를 겸한다 — 실패(마이그레이션 전)면 레거시 폴백.
   // 무료 플랜의 블로그·카드뉴스는 누적, 그 외는 월간 기준으로 카운트한다.
@@ -265,7 +310,8 @@ export interface SubscriptionOverview {
 export async function getSubscriptionOverview(
   userId: string,
 ): Promise<SubscriptionOverview> {
-  const planId = await getPlanId(userId);
+  const plan = await getUserPlan(userId);
+  const planId = plan.id;
   const [blogPosts, cardNews, aiImages, sites] = await Promise.all([
     countPlanUsage(userId, planId, "blog_post"),
     countPlanUsage(userId, planId, "card_news"),
@@ -274,7 +320,7 @@ export async function getSubscriptionOverview(
   ]);
   return {
     planId,
-    plan: getPlanById(planId),
+    plan,
     usage: {
       blogPosts: blogPosts ?? 0,
       cardNews: cardNews ?? 0,

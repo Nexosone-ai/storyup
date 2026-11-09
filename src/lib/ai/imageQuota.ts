@@ -1,7 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/server";
-import { getPlanById, type PlanId } from "@/lib/plans";
-import { countMonthlyUsage, getPlanId } from "@/lib/subscription";
+import { getPlanById, type Plan, type PlanId } from "@/lib/plans";
+import { countMonthlyUsage, getUserPlan } from "@/lib/subscription";
 import { upsellSentence } from "@/lib/upsell";
 
 /**
@@ -24,9 +24,13 @@ export interface ImageQuotaExceeded {
   limit: number;
 }
 
-/** 플랜의 월 한도(null = 무제한). */
-export function imageLimitFor(planId: PlanId): number | null {
-  return getPlanById(planId).limits.aiImages;
+function resolvePlan(p: Plan | PlanId): Plan {
+  return typeof p === "string" ? getPlanById(p) : p;
+}
+
+/** 플랜의 월 한도(null = 무제한). Plan 객체를 넘기면 이전 조건(legacy)도 반영된다. */
+export function imageLimitFor(plan: Plan | PlanId): number | null {
+  return resolvePlan(plan).limits.aiImages;
 }
 
 export function imageQuotaMessage(ko: boolean, limit: number, planId: PlanId): string {
@@ -40,15 +44,16 @@ export function imageQuotaMessage(ko: boolean, limit: number, planId: PlanId): s
 }
 
 /**
- * 플랜에 월 한도가 있으면 이번 달 사용량을 확인해 1장을 예약한다. 무제한(Partner)은 항상 ok(기록 없음).
- * planId를 넘기면 재조회하지 않는다.
+ * 플랜에 월 한도가 있으면 이번 달 사용량을 확인해 1장을 예약한다. 무제한(Partner·전환 전 구독)은 항상 ok(기록 없음).
+ * plan(getUserPlan 결과)을 넘기면 재조회하지 않는다.
  */
 export async function reserveImageQuota(
   userId: string,
-  opts?: { planId?: PlanId; ko?: boolean },
+  opts?: { plan?: Plan | PlanId; ko?: boolean },
 ): Promise<ImageReservation | ImageQuotaExceeded> {
-  const planId = opts?.planId ?? (await getPlanId(userId));
-  const limit = imageLimitFor(planId);
+  const plan = opts?.plan ? resolvePlan(opts.plan) : await getUserPlan(userId);
+  const planId = plan.id;
+  const limit = imageLimitFor(plan);
   if (limit === null) return { ok: true, release: async () => {} };
 
   const used = await countMonthlyUsage(userId, "ai_image");
@@ -74,10 +79,9 @@ export async function reserveImageQuota(
 /** 남은 장수(표시용). 무제한 플랜은 null. */
 export async function imageRemaining(
   userId: string,
-  planId?: PlanId,
+  plan?: Plan | PlanId,
 ): Promise<number | null> {
-  const plan = planId ?? (await getPlanId(userId));
-  const limit = imageLimitFor(plan);
+  const limit = imageLimitFor(plan ? resolvePlan(plan) : await getUserPlan(userId));
   if (limit === null) return null;
   const used = (await countMonthlyUsage(userId, "ai_image")) ?? 0;
   return Math.max(limit - used, 0);

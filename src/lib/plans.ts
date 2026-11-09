@@ -151,8 +151,37 @@ export const PLANS: Plan[] = [
 const PLAN_BY_ID = new Map(PLANS.map((p) => [p.id, p]));
 
 /** 이 플랜의 AI 이미지를 고화질(Gemini)로 만들지. false = fal FLUX(저원가). */
-export function premiumImagesFor(id: PlanId): boolean {
-  return getPlanById(id).premiumImages === true;
+export function premiumImagesFor(plan: PlanId | Plan): boolean {
+  const p = typeof plan === "string" ? getPlanById(plan) : plan;
+  return p.premiumImages === true;
+}
+
+/**
+ * 플랜 조건 전환일(2026-11-09, 파트너 기본 상품 재정의). 이 시각 이전에 시작해 아직 만기가
+ * 지나지 않은 Basic·Pro 구독은 만기까지 아래 '이전 조건'을 유지한다(subscription.ts getUserPlan).
+ * 갱신·재결제로 새 기간이 시작되면 현행 조건이 적용된다.
+ */
+export const PLAN_TERMS_CUTOVER_ISO = "2026-11-09T00:00:00+09:00";
+
+/** 전환 전 Basic·Pro 조건(한도·사업장·레이아웃·고화질 이미지). 이미지 한도는 당시 미적용이라 무제한. */
+const LEGACY_PLAN_OVERRIDES: Partial<Record<PlanId, Partial<Plan>>> = {
+  basic: {
+    limits: { sites: 3, blogPosts: 100, cardNews: 30, shorts: 30, video: 8, aiImages: null },
+    maxBusinesses: 3,
+    siteLayouts: 3,
+    premiumImages: true,
+  },
+  pro: {
+    limits: { sites: 6, blogPosts: 300, cardNews: 90, shorts: 90, video: 10, aiImages: null },
+  },
+};
+
+/** 전환 전 조건이 적용된 플랜 객체(id 는 동일). 이전 조건이 없는 플랜은 현행 그대로. */
+export function legacyPlanFor(id: PlanId): Plan {
+  const base = getPlanById(id);
+  const o = LEGACY_PLAN_OVERRIDES[id];
+  if (!o) return base;
+  return { ...base, ...o, limits: { ...base.limits, ...(o.limits ?? {}) } };
 }
 
 export function getPlanById(id: PlanId): Plan {

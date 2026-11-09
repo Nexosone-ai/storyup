@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { upsellSentence } from "@/lib/upsell";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getBusiness } from "@/lib/queries";
-import { getPlanId } from "@/lib/subscription";
-import { getPlanById } from "@/lib/plans";
+import { getUserPlan } from "@/lib/subscription";
+
 import {
   submitVideo,
   finalizeIfComplete,
@@ -48,7 +48,7 @@ export async function generateCharacterAction(
   const text = description.trim().slice(0, 300);
   if (!text) return { error: "캐릭터 설명을 입력해주세요." };
 
-  const plan = getPlanById(await getPlanId(user.id));
+  const plan = await getUserPlan(user.id);
   if (plan.limits.video === 0)
     return { error: `AI 영상은 이 플랜에 포함되어 있지 않아요. ${upsellSentence(true)}` };
 
@@ -95,7 +95,7 @@ export async function submitVideoAction(
   // 영상 길이 — 길수록 UP를 배수로 더 차감(관리자 단가 × multiplier).
   const length = videoLengthById(lengthId);
 
-  const plan = getPlanById(await getPlanId(user.id));
+  const plan = await getUserPlan(user.id);
   if (plan.limits.video === 0)
     return { error: `AI 영상은 이 플랜에 포함되어 있지 않아요. ${upsellSentence(true)}` };
   if (!videoEngineConfigured())
@@ -257,7 +257,7 @@ export async function createVideoFrameUploadUrl(
   if (!user) return { error: "로그인이 필요합니다." };
   const business = await getBusiness(businessId);
   if (!business) return { error: "권한이 없습니다." };
-  const plan = getPlanById(await getPlanId(user.id));
+  const plan = await getUserPlan(user.id);
   if (plan.limits.video === 0)
     return { error: `AI 영상은 이 플랜에 포함되어 있지 않아요. ${upsellSentence(true)}` };
 

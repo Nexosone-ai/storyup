@@ -2,8 +2,8 @@ import { redirect } from "next/navigation";
 import { UPSELL_SERVICE, upsellCtaLabel, upsellHref, upsellSentence } from "@/lib/upsell";
 import { getUser, getDashboardData } from "@/lib/queries";
 import { getLocale } from "@/lib/i18n";
-import { getPlanId } from "@/lib/subscription";
-import { getPlanById } from "@/lib/plans";
+import { getUserPlan } from "@/lib/subscription";
+
 import { BusinessCard } from "@/components/dashboard/BusinessCard";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/icons";
@@ -17,7 +17,7 @@ export default async function BusinessesPage() {
   const data = await getDashboardData(user.id);
 
   // 플랜별 사업장 개수 제한 — 한도 도달 시 추가 버튼 대신 업그레이드 안내.
-  const plan = getPlanById(await getPlanId(user.id));
+  const plan = await getUserPlan(user.id);
   const atLimit =
     plan.maxBusinesses !== null && data.businesses.length >= plan.maxBusinesses;
 

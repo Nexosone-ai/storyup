@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getUser } from "@/lib/queries";
-import { getPlanId } from "@/lib/subscription";
-import { getPlanById } from "@/lib/plans";
+import { getUserPlan } from "@/lib/subscription";
+
 import { B2B2C_ENABLED } from "@/lib/b2b2c/config";
 import { listClientInvoices, toPublicInvoice } from "@/lib/b2b2c/invoices";
 import { Card } from "@/components/ui/Card";
@@ -30,8 +30,7 @@ export default async function MyInvoicesPage() {
 
   const rows = await listClientInvoices(user.id);
   const invoices = rows.map(toPublicInvoice);
-  const planId = await getPlanId(user.id);
-  const plan = getPlanById(planId);
+  const plan = await getUserPlan(user.id);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
