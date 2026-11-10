@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { award } from "./engine";
 import { checkReferralAchievements } from "./achievements";
+import { linkReferredClientToPartner } from "@/lib/partner/clients";
 
 /**
  * 추천인 시스템 — 직접 추천만 (다단계 없음).
@@ -103,6 +104,9 @@ export async function attributeReferral(
       code: cleaned,
     });
     if (insErr) return false; // 경합 등
+
+    // 추천인이 파트너면 영업 라인으로 간주 — 가입자를 그 파트너의 고객으로 자동 연결.
+    await linkReferredClientToPartner(refProfile.user_id, referredUserId);
 
     // 추천인 보상 (멱등키: 가입자 ID)
     await award(

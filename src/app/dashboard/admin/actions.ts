@@ -17,19 +17,6 @@ import {
   SETTING_KEYS,
   invalidateSettingsCache,
 } from "@/lib/gamification/config";
-import {
-  setMarketerByEmail,
-  saveMarketerReward,
-  generateSettlements,
-  markSettlementPaid,
-  type Rank,
-} from "@/lib/marketers";
-import {
-  registerDistributor,
-  setMemberStatus,
-  setDistributorSplit,
-  setDistributorRate,
-} from "@/lib/network";
 import { reviewCampaign } from "@/lib/ads/campaigns";
 import { setPlatformFeePct } from "@/lib/ads/settings";
 import {
@@ -365,114 +352,6 @@ export async function deleteProductAction(id: string): Promise<AdminState> {
   return { ok: true, message: "상품이 삭제되었습니다." };
 }
 
-// ---------------- 마케터(리셀러/메이커) 조직 ----------------
-
-/** 유저를 마케터로 지정/해제. */
-export async function setMarketerAction(
-  email: string,
-  enable: boolean,
-  payoutType: "freelancer" | "business",
-): Promise<AdminState> {
-  const { admin } = await requireAdmin();
-  if (!admin) return { error: "권한이 없습니다." };
-  const res = await setMarketerByEmail(email, enable, payoutType);
-  if (res.error) return { error: res.error };
-  revalidatePath("/dashboard/admin");
-  return {
-    ok: true,
-    message: enable ? "마케터로 지정했습니다." : "마케터를 해제했습니다.",
-  };
-}
-
-/** 직급별 상품/플랜 수당 저장. */
-export async function saveMarketerRewardAction(
-  itemType: "subscription_plan" | "product",
-  itemKey: string,
-  rank: Rank,
-  amount: number,
-  active: boolean,
-): Promise<AdminState> {
-  const { admin } = await requireAdmin();
-  if (!admin) return { error: "권한이 없습니다." };
-  const res = await saveMarketerReward({ itemType, itemKey, rank, amount, active });
-  if (res.error) return { error: res.error };
-  revalidatePath("/dashboard/admin");
-  return { ok: true, message: "수당이 저장되었습니다." };
-}
-
-/** 월별 정산 생성 (해당 월 미정산 수당 마감). */
-export async function generateSettlementsAction(
-  period: string,
-): Promise<AdminState> {
-  const { admin } = await requireAdmin();
-  if (!admin) return { error: "권한이 없습니다." };
-  const res = await generateSettlements(period);
-  if (res.error) return { error: res.error };
-  revalidatePath("/dashboard/admin");
-  return {
-    ok: true,
-    message: `${period} 정산 ${res.created ?? 0}건을 생성했습니다.`,
-  };
-}
-
-/** 정산 배치 지급완료 처리. */
-export async function markSettlementPaidAction(
-  settlementId: string,
-): Promise<AdminState> {
-  const { admin } = await requireAdmin();
-  if (!admin) return { error: "권한이 없습니다." };
-  const res = await markSettlementPaid(settlementId);
-  if (res.error) return { error: res.error };
-  revalidatePath("/dashboard/admin");
-  return { ok: true, message: "지급완료로 처리했습니다." };
-}
-
-// ---------------- 유통 네트워크 (총판·영업점·리셀러) ----------------
-
-/** 총판 등록/재활성화. */
-export async function registerDistributorAction(
-  email: string,
-  payoutType: "freelancer" | "business",
-): Promise<AdminState> {
-  const { user, admin } = await requireAdmin();
-  if (!admin || !user) return { error: "권한이 없습니다." };
-  const res = await registerDistributor(email, payoutType, user.id);
-  if (res.error) return { error: res.error };
-  revalidatePath("/dashboard/admin");
-  return { ok: true, message: "총판으로 등록했습니다." };
-}
-
-/** 멤버 활성/정지 (총판 강등 = 정지). */
-export async function setMemberStatusAction(
-  userId: string,
-  status: "active" | "suspended",
-): Promise<AdminState> {
-  const { admin } = await requireAdmin();
-  if (!admin) return { error: "권한이 없습니다." };
-  const res = await setMemberStatus(userId, status);
-  if (res.error) return { error: res.error };
-  revalidatePath("/dashboard/admin");
-  return {
-    ok: true,
-    message: status === "active" ? "활성화했습니다." : "정지(강등)했습니다.",
-  };
-}
-
-/** 총판 배분비율 설정 (합계 100). */
-export async function setDistributorSplitAction(
-  distributorUserId: string,
-  sd: number,
-  sa: number,
-  sr: number,
-): Promise<AdminState> {
-  const { admin } = await requireAdmin();
-  if (!admin) return { error: "권한이 없습니다." };
-  const res = await setDistributorSplit(distributorUserId, sd, sa, sr);
-  if (res.error) return { error: res.error };
-  revalidatePath("/dashboard/admin");
-  return { ok: true, message: "배분비율을 저장했습니다." };
-}
-
 // ---------------- 광고 마켓플레이스 ----------------
 
 /** 캠페인 검수 승인/반려. */
@@ -519,28 +398,6 @@ export async function markAdSettlementPaidAction(
   if (res.error) return { error: res.error };
   revalidatePath("/dashboard/admin/ads");
   return { ok: true, message: "지급완료로 처리했습니다." };
-}
-
-/** 총판별 지급률(%) 설정. */
-export async function setDistributorRateAction(
-  distributorUserId: string,
-  itemType: "subscription_plan" | "product",
-  itemKey: string,
-  ratePct: number,
-  active: boolean,
-): Promise<AdminState> {
-  const { admin } = await requireAdmin();
-  if (!admin) return { error: "권한이 없습니다." };
-  const res = await setDistributorRate({
-    distributorUserId,
-    itemType,
-    itemKey,
-    ratePct,
-    active,
-  });
-  if (res.error) return { error: res.error };
-  revalidatePath("/dashboard/admin");
-  return { ok: true, message: "지급률을 저장했습니다." };
 }
 
 // ---------------- 게이미피케이션 (UP/XP/미션/보상 정책) ----------------

@@ -241,6 +241,25 @@ export async function grantPartnerCredits(
   });
 }
 
+/**
+ * 추천코드(profiles.referral_code)로 활성 파트너를 찾는다 — 영업 링크(?ref=) 귀속용.
+ * 파트너가 아니면 null(일반 사용자 추천은 리워드 시스템이 따로 처리).
+ */
+export async function resolvePartnerByReferralCode(
+  code: string,
+): Promise<string | null> {
+  const cleaned = code.trim().toUpperCase();
+  if (!/^[A-Z0-9]{4,12}$/.test(cleaned)) return null;
+  const admin = createAdminClient();
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("user_id")
+    .eq("referral_code", cleaned)
+    .maybeSingle();
+  if (!profile) return null;
+  return (await isPartner(profile.user_id)) ? profile.user_id : null;
+}
+
 /** 이 고객(오너)을 대행하는 파트너의 user_id(첫 배정). 오토파일럿 과금 대상. */
 export async function partnerForClient(
   clientUserId: string,

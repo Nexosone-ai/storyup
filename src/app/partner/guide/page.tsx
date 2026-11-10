@@ -63,6 +63,7 @@ export default async function PartnerGuidePage() {
         "한 고객은 한 파트너만 담당합니다. 이미 다른 파트너가 담당 중이면 등록되지 않으니 본사에 문의하세요.",
         "연결된 고객과 사업장은 파트너 홈 하단에 표시됩니다. [에이전트] → AI 에이전트, [워크스페이스] → 전체 콘텐츠 관리.",
         "고객 카드의 [연결 해제]로 대행을 종료할 수 있고, 고객도 '담당 파트너' 메뉴에서 접근을 해제할 수 있습니다.",
+        "파트너 홈의 '내 영업 링크'(?ref=내 코드)로 가입한 고객은 자동으로 내 고객에 연결됩니다.",
       ],
       itemsEn: [
         "Enter the client's STORYUP account email under 'Register a client' on the partner home to link them immediately.",
@@ -70,6 +71,7 @@ export default async function PartnerGuidePage() {
         "Each client has one partner. If another partner already manages them, contact the head office.",
         "Linked clients and their businesses appear at the bottom of the partner home: [Agent] for the AI agent, [Workspace] for full content management.",
         "[Unlink] on a client card ends the engagement; the client can also revoke access under 'My partner'.",
+        "Anyone who signs up through your sales link (?ref=your code) on the partner home is linked to you automatically.",
       ],
     },
     {
@@ -148,13 +150,17 @@ export default async function PartnerGuidePage() {
       title: "상품 · 판매 (중개)",
       titleEn: "Products & sales (reselling)",
       items: [
-        "본사 기본 상품(Basic/Pro) 공급가 위에 내 판매가·마진을 붙여 상품을 등록합니다.",
+        amSub
+          ? "상위파트너가 판매 중인 상품을 원가로 골라 내 판매가·마진을 붙여 상품을 등록합니다(본사 가격정책은 상위파트너가 관리합니다)."
+          : "본사 기본 상품(Basic/Pro) 공급가 위에 내 판매가·마진을 붙여 상품을 등록합니다.",
         "고객에게 오퍼(견적)나 청구서를 발행하면, 고객은 토큰 링크로 결제합니다.",
         "결제는 본사가 수납하고, 수수료를 제외한 금액이 파트너에게 정산됩니다.",
         "공개 스토어(/partners/내슬러그)는 상담형입니다 — 가격·구매 버튼은 오퍼/청구서에서만 노출됩니다.",
       ],
       itemsEn: [
-        "Register products by adding your own price/margin on top of the head office base (Basic/Pro) supply price.",
+        amSub
+          ? "Register products by adding your own price/margin on top of your parent partner's active products (head-office pricing is managed by the parent)."
+          : "Register products by adding your own price/margin on top of the head office base (Basic/Pro) supply price.",
         "Issue an offer (quote) or invoice to a client; they pay via a token link.",
         "The head office collects payment and settles the amount minus the fee to you.",
         "Your public store (/partners/your-slug) is inquiry-style — price/buy buttons appear only in offers/invoices.",
