@@ -63,7 +63,7 @@ export default async function PartnerGuidePage() {
         "한 고객은 한 파트너만 담당합니다. 이미 다른 파트너가 담당 중이면 등록되지 않으니 본사에 문의하세요.",
         "연결된 고객과 사업장은 파트너 홈 하단에 표시됩니다. [에이전트] → AI 에이전트, [워크스페이스] → 전체 콘텐츠 관리.",
         "고객 카드의 [연결 해제]로 대행을 종료할 수 있고, 고객도 '담당 파트너' 메뉴에서 접근을 해제할 수 있습니다.",
-        "파트너 홈의 '내 영업 링크'(?ref=내 코드)로 가입한 고객은 자동으로 내 고객에 연결됩니다.",
+        "파트너 홈의 '내 영업 링크'는 두 가지입니다 — 고객 가입 링크(/join?ref=코드)로 가입하면 내 고객으로, 영업파트너 모집 링크(&as=partner)로 가입하면 파트너(영업)으로 자동 등록됩니다.",
       ],
       itemsEn: [
         "Enter the client's STORYUP account email under 'Register a client' on the partner home to link them immediately.",
@@ -71,7 +71,7 @@ export default async function PartnerGuidePage() {
         "Each client has one partner. If another partner already manages them, contact the head office.",
         "Linked clients and their businesses appear at the bottom of the partner home: [Agent] for the AI agent, [Workspace] for full content management.",
         "[Unlink] on a client card ends the engagement; the client can also revoke access under 'My partner'.",
-        "Anyone who signs up through your sales link (?ref=your code) on the partner home is linked to you automatically.",
+        "Your partner home has two sales links: the client link (/join?ref=code) links sign-ups as your clients; the recruit link (&as=partner) registers them as sales partners.",
       ],
     },
     {

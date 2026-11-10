@@ -57,12 +57,13 @@ export interface GrowthOverview {
 export async function getGrowthOverview(
   userId: string,
   pendingRefCode?: string | null,
+  pendingRefAs?: "partner" | null,
 ): Promise<GrowthOverview> {
   const settings = await loadSettings();
   const admin = createAdminClient();
 
   // 멱등 셋업: 가입 보너스 + 추천 코드 + 추천 귀속 + 트래픽/검색 업적
-  await ensureUserSetup(userId, pendingRefCode);
+  await ensureUserSetup(userId, pendingRefCode, pendingRefAs);
   await checkTrafficAchievement(userId);
   // Search Console 성과(하루 1회 갱신·캐시) — 검색 업적과 SEO 점수에 반영
   const searchTotals = await checkSearchAchievements(userId);

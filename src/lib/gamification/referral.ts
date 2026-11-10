@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { award } from "./engine";
 import { checkReferralAchievements } from "./achievements";
 import { linkReferredClientToPartner } from "@/lib/partner/clients";
+import { recruitSubPartnerFromReferral } from "@/lib/partner";
 
 /**
  * 추천인 시스템 — 직접 추천만 (다단계 없음).
@@ -50,12 +51,13 @@ export async function ensureReferralCode(userId: string): Promise<string | null>
 export async function ensureUserSetup(
   userId: string,
   pendingRefCode?: string | null,
+  pendingRefAs?: "partner" | null,
 ): Promise<void> {
   await award(userId, "signup", "signup");
   await ensureReferralCode(userId);
   // 쿠키 코드가 없어도 호출한다 — attributeReferral이 가입 시 저장된
   // user_metadata.ref_code로 폴백하고, 이미 귀속/기간초과면 즉시 빠져나온다.
-  await attributeReferral(userId, pendingRefCode);
+  await attributeReferral(userId, pendingRefCode, pendingRefAs);
 }
 
 /**
@@ -66,6 +68,8 @@ export async function ensureUserSetup(
 export async function attributeReferral(
   referredUserId: string,
   code?: string | null,
+  /** "partner" = 파트너의 영업파트너 모집 링크(가입자를 파트너(영업)으로). 없으면 메타데이터 ref_as 폴백. */
+  refAs?: "partner" | null,
 ): Promise<boolean> {
   try {
     const admin = createAdminClient();
@@ -86,6 +90,8 @@ export async function attributeReferral(
 
     // 쿠키 코드 우선, 없으면 가입 시점에 박아둔 메타데이터 코드로 폴백
     const metaRef = authUser?.user?.user_metadata?.ref_code;
+    const metaAs = authUser?.user?.user_metadata?.ref_as;
+    const asPartner = refAs === "partner" || (!refAs && metaAs === "partner");
     const cleaned = (code ?? (typeof metaRef === "string" ? metaRef : "") ?? "")
       .trim()
       .toUpperCase();
@@ -105,8 +111,16 @@ export async function attributeReferral(
     });
     if (insErr) return false; // 경합 등
 
-    // 추천인이 파트너면 영업 라인으로 간주 — 가입자를 그 파트너의 고객으로 자동 연결.
-    await linkReferredClientToPartner(refProfile.user_id, referredUserId);
+    // 추천인이 파트너면 영업 라인으로 간주 — 링크 유형에 따라
+    //  · 영업파트너 모집 링크(as=partner): 가입자를 파트너(영업)으로 등록
+    //  · 고객 링크(기본): 가입자를 그 파트너의 고객으로 자동 연결
+    // (추천인이 파트너가 아니면 둘 다 아무것도 하지 않는다.)
+    if (asPartner) {
+      const recruited = await recruitSubPartnerFromReferral(refProfile.user_id, referredUserId);
+      if (!recruited) await linkReferredClientToPartner(refProfile.user_id, referredUserId);
+    } else {
+      await linkReferredClientToPartner(refProfile.user_id, referredUserId);
+    }
 
     // 추천인 보상 (멱등키: 가입자 ID)
     await award(

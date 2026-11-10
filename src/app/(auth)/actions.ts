@@ -26,11 +26,27 @@ async function resolveRefCode(formData: FormData): Promise<string | null> {
   return REF_RE.test(fromCookie) ? fromCookie : null;
 }
 
-/** OAuth 복귀 URL — next와 추천 코드를 /auth/callback에 실어 보낸다. */
-function oauthRedirectTo(origin: string, safeNext: string, ref: string | null): string {
+/**
+ * 추천 유형 — 폼 hidden(as) 우선, 없으면 /join이 심은 쿠키. "partner"면 파트너의
+ * 영업파트너 모집 링크로 온 가입자(파트너(영업)으로 등록), 아니면 고객.
+ */
+async function resolveRefAs(formData: FormData): Promise<"partner" | null> {
+  if (String(formData.get("as") ?? "") === "partner") return "partner";
+  const fromCookie = (await cookies()).get("su_ref_as")?.value ?? "";
+  return fromCookie === "partner" ? "partner" : null;
+}
+
+/** OAuth 복귀 URL — next와 추천 코드(·유형)를 /auth/callback에 실어 보낸다. */
+function oauthRedirectTo(
+  origin: string,
+  safeNext: string,
+  ref: string | null,
+  refAs: "partner" | null = null,
+): string {
   const u = new URL("/auth/callback", origin);
   u.searchParams.set("next", safeNext);
   if (ref) u.searchParams.set("ref", ref);
+  if (ref && refAs) u.searchParams.set("as", refAs);
   return u.toString();
 }
 
@@ -130,13 +146,16 @@ export async function signUpAction(
   // 이메일 인증 링크가 다른 브라우저(메일앱 내장 브라우저 등)에서 열려 쿠키가
   // 사라져도 서버에 남은 ref_code로 귀속할 수 있게 한다.
   const refCode = await resolveRefCode(formData);
+  const refAs = refCode ? await resolveRefAs(formData) : null;
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: refCode ? { name, ref_code: refCode } : { name },
+      data: refCode
+        ? { name, ref_code: refCode, ...(refAs ? { ref_as: refAs } : {}) }
+        : { name },
       emailRedirectTo: `${siteUrl}/auth/callback`,
     },
   });
@@ -172,12 +191,13 @@ export async function signInWithGoogleAction(formData: FormData): Promise<void> 
   const h = await headers();
   const origin = h.get("origin") ?? siteUrl;
   const ref = await resolveRefCode(formData);
+  const refAs = ref ? await resolveRefAs(formData) : null;
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: oauthRedirectTo(origin, safeNext, ref),
+      redirectTo: oauthRedirectTo(origin, safeNext, ref, refAs),
     },
   });
 
@@ -193,12 +213,13 @@ export async function signInWithKakaoAction(formData: FormData): Promise<void> {
   const h = await headers();
   const origin = h.get("origin") ?? siteUrl;
   const ref = await resolveRefCode(formData);
+  const refAs = ref ? await resolveRefAs(formData) : null;
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "kakao",
     options: {
-      redirectTo: oauthRedirectTo(origin, safeNext, ref),
+      redirectTo: oauthRedirectTo(origin, safeNext, ref, refAs),
     },
   });
 
@@ -215,12 +236,13 @@ export async function signInWithFacebookAction(
   const h = await headers();
   const origin = h.get("origin") ?? siteUrl;
   const ref = await resolveRefCode(formData);
+  const refAs = ref ? await resolveRefAs(formData) : null;
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "facebook",
     options: {
-      redirectTo: oauthRedirectTo(origin, safeNext, ref),
+      redirectTo: oauthRedirectTo(origin, safeNext, ref, refAs),
     },
   });
 

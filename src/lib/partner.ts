@@ -392,7 +392,19 @@ export async function inviteSubPartner(
     return {
       error: "해당 이메일의 가입 사용자를 찾을 수 없습니다. 먼저 회원가입을 안내해주세요.",
     };
-  const subId = profile.user_id;
+  return registerSubPartnerById(parentUserId, profile.user_id, parentUserId);
+}
+
+/**
+ * user_id 로 서브파트너(파트너(영업)) 등록 — 초대(이메일)·추천 링크 리크루트 공용.
+ * 깊이 2단계 검증 + partner 플랜 부여 + partner_subs 등록. createdBy = 실제 리크루트한 사람.
+ */
+export async function registerSubPartnerById(
+  parentUserId: string,
+  subId: string,
+  createdBy: string,
+): Promise<{ subUserId?: string; error?: string }> {
+  const admin = createAdminClient();
   if (subId === parentUserId)
     return { error: "본인을 서브파트너로 등록할 수 없습니다." };
 
@@ -442,13 +454,52 @@ export async function inviteSubPartner(
     parent_partner_user_id: parentUserId,
     sub_partner_user_id: subId,
     status: "active",
-    created_by: parentUserId,
+    created_by: createdBy,
   });
   if (linkErr) {
     console.error("[sub-partner] link insert failed", linkErr);
     return { error: "서브파트너 등록에 실패했습니다." };
   }
   return { subUserId: subId };
+}
+
+/**
+ * 영업파트너 모집 링크(/join?ref=코드&as=partner)로 가입한 사용자를 파트너(영업)으로 등록.
+ * - 추천인이 상위파트너면 그 아래에, 추천인이 파트너(영업)이면 깊이 제한(2단계) 때문에
+ *   추천인의 상위파트너 아래에 등록한다(created_by 에 실제 리크루터를 남긴다).
+ * - 가입자가 이미 파트너/관리자면 등록하지 않는다. 성공 시 true.
+ */
+export async function recruitSubPartnerFromReferral(
+  referrerUserId: string,
+  newUserId: string,
+): Promise<boolean> {
+  try {
+    if (referrerUserId === newUserId) return false;
+    if (!(await isPartner(referrerUserId))) return false;
+    if (await isPartner(newUserId)) return false;
+    const admin = createAdminClient();
+    const { data: prof } = await admin
+      .from("profiles")
+      .select("is_admin")
+      .eq("user_id", newUserId)
+      .maybeSingle();
+    if (prof?.is_admin) return false;
+    const parentId = (await isSubPartner(referrerUserId))
+      ? await parentPartnerOf(referrerUserId)
+      : referrerUserId;
+    if (!parentId) return false;
+    const res = await registerSubPartnerById(parentId, newUserId, referrerUserId);
+    if (res.error) {
+      console.warn("[sub-partner] referral recruit skipped:", res.error);
+      return false;
+    }
+    // 파트너가 된 계정은 고객 배정 대상이 아니다(혹시 남아 있는 링크 정리).
+    await admin.from("partner_clients").delete().eq("client_user_id", newUserId);
+    return true;
+  } catch (err) {
+    console.error("[sub-partner] referral recruit failed", err);
+    return false;
+  }
 }
 
 /** 서브파트너 상태 변경(활성/중단). 상위파트너 본인의 서브만. */
