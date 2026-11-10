@@ -8,7 +8,6 @@ import {
 } from "@/lib/payments/portone";
 import { getPlanById, type PlanId } from "@/lib/plans";
 import { markReferralPaidConversion } from "@/lib/gamification/referral";
-import { accrueSubscriptionCommission } from "@/lib/network";
 
 /**
  * 정기결제(빌링키) 구독 서비스.
@@ -146,13 +145,7 @@ async function chargeOnce(args: {
       })
       .eq("id", paymentRow.id);
 
-    // 마케터 수당 적립 (매 결제마다 반복, payment_id 유니크로 멱등). 실패는 결제에 영향 없음.
-    await accrueSubscriptionCommission({
-      paymentId: paymentRow.id,
-      clientUserId: args.userId,
-      planId: args.planId,
-      amount: plan.priceKrw,
-    });
+    // (레거시 마케터 수당 적립은 폐지 — 영업자 조직은 파트너로 통합, 정산은 파트너 청구서 경로.)
   } catch (err) {
     // 결제는 됐는데 검증 조회만 실패한 경우 — 웹훅/재동기화가 정리한다
     console.error("[billing] verify failed", orderId, err);
@@ -347,15 +340,8 @@ export async function activateTransferSubscription(
       })
       .eq("id", payment.id);
 
-    // 마케터 수당 + 추천인 전환 보상 (각자 멱등, 실패 무시).
+    // 추천인 전환 보상 (멱등, 실패 무시). 레거시 마케터 수당 적립은 폐지(파트너로 통합).
     // 월 UP 지급 정책 폐지로 구독 결제는 포인트를 자동 지급하지 않는다(카드 구독과 동일).
-    const plan = getPlanById(planId);
-    await accrueSubscriptionCommission({
-      paymentId: payment.id as string,
-      clientUserId: userId,
-      planId,
-      amount: plan.priceKrw ?? 0,
-    });
     try {
       await markReferralPaidConversion(userId);
     } catch {

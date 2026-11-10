@@ -261,3 +261,31 @@ export async function linkPendingInvitesForUser(
     console.error("[partner-clients] auto-link failed", err);
   }
 }
+
+/**
+ * 영업 링크(?ref=파트너 추천코드)로 가입한 고객을 추천 파트너에게 자동 연결.
+ * referrals 귀속 직후 호출(attributeReferral). 추천인이 파트너가 아니면 아무것도 하지 않는다.
+ * 다른 파트너가 이미 담당 중이거나, 가입자가 파트너/관리자면 연결하지 않는다(한 고객 = 한 파트너).
+ */
+export async function linkReferredClientToPartner(
+  referrerUserId: string,
+  clientUserId: string,
+): Promise<boolean> {
+  try {
+    if (referrerUserId === clientUserId) return false;
+    if (!(await isPartner(referrerUserId))) return false;
+    if (await isPartner(clientUserId)) return false;
+    const admin = createAdminClient();
+    const [{ data: client }, { data: partner }] = await Promise.all([
+      admin.from("profiles").select("is_admin").eq("user_id", clientUserId).maybeSingle(),
+      admin.from("profiles").select("email").eq("user_id", referrerUserId).maybeSingle(),
+    ]);
+    if (client?.is_admin) return false;
+    if (await otherPartnerOf(clientUserId, referrerUserId)) return false;
+    const res = await linkPartnerClient(referrerUserId, partner?.email ?? "", clientUserId);
+    return res.ok;
+  } catch (err) {
+    console.error("[partner-clients] referral auto-link failed", err);
+    return false;
+  }
+}

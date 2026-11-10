@@ -10,7 +10,6 @@ import {
   needsOnboarding,
 } from "@/lib/queries";
 import { isCurrentUserAdmin } from "@/lib/points";
-import { isCurrentUserNetworkMember } from "@/lib/network";
 import { isCurrentUserPartner } from "@/lib/partner";
 import { linkPendingInvitesForUser } from "@/lib/partner/clients";
 import { dashboardNav, workspaceNav } from "@/lib/nav";
@@ -38,7 +37,6 @@ export default async function DashboardLayout({
   const [
     name,
     admin,
-    marketer,
     partner,
     locale,
     business,
@@ -49,7 +47,6 @@ export default async function DashboardLayout({
   ] = await Promise.all([
     getProfileName(),
     isCurrentUserAdmin(),
-    isCurrentUserNetworkMember(),
     isCurrentUserPartner(),
     getLocale(),
     getPrimaryBusiness(),
@@ -62,7 +59,7 @@ export default async function DashboardLayout({
   return (
     <LocaleProvider locale={locale}>
       <DashboardShell
-        nav={dashboardNav(admin, locale, unreadInquiries, marketer, partner)}
+        nav={dashboardNav(admin, locale, unreadInquiries, partner)}
         workspace={
           business
             ? {

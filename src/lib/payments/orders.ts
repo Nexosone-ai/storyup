@@ -1,10 +1,7 @@
 import { randomUUID } from "crypto";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getPortonePayment } from "@/lib/payments/portone";
-import {
-  resolveSellerByCode,
-  accrueProductCommission,
-} from "@/lib/network";
+import { resolvePartnerByReferralCode } from "@/lib/partner";
 import { settleQuotePaid } from "@/lib/agency";
 import type { PlanId } from "@/lib/plans";
 import type { ProductRow, ProductOrderRow } from "@/types/database";
@@ -82,9 +79,10 @@ export async function createProductOrder(args: {
     .maybeSingle();
   if (!product) return { error: "판매 중인 상품이 아닙니다." };
 
-  // 마케터 귀속 — 결제링크의 ?ref=코드가 활성 마케터면 주문에 연결
+  // 영업 귀속 — 결제링크의 ?ref=코드가 활성 파트너의 추천코드면 주문에 연결(기록용).
+  // (컬럼명 ref_marketer_id는 레거시 마케터 시절 이름 — 이제 파트너 user_id를 담는다.)
   const refMarketerId = args.refCode
-    ? await resolveSellerByCode(args.refCode)
+    ? await resolvePartnerByReferralCode(args.refCode)
     : null;
 
   const orderId = `ord_${randomUUID()}`;
@@ -318,8 +316,6 @@ export async function syncProductOrder(
       .eq("id", order.id)
       .in("status", ["PENDING", "FAILED"]);
 
-    // 마케터 수당 적립 (product_order_id 유니크로 멱등). 실패는 결제에 영향 없음.
-    await accrueProductCommission(orderId);
     // 자동 이행 — 상품에 지급 플랜이 연결돼 있으면 구매자 계정에 플랜 부여 (멱등).
     await fulfillProductOrder(orderId);
     // 대행 견적 결제면 정산(공급가 보유·파트너 마진 적립, 멱등).

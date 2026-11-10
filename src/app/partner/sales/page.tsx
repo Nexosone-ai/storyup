@@ -20,6 +20,10 @@ export default async function PartnerSalesPage() {
   const user = await getUser();
   if (!user || !(await isCurrentUserPartner())) notFound();
 
+  // 서브파트너에게는 본사 가격정책(공급가·기준 요금제)을 노출하지 않는다 —
+  // 서브의 원가는 상위파트너 판매가뿐이므로 카탈로그를 조회조차 하지 않는다.
+  const amSub = await isSubPartner(user.id);
+
   const [
     storefront,
     products,
@@ -27,7 +31,6 @@ export default async function PartnerSalesPage() {
     offers,
     invoices,
     baseCatalog,
-    amSub,
     parentProducts,
   ] = await Promise.all([
     getMyStorefront(user.id),
@@ -35,8 +38,7 @@ export default async function PartnerSalesPage() {
     listPartnerClients(user.id),
     listMyOffers(user.id),
     listMyInvoices(user.id),
-    getBasePlanCatalog(),
-    isSubPartner(user.id),
+    amSub ? Promise.resolve(null) : getBasePlanCatalog(),
     listParentProductsFor(user.id),
   ]);
 
@@ -83,7 +85,9 @@ export default async function PartnerSalesPage() {
             }
           : null
       }
-      basePlans={{ basic: baseCatalog.basic, pro: baseCatalog.pro }}
+      basePlans={
+        baseCatalog ? { basic: baseCatalog.basic, pro: baseCatalog.pro } : null
+      }
       isSub={amSub}
       parentProducts={parentProducts.map((p) => ({
         id: p.id,

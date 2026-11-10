@@ -95,7 +95,8 @@ type Tab = "store" | "products" | "offers" | "invoices" | "settlement";
 
 export function PartnerSalesView(props: {
   storefront: Storefront | null;
-  basePlans: { basic: BasePlanInfo; pro: BasePlanInfo };
+  /** 본사 기준 요금제(공급가). 서브파트너에게는 전달되지 않는다(null). */
+  basePlans: { basic: BasePlanInfo; pro: BasePlanInfo } | null;
   isSub: boolean;
   parentProducts: ParentProductOpt[];
   products: Product[];
@@ -171,7 +172,9 @@ export function PartnerSalesView(props: {
           origin={origin}
         />
       )}
-      {tab === "settlement" && <SettlementTab settlement={props.settlement} />}
+      {tab === "settlement" && (
+        <SettlementTab settlement={props.settlement} isSub={props.isSub} />
+      )}
     </div>
   );
 }
@@ -293,7 +296,7 @@ function ProductsTab({
   parentProducts,
 }: {
   products: Product[];
-  basePlans: { basic: BasePlanInfo; pro: BasePlanInfo };
+  basePlans: { basic: BasePlanInfo; pro: BasePlanInfo } | null;
   isSub: boolean;
   parentProducts: ParentProductOpt[];
 }) {
@@ -305,7 +308,7 @@ function ProductsTab({
       {!creating && !editing && (
         <>
           <Button onClick={() => setCreating(true)}>+ 새 상품</Button>
-          {isSub ? (
+          {isSub || !basePlans ? (
             <ParentProductReference parentProducts={parentProducts} />
           ) : (
             <BasePlanReference basePlans={basePlans} />
@@ -330,6 +333,9 @@ function ProductsTab({
         )}
         {products.map((p) => {
           const delta = p.sellPriceKrw - p.basePriceKrw;
+          // 서브파트너의 원가는 상위파트너 판매가(본사 공급가는 노출하지 않음).
+          const costLabel = isSub ? "원가" : "기본요금";
+          const hasCost = isSub ? !!p.parentProductId : !!p.basePlan;
           return (
             <Card key={p.id} className="p-5">
               <div className="flex items-start justify-between gap-3">
@@ -337,18 +343,19 @@ function ProductsTab({
                   <p className="font-semibold">{p.name}</p>
                   <p className="mt-0.5 text-sm text-muted">
                     판매가 {won(p.sellPriceKrw)}
-                    {p.basePlan && (
+                    {hasCost && (
                       <>
-                        {" · "}기본요금 {won(p.basePriceKrw)}
+                        {" · "}
+                        {costLabel} {won(p.basePriceKrw)}
                       </>
                     )}
                   </p>
-                  {p.basePlan && (
+                  {hasCost && (
                     <p
                       className={`mt-0.5 text-xs ${delta < 0 ? "text-danger" : "text-muted"}`}
                     >
                       {delta < 0
-                        ? `예상 마진 ${won(delta)} (기본요금보다 낮음 ⚠)`
+                        ? `예상 마진 ${won(delta)} (${costLabel}보다 낮음 ⚠)`
                         : `예상 정산 ${won(Math.round(delta * (1 - PLATFORM_COMMISSION_RATE)))} (마진 ${won(delta)} − 수수료 10%)`}
                     </p>
                   )}
@@ -512,7 +519,7 @@ function ProductForm({
   onDone,
 }: {
   product: Product | null;
-  basePlans: { basic: BasePlanInfo; pro: BasePlanInfo };
+  basePlans: { basic: BasePlanInfo; pro: BasePlanInfo } | null;
   isSub: boolean;
   parentProducts: ParentProductOpt[];
   onDone: () => void;
@@ -544,9 +551,9 @@ function ProductForm({
     ? parentProducts.find((p) => p.id === parentProductId)
     : undefined;
   const baseInfo =
-    !isSub && basePlan === "basic"
+    !isSub && basePlans && basePlan === "basic"
       ? basePlans.basic
-      : !isSub && basePlan === "pro"
+      : !isSub && basePlans && basePlan === "pro"
         ? basePlans.pro
         : null;
   const basePrice = isSub
@@ -993,10 +1000,18 @@ function InvoicesTab({
 }
 
 // ---------------- 정산 ----------------
-function SettlementTab({ settlement }: { settlement: Settlement }) {
+function SettlementTab({
+  settlement,
+  isSub,
+}: {
+  settlement: Settlement;
+  isSub: boolean;
+}) {
+  // 서브파트너의 공제 기준은 상위파트너 판매가(원가) — 본사 공급가는 노출하지 않는다.
+  const costLabel = isSub ? "원가(상위 판매가)" : "본사 기본요금";
   const tiles = [
     { label: "총 수납액(고객 결제)", value: settlement.gross },
-    { label: "본사 기본요금 공제", value: settlement.baseDeduction },
+    { label: `${costLabel} 공제`, value: settlement.baseDeduction },
     { label: "플랫폼 수수료(10%)", value: settlement.commission },
     { label: "정산 예정(대기)", value: settlement.pending },
     { label: "보류", value: settlement.held },
@@ -1013,7 +1028,7 @@ function SettlementTab({ settlement }: { settlement: Settlement }) {
         ))}
       </div>
       <Card className="p-5 text-sm text-muted">
-        정산 예정액은 <strong>(고객 결제금액 − 본사 기본요금) 마진에서 플랫폼
+        정산 예정액은 <strong>(고객 결제금액 − {costLabel}) 마진에서 플랫폼
         수수료 10%를 뗀 금액</strong>입니다. 세금·PG 수수료·환불·대행 비용은 아직
         반영되지 않았으므로 순이익이 아닙니다. 실제 지급액·주기·보류 조건은 관리자
         정산 정책을 따릅니다.

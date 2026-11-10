@@ -195,6 +195,10 @@ export async function upsertProduct(
     parentProductId = parentProduct.id;
     parentBasePriceKrw = parentProduct.base_price_krw; // 본사 공급가 스냅샷
   } else {
+    // 서브파트너는 상위파트너 상품만 원가로 쓸 수 있다 — 본사 공급가 경로 차단
+    // (화면에서도 숨기지만, 직접 호출로 공급가를 스냅샷·노출하는 것을 서버에서 막는다).
+    if (await parentPartnerOf(partnerUserId))
+      return { error: "서브파트너는 상위파트너 상품을 원가로 선택해야 합니다." };
     // 일반 파트너 — 본사 공급가(base_plan_catalog 우선, 없으면 plans.ts 폴백).
     basePrice = await supplyPriceForPlan(basePlan);
   }

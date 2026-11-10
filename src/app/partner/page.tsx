@@ -14,6 +14,8 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/icons";
 import { PartnerProfileEditor } from "@/components/partner/PartnerProfileEditor";
 import { ClientRegister } from "@/components/partner/ClientRegister";
+import { PartnerReferralLink } from "@/components/partner/PartnerReferralLink";
+import { ensureReferralCode } from "@/lib/gamification/referral";
 import { ClientUnlinkButton } from "@/components/partner/ClientUnlinkButton";
 import {
   linkPendingInvitesForPartner,
@@ -52,6 +54,7 @@ export default async function PartnerPage() {
     creditPrices,
     amSub,
     pendingInvites,
+    referralCode,
   ] = await Promise.all([
     listPartnerClients(user.id),
     getPartnerCreditBalance(user.id),
@@ -61,7 +64,9 @@ export default async function PartnerPage() {
     listCreditPrices(),
     isSubPartner(user.id),
     listPendingInvites(user.id),
+    ensureReferralCode(user.id),
   ]);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.storyup.me";
   const totalBiz = clients.reduce((s, c) => s + c.businesses.length, 0);
   // 서브파트너는 또 서브를 둘 수 없다(깊이 2단계) — 상위파트너에게만 서브파트너 메뉴 노출.
   const canManageSubs = B2B2C_ENABLED && !amSub;
@@ -222,6 +227,13 @@ export default async function PartnerPage() {
           </p>
         </Card>
       </div>
+
+      <PartnerReferralLink
+        code={referralCode}
+        siteUrl={siteUrl}
+        canManageSubs={canManageSubs}
+        ko={ko}
+      />
 
       <ClientRegister pending={pendingInvites} ko={ko} />
 
