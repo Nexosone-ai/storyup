@@ -17,6 +17,7 @@ type DbClient = Awaited<ReturnType<typeof createClient>>;
 export const IMAGE_SLOT_LIMIT: Record<PlanId, number> = {
   free: 2,
   basic: 3,
+  lite: 3,
   pro: 10,
   partner: 50,
 };

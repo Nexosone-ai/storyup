@@ -69,3 +69,37 @@ export async function savePartnerProfileAction(
   if (res.ok) revalidatePath("/partner");
   return res;
 }
+
+/** 별도계약 파트너 — 고객 계정 직접 생성(Lite, 30일 이용권 패킷 차감). 비밀번호는 저장·로그하지 않는다. */
+export async function createProvisionedAccountAction(input: {
+  email: string;
+  displayName: string;
+  password: string;
+}): Promise<{ ok?: true; error?: string; message?: string }> {
+  const user = await getUser();
+  if (!user) return { error: "로그인이 필요합니다." };
+  if (!(await isPartner(user.id))) return { error: "파트너만 가능해요." };
+  const { createProvisionedAccount } = await import("@/lib/partner/provisioning");
+  const res = await createProvisionedAccount({
+    partnerUserId: user.id,
+    partnerEmail: user.email ?? "",
+    email: input.email,
+    displayName: input.displayName,
+    password: input.password,
+  });
+  if (res.ok) revalidatePath("/partner");
+  return res;
+}
+
+/** 별도계약 파트너 — 생성 계정 30일 연장(패킷 차감). */
+export async function extendProvisionedAccountAction(
+  clientUserId: string,
+): Promise<{ ok?: true; error?: string; message?: string }> {
+  const user = await getUser();
+  if (!user) return { error: "로그인이 필요합니다." };
+  if (!(await isPartner(user.id))) return { error: "파트너만 가능해요." };
+  const { extendProvisionedAccount } = await import("@/lib/partner/provisioning");
+  const res = await extendProvisionedAccount(user.id, clientUserId);
+  if (res.ok) revalidatePath("/partner");
+  return res;
+}

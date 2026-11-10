@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getUser } from "@/lib/queries";
 import { getLocale } from "@/lib/i18n";
 import { isCurrentUserPartner, isSubPartner } from "@/lib/partner";
+import { canProvisionAccounts } from "@/lib/partner/provisioning";
 import { Card } from "@/components/ui/Card";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/icons";
@@ -31,9 +32,10 @@ export default async function PartnerGuidePage() {
   if (!user) return null; // layout에서 이미 가드
 
   // 매뉴얼 섹션은 실제로 쓸 수 있는 기능에 맞춰 노출한다.
-  const [partner, amSub] = await Promise.all([
+  const [partner, amSub, canProvision] = await Promise.all([
     isCurrentUserPartner(),
     isSubPartner(user.id),
+    canProvisionAccounts(user.id),
   ]);
   const canManageSubs = B2B2C_ENABLED && !amSub;
 
@@ -116,6 +118,28 @@ export default async function PartnerGuidePage() {
       },
     },
   ];
+
+  if (canProvision) {
+    sections.push({
+      icon: "plus",
+      title: "고객 계정 직접 생성 (별도계약 · Lite)",
+      titleEn: "Creating client accounts (contract · Lite)",
+      items: [
+        "파트너 홈의 '고객 계정 직접 생성'에서 아이디(이메일)·표시 이름·초기 비밀번호를 입력하면 고객이 가입하지 않아도 계정이 바로 만들어지고 내 고객으로 연결됩니다.",
+        "계정 1개 = 30일 이용권. 생성·연장 때마다 패킷(기본 118패킷 = ₩11,800, 부가세 별도)이 보유 패킷에서 차감됩니다. 패킷이 부족하면 '패킷 구매'에서 충전하세요.",
+        "Lite 계정 제공량: 랜딩페이지 1개 · 블로그 10건/월 · 카드뉴스 6건/월 · 카드뉴스 쇼츠 3편/월. 만료되면 무료 플랜으로 내려가니 목록의 '30일 연장'으로 이어가세요.",
+        "초기 비밀번호는 저장되지 않습니다. 고객에게 직접 전달하고 첫 로그인 후 변경하도록 안내하세요.",
+        "이 권한은 내 아래 파트너(영업)에게도 상속됩니다(각자 자기 패킷으로 차감).",
+      ],
+      itemsEn: [
+        "Under 'Create client accounts' on the partner home, enter an email, display name and initial password to create an account instantly and link it as your client.",
+        "One account = 30 days. Each creation/extension charges packets (default 118 = ₩11,800 + VAT) from your balance.",
+        "Lite limits: 1 landing page · 10 blog posts/mo · 6 card news/mo · 3 shorts/mo. Expired accounts fall back to Free; use 'Extend 30d'.",
+        "The initial password is not stored; hand it to the client and ask them to change it after first login.",
+        "Your sales partners inherit this capability (charged from their own packets).",
+      ],
+    });
+  }
 
   if (RECAP_SHORTS_ENABLED) {
     sections.push({

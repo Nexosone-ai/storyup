@@ -4,7 +4,7 @@ import { useRef } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { useLocale } from "@/components/i18n/LocaleProvider";
-import { PLANS, planFeatureList, type Plan, type PlanId } from "@/lib/plans";
+import { PLANS, PUBLIC_PLANS, planFeatureList, type Plan, type PlanId } from "@/lib/plans";
 import { COMPANY, bankAccountConfigured } from "@/lib/company";
 import {
   SubscribePanel,
@@ -81,7 +81,7 @@ export function PlansView({
 
       {/* 플랜 카드 */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {PLANS.map((plan) => {
+        {PUBLIC_PLANS.map((plan) => {
           const popular = plan.id === "pro";
           const isCurrent = plan.id === currentPlanId;
           return (

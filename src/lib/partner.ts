@@ -526,6 +526,8 @@ export interface PartnerListRow {
   credits: number;
   clientCount: number;
   isSub: boolean;
+  /** 별도계약(고객 계정 직접 생성) 권한 — 관리자 페이지가 채운다. */
+  provisioning?: boolean;
   since: string;
 }
 

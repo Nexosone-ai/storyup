@@ -184,3 +184,19 @@ export async function cancelPacketOrderAction(
   revalidatePath("/partner/packets");
   return { ok: true, message: "주문을 취소했어요." };
 }
+
+/** 별도계약 — 파트너의 '고객 계정 직접 생성(Lite)' 권한 켜기/끄기. 서브파트너는 상위의 권한을 상속. */
+export async function setProvisioningAction(
+  partnerUserId: string,
+  enabled: boolean,
+): Promise<PartnerAdminState> {
+  if (!(await isCurrentUserAdmin())) return { error: "권한이 없습니다." };
+  if (!(await isPartner(partnerUserId))) return { error: "현재 파트너가 아닌 계정입니다." };
+  const me_ = await me();
+  const { setProvisioning } = await import("@/lib/partner/provisioning");
+  const res = await setProvisioning(partnerUserId, enabled, me_?.id ?? null, enabled ? "별도계약 — 관리자 설정" : undefined);
+  if (res.error) return { error: res.error };
+  revalidatePath("/dashboard/admin/partners");
+  revalidatePath("/partner");
+  return { ok: true, message: enabled ? "계정 직접 생성 권한을 켰어요." : "계정 직접 생성 권한을 껐어요." };
+}

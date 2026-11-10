@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { listPartnerAssignments, listPartners } from "@/lib/partner";
 import { listAllAccountShares } from "@/lib/accountShare";
 import { listPacketOrdersAdmin } from "@/lib/partner/packets";
+import { provisioningPartnerIds } from "@/lib/partner/provisioning";
 import {
   AdminPartnersView,
   type CreditPriceRow,
@@ -11,7 +12,7 @@ export const metadata = { title: "관리자 · 파트너" };
 
 export default async function AdminPartnersPage() {
   const admin = createAdminClient();
-  const [assignments, pricesRes, accountShares, packetOrders, partners] =
+  const [assignments, pricesRes, accountShares, packetOrders, partnersRaw, provisioning] =
     await Promise.all([
       listPartnerAssignments(),
       admin
@@ -21,8 +22,10 @@ export default async function AdminPartnersPage() {
       listAllAccountShares(),
       listPacketOrdersAdmin(),
       listPartners(),
+      provisioningPartnerIds(),
     ]);
   const prices = (pricesRes.data ?? []) as CreditPriceRow[];
+  const partners = partnersRaw.map((p) => ({ ...p, provisioning: provisioning.has(p.userId) }));
 
   return (
     <div className="mx-auto max-w-3xl">
