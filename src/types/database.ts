@@ -1151,6 +1151,56 @@ export interface Database {
         >;
         Relationships: [];
       };
+      partner_account_provisioning: {
+        Row: {
+          partner_user_id: string;
+          enabled: boolean;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          partner_user_id: string;
+          enabled?: boolean;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["partner_account_provisioning"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      partner_provisioned_accounts: {
+        Row: {
+          id: string;
+          partner_user_id: string;
+          client_user_id: string;
+          email: string;
+          display_name: string | null;
+          periods: number;
+          expires_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          partner_user_id: string;
+          client_user_id: string;
+          email: string;
+          display_name?: string | null;
+          periods?: number;
+          expires_at: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["partner_provisioned_accounts"]["Insert"]
+        >;
+        Relationships: [];
+      };
       share_channels: {
         Row: {
           id: string;

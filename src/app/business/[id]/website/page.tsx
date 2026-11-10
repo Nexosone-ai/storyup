@@ -66,7 +66,10 @@ export default async function WebsitePage({
     const maxLayouts = plan?.siteLayouts ?? 1;
     // 음악 앨범(mp3 업로드)은 유료 플랜만 — 저장 비용 통제.
     const musicAllowed =
-      planId === "basic" || planId === "pro" || planId === "partner";
+      planId === "basic" ||
+      planId === "lite" ||
+      planId === "pro" ||
+      planId === "partner";
     // 전문 레이아웃·디자인 템플릿 섹션은 파트너 전용(일반/유료고객 비노출).
     const partner = user ? await isPartner(user.id) : false;
     // 미리보기의 "카드뉴스" 섹션에 표시할 이 가게의 카드뉴스.

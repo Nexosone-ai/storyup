@@ -15,6 +15,13 @@ import { Icon } from "@/components/ui/icons";
 import { PartnerProfileEditor } from "@/components/partner/PartnerProfileEditor";
 import { ClientRegister } from "@/components/partner/ClientRegister";
 import { PartnerReferralLink } from "@/components/partner/PartnerReferralLink";
+import { ProvisionedAccounts } from "@/components/partner/ProvisionedAccounts";
+import {
+  canProvisionAccounts,
+  liteAccountPrice,
+  listProvisionedAccounts,
+} from "@/lib/partner/provisioning";
+import { getPlanById } from "@/lib/plans";
 import { ensureReferralCode } from "@/lib/gamification/referral";
 import { ClientUnlinkButton } from "@/components/partner/ClientUnlinkButton";
 import {
@@ -55,6 +62,7 @@ export default async function PartnerPage() {
     amSub,
     pendingInvites,
     referralCode,
+    canProvision,
   ] = await Promise.all([
     listPartnerClients(user.id),
     getPartnerCreditBalance(user.id),
@@ -65,7 +73,13 @@ export default async function PartnerPage() {
     isSubPartner(user.id),
     listPendingInvites(user.id),
     ensureReferralCode(user.id),
+    canProvisionAccounts(user.id),
   ]);
+  // 별도계약 파트너(또는 그 서브) — 고객 계정 직접 생성(Lite) 데이터.
+  const [provisioned, litePrice] = canProvision
+    ? await Promise.all([listProvisionedAccounts(user.id), liteAccountPrice()])
+    : [[], null];
+  const liteLimits = getPlanById("lite").limits;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.storyup.me";
   const totalBiz = clients.reduce((s, c) => s + c.businesses.length, 0);
   // 서브파트너는 또 서브를 둘 수 없다(깊이 2단계) — 상위파트너에게만 서브파트너 메뉴 노출.
@@ -242,6 +256,21 @@ export default async function PartnerPage() {
         isSub={amSub}
         ko={ko}
       />
+
+      {canProvision && (
+        <ProvisionedAccounts
+          accounts={provisioned}
+          price={litePrice}
+          credits={credits}
+          limits={{
+            sites: liteLimits.sites ?? 1,
+            blogPosts: liteLimits.blogPosts ?? 0,
+            cardNews: liteLimits.cardNews ?? 0,
+            shorts: liteLimits.shorts ?? 0,
+          }}
+          ko={ko}
+        />
+      )}
 
       <ClientRegister pending={pendingInvites} ko={ko} />
 

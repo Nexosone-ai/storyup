@@ -4,7 +4,7 @@ import { Footer } from "@/components/marketing/Footer";
 import { getLocale } from "@/lib/i18n";
 import { getUser } from "@/lib/queries";
 import {
-  PLANS,
+  PUBLIC_PLANS,
   CARD_NEWS_PAGES,
   planFeatureList,
   type Plan,
@@ -234,7 +234,7 @@ export default async function PricingPage() {
 
           {/* 플랜 카드 */}
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {PLANS.map((plan) => {
+            {PUBLIC_PLANS.map((plan) => {
               const popular = plan.id === "pro";
               return (
                 <div
@@ -312,7 +312,7 @@ export default async function PricingPage() {
                   <th className="p-4 text-left font-semibold">
                     {ko ? "제공 내용" : "Features"}
                   </th>
-                  {PLANS.map((p) => (
+                  {PUBLIC_PLANS.map((p) => (
                     <th key={p.id} className="p-4 text-center font-semibold">
                       <span className="block">{ko ? p.name.ko : p.name.en}</span>
                       <span className="tnum mt-0.5 block text-xs font-medium text-muted">
@@ -327,7 +327,7 @@ export default async function PricingPage() {
                 {rows.map(([label, cell]) => (
                   <tr key={label}>
                     <td className="p-4 font-medium">{label}</td>
-                    {PLANS.map((p) => (
+                    {PUBLIC_PLANS.map((p) => (
                       <td key={p.id} className="tnum p-4 text-center">
                         {cell(p)}
                       </td>

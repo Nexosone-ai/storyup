@@ -11,6 +11,7 @@ import {
   confirmPacketTransferAction,
   cancelPacketOrderAction,
   removePartnerAction,
+  setProvisioningAction,
 } from "@/app/dashboard/admin/partners/actions";
 import type { AdminPacketOrderRow } from "@/lib/partner/packets";
 import type { PartnerAssignmentRow, PartnerListRow } from "@/lib/partner";
@@ -181,6 +182,11 @@ export function AdminPartnersView({
                       영업
                     </span>
                   )}
+                  {p.provisioning && (
+                    <span className="ml-1 rounded-full border border-primary/40 px-1.5 py-0.5 text-[11px] text-primary">
+                      별도계약·계정생성
+                    </span>
+                  )}
                   <span className="ml-2 text-xs text-muted tabular-nums">
                     패킷 {p.credits.toLocaleString()} · 고객 {p.clientCount}
                   </span>
@@ -211,14 +217,37 @@ export function AdminPartnersView({
                     </Button>
                   </span>
                 ) : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setConfirmRemove(p.userId)}
-                    disabled={pending}
-                  >
-                    파트너 해제
-                  </Button>
+                  <span className="flex items-center gap-1">
+                    {!p.isSub && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() =>
+                          run(async () => {
+                            const next = !p.provisioning;
+                            const res = await setProvisioningAction(p.userId, next);
+                            if (res.ok)
+                              setPartnerList((l) =>
+                                l.map((x) => (x.userId === p.userId ? { ...x, provisioning: next } : x)),
+                              );
+                            return res;
+                          })
+                        }
+                        disabled={pending}
+                        title="별도계약 파트너: 고객 계정을 직접 생성(Lite, 30일 118패킷)할 수 있게 합니다. 서브파트너도 상속."
+                      >
+                        {p.provisioning ? "계정생성 끄기" : "계정생성 켜기"}
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setConfirmRemove(p.userId)}
+                      disabled={pending}
+                    >
+                      파트너 해제
+                    </Button>
+                  </span>
                 )}
               </li>
             ))}

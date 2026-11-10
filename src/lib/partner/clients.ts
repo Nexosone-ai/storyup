@@ -21,7 +21,7 @@ export interface PendingInviteRow {
 type LinkResult = { ok: true } | { ok: false; error: string };
 
 /** 핵심: partner_clients + account_shares(accepted) 멱등 생성. 호출 전 검증 끝난 상태. */
-async function linkPartnerClient(
+export async function linkPartnerClient(
   partnerUserId: string,
   partnerEmail: string,
   clientUserId: string,

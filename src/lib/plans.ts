@@ -7,7 +7,7 @@
 
 import { SHORTS_ENABLED } from "@/lib/shorts/config";
 
-export type PlanId = "free" | "basic" | "pro" | "partner";
+export type PlanId = "free" | "basic" | "pro" | "partner" | "lite";
 
 export interface Plan {
   id: PlanId;
@@ -71,6 +71,8 @@ export interface Plan {
   aiAgent?: boolean;
   /** 관리자/직원 총 계정 수(소유자 포함). null = 협의(무제한). 직원 초대 가능 수 = maxMembers-1. */
   maxMembers: number | null;
+  /** 요금 안내·플랜 선택 화면에 비노출(파트너 전용 공급 플랜 등). */
+  hidden?: boolean;
 }
 
 export const PLANS: Plan[] = [
@@ -126,6 +128,26 @@ export const PLANS: Plan[] = [
     premiumImages: true,
   },
   {
+    // 파트너 직접 생성 계정(별도계약, 2026-11-10) — B2C 미판매. 별도계약 파트너가 고객 계정을 직접 만들고
+    // 30일 이용권당 패킷(LITE_ACCOUNT_30D, 기본 118 = ₩11,800 VAT 별도)을 차감한다. src/lib/partner/provisioning.ts
+    id: "lite",
+    name: { ko: "Lite", en: "Lite" },
+    priceKrw: null,
+    partnerSupplyPriceKrw: 11800,
+    limits: { sites: 1, blogPosts: 10, cardNews: 6, shorts: 3, video: 0, aiImages: 50 },
+    maxBusinesses: 1,
+    maxMembers: 1,
+    siteLayouts: 9,
+    domain: "subdomain",
+    watermarkRemoved: true,
+    couponBlock: true,
+    aiStrategy: true,
+    seoTools: true,
+    report: "monthly",
+    analyticsTier: "detailed",
+    hidden: true,
+  },
+  {
     id: "partner",
     name: { ko: "Partner", en: "Partner" },
     priceKrw: null,
@@ -149,6 +171,9 @@ export const PLANS: Plan[] = [
 ];
 
 const PLAN_BY_ID = new Map(PLANS.map((p) => [p.id, p]));
+
+/** 요금 안내·플랜 선택에 노출하는 플랜(파트너 전용 공급 플랜 제외). */
+export const PUBLIC_PLANS: Plan[] = PLANS.filter((p) => !p.hidden);
 
 /** 이 플랜의 AI 이미지를 고화질(Gemini)로 만들지. false = fal FLUX(저원가). */
 export function premiumImagesFor(plan: PlanId | Plan): boolean {
