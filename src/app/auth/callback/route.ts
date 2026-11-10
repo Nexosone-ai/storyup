@@ -21,17 +21,21 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("type") as EmailOtpType | null;
   const next = searchParams.get("next") ?? "/dashboard";
   const ref = (searchParams.get("ref") ?? "").trim().toUpperCase();
+  // as=partner: 파트너의 영업파트너 모집 링크(고객 대신 파트너(영업)으로 등록)
+  const refAs = searchParams.get("as") === "partner" ? ("partner" as const) : null;
   const safeNext = next.startsWith("/") ? next : "/dashboard";
 
   const setRefAnd = async (res: NextResponse, userId?: string) => {
     if (REF_RE.test(ref)) {
-      if (userId) await attributeReferral(userId, ref);
-      res.cookies.set("su_ref", ref, {
+      if (userId) await attributeReferral(userId, ref, refAs);
+      const opts = {
         httpOnly: true,
-        sameSite: "lax",
+        sameSite: "lax" as const,
         maxAge: 7 * 86_400,
         path: "/",
-      });
+      };
+      res.cookies.set("su_ref", ref, opts);
+      if (refAs) res.cookies.set("su_ref_as", refAs, opts);
     }
     return res;
   };

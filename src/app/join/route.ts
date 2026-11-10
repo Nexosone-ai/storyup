@@ -13,16 +13,22 @@ export function GET(req: NextRequest) {
     .toUpperCase()
     .slice(0, 12);
   const valid = /^[A-Z0-9]{4,12}$/.test(ref);
+  // as=partner: 파트너의 '영업파트너 모집 링크'. 가입자를 고객이 아니라 파트너(영업)으로 등록한다.
+  const asPartner = req.nextUrl.searchParams.get("as") === "partner";
   const target = new URL("/signup", req.url);
   if (valid) target.searchParams.set("ref", ref);
+  if (valid && asPartner) target.searchParams.set("as", "partner");
   const res = NextResponse.redirect(target);
   if (valid) {
-    res.cookies.set("su_ref", ref, {
+    const opts = {
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: "lax" as const,
       maxAge: 7 * 86_400,
       path: "/",
-    });
+    };
+    res.cookies.set("su_ref", ref, opts);
+    if (asPartner) res.cookies.set("su_ref_as", "partner", opts);
+    else res.cookies.delete("su_ref_as");
   }
   return res;
 }

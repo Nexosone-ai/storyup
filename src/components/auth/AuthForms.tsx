@@ -111,13 +111,21 @@ function SocialAuth({
   t,
   redirect,
   refCode,
+  refAs,
 }: {
   t: AuthDict;
   redirect?: string;
   /** /signup?ref= 추천 코드 — 쿠키가 없는 브라우저에서도 귀속되도록 서버 액션에 전달 */
   refCode?: string | null;
+  /** /signup?as=partner — 파트너의 영업파트너 모집 링크로 온 경우 */
+  refAs?: string | null;
 }) {
-  const refInput = refCode ? <input type="hidden" name="ref" value={refCode} /> : null;
+  const refInput = refCode ? (
+    <>
+      <input type="hidden" name="ref" value={refCode} />
+      {refAs === "partner" ? <input type="hidden" name="as" value="partner" /> : null}
+    </>
+  ) : null;
   return (
     <div className="mt-5 space-y-2.5">
       <div className="mb-5 flex items-center gap-3">
@@ -167,6 +175,7 @@ export function LoginForm({ t }: { t: AuthDict }) {
   const params = useSearchParams();
   const redirect = params.get("redirect") ?? "/dashboard";
   const refCode = params.get("ref");
+  const refAs = params.get("as");
 
   return (
     <>
@@ -192,7 +201,7 @@ export function LoginForm({ t }: { t: AuthDict }) {
           {pending ? <Spinner /> : t.login}
         </Button>
       </form>
-      <SocialAuth t={t} redirect={redirect} refCode={refCode} />
+      <SocialAuth t={t} redirect={redirect} refCode={refCode} refAs={refAs} />
     </>
   );
 }
@@ -200,7 +209,9 @@ export function LoginForm({ t }: { t: AuthDict }) {
 export function SignupForm({ t }: { t: AuthDict }) {
   const [state, action, pending] = useActionState(signUpAction, initial);
   // /join?ref= → /signup?ref= 로 넘어온 추천 코드. 쿠키가 없는 브라우저에서도 귀속되게 폼에 싣는다.
-  const refCode = useSearchParams().get("ref");
+  const signupParams = useSearchParams();
+  const refCode = signupParams.get("ref");
+  const refAs = signupParams.get("as");
   // 비밀번호 확인 — 입력 중 불일치를 바로 보여주고, 최종 검증은 서버(signUpAction)가 한다.
   const [pw, setPw] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -210,6 +221,9 @@ export function SignupForm({ t }: { t: AuthDict }) {
     <>
     <form action={action} className="space-y-4">
       {refCode ? <input type="hidden" name="ref" value={refCode} /> : null}
+      {refCode && refAs === "partner" ? (
+        <input type="hidden" name="as" value="partner" />
+      ) : null}
       <div>
         <Label htmlFor="name">{t.name}</Label>
         <Input id="name" name="name" type="text" autoComplete="name" required />
@@ -256,7 +270,7 @@ export function SignupForm({ t }: { t: AuthDict }) {
         {pending ? <Spinner /> : t.signup}
       </Button>
     </form>
-    <SocialAuth t={t} refCode={refCode} />
+    <SocialAuth t={t} refCode={refCode} refAs={refAs} />
     </>
   );
 }

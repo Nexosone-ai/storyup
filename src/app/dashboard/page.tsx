@@ -35,13 +35,15 @@ export default async function DashboardPage() {
 
   const ko = (await getLocale()) === "ko";
   // 추천 링크(/join?ref=)로 가입한 경우 쿠키의 코드를 귀속 처리에 넘긴다
-  const refCode = (await cookies()).get("su_ref")?.value ?? null;
+  const cookieStore = await cookies();
+  const refCode = cookieStore.get("su_ref")?.value ?? null;
+  const refAs = cookieStore.get("su_ref_as")?.value === "partner" ? "partner" : null;
   const supabase = await createClient();
   const ownerId = await accountOwnerId(supabase, user.id);
   const [name, data, growth, partnerShares] = await Promise.all([
     getProfileName(),
     getDashboardData(user.id),
-    getGrowthOverview(user.id, refCode),
+    getGrowthOverview(user.id, refCode, refAs),
     listOwnerShares(ownerId),
   ]);
 

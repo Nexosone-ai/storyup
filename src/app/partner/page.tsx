@@ -239,7 +239,7 @@ export default async function PartnerPage() {
       <PartnerReferralLink
         code={referralCode}
         siteUrl={siteUrl}
-        canManageSubs={canManageSubs}
+        isSub={amSub}
         ko={ko}
       />
 
