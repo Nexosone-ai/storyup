@@ -9,7 +9,7 @@ import {
   setSubPartnerStatusAction,
 } from "./actions";
 
-export const metadata = { title: "서브파트너 관리" };
+export const metadata = { title: "파트너(영업) 관리" };
 
 export default async function SubPartnersPage() {
   if (!B2B2C_ENABLED) notFound();
@@ -25,11 +25,12 @@ export default async function SubPartnersPage() {
       <div>
         <p className="eyebrow mb-2">파트너 대행</p>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          서브파트너 관리
+          파트너(영업) 관리
         </h1>
         <p className="mt-1.5 text-muted">
-          내 아래에 서브파트너(2차 파트너)를 등록해 영업망을 넓히세요. 서브파트너의
-          랜딩·블로그·카드뉴스·이벤트·트래픽 활동을 여기서 볼 수 있어요.
+          내 아래에 파트너(영업)을 등록해 영업망을 넓히세요. 파트너(영업)은 내가 정한
+          가격을 원가로 자기 마진을 붙여 판매하며, 그들의 랜딩·블로그·카드뉴스·이벤트·트래픽
+          활동을 여기서 볼 수 있어요.
         </p>
       </div>
 

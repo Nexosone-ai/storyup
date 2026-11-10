@@ -10,7 +10,7 @@ import {
   needsOnboarding,
 } from "@/lib/queries";
 import { isCurrentUserAdmin } from "@/lib/points";
-import { isCurrentUserPartner } from "@/lib/partner";
+import { isCurrentUserPartner, isSubPartner } from "@/lib/partner";
 import { linkPendingInvitesForUser } from "@/lib/partner/clients";
 import { dashboardNav, workspaceNav } from "@/lib/nav";
 import { getLocale } from "@/lib/i18n";
@@ -55,11 +55,13 @@ export default async function DashboardLayout({
     getActiveAnnouncement(),
     needsOnboarding(),
   ]);
+  // 서브파트너(파트너(영업)) 본인에게는 메뉴 이름을 '파트너(영업)'으로.
+  const partnerSub = partner ? await isSubPartner(user.id) : false;
 
   return (
     <LocaleProvider locale={locale}>
       <DashboardShell
-        nav={dashboardNav(admin, locale, unreadInquiries, partner)}
+        nav={dashboardNav(admin, locale, unreadInquiries, partner, partnerSub)}
         workspace={
           business
             ? {

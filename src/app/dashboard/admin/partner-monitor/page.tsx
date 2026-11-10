@@ -37,7 +37,7 @@ export default async function AdminPartnerMonitorPage() {
       <div>
         <h2 className="text-lg font-semibold">파트너 현황 모니터링</h2>
         <p className="mt-1 text-sm text-muted">
-          최상위 파트너별로 직속 고객 + 서브파트너의 고객 활동을 모두 합산한
+          최상위 파트너별로 직속 고객 + 파트너(영업)의 고객 활동을 모두 합산한
           현황입니다. (읽기 전용 · 30일 조회수 기준 정렬)
         </p>
       </div>
@@ -45,7 +45,7 @@ export default async function AdminPartnerMonitorPage() {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           { label: "최상위 파트너", value: rows.length },
-          { label: "서브파트너", value: grand.subPartners },
+          { label: "파트너(영업)", value: grand.subPartners },
           { label: "직속 고객", value: grand.directClients },
           { label: "발행 랜딩", value: grand.sites },
           { label: "블로그(발행)", value: grand.blog },

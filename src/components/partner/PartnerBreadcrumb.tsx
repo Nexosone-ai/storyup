@@ -22,7 +22,7 @@ const LABELS: Record<string, { ko: string; en: string }> = {
   packets: { ko: "패킷 구매", en: "Buy packets" },
   result: { ko: "결제 결과", en: "Payment result" },
   sales: { ko: "상품 · 판매 관리", en: "Products & sales" },
-  "sub-partners": { ko: "서브파트너 관리", en: "Sub-partners" },
+  "sub-partners": { ko: "파트너(영업) 관리", en: "Sales partners" },
   video: { ko: "전문 영상 스튜디오", en: "Pro video studio" },
   designer: { ko: "디자이너 스튜디오", en: "Designer studio" },
   skills: { ko: "스킬", en: "Skills" },
@@ -36,7 +36,7 @@ const LABELS: Record<string, { ko: string; en: string }> = {
 function dynamicLabel(parent: string | undefined, ko: boolean): string {
   switch (parent) {
     case "sub-partners":
-      return ko ? "서브파트너 상세" : "Sub-partner";
+      return ko ? "파트너(영업) 상세" : "Sales partner";
     case "video":
       return ko ? "프로젝트" : "Project";
     case "templates":

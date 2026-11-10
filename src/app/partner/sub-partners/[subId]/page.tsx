@@ -7,7 +7,7 @@ import { B2B2C_ENABLED } from "@/lib/b2b2c/config";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/icons";
 
-export const metadata = { title: "서브파트너 활동" };
+export const metadata = { title: "파트너(영업) 활동" };
 
 export default async function SubPartnerDetailPage({
   params,
@@ -43,7 +43,7 @@ export default async function SubPartnerDetailPage({
           href="/partner/sub-partners"
           className="text-sm text-muted hover:text-foreground"
         >
-          ← 서브파트너 목록
+          ← 파트너(영업) 목록
         </Link>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
           {sub.name ?? sub.email ?? sub.subUserId}
@@ -65,7 +65,7 @@ export default async function SubPartnerDetailPage({
 
       {clients.length === 0 ? (
         <Card className="p-8">
-          <p className="font-semibold">아직 이 서브파트너의 고객이 없습니다.</p>
+          <p className="font-semibold">아직 이 파트너(영업)의 고객이 없습니다.</p>
         </Card>
       ) : (
         <div className="space-y-4">

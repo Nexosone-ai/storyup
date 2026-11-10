@@ -55,7 +55,7 @@ export function SubPartnerManager({
       if (res.error) setError(res.error);
       else {
         setEmail("");
-        setMsg("서브파트너를 등록했어요.");
+        setMsg("파트너(영업)을 등록했어요.");
       }
     });
 
@@ -71,11 +71,11 @@ export function SubPartnerManager({
   return (
     <div className="space-y-5">
       <div className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
-        <h2 className="text-sm font-semibold">서브파트너 초대</h2>
+        <h2 className="text-sm font-semibold">파트너(영업) 등록</h2>
         <p className="mt-1 text-xs text-muted">
-          이미 스토리업에 가입한 이메일을 입력하면 바로 서브파트너로 등록됩니다.
-          서브파트너는 파트너와 동일한 기능을 쓰되, 내가 정한 가격 위에 자기
-          마진을 붙여 고객에게 판매할 수 있어요.
+          이미 스토리업에 가입한 이메일을 입력하면 바로 내 파트너(영업)으로 등록됩니다.
+          파트너(영업)은 파트너와 동일한 기능을 쓰되, 내가 정한 가격 위에 자기
+          마진을 붙여 고객에게 판매할 수 있어요(본사 가격은 보이지 않습니다).
         </p>
         <div className="mt-3 flex flex-wrap items-end gap-2">
           <label className="min-w-0 flex-1 text-xs text-muted">
@@ -98,7 +98,7 @@ export function SubPartnerManager({
 
       {initial.length === 0 ? (
         <div className="rounded-2xl border border-border bg-surface p-8">
-          <p className="font-semibold">아직 등록한 서브파트너가 없습니다.</p>
+          <p className="font-semibold">아직 등록한 파트너(영업)이 없습니다.</p>
           <p className="mt-1 text-sm text-muted">
             위에서 이메일로 초대하면 여기에 표시됩니다.
           </p>

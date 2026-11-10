@@ -176,24 +176,24 @@ export default async function PartnerGuidePage() {
   if (canManageSubs) {
     sections.push({
       icon: "users",
-      title: "서브파트너 관리",
-      titleEn: "Managing sub-partners",
+      title: "파트너(영업) 관리",
+      titleEn: "Managing sales partners",
       items: [
-        "이메일로 서브파트너를 초대하면 즉시 활성화됩니다(승인 불필요).",
-        "서브파트너는 내 상품을 원가로 받아 자기 마진을 붙여 판매합니다.",
-        "서브파트너의 랜딩·블로그·카드뉴스·이벤트·트래픽 활동을 모니터링할 수 있습니다.",
-        "결제 시 본사·파트너·서브파트너 3자 정산이 자동 기록됩니다(실제 송금은 수동).",
+        "이메일로 파트너(영업)을 등록하면 즉시 활성화됩니다(승인 불필요). 영업자가 리크루트한 영업자는 이렇게 내 아래에 둡니다.",
+        "파트너(영업)은 내 상품을 원가로 받아 자기 마진을 붙여 판매합니다. 본사 공급가는 파트너(영업)에게 보이지 않습니다.",
+        "파트너(영업)의 랜딩·블로그·카드뉴스·이벤트·트래픽 활동을 모니터링할 수 있습니다.",
+        "결제 시 본사·파트너·파트너(영업) 3자 정산이 자동 기록됩니다(실제 송금은 수동).",
       ],
       itemsEn: [
-        "Invite a sub-partner by email; they are activated immediately (no approval needed).",
-        "Sub-partners take your products at cost and add their own margin to sell.",
+        "Register a sales partner by email; they are activated immediately (no approval needed).",
+        "Sales partners take your products at cost and add their own margin to sell; head-office pricing is hidden from them.",
         "You can monitor their landing pages, blogs, card news, events, and traffic.",
         "On payment, a 3-way settlement (head office/you/sub) is recorded automatically (payout is manual).",
       ],
       link: {
         href: "/partner/sub-partners",
-        label: "서브파트너 관리",
-        labelEn: "Sub-partners",
+        label: "파트너(영업) 관리",
+        labelEn: "Sales partners",
       },
     });
   }
