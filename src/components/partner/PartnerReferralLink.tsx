@@ -50,9 +50,9 @@ export function PartnerReferralLink({
         {canManageSubs && (
           <>
             {" "}
-            {ko ? "영업자(서브파트너) 등록은 " : "To recruit a sub-partner, use "}
+            {ko ? "영업자 리크루트는 " : "To recruit a sales partner, use "}
             <Link href="/partner/sub-partners" className="font-medium text-primary hover:underline">
-              {ko ? "서브파트너 관리" : "Sub-partners"}
+              {ko ? "파트너(영업) 관리" : "Sales partners"}
             </Link>
             {ko ? "에서 하세요." : "."}
           </>

@@ -75,7 +75,15 @@ export default async function PartnerPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="eyebrow mb-2">{ko ? "파트너 대행" : "Partner"}</p>
+          <p className="eyebrow mb-2">
+            {amSub
+              ? ko
+                ? "파트너(영업)"
+                : "Sales partner"
+              : ko
+                ? "파트너 대행"
+                : "Partner"}
+          </p>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
             {ko ? "대행 고객 관리" : "Managed clients"}
           </h1>
@@ -190,7 +198,7 @@ export default async function PartnerPage() {
                 variant="outline"
                 href="/partner/sub-partners"
               >
-                {ko ? "서브파트너 관리" : "Sub-partners"}
+                {ko ? "파트너(영업) 관리" : "Sales partners"}
               </ButtonLink>
             )}
           </div>

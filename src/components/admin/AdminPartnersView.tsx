@@ -160,7 +160,7 @@ export function AdminPartnersView({
           현재 파트너 ({partnerList.length})
         </h3>
         <p className="mt-1 text-xs text-muted">
-          파트너 해제 시 계정은 무료 플랜으로 돌아가고 파트너 영역 접근·고객 배정·서브파트너
+          파트너 해제 시 계정은 무료 플랜으로 돌아가고 파트너 영역 접근·고객 배정·파트너(영업)
           관계가 정리됩니다. 패킷 원장·구매 주문·정산 기록은 보존되며, 다시 파트너로 설정하면
           남은 패킷을 그대로 씁니다.
         </p>
@@ -178,7 +178,7 @@ export function AdminPartnersView({
                   {p.name && <span className="text-muted"> · {p.name}</span>}
                   {p.isSub && (
                     <span className="ml-1 rounded-full border border-border px-1.5 py-0.5 text-[11px] text-muted">
-                      서브
+                      영업
                     </span>
                   )}
                   <span className="ml-2 text-xs text-muted tabular-nums">
