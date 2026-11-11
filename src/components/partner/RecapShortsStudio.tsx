@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Button, ButtonLink } from "@/components/ui/Button";
@@ -75,16 +76,17 @@ function saveBlob(blob: Blob, filename: string) {
 export function RecapShortsStudio(props: {
   businesses: { id: string; name: string }[];
   jobs: RecapJobView[];
-  credits: number;
-  basePrice: number | null;
-  imagePrice: number | null;
+  /** 보유 요약 쇼츠 작업권(편). */
+  shortsRemaining: number;
+  /** 보유 AI 이미지 작업권(장). */
+  imagesRemaining: number;
   providers: { script: boolean; tts: boolean };
   youtube: {
     configured: boolean;
     connected: boolean;
     channelTitle: string | null;
   };
-  /** 허브(탭) 안에 내장될 때 — 자체 제목·패킷 카드·홈 링크를 숨긴다. */
+  /** 허브(탭) 안에 내장될 때 — 자체 제목·작업권 카드·홈 링크를 숨긴다. */
   embedded?: boolean;
 }) {
   const { providers } = props;
@@ -107,9 +109,9 @@ export function RecapShortsStudio(props: {
           </div>
           <div className="flex gap-3">
             <Card className="px-4 py-3 text-right">
-              <p className="text-xs text-muted">보유 패킷</p>
-              <p className="text-2xl font-semibold tabular-nums">
-                {props.credits.toLocaleString()}
+              <p className="text-xs text-muted">보유 작업권</p>
+              <p className="text-sm font-semibold tabular-nums">
+                요약 쇼츠 {props.shortsRemaining}편 · AI 이미지 {props.imagesRemaining}장
               </p>
             </Card>
             <ButtonLink href="/partner" variant="outline" size="sm">
@@ -133,9 +135,8 @@ export function RecapShortsStudio(props: {
 
       <CreateForm
         businesses={props.businesses}
-        credits={props.credits}
-        basePrice={props.basePrice}
-        imagePrice={props.imagePrice}
+        shortsRemaining={props.shortsRemaining}
+        imagesRemaining={props.imagesRemaining}
         disabled={!configured}
       />
 
@@ -153,7 +154,7 @@ export function RecapShortsStudio(props: {
               key={j.id}
               job={j}
               youtube={props.youtube}
-              imagePrice={props.imagePrice}
+              imagesRemaining={props.imagesRemaining}
             />
           ))
         )}
@@ -165,15 +166,13 @@ export function RecapShortsStudio(props: {
 // ---------------- 만들기 폼 ----------------
 function CreateForm({
   businesses,
-  credits,
-  basePrice,
-  imagePrice,
+  shortsRemaining,
+  imagesRemaining,
   disabled,
 }: {
   businesses: { id: string; name: string }[];
-  credits: number;
-  basePrice: number | null;
-  imagePrice: number | null;
+  shortsRemaining: number;
+  imagesRemaining: number;
   disabled: boolean;
 }) {
   const router = useRouter();
@@ -223,13 +222,11 @@ function CreateForm({
   const effectiveSource: "cardnews" | "ai" =
     selected && !selected.hasCardBackgrounds ? "ai" : imageSource;
 
+  // 사용 작업권: 요약 쇼츠 1편(+ AI 소스면 장면당 AI 이미지 1장, 약 6장). 쇼츠 작업권이 없으면 차단.
   const estScenes = 6;
-  const estCredits =
-    (basePrice ?? 0) +
-    (effectiveSource === "ai" ? (imagePrice ?? 0) * estScenes : 0);
-  const priceKnown =
-    basePrice !== null && (effectiveSource !== "ai" || imagePrice !== null);
-  const tooLow = priceKnown && credits < estCredits;
+  const tooLow =
+    shortsRemaining < 1 || (effectiveSource === "ai" && imagesRemaining < 1);
+  const imagesShort = effectiveSource === "ai" && imagesRemaining < estScenes;
 
   const create = () =>
     start(async () => {
@@ -321,7 +318,7 @@ function CreateForm({
               active={effectiveSource === "cardnews"}
               onClick={() => setImageSource("cardnews")}
               disabled={busy || (!!selected && !selected.hasCardBackgrounds)}
-              title="이 글의 카드뉴스 배경 사진을 재사용(추가 패킷 없음)"
+              title="이 글의 카드뉴스 배경 사진을 재사용(작업권 추가 사용 없음)"
             >
               카드뉴스 배경
             </Chip>
@@ -329,7 +326,7 @@ function CreateForm({
               active={effectiveSource === "ai"}
               onClick={() => setImageSource("ai")}
               disabled={busy}
-              title="장면마다 AI 이미지 생성(장당 패킷)"
+              title="장면마다 AI 이미지 생성(장당 AI 이미지 작업권 1장)"
             >
               AI 생성
             </Chip>
@@ -407,30 +404,37 @@ function CreateForm({
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted">
-          예상 패킷:{" "}
-          <span className="font-semibold text-foreground tabular-nums">
-            {priceKnown ? estCredits : "단가 미설정"}
+          사용 작업권:{" "}
+          <span className="font-semibold text-foreground">
+            요약 쇼츠 1편{effectiveSource === "ai" ? ` + AI 이미지 약 ${estScenes}장` : ""}
           </span>
-          {effectiveSource === "ai" && priceKnown && (
-            <span className="ml-1 text-xs">
-              (대본·내레이션 {basePrice} + AI 이미지 약 {estScenes}장 ×{" "}
-              {imagePrice})
+          <span className="ml-1 text-xs">
+            (보유 쇼츠 {shortsRemaining}편 · 이미지 {imagesRemaining}장)
+          </span>
+          {tooLow && (
+            <span className="ml-2 text-danger">
+              작업권이 부족해요 —{" "}
+              <Link href="/partner/sales" className="underline">
+                고객에게 상품을 판매(결제)하면 작업권이 생겨요
+              </Link>
             </span>
           )}
-          {tooLow && <span className="ml-2 text-danger">패킷이 부족해요</span>}
+          {imagesShort && !tooLow && (
+            <span className="ml-2 text-warning">
+              AI 이미지 작업권 {imagesRemaining}장 보유 — 일부 장면만 생성될 수 있어요
+            </span>
+          )}
         </p>
         <Button
           onClick={create}
-          disabled={
-            disabled || busy || !bizId || !postId || !priceKnown || tooLow
-          }
+          disabled={disabled || busy || !bizId || !postId || tooLow}
         >
           {busy ? (
             <>
               <Spinner className="size-4" /> 대본 만드는 중…
             </>
           ) : (
-            "대본 만들기 (패킷 차감)"
+            "대본 만들기 (작업권 1편 사용)"
           )}
         </Button>
       </div>
@@ -443,7 +447,7 @@ function CreateForm({
 function JobCard({
   job,
   youtube,
-  imagePrice,
+  imagesRemaining,
 }: {
   job: RecapJobView;
   youtube: {
@@ -451,7 +455,7 @@ function JobCard({
     connected: boolean;
     channelTitle: string | null;
   };
-  imagePrice: number | null;
+  imagesRemaining: number;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(job.status !== "ready");
@@ -669,7 +673,7 @@ function JobCard({
   const remove = async () => {
     if (
       !confirm(
-        "이 작업을 삭제할까요? (내레이션이 하나도 없으면 패킷이 환불됩니다)",
+        "이 작업을 삭제할까요? (내레이션이 하나도 없으면 요약 쇼츠 작업권 1편이 돌아와요)",
       )
     )
       return;
@@ -722,12 +726,14 @@ function JobCard({
                 size="sm"
                 variant="outline"
                 onClick={makeImages}
-                disabled={!!running || imageDone === scenes.length}
+                disabled={
+                  !!running || imageDone === scenes.length || imagesRemaining < 1
+                }
               >
                 {running === "images" ? <Spinner className="size-4" /> : null}
                 {imageDone === scenes.length
                   ? "이미지 완료"
-                  : `AI 이미지 만들기 (${scenes.length - imageDone}장${imagePrice !== null ? ` · 장당 ${imagePrice}` : ""})`}
+                  : `AI 이미지 만들기 (${scenes.length - imageDone}장 · 보유 ${imagesRemaining}장)`}
               </Button>
             )}
             <Button
@@ -810,7 +816,7 @@ function JobCard({
             ))}
           </div>
           <p className="text-[11px] text-muted">
-            내레이션 문장을 고치면 그 장면만 다시 합성됩니다(추가 패킷 없음).
+            내레이션 문장을 고치면 그 장면만 다시 합성됩니다(작업권 추가 사용 없음).
             영상은 브라우저에서 만들어지니 완료될 때까지 탭을 닫지 마세요.
           </p>
         </div>

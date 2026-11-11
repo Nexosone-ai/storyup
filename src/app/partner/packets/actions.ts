@@ -14,6 +14,10 @@ import {
 
 const PATH = "/partner/packets";
 
+/** 2026-11-11 패킷 제도 종료 — 모든 구매 액션은 차단(안내만). PR2 에서 파일 삭제 예정. */
+const PACKETS_CLOSED =
+  "패킷 제도가 종료되었어요. 고객에게 상품을 판매(결제)하면 작업권이 생겨요.";
+
 async function guard(): Promise<
   { userId: string; email: string } | { error: string }
 > {
@@ -21,7 +25,7 @@ async function guard(): Promise<
   if (!user) return { error: "로그인이 필요합니다." };
   if (!(await isCurrentUserPartner()))
     return { error: "파트너만 이용할 수 있습니다." };
-  return { userId: user.id, email: user.email ?? "" };
+  return { error: PACKETS_CLOSED };
 }
 
 /** 카드결제 주문 생성 → 브라우저가 PortOne 결제창을 연다. */

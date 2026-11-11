@@ -3,12 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getBusiness } from "@/lib/queries";
+import { isCurrentUserPartner } from "@/lib/partner";
 import {
-  isCurrentUserPartner,
-  chargePartnerCredits,
-  InsufficientCreditsError,
-  CreditChargeError,
-} from "@/lib/partner";
+  consumeEntitlement,
+  refundEntitlement,
+  InsufficientEntitlementError,
+  EntitlementError,
+} from "@/lib/partner/entitlements";
 import { contentToPlainText } from "@/utils/markdown";
 import { generateImageResilient } from "@/lib/ai/image";
 import { storeGeneratedImage } from "@/lib/ai/imageStore";
@@ -121,15 +122,18 @@ export async function createRecapJobAction(
       };
   }
 
-  // 선과금(1편당). 잔액 부족/단가 미설정이면 fail-closed.
+  // 작업권 선소비(1편당 RECAP_SHORTS 1). 없으면 판매 안내(fail-closed).
   let billing;
   try {
-    billing = await chargePartnerCredits(user.id, RECAP_SHORTS_ACTION, business.id, true);
+    billing = await consumeEntitlement(user.id, RECAP_SHORTS_ACTION, 1, {
+      refBusinessId: business.id,
+      reason: "recap_shorts",
+    });
   } catch (err) {
-    if (err instanceof InsufficientCreditsError || err instanceof CreditChargeError)
+    if (err instanceof InsufficientEntitlementError || err instanceof EntitlementError)
       return { error: err.message };
-    console.error("[recap] charge failed", err);
-    return { error: "크레딧 처리 중 문제가 발생했어요. 잠시 후 다시 시도해주세요." };
+    console.error("[recap] entitlement consume failed", err);
+    return { error: "작업권 처리 중 문제가 발생했어요. 잠시 후 다시 시도해주세요." };
   }
 
   // 대본.
@@ -173,7 +177,7 @@ export async function createRecapJobAction(
       font,
       bgm,
       scenes: scenes as unknown as import("@/types/database").Json,
-      credits_charged: billing.charged,
+      credits_charged: billing.consumed, // 소비한 작업권 수(RECAP_SHORTS) — 삭제 시 환불 기준
     })
     .select("id")
     .single();
@@ -255,16 +259,15 @@ export async function generateRecapSceneImageAction(
 
   let billing;
   try {
-    billing = await chargePartnerCredits(
-      user.id,
-      RECAP_IMAGE_ACTION,
-      job.business_id ?? undefined,
-      true,
-    );
+    billing = await consumeEntitlement(user.id, RECAP_IMAGE_ACTION, 1, {
+      refBusinessId: job.business_id ?? null,
+      refId: jobId,
+      reason: "recap_scene_image",
+    });
   } catch (err) {
-    if (err instanceof InsufficientCreditsError || err instanceof CreditChargeError)
+    if (err instanceof InsufficientEntitlementError || err instanceof EntitlementError)
       return { error: err.message };
-    return { error: "크레딧 처리 중 문제가 발생했어요." };
+    return { error: "작업권 처리 중 문제가 발생했어요." };
   }
 
   try {
@@ -340,7 +343,7 @@ export async function finalizeRecapJobAction(
 }
 
 /**
- * 삭제 — 완료된 장면(오디오)이 하나도 없으면 선과금을 환불한다(유사영상 '전부 실패 → 환불' 규칙).
+ * 삭제 — 완료된 장면(오디오)이 하나도 없으면 소비한 작업권을 돌려준다(유사영상 '전부 실패 → 환불' 규칙).
  * 이미 일부라도 합성됐으면 비용이 발생했으므로 환불하지 않는다. 원장은 삭제하지 않고 환불 행을 추가.
  */
 export async function deleteRecapJobAction(
@@ -357,14 +360,12 @@ export async function deleteRecapJobAction(
   const admin = createAdminClient();
   let refunded = 0;
   if (!anyDone && job.credits_charged > 0) {
-    const { error } = await admin.from("partner_credit_ledger").insert({
-      partner_user_id: user.id,
-      amount: job.credits_charged,
-      reason: `refund:${RECAP_SHORTS_ACTION}`,
-      ref_type: "refund",
-      ref_business_id: job.business_id,
+    const ok = await refundEntitlement(user.id, RECAP_SHORTS_ACTION, job.credits_charged, {
+      refBusinessId: job.business_id,
+      refId: jobId,
+      reason: "recap_job_deleted",
     });
-    if (!error) refunded = job.credits_charged;
+    if (ok) refunded = job.credits_charged;
   }
   await admin.from("recap_shorts_jobs").delete().eq("id", jobId).eq("user_id", user.id);
   revalidatePath(PATH);

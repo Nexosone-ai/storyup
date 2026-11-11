@@ -1,5 +1,7 @@
 import "server-only";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { entitlementSummaryFor } from "@/lib/partner/entitlements";
+import { emptyBalances, type EntitlementBalances } from "@/lib/partner/entitlementCatalog";
 
 /** 파트너 패킷(크레딧) 부족 — 에이전트 작업 차단. 관리자 충전 안내용. */
 export class InsufficientCreditsError extends Error {
@@ -523,7 +525,8 @@ export interface PartnerListRow {
   userId: string;
   email: string | null;
   name: string | null;
-  credits: number;
+  /** 서비스별 보유 작업권(0112). */
+  entitlements: EntitlementBalances;
   clientCount: number;
   isSub: boolean;
   /** 별도계약(고객 계정 직접 생성) 권한 — 관리자 페이지가 채운다. */
@@ -531,7 +534,7 @@ export interface PartnerListRow {
   since: string;
 }
 
-/** 관리자: 현재 파트너(plan=partner·active) 전체 — 잔여 패킷·배정 고객 수 포함. */
+/** 관리자: 현재 파트너(plan=partner·active) 전체 — 보유 작업권·배정 고객 수 포함. */
 export async function listPartners(): Promise<PartnerListRow[]> {
   const admin = createAdminClient();
   const { data: subs } = await admin
@@ -546,17 +549,14 @@ export async function listPartners(): Promise<PartnerListRow[]> {
   );
   const ids = rows.map((s) => s.user_id);
   if (ids.length === 0) return [];
-  const [{ data: profiles }, { data: ledger }, { data: clients }, { data: subPartners }] =
+  const [{ data: profiles }, entitlements, { data: clients }, { data: subPartners }] =
     await Promise.all([
       admin.from("profiles").select("user_id, email, name").in("user_id", ids),
-      admin.from("partner_credit_ledger").select("partner_user_id, amount").in("partner_user_id", ids),
+      entitlementSummaryFor(ids),
       admin.from("partner_clients").select("partner_user_id").in("partner_user_id", ids),
       admin.from("partner_subs").select("sub_partner_user_id").in("sub_partner_user_id", ids),
     ]);
   const prof = new Map((profiles ?? []).map((p) => [p.user_id, p]));
-  const credits = new Map<string, number>();
-  for (const l of ledger ?? [])
-    credits.set(l.partner_user_id, (credits.get(l.partner_user_id) ?? 0) + l.amount);
   const clientCount = new Map<string, number>();
   for (const c of clients ?? [])
     clientCount.set(c.partner_user_id, (clientCount.get(c.partner_user_id) ?? 0) + 1);
@@ -566,7 +566,7 @@ export async function listPartners(): Promise<PartnerListRow[]> {
       userId: s.user_id,
       email: prof.get(s.user_id)?.email ?? null,
       name: prof.get(s.user_id)?.name ?? null,
-      credits: credits.get(s.user_id) ?? 0,
+      entitlements: entitlements.get(s.user_id) ?? emptyBalances(),
       clientCount: clientCount.get(s.user_id) ?? 0,
       isSub: subSet.has(s.user_id),
       since: s.updated_at,

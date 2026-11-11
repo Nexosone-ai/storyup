@@ -6,7 +6,7 @@ import {
   makePartnerAction,
   assignClientAction,
   unassignClientAction,
-  grantCreditsAction,
+  grantEntitlementAction,
   setCreditPriceAction,
   confirmPacketTransferAction,
   cancelPacketOrderAction,
@@ -16,6 +16,10 @@ import {
 import type { AdminPacketOrderRow } from "@/lib/partner/packets";
 import type { PartnerAssignmentRow, PartnerListRow } from "@/lib/partner";
 import type { AdminShareRow } from "@/lib/accountShare";
+import {
+  ENTITLEMENT_SERVICES,
+  formatEntitlementSummary,
+} from "@/lib/partner/entitlementCatalog";
 
 export interface CreditPriceRow {
   action: string;
@@ -48,8 +52,9 @@ export function AdminPartnersView({
   const [partnerEmail, setPartnerEmail] = useState("");
   const [clientEmail, setClientEmail] = useState("");
   const [grantEmail, setGrantEmail] = useState("");
-  const [grantAmount, setGrantAmount] = useState(1000);
-  const [grantMemo, setGrantMemo] = useState("");
+  const [grantService, setGrantService] = useState<string>(ENTITLEMENT_SERVICES[0].key);
+  const [grantUnits, setGrantUnits] = useState(1);
+  const [grantReason, setGrantReason] = useState("");
   const [list, setList] = useState(assignments);
   const [partnerList, setPartnerList] = useState(partners);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
@@ -75,7 +80,7 @@ export function AdminPartnersView({
       <div>
         <h2 className="text-lg font-semibold tracking-tight">파트너 관리</h2>
         <p className="mt-1 text-sm text-muted">
-          파트너 자격 부여, 대행 고객 배정, 패킷(크레딧) 지급을 관리합니다.
+          파트너 자격 부여, 대행 고객 배정, 작업권 부여를 관리합니다.
         </p>
       </div>
 
@@ -188,7 +193,7 @@ export function AdminPartnersView({
                     </span>
                   )}
                   <span className="ml-2 text-xs text-muted tabular-nums">
-                    패킷 {p.credits.toLocaleString()} · 고객 {p.clientCount}
+                    작업권 {formatEntitlementSummary(p.entitlements)} · 고객 {p.clientCount}
                   </span>
                 </span>
                 {confirmRemove === p.userId ? (
@@ -478,14 +483,14 @@ export function AdminPartnersView({
         )}
       </section>
 
-      {/* 3) 패킷(크레딧) 지급 */}
+      {/* 3) 작업권 부여 */}
       <section className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
-        <h3 className="text-sm font-semibold">3. 패킷(크레딧) 지급</h3>
+        <h3 className="text-sm font-semibold">3. 작업권 부여</h3>
         <p className="mt-1 text-xs text-muted">
-          계약·충전 시 파트너에게 크레딧을 지급합니다. 팩: 300 / 1,000 / 3,000.
-          음수로 차감도 가능.
+          평소에는 고객이 파트너 상품을 결제하면 상품에 포함된 작업권이 자동으로 지급됩니다.
+          계약 선지급·오류 보정·테스트처럼 결제 없이 줄 때만 여기서 직접 부여하세요. 음수를 넣으면 차감(보정)됩니다.
         </p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+        <div className="mt-3 grid gap-2 sm:grid-cols-4">
           <input
             type="email"
             value={grantEmail}
@@ -493,39 +498,48 @@ export function AdminPartnersView({
             placeholder="파트너 이메일"
             className={field}
           />
+          <select
+            value={grantService}
+            onChange={(e) => setGrantService(e.target.value)}
+            className={field}
+          >
+            {ENTITLEMENT_SERVICES.map((s) => (
+              <option key={s.key} value={s.key}>
+                {s.label} ({s.unitLabel})
+              </option>
+            ))}
+          </select>
           <input
             type="number"
-            value={grantAmount}
-            onChange={(e) => setGrantAmount(Number(e.target.value))}
+            value={grantUnits}
+            onChange={(e) => setGrantUnits(Number(e.target.value))}
             className={field}
           />
           <input
             type="text"
-            value={grantMemo}
-            onChange={(e) => setGrantMemo(e.target.value)}
-            placeholder="메모(선택)"
+            value={grantReason}
+            onChange={(e) => setGrantReason(e.target.value)}
+            placeholder="사유(필수) 예: 계약 선지급"
             className={field}
           />
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          {[300, 1000, 3000].map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => setGrantAmount(n)}
-              className="rounded-full border border-border px-3 py-1 text-xs text-muted hover:border-primary hover:text-primary"
-            >
-              {n.toLocaleString()}
-            </button>
-          ))}
           <Button
             className="ml-auto"
             onClick={() =>
-              run(() => grantCreditsAction(grantEmail, grantAmount, grantMemo))
+              run(() =>
+                grantEntitlementAction(grantEmail, grantService, grantUnits, grantReason),
+              )
             }
-            disabled={pending || !grantEmail.trim()}
+            disabled={
+              pending ||
+              !grantEmail.trim() ||
+              !grantReason.trim() ||
+              !Number.isInteger(grantUnits) ||
+              grantUnits === 0
+            }
           >
-            지급
+            작업권 부여
           </Button>
         </div>
       </section>

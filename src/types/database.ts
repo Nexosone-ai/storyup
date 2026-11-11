@@ -1413,6 +1413,118 @@ export interface Database {
         >;
         Relationships: [];
       };
+      entitlement_services: {
+        Row: {
+          key: string;
+          label: string;
+          unit_label: string;
+          description: string | null;
+          active: boolean;
+          sort_order: number;
+        };
+        Insert: {
+          key: string;
+          label: string;
+          unit_label?: string;
+          description?: string | null;
+          active?: boolean;
+          sort_order?: number;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["entitlement_services"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      hq_products: {
+        Row: {
+          id: string;
+          key: string;
+          name: string;
+          description: string | null;
+          included_services: string | null;
+          supply_price_krw: number;
+          vat_mode: string;
+          billing_type: string;
+          billing_period: string | null;
+          grant_plan: string | null;
+          grant_days: number;
+          status: string;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          key: string;
+          name: string;
+          description?: string | null;
+          included_services?: string | null;
+          supply_price_krw?: number;
+          vat_mode?: string;
+          billing_type?: string;
+          billing_period?: string | null;
+          grant_plan?: string | null;
+          grant_days?: number;
+          status?: string;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["hq_products"]["Insert"]>;
+        Relationships: [];
+      };
+      hq_product_items: {
+        Row: {
+          id: string;
+          hq_product_id: string;
+          service_key: string;
+          units: number;
+        };
+        Insert: {
+          id?: string;
+          hq_product_id: string;
+          service_key: string;
+          units: number;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["hq_product_items"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      partner_entitlements: {
+        Row: {
+          id: string;
+          partner_user_id: string;
+          service_key: string;
+          delta: number;
+          reason: string | null;
+          ref_type: string;
+          ref_invoice_id: string | null;
+          ref_business_id: string | null;
+          ref_id: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          partner_user_id: string;
+          service_key: string;
+          delta: number;
+          reason?: string | null;
+          ref_type: string;
+          ref_invoice_id?: string | null;
+          ref_business_id?: string | null;
+          ref_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["partner_entitlements"]["Insert"]
+        >;
+        Relationships: [];
+      };
       partner_products: {
         Row: {
           id: string;
@@ -1437,6 +1549,9 @@ export interface Database {
           parent_partner_user_id: string | null;
           parent_product_id: string | null;
           parent_base_price_krw: number | null;
+          hq_product_id: string | null;
+          entitlements: Json;
+          grant_days: number;
           created_at: string;
           updated_at: string;
         };
@@ -1463,6 +1578,9 @@ export interface Database {
           parent_partner_user_id?: string | null;
           parent_product_id?: string | null;
           parent_base_price_krw?: number | null;
+          hq_product_id?: string | null;
+          entitlements?: Json;
+          grant_days?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -1493,6 +1611,9 @@ export interface Database {
           status: string;
           parent_partner_user_id: string | null;
           parent_base_price_krw: number | null;
+          hq_product_id: string | null;
+          entitlements: Json;
+          grant_days: number;
           created_at: string;
           updated_at: string;
         };
@@ -1517,6 +1638,9 @@ export interface Database {
           status?: string;
           parent_partner_user_id?: string | null;
           parent_base_price_krw?: number | null;
+          hq_product_id?: string | null;
+          entitlements?: Json;
+          grant_days?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -1551,6 +1675,7 @@ export interface Database {
           paid_at: string | null;
           parent_partner_user_id: string | null;
           parent_base_price_krw: number | null;
+          hq_product_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -1579,6 +1704,7 @@ export interface Database {
           paid_at?: string | null;
           parent_partner_user_id?: string | null;
           parent_base_price_krw?: number | null;
+          hq_product_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -3734,6 +3860,17 @@ export interface Database {
       match_agent_memories: {
         Args: { p_business: string; p_query: string; p_count?: number };
         Returns: { content: string; similarity: number }[];
+      };
+      consume_partner_entitlement: {
+        Args: {
+          p_partner: string;
+          p_service: string;
+          p_units: number;
+          p_reason: string;
+          p_ref_business?: string | null;
+          p_ref_id?: string | null;
+        };
+        Returns: number;
       };
       spend_partner_credits: {
         Args: {

@@ -1,10 +1,15 @@
 import "server-only";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { getPlanById, type PlanId } from "@/lib/plans";
 import { PLAN_PRICE_VERSION, type VatMode, type BillingType } from "./config";
 import { supplyPriceForPlan } from "./basePlans";
 import { parentPartnerOf } from "@/lib/partner";
-import type { Database } from "@/types/database";
+import { getHqProduct } from "@/lib/hq/products";
+import {
+  parseEntitlementItems,
+  type EntitlementItem,
+  type GrantablePlan,
+} from "@/lib/partner/entitlementCatalog";
+import type { Database, Json } from "@/types/database";
 
 export type ProductRow =
   Database["public"]["Tables"]["partner_products"]["Row"];
@@ -15,7 +20,7 @@ export interface PublicProduct {
   name: string;
   description: string | null;
   includedServices: string | null;
-  basePlan: "basic" | "pro" | null;
+  basePlan: GrantablePlan | null;
   sellPriceKrw: number;
   currency: string;
   vatMode: string;
@@ -29,31 +34,13 @@ function toPublicProduct(r: ProductRow): PublicProduct {
     name: r.name,
     description: r.description,
     includedServices: r.included_services,
-    basePlan: (r.base_plan as "basic" | "pro" | null) ?? null,
+    basePlan: (r.base_plan as GrantablePlan | null) ?? null,
     sellPriceKrw: r.sell_price_krw,
     currency: r.currency,
     vatMode: r.vat_mode,
     billingType: r.billing_type,
     billingPeriod: r.billing_period,
   };
-}
-
-/** 기준 요금제의 현재 기본요금(원). 요금제 미연동(null)·없는 플랜이면 0. */
-export function basePriceForPlan(basePlan: string | null): number {
-  if (basePlan !== "basic" && basePlan !== "pro") return 0;
-  return getPlanById(basePlan as PlanId).priceKrw ?? 0;
-}
-
-/**
- * 판매가와 기본요금의 관계. delta = 판매가 − 기본요금(예상 차액, 순이익 아님).
- * belowBase = 판매가가 기본요금보다 낮음(경고용, 차단하지 않음).
- */
-export function priceDelta(
-  sellPriceKrw: number,
-  basePriceKrw: number,
-): { deltaKrw: number; belowBase: boolean } {
-  const deltaKrw = sellPriceKrw - basePriceKrw;
-  return { deltaKrw, belowBase: deltaKrw < 0 };
 }
 
 /** 파트너 본인 상품 목록(관리자 조회는 admin 경로 별도). */
@@ -117,7 +104,10 @@ export interface ProductInput {
   name: string;
   description?: string | null;
   includedServices?: string | null;
-  basePlan?: "basic" | "pro" | null;
+  /** 결제 시 고객에게 주는 플랜(본사 상품의 grant_plan). hqProductId 가 있으면 거기서 결정된다. */
+  basePlan?: GrantablePlan | null;
+  /** 본사 상품 id(0112). 없고 basePlan 만 오면 key=basePlan 인 본사 상품으로 해석한다. */
+  hqProductId?: string | null;
   /** 서브파트너 상품 — 상위파트너의 활성 상품 id. 있으면 그 상품 판매가를 원가로 삼는다. */
   parentProductId?: string | null;
   sellPriceKrw: number;
@@ -168,11 +158,15 @@ export async function upsertProduct(
   //  base_price_krw        = 상위 판매가(서브의 원가)
   //  parent_base_price_krw = 본사 공급가(상위의 원가 스냅샷)
   //  parent_partner_user_id/parent_product_id = 상위 참조(정산 분배용)
-  let basePlan = input.basePlan ?? null;
+  let basePlan: GrantablePlan | null = input.basePlan ?? null;
   let basePrice: number;
   let parentPartnerUserId: string | null = null;
   let parentProductId: string | null = null;
   let parentBasePriceKrw: number | null = null;
+  // 0112 — 본사 상품 참조 + 결제 시 제공(플랜 기간·작업권) 스냅샷. 서브는 상위 상품에서 복사.
+  let hqProductId: string | null = null;
+  let grantDays = 30;
+  let entitlements: EntitlementItem[] = [];
 
   if (input.parentProductId) {
     const admin = createAdminClient();
@@ -189,18 +183,37 @@ export async function upsertProduct(
     if (!myParent || parentProduct.partner_user_id !== myParent)
       return { error: "상위파트너 상품만 원가로 선택할 수 있습니다." };
 
-    basePlan = (parentProduct.base_plan as "basic" | "pro" | null) ?? null;
+    basePlan = (parentProduct.base_plan as GrantablePlan | null) ?? null;
     basePrice = parentProduct.sell_price_krw; // 서브 원가 = 상위 판매가
     parentPartnerUserId = parentProduct.partner_user_id;
     parentProductId = parentProduct.id;
     parentBasePriceKrw = parentProduct.base_price_krw; // 본사 공급가 스냅샷
+    hqProductId = parentProduct.hq_product_id ?? null;
+    grantDays = parentProduct.grant_days ?? 30;
+    entitlements = parseEntitlementItems(parentProduct.entitlements);
   } else {
     // 서브파트너는 상위파트너 상품만 원가로 쓸 수 있다 — 본사 공급가 경로 차단
     // (화면에서도 숨기지만, 직접 호출로 공급가를 스냅샷·노출하는 것을 서버에서 막는다).
     if (await parentPartnerOf(partnerUserId))
       return { error: "서브파트너는 상위파트너 상품을 원가로 선택해야 합니다." };
-    // 일반 파트너 — 본사 공급가(base_plan_catalog 우선, 없으면 plans.ts 폴백).
-    basePrice = await supplyPriceForPlan(basePlan);
+    // 일반 파트너 — 본사 상품(hq_products)에서 공급가·제공 항목을 스냅샷.
+    // 본사 상품을 못 찾으면(0112 전·레거시 basePlan) 종전처럼 base_plan_catalog/plans.ts 공급가 폴백.
+    const hq = input.hqProductId
+      ? await getHqProduct(input.hqProductId)
+      : basePlan
+        ? await getHqProduct(basePlan)
+        : null;
+    if (input.hqProductId && (!hq || hq.status !== "active"))
+      return { error: "선택한 본사 상품을 찾을 수 없거나 판매 중이 아닙니다." };
+    if (hq) {
+      hqProductId = hq.id;
+      basePlan = hq.grantPlan;
+      basePrice = hq.supplyPriceKrw;
+      grantDays = hq.grantDays;
+      entitlements = hq.items;
+    } else {
+      basePrice = await supplyPriceForPlan(basePlan);
+    }
   }
 
   const row = {
@@ -214,6 +227,9 @@ export async function upsertProduct(
     parent_partner_user_id: parentPartnerUserId,
     parent_product_id: parentProductId,
     parent_base_price_krw: parentBasePriceKrw,
+    hq_product_id: hqProductId,
+    entitlements: entitlements as unknown as Json,
+    grant_days: grantDays,
     sell_price_krw: sell,
     vat_mode: input.vatMode ?? "included",
     billing_type: input.billingType ?? "one_time",

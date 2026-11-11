@@ -2,6 +2,10 @@ import "server-only";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { secureToken, invoiceNumber } from "./secure";
 import { computePartnerSettlement } from "./config";
+import {
+  parseEntitlementItems,
+  type EntitlementItem,
+} from "@/lib/partner/entitlementCatalog";
 import type { Database, Json } from "@/types/database";
 import type { OfferRow } from "./offers";
 
@@ -28,11 +32,19 @@ export interface PublicInvoice {
   paidAt: string | null;
 }
 
-interface ProductSnapshot {
+/**
+ * 청구서에 동결되는 상품 스냅샷. basePlan = 결제 시 고객에게 주는 플랜(basic|pro|lite|null),
+ * entitlements = 결제 시 판매 파트너에게 지급할 작업권(0112). 발행 후 상품 변경과 무관.
+ */
+export interface ProductSnapshot {
   name: string;
   includedServices: string | null;
   basePlan: string | null;
   basePlanVersion: string | null;
+  productId?: string;
+  hqProductId?: string | null;
+  grantDays?: number;
+  entitlements?: EntitlementItem[];
 }
 
 export function toPublicInvoice(r: InvoiceRow): PublicInvoice {
@@ -114,6 +126,9 @@ export async function issueInvoiceFromOffer(
     includedServices: offer.included_services,
     basePlan: offer.base_plan,
     basePlanVersion: offer.base_plan_version,
+    hqProductId: offer.hq_product_id ?? null,
+    grantDays: offer.grant_days ?? 30,
+    entitlements: parseEntitlementItems(offer.entitlements),
   };
 
   const supabase = await createClient();
@@ -126,6 +141,7 @@ export async function issueInvoiceFromOffer(
       token: secureToken(),
       number: invoiceNumber(),
       product_snapshot: snapshot as unknown as Json,
+      hq_product_id: offer.hq_product_id ?? null,
       sell_price_krw: offer.sell_price_krw,
       base_price_krw: offer.base_price_krw,
       parent_partner_user_id: offer.parent_partner_user_id,
@@ -208,6 +224,9 @@ export async function issueInvoiceFromProduct(
     basePlan: product.base_plan,
     basePlanVersion: product.base_plan_version,
     productId: product.id,
+    hqProductId: product.hq_product_id ?? null,
+    grantDays: product.grant_days ?? 30,
+    entitlements: parseEntitlementItems(product.entitlements),
   };
 
   const { data, error } = await admin
@@ -266,7 +285,7 @@ export async function getInvoiceByToken(
  * 결제 완료 시 이행 — syncProductOrder(PAID 검증 후)에서 호출. 멱등.
  * 멱등 잠금 = partner_earnings(invoice_id 유니크) 삽입 성공자만 1회 이행한다.
  *  1) 정산 원장 적립(공급가=기본요금 공제, 차액=파트너 예상 정산액)
- *  2) 기본 요금제(basic/pro)를 고객 계정에 부여(한도·크레딧은 기존 정책 그대로)
+ *  2) 스냅샷의 작업권을 판매 파트너에게 지급 + 플랜(basic/pro/lite)을 고객 계정에 부여(강등 금지)
  *  3) 청구서 paid 전환 + 이력 기록
  * 활성화(2)가 실패해도 결제/정산 기록은 남고, 관리자 reprocess로 안전 재처리한다.
  */
@@ -336,55 +355,9 @@ export async function fulfillInvoicePaid(
       console.error("[b2b2c] parent settlement insert failed", invoiceId, parentErr);
   }
 
-  // --- 기본 요금제 부여(고객 계정 확인 — 파트너/에이전트 권한은 부여하지 않는다) ---
-  let activation = "no_plan";
-  const basePlan = inv.base_price_krw >= 0 ? inferBasePlan(inv) : null;
-  if (basePlan === "basic" || basePlan === "pro") {
-    let clientUserId = inv.client_user_id;
-    if (!clientUserId && buyerEmail) {
-      const { data: profile } = await admin
-        .from("profiles")
-        .select("user_id")
-        .eq("email", buyerEmail.trim())
-        .maybeSingle();
-      clientUserId = profile?.user_id ?? null;
-    }
-    if (!clientUserId) {
-      activation = "no_account";
-    } else {
-      const days = invoicePeriodDays(inv);
-      const { data: sub } = await admin
-        .from("subscriptions")
-        .select("current_period_end")
-        .eq("user_id", clientUserId)
-        .maybeSingle();
-      const nowMs = Date.now();
-      const baseMs =
-        sub?.current_period_end &&
-        new Date(sub.current_period_end).getTime() > nowMs
-          ? new Date(sub.current_period_end).getTime()
-          : nowMs;
-      const end = new Date(baseMs + days * 86_400_000).toISOString();
-      const { error: grantErr } = await admin.from("subscriptions").upsert(
-        {
-          user_id: clientUserId,
-          plan: basePlan,
-          status: "active",
-          current_period_end: end,
-          trial: false,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id" },
-      );
-      activation = grantErr ? "grant_failed" : `granted:${basePlan}`;
-      // 청구서에 고객을 연결(향후 조회).
-      if (!inv.client_user_id)
-        await admin
-          .from("partner_invoices")
-          .update({ client_user_id: clientUserId })
-          .eq("id", inv.id);
-    }
-  }
+  // --- 이행: 작업권 지급(판매 파트너) + 고객 플랜 부여(상위 플랜 강등 금지) — 멱등 ---
+  const fulfillment = await applyInvoiceFulfillment(admin, inv, buyerEmail ?? null);
+  const activation = `${fulfillment.activation} · 작업권 ${fulfillment.entitlements}`;
 
   // --- 청구서 paid 전환 + 이력 ---
   await admin
@@ -428,7 +401,6 @@ export async function reprocessInvoice(
     .maybeSingle();
   if (!earning) return { ok: false, note: "결제 확정 전(정산 없음)" };
 
-  const basePlan = inferBasePlan(inv);
   let buyerEmail: string | null = null;
   if (inv.order_id) {
     const { data: order } = await admin
@@ -439,51 +411,8 @@ export async function reprocessInvoice(
     buyerEmail = order?.buyer_email ?? null;
   }
 
-  let activation = "no_plan";
-  if (basePlan === "basic" || basePlan === "pro") {
-    let clientUserId = inv.client_user_id;
-    if (!clientUserId && buyerEmail) {
-      const { data: profile } = await admin
-        .from("profiles")
-        .select("user_id")
-        .eq("email", buyerEmail.trim())
-        .maybeSingle();
-      clientUserId = profile?.user_id ?? null;
-    }
-    if (!clientUserId) activation = "no_account";
-    else {
-      const days = invoicePeriodDays(inv);
-      const { data: sub } = await admin
-        .from("subscriptions")
-        .select("current_period_end")
-        .eq("user_id", clientUserId)
-        .maybeSingle();
-      const nowMs = Date.now();
-      const baseMs =
-        sub?.current_period_end &&
-        new Date(sub.current_period_end).getTime() > nowMs
-          ? new Date(sub.current_period_end).getTime()
-          : nowMs;
-      const end = new Date(baseMs + days * 86_400_000).toISOString();
-      const { error } = await admin.from("subscriptions").upsert(
-        {
-          user_id: clientUserId,
-          plan: basePlan,
-          status: "active",
-          current_period_end: end,
-          trial: false,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id" },
-      );
-      activation = error ? "grant_failed" : `granted:${basePlan}`;
-      if (!inv.client_user_id)
-        await admin
-          .from("partner_invoices")
-          .update({ client_user_id: clientUserId })
-          .eq("id", inv.id);
-    }
-  }
+  const fulfillment = await applyInvoiceFulfillment(admin, inv, buyerEmail);
+  const activation = `${fulfillment.activation} · 작업권 ${fulfillment.entitlements}`;
 
   if (inv.status !== "paid")
     await admin
@@ -496,24 +425,134 @@ export async function reprocessInvoice(
     to_status: "paid",
     note: `관리자 재처리 · 활성화 ${activation}`,
   });
-  return { ok: activation.startsWith("granted"), note: activation };
+  const failed =
+    fulfillment.activation.startsWith("grant_failed") ||
+    fulfillment.entitlements.startsWith("grant_failed");
+  return { ok: !failed, note: activation };
 }
 
-/** 청구서 스냅샷에서 기준 요금제 추출. */
-function inferBasePlan(inv: InvoiceRow): string | null {
+/** 플랜 등급 — 결제 이행 시 활성 상위 플랜을 하위 상품으로 덮어쓰지 않기 위한 순서. partner 는 별도(절대 변경 안 함). */
+const PLAN_RANK: Record<string, number> = { free: 0, lite: 1, basic: 2, pro: 3 };
+
+type AdminDb = ReturnType<typeof createAdminClient>;
+
+/** 청구서의 고객 계정 — 청구서 client_user_id, 없으면 결제자 이메일로 프로필 조회. */
+async function resolveClientUserId(
+  admin: AdminDb,
+  inv: InvoiceRow,
+  buyerEmail: string | null,
+): Promise<string | null> {
+  if (inv.client_user_id) return inv.client_user_id;
+  if (!buyerEmail) return null;
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("user_id")
+    .eq("email", buyerEmail.trim())
+    .maybeSingle();
+  return profile?.user_id ?? null;
+}
+
+/**
+ * 결제 이행(멱등) — fulfillInvoicePaid / reprocessInvoice 공용.
+ * 1) 작업권: 스냅샷 entitlements 를 청구서 판매자(서브 판매면 서브)에게 지급.
+ *    부분 유니크 인덱스(ref_invoice_id, partner, service)가 1회만 허용 — 23505 는 '이미 지급'.
+ * 2) 플랜: basic/pro/lite 를 고객 계정에 부여. partner 계정은 절대 변경 안 함, 활성 상위 플랜이면 유지(kept),
+ *    기존 행은 update(billing_key 보존), 없을 때만 insert.
+ */
+async function applyInvoiceFulfillment(
+  admin: AdminDb,
+  inv: InvoiceRow,
+  buyerEmail: string | null,
+): Promise<{ activation: string; entitlements: string }> {
   const snap = (inv.product_snapshot ?? {}) as Partial<ProductSnapshot>;
-  return snap.basePlan ?? null;
+
+  // 1) 작업권 지급
+  const items = parseEntitlementItems(snap.entitlements);
+  let entitlements = "none";
+  if (items.length > 0) {
+    const granted: string[] = [];
+    let failed = false;
+    for (const it of items) {
+      const { error } = await admin.from("partner_entitlements").insert({
+        partner_user_id: inv.partner_user_id,
+        service_key: it.serviceKey,
+        delta: it.units,
+        reason: `invoice:${inv.number}`,
+        ref_type: "invoice_grant",
+        ref_invoice_id: inv.id,
+      });
+      if (!error) granted.push(`${it.serviceKey}×${it.units}`);
+      else if (error.code === "23505") granted.push(`${it.serviceKey}(already)`);
+      else {
+        failed = true;
+        console.error("[b2b2c] entitlement grant failed", inv.id, it.serviceKey, error.message);
+      }
+    }
+    entitlements = (failed ? "grant_failed " : "granted ") + granted.join(",");
+  }
+
+  // 2) 고객 플랜 부여
+  let activation = "no_plan";
+  const plan = snap.basePlan;
+  if (plan === "basic" || plan === "pro" || plan === "lite") {
+    const clientUserId = await resolveClientUserId(admin, inv, buyerEmail);
+    if (!clientUserId) {
+      activation = "no_account";
+    } else {
+      const { data: sub } = await admin
+        .from("subscriptions")
+        .select("plan, status, current_period_end")
+        .eq("user_id", clientUserId)
+        .maybeSingle();
+      const nowMs = Date.now();
+      const endMs = sub?.current_period_end ? new Date(sub.current_period_end).getTime() : 0;
+      const activeExisting =
+        !!sub && sub.status === "active" && (!sub.current_period_end || endMs > nowMs);
+      const days = invoicePeriodDays(inv, snap.grantDays);
+      if (sub?.plan === "partner") {
+        activation = "skipped:partner_account";
+      } else if (activeExisting && (PLAN_RANK[sub!.plan] ?? 0) > PLAN_RANK[plan]) {
+        activation = `kept:${sub!.plan}`;
+      } else {
+        const base = endMs > nowMs ? endMs : nowMs;
+        const end = new Date(base + days * 86_400_000).toISOString();
+        const patch = {
+          plan,
+          status: "active",
+          current_period_end: end,
+          trial: false,
+          cancel_at_period_end: false,
+          billing_failures: 0,
+          updated_at: new Date().toISOString(),
+        };
+        const { error } = sub
+          ? await admin.from("subscriptions").update(patch).eq("user_id", clientUserId)
+          : await admin
+              .from("subscriptions")
+              .insert({ user_id: clientUserId, billing_key: null, ...patch });
+        activation = error ? "grant_failed" : `granted:${plan}:${days}d`;
+      }
+      // 청구서에 고객을 연결(향후 조회).
+      if (!inv.client_user_id)
+        await admin
+          .from("partner_invoices")
+          .update({ client_user_id: clientUserId })
+          .eq("id", inv.id);
+    }
+  }
+  return { activation, entitlements };
 }
 
-/** 청구 기간(일). period_start~end가 있으면 그 길이, 없으면 30일(월 1회분). */
-function invoicePeriodDays(inv: InvoiceRow): number {
+/** 청구 기간(일). period_start~end가 있으면 그 길이, 없으면 스냅샷 grantDays(기본 30일). */
+function invoicePeriodDays(inv: InvoiceRow, fallbackDays?: number): number {
   if (inv.period_start && inv.period_end) {
     const ms =
       new Date(inv.period_end).getTime() - new Date(inv.period_start).getTime();
     const days = Math.round(ms / 86_400_000);
     if (days > 0) return days;
   }
-  return 30;
+  const fb = Math.floor(fallbackDays ?? 30);
+  return fb > 0 ? fb : 30;
 }
 
 /** 청구서 무효화(발행 후 미결제건만). 금융기록은 삭제하지 않고 상태+이력으로 남긴다. */

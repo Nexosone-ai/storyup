@@ -9,12 +9,8 @@ import { scheduleBlogAction } from "@/app/business/actions";
 import { postToFacebook } from "@/lib/social/facebook";
 import { InsufficientPointsError } from "@/lib/ai/billing";
 import { FreeBlogLimitError } from "@/lib/freeAccess";
-import {
-  chargePartnerCredits,
-  InsufficientCreditsError,
-  CreditChargeError,
-  type CreditCharge,
-} from "@/lib/partner";
+import { CardNewsPlanError } from "@/lib/ai/generateCardNews";
+import { isCurrentUserPartner } from "@/lib/partner";
 import {
   getProposal,
   claimProposal,
@@ -23,12 +19,6 @@ import {
 import type { BlogTone, BlogLength } from "@/types/domain";
 import type { Json } from "@/types/database";
 
-/** 제안 액션 → 파트너 크레딧 단가 키(없으면 무차감). */
-const CREDIT_ACTION: Record<string, string | undefined> = {
-  generate_blog_draft: "BLOG_BASIC",
-  generate_cardnews: "CARDNEWS_FULL",
-};
-
 export interface AgentActionState {
   ok?: boolean;
   error?: string;
@@ -36,8 +26,10 @@ export interface AgentActionState {
 }
 
 /**
- * 에이전트 제안 승인 실행 — pending→approved 원자적 claim으로 중복 과금/실행을 막고,
- * 실제 작업(블로그 초안·카드뉴스·예약 발행)을 소유자 세션으로 수행한다.
+ * 에이전트 제안 승인 실행 — pending→approved 원자적 claim으로 중복 실행을 막고,
+ * 실제 작업(블로그 초안·카드뉴스·예약 발행)을 수행한다.
+ * 과금(2026-11-11, 패킷 폐지): 생성물은 고객(사업장 소유자) 플랜 한도·UP 으로 차감한다 —
+ * 파트너 세션이 실행해도 소유자 기준(partner 플랜 무제한 오용 방지). 한도 초과면 업세일 안내.
  */
 export async function executeAgentProposal(
   proposalId: string,
@@ -56,25 +48,16 @@ export async function executeAgentProposal(
       error: ko ? "이미 처리된 제안이에요." : "This proposal was already handled.",
     };
 
-  // 파트너 패킷(크레딧) 선차감 — 부족하면 제안은 pending 그대로 두고 중단.
-  const creditAction = CREDIT_ACTION[p.action];
-  let charge: CreditCharge | null = null;
-  if (creditAction) {
-    try {
-      charge = await chargePartnerCredits(user.id, creditAction, p.business_id, ko);
-    } catch (err) {
-      // 부족·과금불가 모두 작업 차단(무상 진행 금지).
-      if (
-        err instanceof InsufficientCreditsError ||
-        err instanceof CreditChargeError
-      )
-        return { error: err.message };
-      throw err;
-    }
-  }
+  // 과금 주체 = 사업장 소유자(고객) — 파트너가 대신 실행해도 고객 플랜 한도에서 차감.
+  const { data: biz } = await supabase
+    .from("businesses")
+    .select("user_id")
+    .eq("id", p.business_id)
+    .maybeSingle();
+  const ownerId = biz?.user_id ?? user.id;
+  const asPartner = ownerId !== user.id && (await isCurrentUserPartner());
 
   if (!(await claimProposal(supabase, proposalId))) {
-    if (charge) await charge.refund();
     return {
       error: ko ? "이미 처리 중인 제안이에요." : "Proposal already in progress.",
     };
@@ -88,23 +71,21 @@ export async function executeAgentProposal(
     if (p.action === "generate_blog_draft") {
       const { postId, title } = await generateAndSaveBlog({
         supabase,
-        userId: user.id,
+        userId: ownerId,
         businessId: p.business_id,
         topic: str(params.topic),
         tone: (str(params.tone) || "Friendly") as BlogTone,
         length: (str(params.length) || "Medium") as BlogLength,
         locale: ko ? "ko" : "en",
-        skipBilling: true, // 파트너 크레딧으로 과금 — 기존 UP/쿼터 과금 생략
       });
       result = { postId, title };
     } else if (p.action === "generate_cardnews") {
       const { cardNewsId } = await generateAndSaveCardNews({
         supabase,
-        userId: user.id,
+        userId: ownerId,
         businessId: p.business_id,
         blogPostId: str(params.blogPostId),
         locale: ko ? "ko" : "en",
-        skipBilling: true,
       });
       result = { cardNewsId };
     } else if (p.action === "schedule_publish") {
@@ -141,10 +122,21 @@ export async function executeAgentProposal(
     revalidatePath(`/business/${p.business_id}/blog`);
     return { ok: true, result };
   } catch (err) {
-    if (charge) await charge.refund(); // 실패 시 크레딧 복원
     await finishProposal(supabase, proposalId, "failed");
-    if (err instanceof InsufficientPointsError || err instanceof FreeBlogLimitError)
+    if (
+      err instanceof InsufficientPointsError ||
+      err instanceof FreeBlogLimitError ||
+      err instanceof CardNewsPlanError
+    ) {
+      // 고객 플랜 한도 초과 — 파트너에겐 상품 판매(업세일) 안내, 고객에겐 원래 안내문.
+      if (asPartner)
+        return {
+          error: ko
+            ? "고객 플랜의 이번 달 제공량을 모두 사용했어요. 추가 이용권이나 Pro 상품을 판매(결제)하면 계속 진행할 수 있어요."
+            : "The client's plan quota for this month is used up. Sell an add-on or Pro product to continue.",
+        };
       return { error: err.message };
+    }
     if (err instanceof Error && err.message && err.message.length < 200)
       return { error: err.message };
     return {

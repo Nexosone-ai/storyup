@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import {
@@ -44,17 +45,14 @@ function ratioClass(aspect: string): string {
 export function SimilarVideoStudio({
   configured,
   batches: initial,
-  credits,
-  cost,
+  remaining,
   embedded = false,
 }: {
   configured: boolean;
   batches: BatchView[];
-  /** 파트너 보유 크레딧(패킷). */
-  credits: number;
-  /** 1회(10편) 생성 크레딧 단가. null = 미설정(생성 차단). */
-  cost: number | null;
-  /** 허브(탭) 안에 내장될 때 — 자체 제목·크레딧 표시를 숨긴다. */
+  /** 파트너 보유 유사영상 작업권(회). 1회 = 10편(480p·5초 기준). */
+  remaining: number;
+  /** 허브(탭) 안에 내장될 때 — 자체 제목·작업권 표시를 숨긴다. */
   embedded?: boolean;
 }) {
   const [sourceUrl, setSourceUrl] = useState("");
@@ -100,15 +98,11 @@ export function SimilarVideoStudio({
     return () => clearInterval(t);
   }, [batches, pollAll]);
 
-  // 선택한 길이·화질의 배수를 단가에 반영 — 길수록·화질이 높을수록 크레딧을 더 차감.
+  // 선택한 길이·화질의 배수만큼 작업권을 사용 — 길수록·화질이 높을수록 더 사용.
   const length = videoLengthById(lengthId);
   const qual = videoQualityById(quality);
-  const effCost = cost === null ? null : cost * length.multiplier * qual.multiplier;
-
-  // 단가 미설정(null)이면 서버가 차단하므로 비활성, 잔액 부족도 사전 차단.
-  const priceKnown = effCost !== null;
-  const chargeable = priceKnown && (effCost ?? 0) > 0;
-  const tooLow = chargeable && credits < (effCost ?? 0);
+  const units = length.multiplier * qual.multiplier;
+  const tooLow = remaining < units;
 
   const create = async () => {
     setError(null);
@@ -163,16 +157,10 @@ export function SimilarVideoStudio({
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
             <span className="rounded-full border border-border bg-surface px-2.5 py-1">
               1회(10편 · {length.label}) ={" "}
-              <strong className="text-foreground">
-                {effCost === null
-                  ? "미설정"
-                  : effCost === 0
-                    ? "무료"
-                    : `${effCost} 크레딧`}
-              </strong>
+              <strong className="text-foreground">작업권 {units}회</strong>
             </span>
             <span className="rounded-full border border-border bg-surface px-2.5 py-1">
-              보유 <strong className="text-foreground">{credits.toLocaleString()}</strong> 크레딧
+              보유 <strong className="text-foreground">{remaining}</strong>회
             </span>
           </div>
         </div>
@@ -220,7 +208,7 @@ export function SimilarVideoStudio({
               {VIDEO_LENGTHS.map((l) => (
                 <option key={l.id} value={l.id}>
                   {l.label}
-                  {l.multiplier > 1 ? ` · ${l.multiplier}배 크레딧` : ""}
+                  {l.multiplier > 1 ? ` · 작업권 ${l.multiplier}배` : ""}
                 </option>
               ))}
             </select>
@@ -249,31 +237,29 @@ export function SimilarVideoStudio({
               {VIDEO_QUALITIES.map((q) => (
                 <option key={q.id} value={q.id}>
                   {q.label}
-                  {q.multiplier > 1 ? ` · ${q.multiplier}배 크레딧` : ""}
+                  {q.multiplier > 1 ? ` · 작업권 ${q.multiplier}배` : ""}
                 </option>
               ))}
             </select>
           </label>
         </div>
         <div className="mt-4 flex items-center gap-3">
-          <Button
-            onClick={create}
-            disabled={!configured || creating || !priceKnown || tooLow}
-          >
-            {creating
-              ? "생성 요청 중…"
-              : chargeable
-                ? `유사 영상 10개 생성 (${effCost} 크레딧)`
-                : "유사 영상 10개 생성"}
+          <Button onClick={create} disabled={!configured || creating || tooLow}>
+            {creating ? "생성 요청 중…" : `유사 영상 10개 생성 (작업권 ${units}회)`}
           </Button>
           <span className="text-xs text-muted">
-            {tooLow
-              ? "크레딧이 부족해요. 관리자에게 충전을 요청하세요."
-              : !priceKnown
-                ? "단가가 아직 설정되지 않았어요(관리자 설정 필요)."
-                : length.seconds >= 30
-                  ? "긴 영상은 모델이 거부하면 실패 처리되고 크레딧은 자동 환급돼요."
-                  : "영상당 수십 초 소요 · 한 번에 10편 생성됩니다."}
+            {tooLow ? (
+              <>
+                작업권이 부족해요(보유 {remaining}회 · 필요 {units}회).{" "}
+                <Link href="/partner/sales" className="text-primary underline">
+                  고객에게 상품을 판매(결제)하면 작업권이 생겨요
+                </Link>
+              </>
+            ) : length.seconds >= 30 ? (
+              "긴 영상은 모델이 거부하면 실패 처리되고 작업권은 자동으로 돌아와요."
+            ) : (
+              "영상당 수십 초 소요 · 한 번에 10편 생성됩니다."
+            )}
           </span>
         </div>
         {error && <p className="mt-2 text-sm text-danger">{error}</p>}

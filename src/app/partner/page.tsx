@@ -1,12 +1,9 @@
 import Link from "next/link";
 import { getUser } from "@/lib/queries";
 import { getLocale } from "@/lib/i18n";
-import {
-  listPartnerClients,
-  getPartnerCreditBalance,
-  listCreditPrices,
-  isSubPartner,
-} from "@/lib/partner";
+import { listPartnerClients, isSubPartner } from "@/lib/partner";
+import { getEntitlementBalances } from "@/lib/partner/entitlements";
+import { EntitlementBalanceCard } from "@/components/partner/EntitlementBalanceCard";
 import { listPartnerInquiries, getPartnerEarnings } from "@/lib/agency";
 import { getMySupporterProfile } from "@/lib/supporters";
 import { Card } from "@/components/ui/Card";
@@ -18,7 +15,6 @@ import { PartnerReferralLink } from "@/components/partner/PartnerReferralLink";
 import { ProvisionedAccounts } from "@/components/partner/ProvisionedAccounts";
 import {
   canProvisionAccounts,
-  liteAccountPrice,
   listProvisionedAccounts,
 } from "@/lib/partner/provisioning";
 import { getPlanById } from "@/lib/plans";
@@ -54,31 +50,27 @@ export default async function PartnerPage() {
 
   const [
     clients,
-    credits,
+    balances,
     inquiries,
     earnings,
     myProfile,
-    creditPrices,
     amSub,
     pendingInvites,
     referralCode,
     canProvision,
   ] = await Promise.all([
     listPartnerClients(user.id),
-    getPartnerCreditBalance(user.id),
+    getEntitlementBalances(user.id),
     listPartnerInquiries(user.id),
     getPartnerEarnings(user.id),
     getMySupporterProfile(user.id),
-    listCreditPrices(),
     isSubPartner(user.id),
     listPendingInvites(user.id),
     ensureReferralCode(user.id),
     canProvisionAccounts(user.id),
   ]);
   // 별도계약 파트너(또는 그 서브) — 고객 계정 직접 생성(Lite) 데이터.
-  const [provisioned, litePrice] = canProvision
-    ? await Promise.all([listProvisionedAccounts(user.id), liteAccountPrice()])
-    : [[], null];
+  const provisioned = canProvision ? await listProvisionedAccounts(user.id) : [];
   const liteLimits = getPlanById("lite").limits;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.storyup.me";
   const totalBiz = clients.reduce((s, c) => s + c.businesses.length, 0);
@@ -113,22 +105,7 @@ export default async function PartnerPage() {
             </ButtonLink>
           </div>
         </div>
-        <Card className="px-4 py-3 text-right">
-          <p className="text-xs text-muted">
-            {ko ? "보유 패킷(크레딧)" : "Credits"}
-          </p>
-          <p className="text-2xl font-semibold tabular-nums">
-            {credits.toLocaleString()}
-          </p>
-          <Link
-            href="/partner/packets"
-            className={`mt-1 inline-block text-xs font-medium underline-offset-2 hover:underline ${
-              credits <= 0 ? "text-danger" : "text-primary"
-            }`}
-          >
-            {ko ? "패킷 구매 →" : "Buy packets →"}
-          </Link>
-        </Card>
+        <EntitlementBalanceCard balances={balances} ko={ko} className="min-w-56" />
         <Card className="px-4 py-3 text-right">
           <p className="text-xs text-muted">{ko ? "정산 예정 수익" : "Pending earnings"}</p>
           <p className="text-2xl font-semibold tabular-nums">
@@ -181,7 +158,7 @@ export default async function PartnerPage() {
             <li>· 오토파일럿으로 고객별 자동 마케팅(제안/자동 실행)</li>
             <li>
               · 영상 만들기 — {RECAP_SHORTS_ENABLED ? "블로그 글로 요약 쇼츠, " : ""}
-              원본 영상 1개로 관련 영상 10개를 한 곳에서(패킷 차감)
+              원본 영상 1개로 관련 영상 10개를 한 곳에서(작업권 사용)
             </li>
           </ul>
           <p className="mt-2 text-xs text-muted">
@@ -191,10 +168,6 @@ export default async function PartnerPage() {
           <div className="mt-3 flex flex-wrap gap-2">
             <ButtonLink size="sm" href="/partner/videos">
               {ko ? "영상 만들기" : "Make videos"}
-            </ButtonLink>
-            <ButtonLink size="sm" variant="outline" href="/partner/packets">
-              <Icon.coin className="size-4" />
-              {ko ? "패킷 구매" : "Buy packets"}
             </ButtonLink>
             {PROVIDEO_ENABLED && (
               <ButtonLink size="sm" variant="outline" href="/partner/video">
@@ -219,34 +192,27 @@ export default async function PartnerPage() {
         </Card>
 
         <Card className="p-4 sm:p-5">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold">
-              {ko ? "이용 패킷(크레딧) 안내" : "Packet usage"}
-            </h2>
-            <span className="text-xs text-muted">
-              보유 {credits.toLocaleString()}
-            </span>
-          </div>
-          <ul className="mt-2 space-y-1 text-sm">
-            {creditPrices.map((p) => (
-              <li
-                key={p.action}
-                className="flex items-center justify-between gap-2 text-muted"
-              >
-                <span className="truncate">{p.label}</span>
-                <span className="shrink-0 tabular-nums text-foreground">
-                  {p.credits === 0 ? "무료" : `${p.credits} 크레딧`}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-2 text-[11px] text-muted">
-            1패킷 = 100원(부가세 별도). 카드결제 또는 계좌이체로{" "}
-            <Link href="/partner/packets" className="font-medium text-primary hover:underline">
-              직접 구매
-            </Link>
-            할 수 있어요.
+          <h2 className="text-sm font-semibold">
+            {ko ? "작업권 안내" : "How service credits work"}
+          </h2>
+          <p className="mt-1 text-xs text-muted">
+            {ko
+              ? "작업권은 고객이 내 상품을 결제하면 상품에 포함된 만큼 자동으로 생겨요. 따로 구매하지 않습니다."
+              : "Credits are granted automatically when a client pays for your product. There is nothing to buy separately."}
           </p>
+          <ul className="mt-2 space-y-1 text-sm text-muted">
+            <li>· 요약 쇼츠 1편 → 요약 쇼츠 작업권 1편</li>
+            <li>· 쇼츠 장면 AI 이미지 1장 → AI 이미지 작업권 1장</li>
+            <li>· 유사영상 10편 1회 → 유사영상 작업권 1회 × 길이·화질 배수</li>
+            <li>· Lite 계정 생성·30일 연장 → Lite 계정 작업권 1개</li>
+          </ul>
+          {B2B2C_ENABLED && (
+            <p className="mt-2 text-[11px] text-muted">
+              <Link href="/partner/sales" className="font-medium text-primary hover:underline">
+                상품 만들고 청구서 보내기 →
+              </Link>
+            </p>
+          )}
         </Card>
       </div>
 
@@ -260,8 +226,7 @@ export default async function PartnerPage() {
       {canProvision && (
         <ProvisionedAccounts
           accounts={provisioned}
-          price={litePrice}
-          credits={credits}
+          remaining={balances.LITE_ACCOUNT_30D}
           limits={{
             sites: liteLimits.sites ?? 1,
             blogPosts: liteLimits.blogPosts ?? 0,
