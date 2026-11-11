@@ -8,6 +8,7 @@ import {
   useState,
   useTransition,
 } from "react";
+import { siteLang } from "@/components/website/templates/shared";
 import {
   DndContext,
   closestCenter,
@@ -2317,7 +2318,7 @@ export function WebsiteEditor({
                   onDelete={(i) => removePageSection(currentPage, i)}
                   posts={posts}
                   blogHref={`/site/${slug}/blog`}
-                  lang={content.language === "en" ? "en" : "ko"}
+                  lang={siteLang(content)}
                   categories={categories}
                   editTools={{
                     businessId,
