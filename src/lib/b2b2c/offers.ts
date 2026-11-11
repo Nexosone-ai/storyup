@@ -101,6 +101,10 @@ export async function createOffer(
       base_price_krw: product.base_price_krw,
       parent_partner_user_id: product.parent_partner_user_id,
       parent_base_price_krw: product.parent_base_price_krw,
+      // 0112 — 결제 시 제공(본사 상품·플랜 기간·작업권) 스냅샷 체인.
+      hq_product_id: product.hq_product_id ?? null,
+      entitlements: product.entitlements ?? [],
+      grant_days: product.grant_days ?? 30,
       sell_price_krw: sell,
       currency: product.currency,
       vat_mode: product.vat_mode,

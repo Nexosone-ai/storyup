@@ -1,12 +1,12 @@
 "use server";
 
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { isCurrentUserPartner } from "@/lib/partner";
 import {
-  isCurrentUserPartner,
-  chargePartnerCredits,
-  InsufficientCreditsError,
-  CreditChargeError,
-} from "@/lib/partner";
+  consumeEntitlement,
+  InsufficientEntitlementError,
+  EntitlementError,
+} from "@/lib/partner/entitlements";
 import {
   submitVideo,
   pollVideo,
@@ -90,22 +90,21 @@ export async function createSimilarBatchAction(
   if ((active ?? 0) > 0)
     return { error: "처리 중인 생성이 있어요. 완료된 뒤 다시 시도해주세요." };
 
-  // 파트너 패킷(크레딧) 선차감 — 배치 1회당, 단가 × 길이 배수 × 화질 배수.
-  // 잔액 부족/단가 미설정이면 생성 차단(fail-closed). 전체 실패 시 환급. 일부만 실패하면 유지.
+  // 유사영상 작업권 선소비 — 배치 1회당 1 × 길이 배수 × 화질 배수(480p·5초 = 1회).
+  // 작업권이 없으면 생성 차단(판매 안내). 전체 실패 시 환급. 일부만 실패하면 유지.
   let billing;
   try {
-    billing = await chargePartnerCredits(
+    billing = await consumeEntitlement(
       user.id,
       SIMILAR_VIDEO_ACTION,
-      undefined,
-      true,
       length.multiplier * qual.multiplier,
+      { reason: "similar_video" },
     );
   } catch (err) {
-    if (err instanceof InsufficientCreditsError || err instanceof CreditChargeError)
+    if (err instanceof InsufficientEntitlementError || err instanceof EntitlementError)
       return { error: err.message };
-    console.error("[similar-video] charge failed", err);
-    return { error: "크레딧 처리 중 문제가 발생했어요. 잠시 후 다시 시도해주세요." };
+    console.error("[similar-video] entitlement consume failed", err);
+    return { error: "작업권 처리 중 문제가 발생했어요. 잠시 후 다시 시도해주세요." };
   }
 
   const prompts = buildVariationPrompts(conceptText, asp, SIMILAR_VIDEO_COUNT);
@@ -171,14 +170,14 @@ export async function createSimilarBatchAction(
     return { error: "작업 기록에 실패했어요. 다시 시도해주세요." };
   }
 
-  // 전부 제출 실패 → 배치도 실패 처리 + 선차감 크레딧 환급(엔진/잔액 문제 안내).
+  // 전부 제출 실패 → 배치도 실패 처리 + 소비한 작업권 환급(엔진 문제 안내).
   if (rows.every((r) => r.status === "failed")) {
     await admin
       .from("similar_video_batches")
       .update({ status: "failed" })
       .eq("id", batch.id);
     await billing.refund();
-    return { error: "영상 생성 요청이 모두 실패했어요(엔진·잔액을 확인해주세요)." };
+    return { error: "영상 생성 요청이 모두 실패했어요(엔진을 확인해주세요). 작업권은 돌아왔어요." };
   }
   return { batchId: batch.id };
 }

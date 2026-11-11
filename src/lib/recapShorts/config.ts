@@ -8,10 +8,10 @@
 export const RECAP_SHORTS_ENABLED =
   process.env.NEXT_PUBLIC_RECAP_SHORTS_ENABLED !== "false";
 
-/** 패킷(크레딧) 단가 액션 키 — partner_credit_prices.action (0100 시드). */
-export const RECAP_SHORTS_ACTION = "RECAP_SHORTS";
-/** AI 이미지 장당 과금은 기존 EXTRA_IMAGE 단가를 쓴다. */
-export const RECAP_IMAGE_ACTION = "EXTRA_IMAGE";
+/** 작업권 서비스 키(entitlement_services, 0112) — 1편당 RECAP_SHORTS 1. */
+export const RECAP_SHORTS_ACTION = "RECAP_SHORTS" as const;
+/** AI 장면 이미지는 장당 EXTRA_IMAGE 작업권 1. */
+export const RECAP_IMAGE_ACTION = "EXTRA_IMAGE" as const;
 
 export const RECAP_SCENE_MIN = 5;
 export const RECAP_SCENE_MAX = 7;

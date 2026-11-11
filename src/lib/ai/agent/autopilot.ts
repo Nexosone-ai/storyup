@@ -5,21 +5,12 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { generateAndSaveBlog } from "@/lib/ai/generateBlog";
 import { generateAndSaveCardNews } from "@/lib/ai/generateCardNews";
 import { postToFacebook, getFacebookStatus } from "@/lib/social/facebook";
-import {
-  partnerForClient,
-  chargePartnerCredits,
-  InsufficientCreditsError,
-  CreditChargeError,
-  type CreditCharge,
-} from "@/lib/partner";
+import { partnerForClient } from "@/lib/partner";
+import { InsufficientPointsError } from "@/lib/ai/billing";
+import { FreeBlogLimitError } from "@/lib/freeAccess";
+import { CardNewsPlanError } from "@/lib/ai/generateCardNews";
 import { loadCombinedSources } from "@/lib/ai/agent/sources";
 import type { BlogTone, BlogLength } from "@/types/domain";
-
-/** 루틴 종류 → 파트너 크레딧 단가 키(facebook 게시는 무차감). */
-const ROUTINE_CREDIT: Record<string, string | undefined> = {
-  blog: "BLOG_BASIC",
-  cardnews: "CARDNEWS_FULL",
-};
 
 /**
  * AI 오토파일럿 — enabled 루틴 중 next_run_at이 지난 것을 선점(claim)해 실행한다.
@@ -164,8 +155,7 @@ async function executeRoutine(
       topic,
       tone: (str(params.tone) || "Friendly") as BlogTone,
       length: (str(params.length) || "Medium") as BlogLength,
-      locale: "ko",
-      skipBilling: true, // 파트너 크레딧으로 과금
+      locale: "ko", // 과금 = 고객(소유자) 플랜 한도·UP (2026-11-11 패킷 폐지)
       source: source || undefined,
       avoidTitles: avoid,
     });
@@ -209,7 +199,6 @@ async function executeRoutine(
       businessId: r.business_id,
       blogPostId: post.id,
       locale: "ko",
-      skipBilling: true, // 파트너 크레딧으로 과금
     });
     return { cardNewsId, from: post.id } as Json;
   }
@@ -360,37 +349,21 @@ export async function runDueRoutines(now = new Date()): Promise<AutopilotSummary
           skipped++;
           continue;
         }
-        // 파트너 패킷(크레딧) 선차감 — 부족하면 실행 중단.
-        const creditAction = ROUTINE_CREDIT[r.kind];
-        let charge: CreditCharge | null = null;
-        if (creditAction) {
-          try {
-            charge = await chargePartnerCredits(
-              partnerId,
-              creditAction,
-              r.business_id,
-            );
-          } catch (e) {
-            if (e instanceof InsufficientCreditsError) {
-              await log(admin, r, "skip", "no_credits");
-              skipped++;
-              continue;
-            }
-            if (e instanceof CreditChargeError) {
-              // 과금 불가 → 무상 진행 금지(차단).
-              await log(admin, r, "skip", "charge_error");
-              skipped++;
-              continue;
-            }
-            throw e;
-          }
-        }
+        // 과금은 고객(소유자) 플랜 한도·UP — 한도 초과면 skip(다음 주기 재시도, 파트너 업세일 신호).
         try {
           const detail = await executeRoutine(admin, r, ownerId, biz.name);
           await log(admin, r, "done", "auto", detail);
           executed++;
         } catch (e) {
-          if (charge) await charge.refund();
+          if (
+            e instanceof InsufficientPointsError ||
+            e instanceof FreeBlogLimitError ||
+            e instanceof CardNewsPlanError
+          ) {
+            await log(admin, r, "skip", "quota_exceeded");
+            skipped++;
+            continue;
+          }
           throw e;
         }
       } else {

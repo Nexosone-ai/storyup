@@ -1,22 +1,13 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { operableOwnerIds } from "@/lib/queries";
-import {
-  isCurrentUserPartner,
-  getPartnerCreditBalance,
-  getCreditPrice,
-} from "@/lib/partner";
+import { isCurrentUserPartner } from "@/lib/partner";
+import { getEntitlementBalances } from "@/lib/partner/entitlements";
 import { getYoutubeStatus } from "@/lib/youtube";
 import { videoEngineConfigured } from "@/lib/video";
-import {
-  parseYouTubeId,
-  youtubeThumbnail,
-  SIMILAR_VIDEO_ACTION,
-} from "@/lib/similarVideo";
+import { parseYouTubeId, youtubeThumbnail } from "@/lib/similarVideo";
 import {
   RECAP_SHORTS_ENABLED,
-  RECAP_SHORTS_ACTION,
-  RECAP_IMAGE_ACTION,
   recapProviderStatus,
 } from "@/lib/recapShorts/config";
 import { listRecapJobs, parseScenes } from "@/lib/recapShorts/jobs";
@@ -66,20 +57,14 @@ export default async function PartnerVideosPage({
   // 1차: 독립 조회를 한 번에.
   const [
     owners,
-    credits,
-    similarCost,
-    recapBase,
-    recapImage,
+    balances,
     youtube,
     recapJobs,
     { data: batches },
     { data: projects },
   ] = await Promise.all([
     operableOwnerIds(supabase, user.id),
-    getPartnerCreditBalance(user.id),
-    getCreditPrice(SIMILAR_VIDEO_ACTION),
-    recapOn ? getCreditPrice(RECAP_SHORTS_ACTION) : Promise.resolve(null),
-    recapOn ? getCreditPrice(RECAP_IMAGE_ACTION) : Promise.resolve(null),
+    getEntitlementBalances(user.id),
     getYoutubeStatus(user.id),
     recapOn ? listRecapJobs(user.id, 20) : Promise.resolve([]),
     supabase
@@ -164,14 +149,12 @@ export default async function PartnerVideosPage({
   return (
     <PartnerVideoHub
       initialTab={initialTab}
-      credits={credits}
+      balances={balances}
       recap={
         recapOn
           ? {
               businesses,
               jobs: recapViews,
-              basePrice: recapBase,
-              imagePrice: recapImage,
               providers: recapProviderStatus(),
               youtube: {
                 configured: youtube.configured,
@@ -184,7 +167,6 @@ export default async function PartnerVideosPage({
       similar={{
         configured: videoEngineConfigured(),
         batches: similarBatches,
-        cost: similarCost,
       }}
       pro={proOn ? { projects: proRows, businesses, providers: providerStatus() } : null}
     />

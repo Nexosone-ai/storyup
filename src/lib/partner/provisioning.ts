@@ -1,26 +1,24 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/server";
-import {
-  chargePartnerCredits,
-  getCreditPrice,
-  isPartner,
-  isSubPartner,
-  parentPartnerOf,
-  InsufficientCreditsError,
-  CreditChargeError,
-} from "@/lib/partner";
+import { isPartner, isSubPartner, parentPartnerOf } from "@/lib/partner";
 import { linkPartnerClient } from "@/lib/partner/clients";
+import {
+  consumeEntitlement,
+  getEntitlementBalances,
+  InsufficientEntitlementError,
+  EntitlementError,
+} from "@/lib/partner/entitlements";
 
 /**
  * 파트너 직접 생성 계정(Lite) — 별도계약 파트너 전용.
  * - 파트너가 고객 계정을 '직접' 만든다(이메일 가입 대기 없이): 아이디(이메일)·이름·초기 비밀번호.
- * - 계정 1개 = 30일 이용권 = partner_credit_prices['LITE_ACCOUNT_30D'] 패킷(기본 118 = ₩11,800, VAT 별도).
+ * - 계정 1개 = 30일 이용권 = Lite 계정 작업권(LITE_ACCOUNT_30D) 1개(0112 — 고객 결제·관리자 부여로 생김).
  * - 생성 즉시 partner_clients(대행)·account_shares(고객 화면 '담당 파트너') 연결.
  * - 권한: partner_account_provisioning(enabled) 행이 있는 파트너 + 그 파트너의 서브파트너(상속).
  * 모든 쓰기는 service role. 호출 전 isPartner 확인.
  */
 
-export const LITE_ACTION = "LITE_ACCOUNT_30D";
+export const LITE_ACTION = "LITE_ACCOUNT_30D" as const;
 export const LITE_PERIOD_DAYS = 30;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DAY_MS = 86_400_000;
@@ -44,9 +42,10 @@ export async function canProvisionAccounts(userId: string): Promise<boolean> {
   return false;
 }
 
-/** 계정 1개(30일) 패킷 단가. null = 단가 미설정(생성 차단). */
-export async function liteAccountPrice(): Promise<number | null> {
-  return getCreditPrice(LITE_ACTION);
+/** 보유한 Lite 계정 작업권 수(생성·연장 1회당 1개). */
+export async function liteEntitlementBalance(partnerUserId: string): Promise<number> {
+  const b = await getEntitlementBalances(partnerUserId);
+  return b.LITE_ACCOUNT_30D;
 }
 
 export interface ProvisionedAccountRow {
@@ -108,15 +107,14 @@ export async function listProvisionedAccounts(
 type Result = { ok?: true; error?: string; message?: string };
 
 function chargeErrorMessage(err: unknown): string {
-  if (err instanceof InsufficientCreditsError)
-    return "보유 패킷이 부족해요. 패킷을 구매한 뒤 다시 시도해주세요.";
-  if (err instanceof CreditChargeError)
-    return "패킷 차감 처리 중 문제가 발생했어요. 잠시 후 다시 시도해주세요.";
-  return "패킷 차감에 실패했습니다.";
+  if (err instanceof InsufficientEntitlementError)
+    return "Lite 계정 작업권이 없어요. 'Lite 계정 30일' 상품을 고객에게 판매(결제)하면 작업권이 생겨요.";
+  if (err instanceof EntitlementError) return err.message;
+  return "작업권 처리에 실패했습니다.";
 }
 
 /**
- * 계정 생성 — 패킷 차감(선차감, 실패 시 환불) → auth 사용자 생성 → lite 구독(30일) → 대행 연결 → 대장 기록.
+ * 계정 생성 — Lite 작업권 1개 소비(선소비, 실패 시 환불) → auth 사용자 생성 → lite 구독(30일) → 대행 연결 → 대장 기록.
  * 비밀번호는 저장·로그하지 않는다(파트너가 고객에게 전달, 고객이 변경 권장).
  */
 export async function createProvisionedAccount(args: {
@@ -147,10 +145,12 @@ export async function createProvisionedAccount(args: {
       error: "이미 가입된 이메일이에요. 기존 가입자는 '고객 등록(이메일)'로 연결해주세요.",
     };
 
-  // 1) 패킷 선차감 (fail-closed)
+  // 1) Lite 작업권 선소비 (fail-closed)
   let charge;
   try {
-    charge = await chargePartnerCredits(args.partnerUserId, LITE_ACTION, undefined, true);
+    charge = await consumeEntitlement(args.partnerUserId, LITE_ACTION, 1, {
+      reason: "lite_create",
+    });
   } catch (err) {
     return { error: chargeErrorMessage(err) };
   }
@@ -198,7 +198,7 @@ export async function createProvisionedAccount(args: {
     console.error("[provisioning] lite subscription failed", subErr);
     await admin.auth.admin.deleteUser(clientId).catch(() => {});
     await charge.refund();
-    return { error: "이용권 설정에 실패했어요(0108 마이그레이션 적용 확인). 패킷은 환불됐어요." };
+    return { error: "이용권 설정에 실패했어요(0108 마이그레이션 적용 확인). 작업권은 돌려드렸어요." };
   }
 
   // 4) 대행 연결 + 대장
@@ -215,11 +215,20 @@ export async function createProvisionedAccount(args: {
 
   return {
     ok: true,
-    message: `${email} 계정을 만들었어요 (Lite · ${new Date(expires).toLocaleDateString("ko-KR")}까지, ${charge.charged}패킷 차감). 아이디와 초기 비밀번호를 고객에게 전달하고 비밀번호 변경을 안내하세요.`,
+    message: `${email} 계정을 만들었어요 (Lite · ${new Date(expires).toLocaleDateString("ko-KR")}까지, Lite 작업권 ${charge.consumed}개 사용). 아이디와 초기 비밀번호를 고객에게 전달하고 비밀번호 변경을 안내하세요.`,
   };
 }
 
-/** 30일 연장 — 패킷 차감 후 만료일을 max(지금, 기존 만료) + 30일로. */
+/**
+ * 30일 연장 — 만료일을 max(지금, 기존 만료) + 30일로.
+ *
+ * 보호 규칙(2026-11-11, 운영 전 결함 수정):
+ * 1) 고객이 Basic·Pro 등 다른 요금제로 전환해 활성 상태면 연장을 거부한다(작업권 미소비).
+ *    종전에는 플랜을 Lite 로 덮어쓰고 정기결제 키까지 지웠다.
+ * 2) 동시 요청 방지 — partner_provisioned_accounts.periods 를 조건부 갱신(CAS)해 연장권을
+ *    먼저 예약한 요청만 소비·연장한다. 종전에는 패킷이 두 번 차감되고 기간은 한 번만 늘었다.
+ * 3) subscriptions 는 기존 행이면 plan/status/기간만 update — billing_key 는 건드리지 않는다.
+ */
 export async function extendProvisionedAccount(
   partnerUserId: string,
   clientUserId: string,
@@ -235,49 +244,89 @@ export async function extendProvisionedAccount(
   if (!(await canProvisionAccounts(partnerUserId)))
     return { error: "계정 직접 생성은 별도계약 파트너만 사용할 수 있어요." };
 
+  const { data: sub } = await admin
+    .from("subscriptions")
+    .select("plan, status, current_period_end")
+    .eq("user_id", clientUserId)
+    .maybeSingle();
+  const now = Date.now();
+  const subEnd = sub?.current_period_end
+    ? new Date(sub.current_period_end).getTime()
+    : 0;
+
+  // 1) 플랜 보호 — Lite/Free 가 아닌 플랜이 활성(만료 전 또는 만료 없음)이면 연장 대상이 아니다.
+  if (
+    sub &&
+    sub.plan !== "lite" &&
+    sub.plan !== "free" &&
+    sub.status === "active" &&
+    (!sub.current_period_end || subEnd > now)
+  ) {
+    return {
+      error: `이 계정은 ${sub.plan.toUpperCase()} 요금제로 전환되어 Lite 연장 대상이 아니에요. 고객이 직접 결제·갱신하는 계정이라 파트너 연장으로 바꿀 수 없어요.`,
+    };
+  }
+
+  // 2) 연장권 예약(CAS) — periods 가 읽은 값 그대로일 때만 +1. 0행이면 다른 요청이 먼저 처리 중.
+  const base = Math.max(now, subEnd, new Date(row.expires_at).getTime());
+  const expires = new Date(base + LITE_PERIOD_DAYS * DAY_MS).toISOString();
+  const { data: reserved } = await admin
+    .from("partner_provisioned_accounts")
+    .update({
+      periods: row.periods + 1,
+      expires_at: expires,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", row.id)
+    .eq("periods", row.periods)
+    .select("id");
+  if (!reserved?.length)
+    return { error: "이미 연장 처리 중이에요. 잠시 후 새로고침해서 확인해주세요." };
+  const revert = async () => {
+    await admin
+      .from("partner_provisioned_accounts")
+      .update({
+        periods: row.periods,
+        expires_at: row.expires_at,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", row.id);
+  };
+
   let charge;
   try {
-    charge = await chargePartnerCredits(partnerUserId, LITE_ACTION, undefined, true);
+    charge = await consumeEntitlement(partnerUserId, LITE_ACTION, 1, {
+      refId: row.id,
+      reason: "lite_extend",
+    });
   } catch (err) {
+    await revert();
     return { error: chargeErrorMessage(err) };
   }
 
-  const { data: sub } = await admin
-    .from("subscriptions")
-    .select("current_period_end")
-    .eq("user_id", clientUserId)
-    .maybeSingle();
-  const base = Math.max(
-    Date.now(),
-    sub?.current_period_end ? new Date(sub.current_period_end).getTime() : 0,
-    new Date(row.expires_at).getTime(),
-  );
-  const expires = new Date(base + LITE_PERIOD_DAYS * DAY_MS).toISOString();
-  const { error: subErr } = await admin.from("subscriptions").upsert(
-    {
-      user_id: clientUserId,
-      plan: "lite",
-      status: "active",
-      current_period_end: expires,
-      billing_key: null,
-      cancel_at_period_end: false,
-      trial: false,
-      billing_failures: 0,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id" },
-  );
+  // 3) 구독 갱신 — 기존 행은 billing_key 를 보존(update), 행이 없을 때만 insert.
+  const patch = {
+    plan: "lite" as const,
+    status: "active",
+    current_period_end: expires,
+    cancel_at_period_end: false,
+    trial: false,
+    billing_failures: 0,
+    updated_at: new Date().toISOString(),
+  };
+  const { error: subErr } = sub
+    ? await admin.from("subscriptions").update(patch).eq("user_id", clientUserId)
+    : await admin
+        .from("subscriptions")
+        .insert({ user_id: clientUserId, billing_key: null, ...patch });
   if (subErr) {
     await charge.refund();
-    return { error: "연장에 실패했어요. 패킷은 환불됐어요." };
+    await revert();
+    return { error: "연장에 실패했어요. 작업권은 돌려드렸어요." };
   }
-  await admin
-    .from("partner_provisioned_accounts")
-    .update({ periods: row.periods + 1, expires_at: expires, updated_at: new Date().toISOString() })
-    .eq("id", row.id);
   return {
     ok: true,
-    message: `${row.email} 이용권을 ${new Date(expires).toLocaleDateString("ko-KR")}까지 연장했어요 (${charge.charged}패킷 차감).`,
+    message: `${row.email} 이용권을 ${new Date(expires).toLocaleDateString("ko-KR")}까지 연장했어요 (Lite 작업권 ${charge.consumed}개 사용).`,
   };
 }
 

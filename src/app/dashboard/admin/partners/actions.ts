@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { isCurrentUserAdmin } from "@/lib/points";
 import { grantPartnerCredits, removePartner, isPartner } from "@/lib/partner";
+import { grantEntitlement } from "@/lib/partner/entitlements";
+import {
+  entitlementService,
+  isEntitlementKey,
+} from "@/lib/partner/entitlementCatalog";
 import { setUserPlanAction } from "@/app/dashboard/admin/actions";
 
 export interface PartnerAdminState {
@@ -105,7 +110,38 @@ export async function unassignClientAction(
   return { ok: true, message: "배정을 해제했어요." };
 }
 
-/** 파트너에게 패킷(크레딧) 지급. */
+/**
+ * 파트너에게 작업권 직접 부여/보정(0112). 평소엔 고객 결제 시 자동 지급되고,
+ * 계약 선지급·오류 보정·테스트용으로만 쓴다. 음수 = 차감(잔액 0 미만 불가).
+ */
+export async function grantEntitlementAction(
+  partnerEmail: string,
+  serviceKey: string,
+  units: number,
+  reason: string,
+): Promise<PartnerAdminState> {
+  if (!(await isCurrentUserAdmin())) return { error: "권한이 없습니다." };
+  if (!isEntitlementKey(serviceKey)) return { error: "서비스를 선택해주세요." };
+  if (!Number.isInteger(units) || units === 0)
+    return { error: "수량(0 아님)을 입력해주세요." };
+  if (!reason.trim()) return { error: "사유를 입력해주세요." };
+  const partnerId = await userIdByEmail(partnerEmail);
+  if (!partnerId) return { error: "파트너 이메일의 사용자를 찾을 수 없습니다." };
+  if (!(await isPartner(partnerId))) return { error: "현재 파트너가 아닌 계정입니다." };
+  const me_ = await me();
+  const res = await grantEntitlement(partnerId, serviceKey, units, reason, me_?.id ?? null);
+  if (res.error) return { error: res.error };
+  const s = entitlementService(serviceKey);
+  revalidatePath("/dashboard/admin/partners");
+  revalidatePath("/partner");
+  revalidatePath("/partner/videos");
+  return {
+    ok: true,
+    message: `${partnerEmail}에게 ${s.label} ${Math.abs(units)}${s.unitLabel} ${units > 0 ? "부여" : "차감"}했어요 (현재 ${res.balance}${s.unitLabel}).`,
+  };
+}
+
+/** (패킷 제도 종료 — PR2 에서 제거 예정) 파트너에게 패킷(크레딧) 지급. */
 export async function grantCreditsAction(
   partnerEmail: string,
   amount: number,
