@@ -175,16 +175,16 @@ export default async function PartnerGuidePage() {
       titleEn: "Products & sales (reselling)",
       items: [
         amSub
-          ? "상위파트너가 판매 중인 상품을 원가로 골라 내 판매가·마진을 붙여 상품을 등록합니다(본사 가격정책은 상위파트너가 관리합니다)."
-          : "본사 기본 상품(Basic/Pro) 공급가 위에 내 판매가·마진을 붙여 상품을 등록합니다.",
+          ? "상위파트너가 판매 중인 상품을 연결해 내 판매가를 정해 상품을 등록합니다(가격 정책은 상위파트너가 관리합니다)."
+          : "본사 기본 상품(Basic/Pro)을 연결해 내 판매가를 정해 상품을 등록합니다.",
         "고객에게 오퍼(견적)나 청구서를 발행하면, 고객은 토큰 링크로 결제합니다.",
         "결제는 본사가 수납하고, 수수료를 제외한 금액이 파트너에게 정산됩니다.",
         "공개 스토어(/partners/내슬러그)는 상담형입니다 — 가격·구매 버튼은 오퍼/청구서에서만 노출됩니다.",
       ],
       itemsEn: [
         amSub
-          ? "Register products by adding your own price/margin on top of your parent partner's active products (head-office pricing is managed by the parent)."
-          : "Register products by adding your own price/margin on top of the head office base (Basic/Pro) supply price.",
+          ? "Register products by linking your parent partner's active products and setting your own price (pricing policy is managed by the parent)."
+          : "Register products by linking a head office base product (Basic/Pro) and setting your own price.",
         "Issue an offer (quote) or invoice to a client; they pay via a token link.",
         "The head office collects payment and settles the amount minus the fee to you.",
         "Your public store (/partners/your-slug) is inquiry-style — price/buy buttons appear only in offers/invoices.",
@@ -204,13 +204,13 @@ export default async function PartnerGuidePage() {
       titleEn: "Managing sales partners",
       items: [
         "이메일로 파트너(영업)을 등록하면 즉시 활성화됩니다(승인 불필요). 영업자가 리크루트한 영업자는 이렇게 내 아래에 둡니다.",
-        "파트너(영업)은 내 상품을 원가로 받아 자기 마진을 붙여 판매합니다. 본사 공급가는 파트너(영업)에게 보이지 않습니다.",
+        "파트너(영업)은 내 상품을 연결해 자기 판매가로 판매합니다. 원가·공급가·마진은 파트너(영업)에게 보이지 않습니다.",
         "파트너(영업)의 랜딩·블로그·카드뉴스·이벤트·트래픽 활동을 모니터링할 수 있습니다.",
         "결제 시 본사·파트너·파트너(영업) 3자 정산이 자동 기록됩니다(실제 송금은 수동).",
       ],
       itemsEn: [
         "Register a sales partner by email; they are activated immediately (no approval needed).",
-        "Sales partners take your products at cost and add their own margin to sell; head-office pricing is hidden from them.",
+        "Sales partners link your products and sell at their own price; cost, supply price and margin are hidden from them.",
         "You can monitor their landing pages, blogs, card news, events, and traffic.",
         "On payment, a 3-way settlement (head office/you/sub) is recorded automatically (payout is manual).",
       ],

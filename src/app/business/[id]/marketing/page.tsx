@@ -15,7 +15,7 @@ import {
   ContentStudio,
   type StudioVideoData,
 } from "@/components/studio/ContentStudio";
-import type { CardNewsResult } from "@/types/domain";
+import type { CardNewsResult, WebsiteContent } from "@/types/domain";
 
 export const metadata = { title: "콘텐츠 스튜디오" };
 
@@ -135,6 +135,10 @@ export default async function MarketingPage({
     socialCaption: p.social_caption,
   }));
   const siteSlug = website?.status === "published" ? website.slug : null;
+  // 카드뉴스 마지막 카드 기본 로고 — 사이트 헤더 로고(hero.logo).
+  const logoUrl =
+    (website?.content as unknown as WebsiteContent | null | undefined)?.hero
+      ?.logo ?? null;
 
   // 초기 단계·글 — 서버에서 계산해 SSR/클라이언트가 일치하게.
   const published = postOptions.filter((p) => p.published);
@@ -202,6 +206,7 @@ export default async function MarketingPage({
           brandName={business.name}
           handle={`@${business.slug}`}
           siteSlug={siteSlug}
+          logoUrl={logoUrl}
           initialCards={initialCards}
           initialText={initialText}
           shortsQuota={shortsQuota}

@@ -5,7 +5,7 @@ import { countMonthlyUsage, getUserPlan } from "@/lib/subscription";
 import { upsellSentence } from "@/lib/upsell";
 
 /**
- * AI 이미지 월 한도 (plans.limits.aiImages — Free 30 · Basic 100 · Pro 300 · Partner 무제한).
+ * AI 이미지 월 한도 (plans.limits.aiImages — Free 30 · Basic 60 · Pro 300 · Partner 무제한).
  * 사용량은 usage_events(kind='ai_image', 서울 기준 월)로 센다 — 0012 테이블·kind 그대로 재사용,
  * 마이그레이션 불필요. 한도 초과 시 생성이 막히고 안내(B2B2C: 담당 파트너 문의)가 나간다.
  *

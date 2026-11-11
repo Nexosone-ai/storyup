@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Select, Label } from "@/components/ui/Field";
-import { PLATFORM_COMMISSION_RATE } from "@/lib/b2b2c/config";
 import {
   saveStorefrontAction,
   saveProductAction,
@@ -33,7 +32,6 @@ interface Product {
   description: string | null;
   includedServices: string | null;
   basePlan: string | null;
-  basePriceKrw: number;
   parentProductId: string | null;
   sellPriceKrw: number;
   vatMode: string;
@@ -54,7 +52,6 @@ interface Offer {
   token: string;
   name: string;
   sellPriceKrw: number;
-  basePriceKrw: number;
   status: string;
   createdAt: string;
 }
@@ -63,14 +60,11 @@ interface Invoice {
   token: string;
   number: string;
   sellPriceKrw: number;
-  basePriceKrw: number;
   status: string;
   createdAt: string;
 }
 interface Settlement {
   gross: number;
-  baseDeduction: number;
-  commission: number;
   pending: number;
   held: number;
   paid: number;
@@ -78,16 +72,14 @@ interface Settlement {
 interface BasePlanInfo {
   plan: "basic" | "pro";
   displayName: string;
-  supplyPriceKrw: number;
   summary: string | null;
   includedServices: string | null;
 }
-/** 서브파트너가 원가로 고를 수 있는 상위파트너 상품(요약). */
+/** 서브파트너가 연결할 수 있는 상위파트너 상품(요약). 가격(원가)은 전달하지 않는다. */
 interface ParentProductOpt {
   id: string;
   name: string;
   basePlan: string | null;
-  sellPriceKrw: number;
   includedServices: string | null;
 }
 
@@ -95,7 +87,7 @@ type Tab = "store" | "products" | "offers" | "invoices" | "settlement";
 
 export function PartnerSalesView(props: {
   storefront: Storefront | null;
-  /** 본사 기준 요금제(공급가). 서브파트너에게는 전달되지 않는다(null). */
+  /** 본사 기준 요금제(포함 내역만 — 공급가는 파트너에게 노출하지 않음). 서브파트너에게는 전달되지 않는다(null). */
   basePlans: { basic: BasePlanInfo; pro: BasePlanInfo } | null;
   isSub: boolean;
   parentProducts: ParentProductOpt[];
@@ -332,10 +324,7 @@ function ProductsTab({
           <p className="text-sm text-muted">아직 상품이 없습니다.</p>
         )}
         {products.map((p) => {
-          const delta = p.sellPriceKrw - p.basePriceKrw;
-          // 서브파트너의 원가는 상위파트너 판매가(본사 공급가는 노출하지 않음).
-          const costLabel = isSub ? "원가" : "기본요금";
-          const hasCost = isSub ? !!p.parentProductId : !!p.basePlan;
+          // 원가(본사 공급가·상위 판매가)와 예상 마진은 파트너 화면에 노출하지 않는다(2026-11-11).
           return (
             <Card key={p.id} className="p-5">
               <div className="flex items-start justify-between gap-3">
@@ -343,22 +332,7 @@ function ProductsTab({
                   <p className="font-semibold">{p.name}</p>
                   <p className="mt-0.5 text-sm text-muted">
                     판매가 {won(p.sellPriceKrw)}
-                    {hasCost && (
-                      <>
-                        {" · "}
-                        {costLabel} {won(p.basePriceKrw)}
-                      </>
-                    )}
                   </p>
-                  {hasCost && (
-                    <p
-                      className={`mt-0.5 text-xs ${delta < 0 ? "text-danger" : "text-muted"}`}
-                    >
-                      {delta < 0
-                        ? `예상 마진 ${won(delta)} (${costLabel}보다 낮음 ⚠)`
-                        : `예상 정산 ${won(Math.round(delta * (1 - PLATFORM_COMMISSION_RATE)))} (마진 ${won(delta)} − 수수료 10%)`}
-                    </p>
-                  )}
                 </div>
                 <span
                   className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${
@@ -408,7 +382,7 @@ function StatusToggle({ id, status }: { id: string; status: string }) {
   );
 }
 
-// 본사가 제공하는 기준 요금제(공급가·포함 내역) — 파트너가 가격을 정할 때 참조.
+// 본사가 제공하는 기준 요금제(포함 내역) — 파트너가 상품을 구성할 때 참조. 공급가는 노출하지 않는다.
 function basePlanBullets(info: BasePlanInfo): string[] {
   return (info.includedServices ?? "")
     .split("\n")
@@ -424,10 +398,10 @@ function BasePlanReference({
   return (
     <Card className="space-y-3 p-5">
       <div>
-        <p className="font-semibold">본사 제공 기준 요금제 (공급가)</p>
+        <p className="font-semibold">본사 제공 기준 요금제</p>
         <p className="mt-0.5 text-xs text-muted">
-          아래는 STORYUP 본사가 제공하는 기준 상품입니다. 이 공급가 위에 내 판매가를
-          붙여 상품을 만드세요. (내용·공급가는 본사가 업데이트할 수 있습니다.)
+          아래는 STORYUP 본사가 제공하는 기준 상품입니다. 이 구성을 연결해 내
+          판매가를 정해 상품을 만드세요. (포함 내용은 본사가 업데이트할 수 있습니다.)
         </p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -439,12 +413,7 @@ function BasePlanReference({
               key={plan}
               className="rounded-lg border border-border bg-surface-2 p-4"
             >
-              <div className="flex items-baseline justify-between gap-2">
-                <p className="font-semibold">{info.displayName}</p>
-                <p className="text-sm font-semibold text-primary">
-                  공급가 {won(info.supplyPriceKrw)}
-                </p>
-              </div>
+              <p className="font-semibold">{info.displayName}</p>
               {info.summary && (
                 <p className="mt-1 text-xs text-muted">{info.summary}</p>
               )}
@@ -466,7 +435,7 @@ function BasePlanReference({
   );
 }
 
-// 서브파트너용 — 상위파트너가 제공하는 상품(원가) 참조 카드.
+// 서브파트너용 — 상위파트너가 제공하는 상품 참조 카드(가격은 노출하지 않음).
 function ParentProductReference({
   parentProducts,
 }: {
@@ -475,10 +444,10 @@ function ParentProductReference({
   return (
     <Card className="space-y-3 p-5">
       <div>
-        <p className="font-semibold">상위파트너 상품 (내 원가)</p>
+        <p className="font-semibold">상위파트너 상품</p>
         <p className="mt-0.5 text-xs text-muted">
-          아래는 상위파트너가 판매 중인 상품입니다. 이 가격을 원가로 삼아 내
-          판매가를 붙여 상품을 만드세요. (상위파트너가 가격을 바꿀 수 있습니다.)
+          아래는 상위파트너가 판매 중인 상품입니다. 이 중 하나를 연결해 내
+          판매가를 정해 상품을 만드세요. (상위파트너가 구성을 바꿀 수 있습니다.)
         </p>
       </div>
       {parentProducts.length === 0 ? (
@@ -492,12 +461,7 @@ function ParentProductReference({
               key={p.id}
               className="rounded-lg border border-border bg-surface-2 p-4"
             >
-              <div className="flex items-baseline justify-between gap-2">
-                <p className="font-semibold">{p.name}</p>
-                <p className="text-sm font-semibold text-primary">
-                  원가 {won(p.sellPriceKrw)}
-                </p>
-              </div>
+              <p className="font-semibold">{p.name}</p>
               {p.includedServices && (
                 <p className="mt-1 whitespace-pre-line text-xs text-muted">
                   {p.includedServices}
@@ -546,7 +510,7 @@ function ProductForm({
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, start] = useTransition();
 
-  // 서브파트너면 상위 상품 판매가가 원가, 일반 파트너면 본사 공급가가 원가.
+  // 원가(상위 판매가·본사 공급가)는 서버(saveProductAction)가 기록하고 화면에는 노출하지 않는다.
   const selectedParent = isSub
     ? parentProducts.find((p) => p.id === parentProductId)
     : undefined;
@@ -556,11 +520,7 @@ function ProductForm({
       : !isSub && basePlans && basePlan === "pro"
         ? basePlans.pro
         : null;
-  const basePrice = isSub
-    ? (selectedParent?.sellPriceKrw ?? 0)
-    : (baseInfo?.supplyPriceKrw ?? 0);
   const sellNum = Number(sellPrice) || 0;
-  const delta = sellNum - basePrice;
 
   const save = () =>
     start(async () => {
@@ -616,7 +576,7 @@ function ProductForm({
         <div>
           {isSub ? (
             <>
-              <Label required>상위파트너 상품(원가)</Label>
+              <Label required>상위파트너 상품</Label>
               <Select
                 value={parentProductId}
                 onChange={(e) => setParentProductId(e.target.value)}
@@ -624,7 +584,7 @@ function ProductForm({
                 <option value="">선택</option>
                 {parentProducts.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name} · {won(p.sellPriceKrw)}
+                    {p.name}
                   </option>
                 ))}
               </Select>
@@ -655,41 +615,17 @@ function ProductForm({
       </div>
       {isSub && selectedParent && (
         <div className="space-y-2 rounded-lg bg-surface-2 p-3 text-sm">
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="font-semibold">{selectedParent.name}</span>
-            <span className="font-semibold text-primary">
-              원가(상위 판매가) {won(basePrice)}
-            </span>
-          </div>
+          <p className="font-semibold">{selectedParent.name}</p>
           {selectedParent.includedServices && (
             <p className="whitespace-pre-line text-xs text-muted">
               {selectedParent.includedServices}
             </p>
           )}
-          <div className="border-t border-border pt-2">
-            {delta < 0 ? (
-              <p className="text-danger">
-                예상 마진: {won(delta)} — 원가보다 낮습니다 ⚠
-              </p>
-            ) : (
-              <p className="text-muted">
-                예상 마진 {won(delta)} · 플랫폼 수수료 10% 제외 → 예상 정산{" "}
-                <span className="font-semibold">
-                  {won(Math.round(delta * (1 - PLATFORM_COMMISSION_RATE)))}
-                </span>
-              </p>
-            )}
-          </div>
         </div>
       )}
       {!isSub && baseInfo && (
         <div className="space-y-2 rounded-lg bg-surface-2 p-3 text-sm">
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="font-semibold">{baseInfo.displayName}</span>
-            <span className="font-semibold text-primary">
-              본사 공급가 {won(basePrice)}
-            </span>
-          </div>
+          <p className="font-semibold">{baseInfo.displayName}</p>
           {baseInfo.summary && (
             <p className="text-xs text-muted">{baseInfo.summary}</p>
           )}
@@ -703,20 +639,6 @@ function ProductForm({
               ))}
             </ul>
           )}
-          <div className="border-t border-border pt-2">
-          {delta < 0 ? (
-            <p className="text-danger">
-              예상 마진: {won(delta)} — 기본요금보다 낮습니다 ⚠
-            </p>
-          ) : (
-            <p className="text-muted">
-              예상 마진 {won(delta)} · 플랫폼 수수료 10% 제외 → 예상 정산{" "}
-              <span className="font-semibold">
-                {won(Math.round(delta * (1 - PLATFORM_COMMISSION_RATE)))}
-              </span>
-            </p>
-          )}
-          </div>
         </div>
       )}
       <div className="grid grid-cols-2 gap-3">
@@ -1007,12 +929,10 @@ function SettlementTab({
   settlement: Settlement;
   isSub: boolean;
 }) {
-  // 서브파트너의 공제 기준은 상위파트너 판매가(원가) — 본사 공급가는 노출하지 않는다.
-  const costLabel = isSub ? "원가(상위 판매가)" : "본사 기본요금";
+  // 원가 공제액·플랫폼 수수료는 파트너·서브파트너 화면에 노출하지 않는다(2026-11-11) —
+  // 둘 중 하나만 보여도 원가(본사 공급가·상위 판매가)가 역산되기 때문.
   const tiles = [
     { label: "총 수납액(고객 결제)", value: settlement.gross },
-    { label: `${costLabel} 공제`, value: settlement.baseDeduction },
-    { label: "플랫폼 수수료(10%)", value: settlement.commission },
     { label: "정산 예정(대기)", value: settlement.pending },
     { label: "보류", value: settlement.held },
     { label: "지급 완료", value: settlement.paid },
@@ -1028,8 +948,8 @@ function SettlementTab({
         ))}
       </div>
       <Card className="p-5 text-sm text-muted">
-        정산 예정액은 <strong>(고객 결제금액 − {costLabel}) 마진에서 플랫폼
-        수수료 10%를 뗀 금액</strong>입니다. 세금·PG 수수료·환불·대행 비용은 아직
+        정산 예정액은 <strong>고객 결제금액에서 {isSub ? "상위파트너" : "본사"} 정산
+        정책에 따라 산정된 금액</strong>입니다. 세금·PG 수수료·환불·대행 비용은 아직
         반영되지 않았으므로 순이익이 아닙니다. 실제 지급액·주기·보류 조건은 관리자
         정산 정책을 따릅니다.
       </Card>

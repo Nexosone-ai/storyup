@@ -31,14 +31,14 @@ export interface Plan {
     /** AI 영상 생성 월 무료 편수. 0 = 미제공(Free), null = 협의(무제한) */
     video: number | null;
     /**
-     * AI 이미지 월 한도(src/lib/ai/imageQuota.ts가 모든 플랜에 적용 — Free 30 · Basic 100 · Pro 300).
+     * AI 이미지 월 한도(src/lib/ai/imageQuota.ts가 모든 플랜에 적용 — Free 30 · Basic 60 · Pro 300).
      * 초과 시 생성이 막히고 B2B2C 모드에선 담당 파트너 문의 안내. null = 무제한(Partner).
      */
     aiImages: number | null;
   };
   /**
-   * 고화질 AI 이미지(Gemini). 미지정 = fal FLUX(장당 ~₩4, 기본 상품·무료).
-   * 기본 상품 원가의 절반이 이미지라 Basic 은 fal 로 두고, 고화질은 Pro/파트너 및
+   * 고화질 AI 이미지(Gemini, 장당 ~₩55). 미지정 = fal FLUX(장당 ~₩4, 무료 플랜).
+   * Basic 은 2026-11-11 부터 고화질(월 60장 한도로 원가 통제), 초과분은
    * '담당 파트너 문의(AI 이미지 추가)' 업세일로 제공한다. (src/lib/ai/image/index.ts)
    */
   premiumImages?: boolean;
@@ -94,7 +94,9 @@ export const PLANS: Plan[] = [
     name: { ko: "Basic", en: "Basic" },
     priceKrw: 59000,
     partnerSupplyPriceKrw: 20000,
-    limits: { sites: 1, blogPosts: 20, cardNews: 5, shorts: 5, video: 0, aiImages: 100 },
+    // 2026-11-11 재구성: 카드뉴스 10·쇼츠 10·AI 이미지 60장(고화질 Gemini). 원가 ≈₩9,100/월(마진 54%).
+    limits: { sites: 1, blogPosts: 20, cardNews: 10, shorts: 10, video: 0, aiImages: 60 },
+    premiumImages: true,
     maxBusinesses: 1,
     maxMembers: 1,
     siteLayouts: 9,
@@ -155,6 +157,7 @@ export const PLANS: Plan[] = [
     limits: { sites: null, blogPosts: null, cardNews: null, shorts: null, video: null, aiImages: null },
     maxBusinesses: null,
     maxMembers: null,
+    siteLayouts: 9,
     domain: "custom",
     premiumImages: true,
     watermarkRemoved: true,

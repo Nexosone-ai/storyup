@@ -22,10 +22,13 @@ export async function POST(request: Request) {
 
   let businessId = "";
   let blogPostId = "";
+  let story: string | undefined;
   try {
     const body = await request.json();
     businessId = String(body.businessId);
     blogPostId = String(body.blogPostId);
+    if (typeof body.story === "string" && body.story.trim())
+      story = body.story.trim().slice(0, 2000);
   } catch {
     return NextResponse.json(
       { error: ko ? "잘못된 요청입니다." : "Invalid request." },
@@ -40,6 +43,7 @@ export async function POST(request: Request) {
       businessId,
       blogPostId,
       locale,
+      story,
     });
     return NextResponse.json({ ok: true, cardNews, cardNewsId });
   } catch (err) {
