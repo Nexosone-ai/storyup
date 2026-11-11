@@ -1,4 +1,6 @@
 import "server-only";
+import { entitlementSummaryFor } from "@/lib/partner/entitlements";
+import { emptyBalances, type EntitlementBalances } from "@/lib/partner/entitlementCatalog";
 import { randomUUID } from "crypto";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { partnerForClient } from "@/lib/partner";
@@ -497,7 +499,8 @@ export interface ActivePartnerRow {
   displayName: string;
   email: string | null;
   workStatus: string | null;
-  credits: number;
+  /** 서비스별 보유 작업권(0112). */
+  entitlements: EntitlementBalances;
   inquiries: number;
   paidWorks: number;
   pendingKrw: number;
@@ -515,17 +518,14 @@ export async function listActivePartners(): Promise<ActivePartnerRow[]> {
   const ids = [...new Set(rows.map((r) => r.user_id))];
   if (!ids.length) return [];
 
-  const [pr, ledger, earn, inq, quotes] = await Promise.all([
+  const [pr, entitlements, earn, inq, quotes] = await Promise.all([
     admin.from("profiles").select("user_id, email").in("user_id", ids),
-    admin.from("partner_credit_ledger").select("partner_user_id, amount").in("partner_user_id", ids),
+    entitlementSummaryFor(ids),
     admin.from("partner_earnings").select("partner_user_id, amount_krw, status").in("partner_user_id", ids),
     admin.from("agency_inquiries").select("partner_user_id").in("partner_user_id", ids),
     admin.from("agency_quotes").select("partner_user_id").eq("status", "paid").in("partner_user_id", ids),
   ]);
   const emailMap = new Map((pr.data ?? []).map((p) => [p.user_id, p.email]));
-  const credit = new Map<string, number>();
-  for (const l of ledger.data ?? [])
-    credit.set(l.partner_user_id, (credit.get(l.partner_user_id) ?? 0) + l.amount);
   const pend = new Map<string, number>();
   const paid = new Map<string, number>();
   for (const e of earn.data ?? []) {
@@ -546,7 +546,7 @@ export async function listActivePartners(): Promise<ActivePartnerRow[]> {
     displayName: r.display_name,
     email: emailMap.get(r.user_id) ?? null,
     workStatus: r.work_status,
-    credits: credit.get(r.user_id) ?? 0,
+    entitlements: entitlements.get(r.user_id) ?? emptyBalances(),
     inquiries: inqCount.get(r.user_id) ?? 0,
     paidWorks: paidWorks.get(r.user_id) ?? 0,
     pendingKrw: pend.get(r.user_id) ?? 0,

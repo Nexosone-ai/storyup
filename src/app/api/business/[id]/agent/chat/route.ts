@@ -70,7 +70,7 @@ export async function POST(
       { status: 400 },
     );
 
-  // 대화(채팅)는 무료 — 비용이 드는 생성/작업은 승인 시 파트너 패킷(크레딧)으로 차감.
+  // 대화(채팅)는 무료 — 비용이 드는 생성/작업은 승인 시 고객(사업장 소유자) 플랜 한도로 차감.
   // 여기부터는 SSE 스트림으로 응답(text/event-stream).
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({

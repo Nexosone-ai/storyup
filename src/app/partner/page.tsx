@@ -144,7 +144,7 @@ export default async function PartnerPage() {
         </Card>
       )}
 
-      {/* 파트너 전용 솔루션 안내 + 패킷 사용 안내 */}
+      {/* 파트너 전용 솔루션 안내 + 작업권 안내 */}
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="p-4 sm:p-5">
           <div className="flex items-center gap-2">
