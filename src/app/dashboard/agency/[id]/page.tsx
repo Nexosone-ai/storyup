@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getUser } from "@/lib/queries";
 import { getLocale } from "@/lib/i18n";
-import { loadThread, listAgencyServices, listDeliverables } from "@/lib/agency";
+import { loadThread, listDeliverables } from "@/lib/agency";
 import { getSupporterProfileByUser } from "@/lib/supporters";
 import { AgencyThread } from "@/components/agency/AgencyThread";
 import { SupporterProfileCard } from "@/components/agency/SupporterProfileCard";
@@ -22,9 +22,6 @@ export default async function AgencyThreadPage({
   if (!inquiry) notFound();
 
   const isPartnerView = inquiry.partnerUserId === user.id;
-  const services = await listAgencyServices();
-  const supply =
-    services.find((s) => s.key === inquiry.serviceKey)?.supplyPriceKrw ?? 0;
 
   // 클라이언트에게 담당 파트너(서포터) 프로필을 보여준다.
   const partnerProfile =
@@ -54,7 +51,6 @@ export default async function AgencyThreadPage({
         messages={messages}
         meId={user.id}
         isPartnerView={isPartnerView}
-        supplyPriceKrw={supply}
         deliverables={deliverables}
         ko={ko}
       />
