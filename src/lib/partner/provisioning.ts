@@ -219,7 +219,16 @@ export async function createProvisionedAccount(args: {
   };
 }
 
-/** 30일 연장 — 패킷 차감 후 만료일을 max(지금, 기존 만료) + 30일로. */
+/**
+ * 30일 연장 — 만료일을 max(지금, 기존 만료) + 30일로.
+ *
+ * 보호 규칙(2026-11-11, 운영 전 결함 수정):
+ * 1) 고객이 Basic·Pro 등 다른 요금제로 전환해 활성 상태면 연장을 거부한다(패킷 미차감).
+ *    종전에는 플랜을 Lite 로 덮어쓰고 정기결제 키까지 지웠다.
+ * 2) 동시 요청 방지 — partner_provisioned_accounts.periods 를 조건부 갱신(CAS)해 연장권을
+ *    먼저 예약한 요청만 과금·연장한다. 종전에는 패킷이 두 번 차감되고 기간은 한 번만 늘었다.
+ * 3) subscriptions 는 기존 행이면 plan/status/기간만 update — billing_key 는 건드리지 않는다.
+ */
 export async function extendProvisionedAccount(
   partnerUserId: string,
   clientUserId: string,
@@ -235,46 +244,83 @@ export async function extendProvisionedAccount(
   if (!(await canProvisionAccounts(partnerUserId)))
     return { error: "계정 직접 생성은 별도계약 파트너만 사용할 수 있어요." };
 
+  const { data: sub } = await admin
+    .from("subscriptions")
+    .select("plan, status, current_period_end")
+    .eq("user_id", clientUserId)
+    .maybeSingle();
+  const now = Date.now();
+  const subEnd = sub?.current_period_end
+    ? new Date(sub.current_period_end).getTime()
+    : 0;
+
+  // 1) 플랜 보호 — Lite/Free 가 아닌 플랜이 활성(만료 전 또는 만료 없음)이면 연장 대상이 아니다.
+  if (
+    sub &&
+    sub.plan !== "lite" &&
+    sub.plan !== "free" &&
+    sub.status === "active" &&
+    (!sub.current_period_end || subEnd > now)
+  ) {
+    return {
+      error: `이 계정은 ${sub.plan.toUpperCase()} 요금제로 전환되어 Lite 연장 대상이 아니에요. 고객이 직접 결제·갱신하는 계정이라 파트너 연장으로 바꿀 수 없어요.`,
+    };
+  }
+
+  // 2) 연장권 예약(CAS) — periods 가 읽은 값 그대로일 때만 +1. 0행이면 다른 요청이 먼저 처리 중.
+  const base = Math.max(now, subEnd, new Date(row.expires_at).getTime());
+  const expires = new Date(base + LITE_PERIOD_DAYS * DAY_MS).toISOString();
+  const { data: reserved } = await admin
+    .from("partner_provisioned_accounts")
+    .update({
+      periods: row.periods + 1,
+      expires_at: expires,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", row.id)
+    .eq("periods", row.periods)
+    .select("id");
+  if (!reserved?.length)
+    return { error: "이미 연장 처리 중이에요. 잠시 후 새로고침해서 확인해주세요." };
+  const revert = async () => {
+    await admin
+      .from("partner_provisioned_accounts")
+      .update({
+        periods: row.periods,
+        expires_at: row.expires_at,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", row.id);
+  };
+
   let charge;
   try {
     charge = await chargePartnerCredits(partnerUserId, LITE_ACTION, undefined, true);
   } catch (err) {
+    await revert();
     return { error: chargeErrorMessage(err) };
   }
 
-  const { data: sub } = await admin
-    .from("subscriptions")
-    .select("current_period_end")
-    .eq("user_id", clientUserId)
-    .maybeSingle();
-  const base = Math.max(
-    Date.now(),
-    sub?.current_period_end ? new Date(sub.current_period_end).getTime() : 0,
-    new Date(row.expires_at).getTime(),
-  );
-  const expires = new Date(base + LITE_PERIOD_DAYS * DAY_MS).toISOString();
-  const { error: subErr } = await admin.from("subscriptions").upsert(
-    {
-      user_id: clientUserId,
-      plan: "lite",
-      status: "active",
-      current_period_end: expires,
-      billing_key: null,
-      cancel_at_period_end: false,
-      trial: false,
-      billing_failures: 0,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id" },
-  );
+  // 3) 구독 갱신 — 기존 행은 billing_key 를 보존(update), 행이 없을 때만 insert.
+  const patch = {
+    plan: "lite" as const,
+    status: "active",
+    current_period_end: expires,
+    cancel_at_period_end: false,
+    trial: false,
+    billing_failures: 0,
+    updated_at: new Date().toISOString(),
+  };
+  const { error: subErr } = sub
+    ? await admin.from("subscriptions").update(patch).eq("user_id", clientUserId)
+    : await admin
+        .from("subscriptions")
+        .insert({ user_id: clientUserId, billing_key: null, ...patch });
   if (subErr) {
     await charge.refund();
+    await revert();
     return { error: "연장에 실패했어요. 패킷은 환불됐어요." };
   }
-  await admin
-    .from("partner_provisioned_accounts")
-    .update({ periods: row.periods + 1, expires_at: expires, updated_at: new Date().toISOString() })
-    .eq("id", row.id);
   return {
     ok: true,
     message: `${row.email} 이용권을 ${new Date(expires).toLocaleDateString("ko-KR")}까지 연장했어요 (${charge.charged}패킷 차감).`,
