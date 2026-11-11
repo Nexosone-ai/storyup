@@ -883,52 +883,6 @@ export interface Database {
         >;
         Relationships: [];
       };
-      partner_credit_ledger: {
-        Row: {
-          id: string;
-          partner_user_id: string;
-          amount: number;
-          reason: string | null;
-          ref_type: string | null;
-          ref_business_id: string | null;
-          created_by: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          partner_user_id: string;
-          amount: number;
-          reason?: string | null;
-          ref_type?: string | null;
-          ref_business_id?: string | null;
-          created_by?: string | null;
-          created_at?: string;
-        };
-        Update: Partial<
-          Database["public"]["Tables"]["partner_credit_ledger"]["Insert"]
-        >;
-        Relationships: [];
-      };
-      partner_credit_prices: {
-        Row: {
-          action: string;
-          label: string;
-          credits: number;
-          active: boolean;
-          updated_at: string;
-        };
-        Insert: {
-          action: string;
-          label: string;
-          credits?: number;
-          active?: boolean;
-          updated_at?: string;
-        };
-        Update: Partial<
-          Database["public"]["Tables"]["partner_credit_prices"]["Insert"]
-        >;
-        Relationships: [];
-      };
       agency_services: {
         Row: {
           key: string;
@@ -1260,58 +1214,6 @@ export interface Database {
         Relationships: [];
       };
 
-      partner_packet_orders: {
-        Row: {
-          id: string;
-          partner_user_id: string;
-          packets: number;
-          unit_price_krw: number;
-          supply_krw: number;
-          vat_krw: number;
-          total_krw: number;
-          method: string;
-          status: string;
-          order_id: string | null;
-          invoice_no: string | null;
-          depositor_name: string | null;
-          buyer_name: string | null;
-          buyer_email: string | null;
-          buyer_phone: string | null;
-          admin_note: string | null;
-          reviewed_by: string | null;
-          paid_at: string | null;
-          granted_at: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          partner_user_id: string;
-          packets: number;
-          unit_price_krw?: number;
-          supply_krw: number;
-          vat_krw?: number;
-          total_krw: number;
-          method: string;
-          status?: string;
-          order_id?: string | null;
-          invoice_no?: string | null;
-          depositor_name?: string | null;
-          buyer_name?: string | null;
-          buyer_email?: string | null;
-          buyer_phone?: string | null;
-          admin_note?: string | null;
-          reviewed_by?: string | null;
-          paid_at?: string | null;
-          granted_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<
-          Database["public"]["Tables"]["partner_packet_orders"]["Insert"]
-        >;
-        Relationships: [];
-      };
 
       share_orders: {
         Row: {
@@ -3869,15 +3771,6 @@ export interface Database {
           p_reason: string;
           p_ref_business?: string | null;
           p_ref_id?: string | null;
-        };
-        Returns: number;
-      };
-      spend_partner_credits: {
-        Args: {
-          p_partner: string;
-          p_amount: number;
-          p_reason: string;
-          p_ref_business?: string | null;
         };
         Returns: number;
       };

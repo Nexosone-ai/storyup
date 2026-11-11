@@ -54,10 +54,10 @@ export async function createSimilarBatchAction(
   const url = sourceUrl.trim();
   if (!isHttpUrl(url)) return { error: "올바른 영상 URL(http/https)을 입력해주세요." };
   const asp = ASPECTS.has(aspect) ? aspect : "9:16";
-  // 화질 — 기본 480p, 720p/1080p 는 크레딧 배수 가산(원가가 초당 ×2.1/×5.3).
+  // 화질 — 기본 480p, 720p/1080p 는 작업권 배수 가산(원가가 초당 ×2.1/×5.3).
   const qual = videoQualityById(quality);
   const q = qual.id;
-  // 영상 길이 — 길수록 크레딧을 배수로 더 차감(원본 fal 비용도 길이에 비례).
+  // 영상 길이 — 길수록 작업권을 배수로 더 사용(원본 fal 비용도 길이에 비례).
   const length = videoLengthById(lengthId);
 
   // 컨셉이 비었으면 유튜브 oEmbed 제목으로 보강(키 불필요). 실패하면 무시.
