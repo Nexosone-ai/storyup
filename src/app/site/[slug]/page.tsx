@@ -9,6 +9,10 @@ import {
 } from "@/lib/queries";
 import { SiteRenderer } from "@/components/website/SiteRenderer";
 import { TrackPageView } from "@/components/site/TrackPageView";
+import { AutoAdsLoader } from "@/components/site/AutoAdsLoader";
+import { adsenseClientFor } from "@/lib/adsense";
+import { countAdApprovedPosts } from "@/lib/adReview";
+import { getPlanId } from "@/lib/subscription";
 import { contactHref } from "@/components/website/templates/shared";
 import { buildSeo, siteBaseUrl } from "@/utils/seo";
 import { stripHtml } from "@/utils/richtext";
@@ -45,6 +49,12 @@ export default async function PublicSitePage({
 
   const posts = await getPublishedPosts(site.business.id);
   const blogHref = posts.length > 0 ? `/site/${slug}/blog` : undefined;
+  // 광고(0113): 무료 사이트 홈은 검수 승인 글이 1개 이상일 때만 회사 광고.
+  const adsClient = adsenseClientFor({
+    ownerPlanId: await getPlanId(site.business.user_id),
+    ownerPublisherId: site.website.content.adsense?.publisherId,
+    adEligible: (await countAdApprovedPosts(site.business.id)) > 0,
+  });
   // 사이트 주인이 직접 볼 때만 헤더에 "편집" 바로가기를 노출한다.
   const viewer = await getUser();
   const editHref =
@@ -101,6 +111,7 @@ export default async function PublicSitePage({
   return (
     <>
       <TrackPageView slug={slug} />
+      <AutoAdsLoader client={adsClient} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

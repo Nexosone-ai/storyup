@@ -192,6 +192,8 @@ export const translations = {
         { label: "UP 적립 안내", href: "/rewards" },
       ],
       links: [
+        { label: "STORYUP 소개", href: "/about" },
+        { label: "콘텐츠·광고 정책", href: "/editorial-policy" },
         { label: "이용약관", href: "/terms" },
         { label: "개인정보처리방침", href: "/privacy" },
         { label: "취소·환불 정책", href: "/refund-policy" },
@@ -468,6 +470,8 @@ export const translations = {
         { label: "UP Rewards", href: "/rewards" },
       ],
       links: [
+        { label: "About STORYUP", href: "/about" },
+        { label: "Content & Ads Policy", href: "/editorial-policy" },
         { label: "Terms of Service", href: "/terms" },
         { label: "Privacy Policy", href: "/privacy" },
         { label: "Refund Policy", href: "/refund-policy" },

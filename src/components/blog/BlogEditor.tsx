@@ -20,6 +20,7 @@ import { contentToPlainText } from "@/utils/markdown";
 import { GuideSteps, CopyButton } from "@/components/ui/GuideCard";
 import { BlogCover } from "@/components/blog/BlogCover";
 import { RichEditor } from "@/components/blog/RichEditor";
+import { AdRiskHints } from "@/components/blog/AdRiskHints";
 import {
   IMAGE_STYLES,
   IMAGE_STYLE_META,
@@ -835,6 +836,7 @@ export function BlogEditor({
           albumCount={albumCount}
         />
       </div>
+      <AdRiskHints content={content} ko={ko} />
       {(albumAvailable || albumEditHref) && (
         <p className="-mt-2 text-xs text-muted">
           {albumAvailable

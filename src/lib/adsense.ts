@@ -41,3 +41,19 @@ export function adsenseAdsTxtLine(clientId: string): string | null {
   const m = clientId.match(/pub-(\d{16})/);
   return m ? `google.com, pub-${m[1]}, DIRECT, ${ADSENSE_TAG_ID}` : null;
 }
+
+/**
+ * 페이지에 실을 AdSense 클라이언트(0113 광고 검수).
+ *  - 무료 플랜 소유자: 회사 광고 — 이 페이지가 광고 게재 가능(adEligible)할 때만.
+ *    (글 페이지 = 글이 approved, 홈·목록 = 승인 글 1개 이상)
+ *  - 유료 플랜 소유자: 본인 퍼블리셔 ID(정규화)만. 검수와 무관(본인 계정 책임).
+ */
+export function adsenseClientFor(opts: {
+  ownerPlanId: string;
+  ownerPublisherId: string | null | undefined;
+  adEligible: boolean;
+}): string | null {
+  if (opts.ownerPlanId === "free")
+    return opts.adEligible ? companyAdsenseClient() : null;
+  return normalizeAdsensePublisherId(opts.ownerPublisherId);
+}

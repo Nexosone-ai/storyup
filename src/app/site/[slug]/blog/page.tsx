@@ -17,6 +17,10 @@ import { BlogCover } from "@/components/blog/BlogCover";
 import { BannerStrip } from "@/components/website/templates/BannerView";
 import { MarketplaceAdSlot } from "@/components/site/MarketplaceAdSlot";
 import { TrackPageView } from "@/components/site/TrackPageView";
+import { AutoAdsLoader } from "@/components/site/AutoAdsLoader";
+import { adsenseClientFor } from "@/lib/adsense";
+import { countAdApprovedPosts } from "@/lib/adReview";
+import { getPlanId } from "@/lib/subscription";
 import { buildSeo, siteBaseUrl } from "@/utils/seo";
 
 export async function generateMetadata({
@@ -47,6 +51,12 @@ export default async function PublicBlogListPage({
   if (!site) notFound();
 
   const allPosts = await getPublishedPosts(site.business.id);
+  // 광고(0113): 무료 사이트 목록은 검수 승인 글이 1개 이상일 때만 회사 광고.
+  const adsClient = adsenseClientFor({
+    ownerPlanId: await getPlanId(site.business.user_id),
+    ownerPublisherId: site.website.content.adsense?.publisherId,
+    adEligible: (await countAdApprovedPosts(site.business.id)) > 0,
+  });
   const categories = [
     ...new Set(allPosts.map((p) => p.category).filter(Boolean)),
   ] as string[];
@@ -87,6 +97,7 @@ export default async function PublicBlogListPage({
   return (
     <div className="min-h-dvh bg-white">
       <TrackPageView slug={slug} />
+      <AutoAdsLoader client={adsClient} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(blogLd) }}

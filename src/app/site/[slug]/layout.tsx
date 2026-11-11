@@ -52,25 +52,14 @@ export default async function PublishedSiteLayout({
   // Free 플랜 사이트는 하단에 STORYUP 워터마크를 표기한다(Basic+는 plan.watermarkRemoved로 제거).
   const showWatermark = ownerPlan ? !ownerPlan.watermarkRemoved : false;
 
-  // 광고 자동 로더(Auto Ads):
-  //  - 무료 사이트 → 회사(STORYUP) AdSense로 무료 티어를 수익화.
+  // 광고 자동 로더(Auto Ads)는 0113부터 페이지 단위로 켠다(src/lib/adsense.ts adsenseClientFor):
+  //  - 무료 사이트 → 회사(STORYUP) AdSense — 관리자가 광고 게재 검수를 통과시킨 글(approved)과
+  //    승인 글이 1개 이상인 사이트의 홈·블로그 목록에만(검토되지 않은 사용자 콘텐츠엔 광고 없음).
   //  - 유료 사이트 → 사장님이 연결한 본인 AdSense만(미연결이면 광고 없음).
-  // 입력은 신뢰하지 않고 항상 정규화해 ca-pub-################ 형태만 script src에 넣는다.
-  const adsenseClient =
-    ownerPlan?.id === "free"
-      ? companyAdsenseClient()
-      : normalizeAdsensePublisherId(site?.website.content.adsense?.publisherId);
+  // 인증 메타(google-adsense-account)는 generateMetadata 가 계속 head 에 넣는다.
 
   return (
     <div className="min-h-dvh" style={style}>
-      {adsenseClient && (
-        // 자동광고 로더 — Google이 광고 위치를 자동 배치한다(Auto Ads). 인증 메타는 generateMetadata로 head에.
-        <script
-          async
-          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
-          crossOrigin="anonymous"
-        />
-      )}
       {children}
       {showWatermark && <StoryupWatermark />}
     </div>
