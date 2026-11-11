@@ -260,6 +260,11 @@ export interface Database {
           seo_analyzed_at: string | null;
           /** 오토파일럿 '검토' 모드가 만든 예약 발행 글(0094). null이면 수동 작성. */
           autopilot_routine_id: string | null;
+          /** 광고 게재 검수(0113) — pending(미검수·광고 없음) | approved | rejected. */
+          ad_review_status: "pending" | "approved" | "rejected";
+          ad_reviewed_at: string | null;
+          ad_reviewed_by: string | null;
+          ad_review_note: string | null;
         } & Timestamps;
         Insert: {
           id?: string;
@@ -282,6 +287,10 @@ export interface Database {
           seo_analysis?: BlogSeoAnalysisCache | null;
           seo_analyzed_at?: string | null;
           autopilot_routine_id?: string | null;
+          ad_review_status?: "pending" | "approved" | "rejected";
+          ad_reviewed_at?: string | null;
+          ad_reviewed_by?: string | null;
+          ad_review_note?: string | null;
           created_at?: string;
           updated_at?: string;
         };

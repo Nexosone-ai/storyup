@@ -28,6 +28,10 @@ import { BlogLikeButton } from "@/components/site/BlogLikeButton";
 import { BlogEventModules } from "@/components/site/BlogEventModules";
 import { BlogInfoModules } from "@/components/site/BlogInfoModules";
 import { TrackPageView } from "@/components/site/TrackPageView";
+import { AutoAdsLoader } from "@/components/site/AutoAdsLoader";
+import { adsenseClientFor } from "@/lib/adsense";
+import { isAdApproved } from "@/lib/adReview";
+import { getPlanId } from "@/lib/subscription";
 import { getPublicBlogEvent } from "@/lib/events";
 import { buildSeo, siteUrl, siteBaseUrl } from "@/utils/seo";
 
@@ -76,6 +80,12 @@ export default async function PublicArticlePage({
   if (!post) notFound();
 
   const html = await renderBlogContent(post.content ?? "");
+  // 광고(0113): 무료 사이트의 회사 광고는 검수 승인(approved) 글에만. 유료는 본인 애드센스 그대로.
+  const adsClient = adsenseClientFor({
+    ownerPlanId: await getPlanId(site.business.user_id),
+    ownerPublisherId: site.website.content.adsense?.publisherId,
+    adEligible: isAdApproved(post.ad_review_status),
+  });
   // 아티스트(음악) 사이트면 첫 음악 앨범 섹션을 글에서도 회전 LP 플레이어로 보여준다.
   // 본문의 [[album]] 위치에 끼우고, 없으면 커버 아래(상단), [[album:off]]면 숨김.
   const album = site.website.content.sections?.find(
@@ -208,6 +218,7 @@ export default async function PublicArticlePage({
   return (
     <div className="min-h-dvh bg-white">
       <TrackPageView slug={slug} />
+      <AutoAdsLoader client={adsClient} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

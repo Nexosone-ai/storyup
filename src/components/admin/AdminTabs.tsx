@@ -20,6 +20,7 @@ const TABS: { href: string; label: string }[] = [
   { href: "/dashboard/admin/base-plans", label: "본사기본상품" },
   { href: "/dashboard/admin/agency", label: "대행" },
   { href: "/dashboard/admin/designer", label: "디자이너 마켓" },
+  { href: "/dashboard/admin/ad-review", label: "광고검수" },
   { href: "/dashboard/admin/ads", label: "광고(준비중)" },
   { href: "/dashboard/admin/channel-ads", label: "채널광고" },
   { href: "/dashboard/admin/billing", label: "결제·가격" },

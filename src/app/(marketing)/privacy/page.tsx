@@ -4,7 +4,7 @@ export const metadata = { title: "개인정보처리방침" };
 
 export default function PrivacyPage() {
   return (
-    <LegalPage title="개인정보처리방침" updated="2026년 10월 2일">
+    <LegalPage title="개인정보처리방침" updated="2026년 11월 11일">
       <h2>1. 수집하는 개인정보</h2>
       <ul>
         <li>
@@ -78,7 +78,67 @@ export default function PrivacyPage() {
         </li>
       </ul>
 
-      <h2>6. 문의</h2>
+      <h2 id="ads" className="scroll-mt-24">
+        6. 광고 및 쿠키(Google AdSense)
+      </h2>
+      <p>
+        STORYUP은 무료 플랜 이용자가 발행한 공개 페이지 중 운영자가 검수해 광고 게재를
+        허용한 페이지에 Google AdSense 광고를 게재합니다. 유료 플랜 이용자가 본인 명의의
+        AdSense 계정을 연결한 사이트에는 해당 이용자의 광고가 게재됩니다.
+      </p>
+      <ul>
+        <li>
+          Google을 포함한 제3자 광고 공급업체는 쿠키(예: Google의 DART 쿠키)를 사용해
+          이용자의 이 사이트 및 다른 웹사이트 방문 기록을 바탕으로 광고를 게재합니다.
+        </li>
+        <li>
+          Google의 광고 쿠키 사용으로 Google과 그 파트너는 이용자의 이 사이트 및 다른
+          사이트 방문 정보를 기반으로 광고를 게재할 수 있습니다.
+        </li>
+        <li>
+          이용자는{" "}
+          <a
+            href="https://www.google.com/settings/ads"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary underline"
+          >
+            Google 광고 설정
+          </a>
+          에서 개인 맞춤 광고를 선택 해제할 수 있고,{" "}
+          <a
+            href="https://www.aboutads.info/choices/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary underline"
+          >
+            www.aboutads.info
+          </a>
+          에서 일부 제3자 공급업체의 개인 맞춤 광고용 쿠키 사용을 해제할 수 있습니다.
+        </li>
+        <li>
+          Google이 광고 서비스에서 데이터를 사용하는 방식은{" "}
+          <a
+            href="https://policies.google.com/technologies/partner-sites"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary underline"
+          >
+            Google 파트너 사이트 데이터 사용 안내
+          </a>
+          에서 확인할 수 있습니다.
+        </li>
+        <li>
+          광고 쿠키는 브라우저 설정에서 차단·삭제할 수 있으며, 차단해도 서비스의 핵심 기능
+          이용에는 영향이 없습니다. 광고 게재 기준은{" "}
+          <a href="/editorial-policy" className="text-primary underline">
+            콘텐츠·광고 정책
+          </a>
+          에 있습니다.
+        </li>
+      </ul>
+
+      <h2>7. 문의</h2>
       <p>
         개인정보 처리에 관한 문의는 서비스 내 고객 지원 채널을 통해
         접수할 수 있습니다.
