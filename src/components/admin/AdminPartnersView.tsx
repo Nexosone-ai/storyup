@@ -7,13 +7,9 @@ import {
   assignClientAction,
   unassignClientAction,
   grantEntitlementAction,
-  setCreditPriceAction,
-  confirmPacketTransferAction,
-  cancelPacketOrderAction,
   removePartnerAction,
   setProvisioningAction,
 } from "@/app/dashboard/admin/partners/actions";
-import type { AdminPacketOrderRow } from "@/lib/partner/packets";
 import type { PartnerAssignmentRow, PartnerListRow } from "@/lib/partner";
 import type { AdminShareRow } from "@/lib/accountShare";
 import {
@@ -21,27 +17,16 @@ import {
   formatEntitlementSummary,
 } from "@/lib/partner/entitlementCatalog";
 
-export interface CreditPriceRow {
-  action: string;
-  label: string;
-  credits: number;
-  active: boolean;
-}
-
 const field =
   "rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary";
 
 export function AdminPartnersView({
   assignments,
-  prices,
   accountShares = [],
-  packetOrders = [],
   partners = [],
 }: {
   assignments: PartnerAssignmentRow[];
-  prices: CreditPriceRow[];
   accountShares?: AdminShareRow[];
-  packetOrders?: AdminPacketOrderRow[];
   partners?: PartnerListRow[];
 }) {
   const [pending, startTransition] = useTransition();
@@ -58,11 +43,6 @@ export function AdminPartnersView({
   const [list, setList] = useState(assignments);
   const [partnerList, setPartnerList] = useState(partners);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
-  const [packetNote, setPacketNote] = useState<Record<string, string>>({});
-  const waitingPackets = packetOrders.filter(
-    (o) => o.method === "transfer" && o.status === "pending",
-  );
-  const [priceState, setPriceState] = useState(prices);
 
   const run = (
     fn: () => Promise<{ ok?: boolean; error?: string; message?: string }>,
@@ -167,8 +147,8 @@ export function AdminPartnersView({
         </h3>
         <p className="mt-1 text-xs text-muted">
           파트너 해제 시 계정은 무료 플랜으로 돌아가고 파트너 영역 접근·고객 배정·파트너(영업)
-          관계가 정리됩니다. 패킷 원장·구매 주문·정산 기록은 보존되며, 다시 파트너로 설정하면
-          남은 패킷을 그대로 씁니다.
+          관계가 정리됩니다. 작업권 원장·정산 기록은 보존되며, 다시 파트너로 설정하면
+          남은 작업권을 그대로 씁니다.
         </p>
         {partnerList.length === 0 ? (
           <p className="mt-3 text-sm text-muted">파트너가 없습니다.</p>
@@ -239,7 +219,7 @@ export function AdminPartnersView({
                           })
                         }
                         disabled={pending}
-                        title="별도계약 파트너: 고객 계정을 직접 생성(Lite, 30일 118패킷)할 수 있게 합니다. 서브파트너도 상속."
+                        title="별도계약 파트너: 고객 계정을 직접 생성(Lite 30일 · Lite 계정 작업권 1개 사용)할 수 있게 합니다. 서브파트너도 상속."
                       >
                         {p.provisioning ? "계정생성 끄기" : "계정생성 켜기"}
                       </Button>
@@ -330,159 +310,6 @@ export function AdminPartnersView({
         )}
       </section>
 
-      {/* 2.5) 파트너 패킷 구매 주문 — 계좌이체 입금 확인(수동 지급) + 전체 내역 */}
-      <section className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
-        <h3 className="text-sm font-semibold">
-          패킷 구매 주문 · 입금 확인
-          {waitingPackets.length > 0 && (
-            <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
-              대기 {waitingPackets.length}
-            </span>
-          )}
-        </h3>
-        <p className="mt-1 text-xs text-muted">
-          파트너가 발행한 계좌이체 청구서입니다. 통장 입금(입금자명·금액)을
-          확인한 뒤 &lsquo;입금 확인·지급&rsquo;을 누르면 패킷이
-          지급됩니다(1회만 반영, 되돌릴 수 없음). 카드결제 주문은 결제 즉시 자동
-          지급됩니다.
-        </p>
-        {packetOrders.length === 0 ? (
-          <p className="mt-3 text-sm text-muted">주문이 없습니다.</p>
-        ) : (
-          <div className="mt-3 overflow-x-auto">
-            <table className="w-full min-w-[760px] text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-xs text-muted">
-                  <th className="py-1.5 pr-3">일자</th>
-                  <th className="py-1.5 pr-3">파트너</th>
-                  <th className="py-1.5 pr-3">번호 / 입금자명</th>
-                  <th className="py-1.5 pr-3 text-right">패킷</th>
-                  <th className="py-1.5 pr-3 text-right">입금액</th>
-                  <th className="py-1.5 pr-3">상태</th>
-                  <th className="py-1.5">처리</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {packetOrders.map((o) => {
-                  const waiting =
-                    o.method === "transfer" && o.status === "pending";
-                  return (
-                    <tr key={o.id} className={waiting ? "bg-primary/5" : ""}>
-                      <td className="py-2 pr-3 text-xs tabular-nums">
-                        {o.created_at.slice(0, 10)}
-                      </td>
-                      <td className="py-2 pr-3">
-                        <div className="max-w-[180px] truncate">
-                          {o.partnerEmail ?? o.partner_user_id}
-                        </div>
-                        {o.partnerName && (
-                          <div className="text-xs text-muted">
-                            {o.partnerName}
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-2 pr-3">
-                        <div className="font-mono text-xs">
-                          {o.invoice_no ?? o.order_id?.slice(0, 16) ?? "—"}
-                        </div>
-                        <div className="text-xs text-muted">
-                          {o.method === "card"
-                            ? "카드"
-                            : `입금자 ${o.depositor_name ?? "—"}`}
-                        </div>
-                      </td>
-                      <td className="py-2 pr-3 text-right tabular-nums">
-                        {o.packets.toLocaleString()}
-                      </td>
-                      <td className="py-2 pr-3 text-right tabular-nums">
-                        {o.total_krw.toLocaleString()}원
-                      </td>
-                      <td className="py-2 pr-3">
-                        <span
-                          className={`rounded-full border px-2 py-0.5 text-xs ${
-                            o.status === "paid"
-                              ? "border-success/40 text-success"
-                              : o.status === "cancelled"
-                                ? "border-border text-muted"
-                                : "border-primary/40 text-primary"
-                          }`}
-                        >
-                          {o.status === "paid"
-                            ? "지급 완료"
-                            : o.status === "cancelled"
-                              ? "취소"
-                              : o.method === "card"
-                                ? "결제 대기"
-                                : "입금 대기"}
-                        </span>
-                        {o.admin_note && (
-                          <div className="mt-0.5 max-w-[160px] truncate text-[11px] text-muted">
-                            {o.admin_note}
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-2">
-                        {waiting ? (
-                          <div className="flex items-center gap-1">
-                            <input
-                              type="text"
-                              value={packetNote[o.id] ?? ""}
-                              onChange={(e) =>
-                                setPacketNote((s) => ({
-                                  ...s,
-                                  [o.id]: e.target.value,
-                                }))
-                              }
-                              placeholder="메모"
-                              className={`${field} h-8 w-24 py-0 text-xs`}
-                            />
-                            <Button
-                              size="sm"
-                              onClick={() =>
-                                run(() =>
-                                  confirmPacketTransferAction(
-                                    o.id,
-                                    packetNote[o.id] ?? "",
-                                  ),
-                                )
-                              }
-                              disabled={pending}
-                            >
-                              입금 확인·지급
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() =>
-                                run(() =>
-                                  cancelPacketOrderAction(
-                                    o.id,
-                                    packetNote[o.id] ?? "",
-                                  ),
-                                )
-                              }
-                              disabled={pending}
-                            >
-                              취소
-                            </Button>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted">
-                            {o.granted_at
-                              ? `지급 ${o.granted_at.slice(0, 10)}`
-                              : ""}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
       {/* 3) 작업권 부여 */}
       <section className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
         <h3 className="text-sm font-semibold">3. 작업권 부여</h3>
@@ -544,63 +371,6 @@ export function AdminPartnersView({
         </div>
       </section>
 
-      {/* 4) 작업별 크레딧 단가 */}
-      <section className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
-        <h3 className="text-sm font-semibold">4. 작업별 크레딧 단가</h3>
-        <p className="mt-1 text-xs text-muted">
-          에이전트 작업 1건당 차감될 크레딧. 0 = 무료.
-        </p>
-        <ul className="mt-3 space-y-2">
-          {priceState.map((p, i) => (
-            <li
-              key={p.action}
-              className="flex flex-wrap items-center gap-2 text-sm"
-            >
-              <span className="min-w-0 flex-1 truncate">
-                {p.label}{" "}
-                <code className="text-xs text-muted">({p.action})</code>
-              </span>
-              <input
-                type="number"
-                min={0}
-                value={p.credits}
-                onChange={(e) =>
-                  setPriceState((s) =>
-                    s.map((x, j) =>
-                      j === i ? { ...x, credits: Number(e.target.value) } : x,
-                    ),
-                  )
-                }
-                className={`${field} w-24`}
-              />
-              <label className="flex items-center gap-1 text-xs text-muted">
-                <input
-                  type="checkbox"
-                  checked={p.active}
-                  onChange={(e) =>
-                    setPriceState((s) =>
-                      s.map((x, j) =>
-                        j === i ? { ...x, active: e.target.checked } : x,
-                      ),
-                    )
-                  }
-                />
-                사용
-              </label>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  run(() => setCreditPriceAction(p.action, p.credits, p.active))
-                }
-                disabled={pending}
-              >
-                저장
-              </Button>
-            </li>
-          ))}
-        </ul>
-      </section>
     </div>
   );
 }

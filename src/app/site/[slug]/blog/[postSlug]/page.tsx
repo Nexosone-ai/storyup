@@ -88,18 +88,26 @@ export default async function PublicArticlePage({
   });
   // 아티스트(음악) 사이트면 첫 음악 앨범 섹션을 글에서도 회전 LP 플레이어로 보여준다.
   // 본문의 [[album]] 위치에 끼우고, 없으면 커버 아래(상단), [[album:off]]면 숨김.
-  const album = site.website.content.sections?.find(
-    (s) => s.type === "musicAlbum" && s.items.length > 0,
+  // 앨범이 여러 개면 [[album:N]] 으로 고른다(사이트 섹션 순서, 1부터). 없으면 첫 앨범.
+  const albums = (site.website.content.sections ?? []).filter(
+    (s): s is Extract<typeof s, { type: "musicAlbum" }> =>
+      s.type === "musicAlbum" && s.items.length > 0,
   );
   const albumSplit = splitAlbumMarker(html);
+  // 기본(번호 미지정)은 사이트와 같게 모든 앨범의 곡을 합친 LP판 하나. [[album:N]] 이면 그 앨범만.
+  const picked = albumSplit.picked ? (albums[albumSplit.album - 1] ?? albums[0]) : albums[0];
+  const albumTracks = albumSplit.picked
+    ? (picked?.items ?? [])
+    : albums.flatMap((a) => a.items);
   const albumPlayer =
-    album && album.type === "musicAlbum" && !albumSplit.off ? (
+    picked && !albumSplit.off ? (
       <div className="mt-8">
         <MusicAlbumPlayer
           compact
-          title={album.title}
-          coverImage={album.coverImage}
-          tracks={album.items}
+          title={picked.title}
+          coverImage={picked.coverImage}
+          tracks={albumTracks}
+          initialTrack={albumSplit.track - 1}
         />
       </div>
     ) : null;

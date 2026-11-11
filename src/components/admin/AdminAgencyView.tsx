@@ -1,6 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import {
+  formatEntitlementSummary,
+  type EntitlementBalances,
+} from "@/lib/partner/entitlementCatalog";
 import { Button } from "@/components/ui/Button";
 import {
   setSupplyPriceAction,
@@ -43,7 +47,7 @@ interface ActivePartner {
   displayName: string;
   email: string | null;
   workStatus: string | null;
-  credits: number;
+  entitlements: EntitlementBalances;
   inquiries: number;
   paidWorks: number;
   pendingKrw: number;
@@ -222,7 +226,7 @@ export function AdminAgencyView({
                 <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
                   <span>문의 {p.inquiries}</span>
                   <span>완료작업 {p.paidWorks}</span>
-                  <span>패킷 {p.credits.toLocaleString()}</span>
+                  <span>작업권 {formatEntitlementSummary(p.entitlements)}</span>
                   <span>
                     정산 대기 {p.pendingKrw.toLocaleString()}원 · 지급{" "}
                     {p.paidKrw.toLocaleString()}원
