@@ -54,7 +54,7 @@ export default async function BlogEditorPage({
   const seoAllowed = plan?.seoTools === true;
   // 글 요약 이미지(1장)는 Pro 전용.
   const summaryImageAllowed = plan?.id === "pro";
-  // AI 이미지 월 한도(Free 30 · Basic 100 · Pro 300) — 남은 장수 안내. Partner 는 무제한(null).
+  // AI 이미지 월 한도(Free 30 · Basic 60 · Pro 300) — 남은 장수 안내. Partner 는 무제한(null).
   const imagesLimit = plan?.limits.aiImages ?? null;
   const imagesRemaining =
     user && plan && imagesLimit !== null ? await imageRemaining(user.id, plan) : null;
