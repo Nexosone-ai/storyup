@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ALBUM_MARKER } from "@/lib/blog/albumEmbed";
+import { ALBUM_MARKER, albumMarker } from "@/lib/blog/albumEmbed";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { Node, mergeAttributes } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
@@ -116,6 +116,8 @@ export function RichEditor({
   onImageStyleChange,
   ko,
   albumAvailable = false,
+  albumEditHref = null,
+  albumCount = 0,
 }: {
   content: string;
   onChange: (html: string) => void;
@@ -126,6 +128,10 @@ export function RichEditor({
   ko: boolean;
   /** 사이트에 음악 앨범 섹션이 있을 때 — 툴바에 '앨범 플레이어' 삽입 버튼을 보인다. */
   albumAvailable?: boolean;
+  /** 아티스트 사이트 — LP판(앨범)에 곡·커버 이미지를 추가하는 편집 화면 링크(랜딩페이지 편집 ?focus=musicAlbum). */
+  albumEditHref?: string | null;
+  /** 사이트의 음악 앨범(곡이 있는 섹션) 수 — 2개 이상이면 삽입 시 번호를 묻는다. */
+  albumCount?: number;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const slotRef = useRef(0);
@@ -227,7 +233,23 @@ export function RichEditor({
 
   // 아티스트 앨범 플레이어 위치 마커 — 공개 글에서 이 단락 자리에 회전 LP 플레이어가 렌더된다.
   const insertAlbum = () => {
-    editor.chain().focus().insertContent(`<p>${ALBUM_MARKER}</p>`).run();
+    let marker = ALBUM_MARKER;
+    if (albumCount > 1) {
+      const a = window.prompt(
+        ko
+          ? `앨범 번호를 입력하세요 (1~${albumCount}, 사이트의 음악 앨범 순서). 특정 곡부터 시작하려면 "2:3"처럼 곡 번호를 붙이세요.`
+          : `Album number (1–${albumCount}, in site order). Add ":track" like "2:3" to start on a track.`,
+        "1",
+      );
+      if (a === null) return;
+      const [al, tr] = a.split(":").map((x) => Number(x.trim()));
+      if (!Number.isInteger(al) || al < 1 || al > albumCount) {
+        window.alert(ko ? "앨범 번호가 올바르지 않아요." : "Invalid album number.");
+        return;
+      }
+      marker = albumMarker(al, Number.isInteger(tr) && tr > 0 ? tr : undefined);
+    }
+    editor.chain().focus().insertContent(`<p>${marker}</p>`).run();
   };
 
   const insertLink = () => {
@@ -551,6 +573,21 @@ export function RichEditor({
           >
             <span className="text-base leading-none">💿</span>
           </TB>
+        )}
+        {albumEditHref && (
+          <a
+            href={albumEditHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={
+              ko
+                ? "LP판에 곡·커버 이미지 추가 — 랜딩페이지 편집의 음악 앨범 섹션이 새 탭에서 열려요"
+                : "Add tracks and a cover image to the album (opens the landing-page editor)"
+            }
+            className="flex h-8 items-center gap-0.5 rounded-md px-2 text-xs font-semibold text-primary hover:bg-primary-soft"
+          >
+            <span className="text-base leading-none">♫</span>+
+          </a>
         )}
 
         <Divider />

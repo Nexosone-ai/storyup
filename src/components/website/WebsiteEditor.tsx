@@ -338,6 +338,7 @@ export function WebsiteEditor({
   isPartner = false,
   musicAllowed = false,
   category = null,
+  focusSection = null,
   cards = [],
   posts = [],
   categories = [],
@@ -354,6 +355,8 @@ export function WebsiteEditor({
   musicAllowed?: boolean;
   /** 비즈니스 카테고리(businesses.category) — 음악 앨범 등 카테고리별 섹션 노출 판정용. */
   category?: string | null;
+  /** 진입 시 특정 섹션으로 이동(?focus=). musicAlbum = 앨범 섹션으로 스크롤, 없으면 추가(아티스트·유료). */
+  focusSection?: "musicAlbum" | null;
   /** 이 가게의 카드뉴스 — 미리보기의 "카드뉴스" 섹션에 표시. */
   cards?: ShowcaseCardItem[];
   /** 이 가게의 공개 블로그 글 — 글 목록(postList) 섹션 미리보기·필터용. */
@@ -744,6 +747,26 @@ export function WebsiteEditor({
         pages: pages.map((p, j) => (j === page ? { ...p, sections: out } : p)),
       };
     });
+
+  // 블로그 편집기의 "♫+ 곡·이미지 추가" 등에서 ?focus=musicAlbum 으로 들어오면 앨범 섹션으로 이동.
+  // 섹션이 아직 없으면(아티스트·mp3 허용 플랜) 하나 추가해 바로 편집할 수 있게 한다. 마운트 1회.
+  const focusedRef = useRef(false);
+  useEffect(() => {
+    if (focusSection !== "musicAlbum" || focusedRef.current) return;
+    focusedRef.current = true;
+    const has = (content.sections ?? []).some((s) => s.type === "musicAlbum");
+    const scroll = () =>
+      document
+        .getElementById("site-section-musicAlbum")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    // 상태 갱신(섹션 추가)은 effect 본문이 아닌 타이머 콜백에서 — 렌더 후 앵커가 생기면 스크롤.
+    const t = setTimeout(() => {
+      if (!has && isArtist && musicAllowed) addHomeSection("musicAlbum");
+      setTimeout(scroll, has ? 100 : 500);
+    }, 50);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusSection]);
 
   /** 음악 앨범·미술 갤러리 섹션에 아이템(곡/작품) 한 개 추가. */
   const addSectionItem = (sectionIndex: number, page: "home" | number = "home") =>

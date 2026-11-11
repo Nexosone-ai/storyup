@@ -22,10 +22,13 @@ export const metadata = { title: "랜딩페이지" };
 
 export default async function WebsitePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ focus?: string }>;
 }) {
   const { id } = await params;
+  const focus = (await searchParams)?.focus ?? null;
   const ko = (await getLocale()) === "ko";
   const business = await getBusiness(id);
   if (!business) notFound();
@@ -104,6 +107,7 @@ export default async function WebsitePage({
         isPartner={partner}
         musicAllowed={musicAllowed}
         category={business.category}
+        focusSection={focus === "musicAlbum" ? "musicAlbum" : null}
         cards={cards}
         posts={sectionPosts}
         categories={categories}
