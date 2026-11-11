@@ -110,7 +110,8 @@ export const PLANS: Plan[] = [
     id: "pro",
     name: { ko: "Pro", en: "Pro" },
     priceKrw: 119000,
-    limits: { sites: 6, blogPosts: 300, cardNews: 90, shorts: 90, video: 10, aiImages: 300 },
+    // 랜딩페이지 1개(2026-11-11, 원가 재산정) — 기존 Pro 구독자는 만기까지 legacyPlanFor(사이트 6개) 유지.
+    limits: { sites: 1, blogPosts: 300, cardNews: 90, shorts: 90, video: 10, aiImages: 300 },
     maxBusinesses: 6,
     maxMembers: 3,
     siteLayouts: 9,
