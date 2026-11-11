@@ -61,9 +61,11 @@ export default async function BlogEditorPage({
     user && plan && imagesLimit !== null ? await imageRemaining(user.id, plan) : null;
 
   // 아티스트(음악) 사이트면 글에 앨범 플레이어를 넣을 수 있다.
-  const albumAvailable = !!(
-    website?.content as unknown as WebsiteContent | null | undefined
-  )?.sections?.some((s) => s.type === "musicAlbum" && s.items.length > 0);
+  const albumCount =
+    (website?.content as unknown as WebsiteContent | null | undefined)?.sections?.filter(
+      (s) => s.type === "musicAlbum" && s.items.length > 0,
+    ).length ?? 0;
+  const albumAvailable = albumCount > 0;
 
   return (
     <div className="space-y-8">
@@ -80,6 +82,7 @@ export default async function BlogEditorPage({
         imagesLimit={imagesLimit}
         imagesRemaining={imagesRemaining}
         albumAvailable={albumAvailable}
+        albumCount={albumCount}
         albumEditHref={
           business.category === "Artist" ? `/business/${id}/website?focus=musicAlbum` : null
         }

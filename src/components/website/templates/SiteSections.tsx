@@ -123,10 +123,27 @@ export function SiteSections({
   editTools?: SectionEditTools;
 }) {
   if (!sections?.length) return null;
+  // 공개 페이지: 음악 앨범 섹션이 여러 개여도 **LP판 하나**로 — 첫 앨범 위치에 모든 앨범의 곡을
+  // 순서대로 합친 목록을 보여주고, 나머지 앨범 섹션은 건너뛴다(2026-11-11). 에디터에선 섹션별 편집 유지.
+  const albumIdx = sections.findIndex((s) => s.type === "musicAlbum");
+  const mergedTracks = sections.flatMap((s) => (s.type === "musicAlbum" ? s.items : []));
   return (
     <>
       {sections.map((s, i) => {
         const base = `${pathPrefix}sections.${i}`;
+        if (!editable && s.type === "musicAlbum") {
+          if (i !== albumIdx) return null;
+          return (
+            <div key={i} className="relative">
+              <MusicAlbumPlayer
+                title={s.title}
+                coverImage={s.coverImage}
+                story={s.story}
+                tracks={mergedTracks}
+              />
+            </div>
+          );
+        }
         return (
           <div key={i} className="relative">
             {editable && onDelete && (
@@ -746,7 +763,9 @@ function SectionBlock({
             {editTools && (
               <p className="mb-4 rounded-lg bg-primary-soft/60 px-3 py-2 text-center text-xs text-muted">
                 💿 LP판 만들기: 아래 <b>앨범 커버</b>를 눌러 이미지를 올리고, 곡마다 <b>mp3 업로드</b>로 음원을 넣으세요.
-                곡은 맨 아래 <b>+ 곡 추가</b>로 늘립니다. 저장하면 사이트와 블로그 글에 회전 LP 플레이어로 보여요.
+                곡은 맨 아래 <b>+ 곡 추가</b>로 늘립니다. 공개 페이지에서는 <b>LP판 하나</b>와 순서가 보이는 곡 목록으로
+                보여요(방문자가 순서대로 이어 듣거나 순서를 바꿀 수 있음). 음악 앨범 섹션이 여러 개면 곡이 하나의
+                목록으로 합쳐지니 섹션은 1개만 두는 걸 권장해요.
               </p>
             )}
             {Img && (
