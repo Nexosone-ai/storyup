@@ -43,6 +43,7 @@ export function BlogEditor({
   planId = "free",
   imagesLimit = null,
   imagesRemaining = null,
+  albumAvailable = false,
 }: {
   businessId: string;
   post: BlogPostRow;
@@ -62,6 +63,8 @@ export function BlogEditor({
   imagesLimit?: number | null;
   /** 이번 달 남은 AI 이미지 장수(표시용). 무제한이면 null. */
   imagesRemaining?: number | null;
+  /** 사이트에 음악 앨범 섹션이 있음 — 글에 앨범 플레이어(회전 LP) 표시·삽입 가능. */
+  albumAvailable?: boolean;
 }) {
   const ko = useLocale() === "ko";
   const [title, setTitle] = useState(post.title);
@@ -821,8 +824,16 @@ export function BlogEditor({
           imageStyle={imageStyle}
           onImageStyleChange={setImageStyle}
           ko={ko}
+          albumAvailable={albumAvailable}
         />
       </div>
+      {albumAvailable && (
+        <p className="-mt-2 text-xs text-muted">
+          {ko
+            ? "💿 내 사이트의 음악 앨범이 이 글 상단에 회전 LP 플레이어로 자동 표시돼요. 위치를 바꾸려면 툴바의 💿 버튼으로 원하는 자리에 넣고, 이 글에서 숨기려면 본문에 [[album:off]] 한 줄을 적어주세요."
+            : "💿 Your site's music album shows at the top of this post as a spinning LP player. Use the 💿 toolbar button to place it elsewhere, or write [[album:off]] in the body to hide it for this post."}
+        </p>
+      )}
 
       <p className="-mt-2 text-xs text-muted">
         {ko
