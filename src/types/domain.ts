@@ -552,9 +552,14 @@ export interface MarketingStrategyResult {
 
 // ---- Card news (Instagram carousel) ----
 
+/** 기승전결 단계(스토리형 카드뉴스). 없으면 일반 내용 카드. */
+export type CardNewsStage = "ki" | "seung" | "jeon" | "gyeol";
+
 export interface CardNewsSlide {
   heading: string;
+  /** 카드 본문 = 기본 멘트(AI 초안, 사용자가 편집). */
   body: string;
+  stage?: CardNewsStage;
 }
 
 /** 카드뉴스 폰트 선택 id (cardTheme.ts의 CARD_FONTS와 동일). */
@@ -589,6 +594,12 @@ export interface CardNewsResult {
   cover: { title: string; subtitle: string };
   slides: CardNewsSlide[]; // 3–4 content slides
   cta: { text: string; handle: string };
+  /** 사용자가 입력한 스토리(기승전결 생성 입력). 재생성 시 프리필. */
+  story?: string;
+  /** 마지막(CTA) 카드에 표시할 로고 URL — 생성 시 사이트 로고(hero.logo)를 복사. */
+  logoUrl?: string | null;
+  /** 마지막 카드 로고 표시 여부(기본 true). */
+  showLogo?: boolean;
   /**
    * 카드별 배경 이미지 URL (toIGCards 순서: cover → slides → cta).
    * AI 생성/직접 업로드 후 저장되며, 스튜디오 복원과 쇼케이스 표시에 쓰인다.

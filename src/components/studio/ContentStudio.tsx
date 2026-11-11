@@ -49,6 +49,8 @@ export function ContentStudio(props: {
   brandName: string;
   handle: string;
   siteSlug: string | null;
+  /** 사이트 로고 URL — 카드뉴스 마지막 카드 기본 로고. */
+  logoUrl?: string | null;
   initialCards?: {
     cardNews?: CardNewsResult;
     blogPostId?: string;
@@ -242,6 +244,7 @@ export function ContentStudio(props: {
             brandName={props.brandName}
             handle={props.handle}
             siteSlug={props.siteSlug}
+            logoUrl={props.logoUrl}
             initial={props.initialCards}
             shorts={props.shortsQuota}
             youtube={props.shortsYoutube}

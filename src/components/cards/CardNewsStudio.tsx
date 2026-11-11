@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Label, Select } from "@/components/ui/Field";
+import { Label, Select, Textarea } from "@/components/ui/Field";
 import { Spinner } from "@/components/ui/Spinner";
 import { Icon } from "@/components/ui/icons";
 import { GuideSteps, CopyButton } from "@/components/ui/GuideCard";
@@ -80,6 +80,7 @@ export function CardNewsStudio({
   brandName,
   handle,
   siteSlug,
+  logoUrl,
   initial,
   shorts,
   youtube,
@@ -97,6 +98,8 @@ export function CardNewsStudio({
   handle: string;
   /** 공개된 랜딩페이지 슬러그 — 없으면 공유 링크 대신 안내를 보여준다. */
   siteSlug?: string | null;
+  /** 사이트 로고 URL — 마지막(CTA) 카드 기본 로고(저장된 logoUrl 이 없을 때 대체). */
+  logoUrl?: string | null;
   initial?: {
     cardNews?: CardNewsResult;
     blogPostId?: string;
@@ -168,12 +171,21 @@ export function CardNewsStudio({
   const [error, setError] = useState<string | null>(null);
   // 공유 후 안내(PC에서 이미지 다운로드·작성창 안내, 링크 복사 완료 등)
   const [shareMsg, setShareMsg] = useState<string | null>(null);
+  // 기승전결 스토리 입력(선택) — 재생성 시 저장된 값을 프리필.
+  const [story, setStory] = useState(initial?.cardNews?.story ?? "");
 
   const igRefs = useRef<Array<HTMLDivElement | null>>([]);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const uploadTarget = useRef(0);
 
-  const cards = useMemo(() => (data ? toIGCards(data) : []), [data]);
+  // 저장된 로고가 없는 구(舊) 카드 세트도 사이트 로고를 마지막 카드에 기본 표시한다.
+  const cards = useMemo(
+    () =>
+      data
+        ? toIGCards({ ...data, logoUrl: data.logoUrl ?? logoUrl ?? null })
+        : [],
+    [data, logoUrl],
+  );
   const igScale = PREVIEW_W / IG.w;
 
   // ── 카드 텍스트/스타일 편집 ──
@@ -189,6 +201,7 @@ export function CardNewsStudio({
         cta: next.cta,
         cardStyles: next.cardStyles ?? [],
         font: next.font ?? "default",
+        showLogo: next.showLogo ?? true,
       });
     }, 900);
   };
@@ -285,7 +298,11 @@ export function CardNewsStudio({
       const res = await fetch("/api/ai/card-news", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessId, blogPostId: postId }),
+        body: JSON.stringify({
+          businessId,
+          blogPostId: postId,
+          story: story.trim() || undefined,
+        }),
       });
       const json = await res.json();
       if (!res.ok)
@@ -748,6 +765,29 @@ export function CardNewsStudio({
             </span>
           </p>
         )}
+        <div>
+          <Label htmlFor="cn-story">
+            {ko
+              ? "스토리 (선택) — 기·승·전·결 4장으로 카드가 만들어져요"
+              : "Story (optional) — cards follow a setup → build-up → turn → ending arc"}
+          </Label>
+          <Textarea
+            id="cn-story"
+            rows={3}
+            value={story}
+            onChange={(e) => setStory(e.target.value)}
+            placeholder={
+              ko
+                ? "예) 단골 손님이 처음 찾아온 날 → 고민하던 문제 → 우리가 해결한 방법 → 지금의 변화. 비워 두면 글 내용에서 스토리를 뽑아요."
+                : "e.g. the day a regular first visited → their problem → how we solved it → the change today. Leave empty to build the story from the post."
+            }
+          />
+          <p className="mt-1 text-xs text-muted">
+            {ko
+              ? "카드마다 기본 멘트를 AI가 써 주고, 생성 후 카드를 눌러 바꿀 수 있어요. 마지막 카드에는 내 로고가 기본으로 들어가요."
+              : "AI drafts each card's copy; click a card after generating to edit. Your logo goes on the last card by default."}
+          </p>
+        </div>
         {error && <p className="text-sm text-danger">{error}</p>}
         <div data-tour="card-actions" className="flex flex-wrap gap-2">
           <Button onClick={generate} disabled={loading || imgBusy}>
@@ -1135,6 +1175,25 @@ export function CardNewsStudio({
                             rows={1}
                             onChange={(v) => setCardText(selectedCard, "handle", v)}
                           />
+                          <label className="flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={data?.showLogo !== false}
+                              onChange={(e) =>
+                                editCard((d) => {
+                                  d.showLogo = e.target.checked;
+                                })
+                              }
+                            />
+                            {ko ? "마지막 카드에 내 로고 표시" : "Show my logo on the last card"}
+                          </label>
+                          {!(data?.logoUrl ?? logoUrl) && (
+                            <p className="text-xs text-muted">
+                              {ko
+                                ? "등록된 로고가 없어요. 워크스페이스 하단 '세부설정'에서 로고를 올리면 자동으로 들어가요."
+                                : "No logo yet. Upload one under Settings and it will appear here automatically."}
+                            </p>
+                          )}
                         </>
                       );
                     return (

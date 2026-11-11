@@ -34,6 +34,8 @@ export async function generateAndSaveCardNews(args: {
   locale?: PromptLanguage;
   /** 파트너 패킷(크레딧)으로 별도 과금하는 경우 기존 UP/쿼터 과금을 건너뛴다. */
   skipBilling?: boolean;
+  /** 사용자가 넣은 스토리(선택) — 기승전결 구성의 중심. 없으면 글에서 뽑는다. */
+  story?: string;
 }): Promise<{ cardNewsId: string | null; cardNews: CardNewsResult }> {
   const { supabase, userId, businessId, blogPostId } = args;
 
@@ -75,7 +77,27 @@ export async function generateAndSaveCardNews(args: {
       articleSummary: post.summary ?? "",
       articleContent: post.content ?? "",
       language: args.locale ?? "ko",
+      story: args.story,
     });
+
+    // 기승전결 단계 보정 — 모델이 stage 를 빠뜨리면 순서대로 채운다.
+    const STAGES = ["ki", "seung", "jeon", "gyeol"] as const;
+    result.slides.forEach((s, i) => {
+      if (!s.stage && i < STAGES.length) s.stage = STAGES[i];
+    });
+    if (args.story?.trim()) result.story = args.story.trim();
+
+    // 마지막(CTA) 카드 로고 — 사이트 헤더 로고(websites.content.hero.logo)를 기본으로 넣는다.
+    const { data: site } = await supabase
+      .from("websites")
+      .select("content")
+      .eq("business_id", businessId)
+      .maybeSingle();
+    const logo =
+      (site?.content as { hero?: { logo?: string | null } } | null)?.hero?.logo ??
+      null;
+    result.logoUrl = logo;
+    result.showLogo = true;
 
     await supabase
       .from("marketing_contents")
