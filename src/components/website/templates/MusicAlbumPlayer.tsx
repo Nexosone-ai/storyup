@@ -34,11 +34,14 @@ export function MusicAlbumPlayer({
   coverImage,
   story,
   tracks,
+  compact = false,
 }: {
   title?: string;
   coverImage?: string;
   story?: string;
   tracks: SiteTrackItem[];
+  /** 블로그 글 삽입용 — 섹션 테두리·여백 없이 작은 LP(앨범 이야기는 생략). */
+  compact?: boolean;
 }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [current, setCurrent] = useState(0);
@@ -58,19 +61,35 @@ export function MusicAlbumPlayer({
     });
   };
 
+  const Wrapper: "section" | "div" = compact ? "div" : "section";
   return (
-    <section className="border-t border-border">
+    <Wrapper
+      className={
+        compact
+          ? "not-prose rounded-2xl border border-border bg-surface/50"
+          : "border-t border-border"
+      }
+    >
       <style>{SPIN_CSS}</style>
-      <div className="mx-auto max-w-3xl px-5 py-16">
-        {title && (
-          <h2 className="mb-8 text-center text-2xl font-semibold tracking-tight">
-            {title}
-          </h2>
-        )}
+      <div className={compact ? "px-5 py-8" : "mx-auto max-w-3xl px-5 py-16"}>
+        {title &&
+          (compact ? (
+            <h3 className="mb-5 text-center text-lg font-semibold tracking-tight">
+              {title}
+            </h3>
+          ) : (
+            <h2 className="mb-8 text-center text-2xl font-semibold tracking-tight">
+              {title}
+            </h2>
+          ))}
 
         {/* 회전 커버 */}
         <div className="flex justify-center">
-          <div className="relative aspect-square w-56 max-w-full sm:w-64">
+          <div
+            className={`relative aspect-square max-w-full ${
+              compact ? "w-40 sm:w-48" : "w-56 sm:w-64"
+            }`}
+          >
             <div
               className={`map-disc h-full w-full overflow-hidden rounded-full border border-border shadow-lg ${
                 playing ? "" : "paused"
@@ -92,7 +111,7 @@ export function MusicAlbumPlayer({
           </div>
         </div>
 
-        {story && (
+        {story && !compact && (
           <p className="mx-auto mt-6 max-w-xl whitespace-pre-wrap text-center leading-relaxed text-muted">
             {story}
           </p>
@@ -176,6 +195,6 @@ export function MusicAlbumPlayer({
           </div>
         )}
       </div>
-    </section>
+    </Wrapper>
   );
 }
