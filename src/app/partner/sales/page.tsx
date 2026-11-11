@@ -15,6 +15,13 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
+/** 파트너 화면에는 본사 공급가를 내려보내지 않는다(원가 비노출, 2026-11-11). */
+function stripSupply<T extends { supplyPriceKrw: number }>(info: T) {
+  const { supplyPriceKrw: _supply, ...rest } = info;
+  void _supply;
+  return rest;
+}
+
 export default async function PartnerSalesPage() {
   if (!B2B2C_ENABLED) notFound();
   const user = await getUser();
@@ -46,25 +53,13 @@ export default async function PartnerSalesPage() {
   const admin = createAdminClient();
   const { data: earnings } = await admin
     .from("partner_earnings")
-    .select("amount_krw, gross_krw, base_deduction_krw, status")
+    .select("amount_krw, gross_krw, status")
     .eq("partner_user_id", user.id);
 
-  const settlement = {
-    gross: 0,
-    baseDeduction: 0,
-    commission: 0,
-    pending: 0,
-    held: 0,
-    paid: 0,
-  };
+  // 원가 공제액·플랫폼 수수료는 파트너 화면에 내려보내지 않는다(원가 역산 방지, 2026-11-11).
+  const settlement = { gross: 0, pending: 0, held: 0, paid: 0 };
   for (const e of earnings ?? []) {
-    const g = e.gross_krw ?? 0;
-    const bd = e.base_deduction_krw ?? 0;
-    const margin = Math.max(0, g - bd);
-    settlement.gross += g;
-    settlement.baseDeduction += bd;
-    // 플랫폼 수수료 = 마진 − 실제 정산액(파생값). 과거(수수료 이전) 행은 0.
-    settlement.commission += Math.max(0, margin - e.amount_krw);
+    settlement.gross += e.gross_krw ?? 0;
     if (e.status === "paid") settlement.paid += e.amount_krw;
     else if (e.status === "held") settlement.held += e.amount_krw;
     else settlement.pending += e.amount_krw;
@@ -86,14 +81,18 @@ export default async function PartnerSalesPage() {
           : null
       }
       basePlans={
-        baseCatalog ? { basic: baseCatalog.basic, pro: baseCatalog.pro } : null
+        baseCatalog
+          ? {
+              basic: stripSupply(baseCatalog.basic),
+              pro: stripSupply(baseCatalog.pro),
+            }
+          : null
       }
       isSub={amSub}
       parentProducts={parentProducts.map((p) => ({
         id: p.id,
         name: p.name,
         basePlan: p.basePlan,
-        sellPriceKrw: p.sellPriceKrw,
         includedServices: p.includedServices,
       }))}
       products={products.map((p) => ({
@@ -102,7 +101,6 @@ export default async function PartnerSalesPage() {
         description: p.description,
         includedServices: p.included_services,
         basePlan: p.base_plan,
-        basePriceKrw: p.base_price_krw,
         parentProductId: p.parent_product_id,
         sellPriceKrw: p.sell_price_krw,
         vatMode: p.vat_mode,
@@ -123,7 +121,6 @@ export default async function PartnerSalesPage() {
         token: o.token,
         name: o.name,
         sellPriceKrw: o.sell_price_krw,
-        basePriceKrw: o.base_price_krw,
         status: o.status,
         createdAt: o.created_at,
       }))}
@@ -132,7 +129,6 @@ export default async function PartnerSalesPage() {
         token: i.token,
         number: i.number,
         sellPriceKrw: i.sell_price_krw,
-        basePriceKrw: i.base_price_krw,
         status: i.status,
         createdAt: i.created_at,
       }))}
