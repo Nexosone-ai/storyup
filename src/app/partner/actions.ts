@@ -70,7 +70,7 @@ export async function savePartnerProfileAction(
   return res;
 }
 
-/** 별도계약 파트너 — 고객 계정 직접 생성(Lite, 30일 이용권 패킷 차감). 비밀번호는 저장·로그하지 않는다. */
+/** 별도계약 파트너 — 고객 계정 직접 생성(Lite, 30일 이용권 = Lite 작업권 1개). 비밀번호는 저장·로그하지 않는다. */
 export async function createProvisionedAccountAction(input: {
   email: string;
   displayName: string;
@@ -91,7 +91,7 @@ export async function createProvisionedAccountAction(input: {
   return res;
 }
 
-/** 별도계약 파트너 — 생성 계정 30일 연장(패킷 차감). */
+/** 별도계약 파트너 — 생성 계정 30일 연장(Lite 작업권 1개). */
 export async function extendProvisionedAccountAction(
   clientUserId: string,
 ): Promise<{ ok?: true; error?: string; message?: string }> {

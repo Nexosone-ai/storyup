@@ -79,7 +79,7 @@ export interface CreateRecapInput {
 }
 
 /**
- * 1) 잡 생성 — 패킷 선과금(RECAP_SHORTS) → 글 본문 평문화 → Claude 대본 → 잡 insert.
+ * 1) 잡 생성 — 작업권 선소비(RECAP_SHORTS 1편) → 글 본문 평문화 → Claude 대본 → 잡 insert.
  * 카드뉴스 소스면 배경 이미지를 장면에 즉시 매핑(장면이 더 많으면 순환). 대본/저장 실패 시 환불.
  */
 export async function createRecapJobAction(

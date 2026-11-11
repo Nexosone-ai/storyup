@@ -334,12 +334,7 @@ export async function syncProductOrder(
       const { fulfillChannelSharePaid } = await import("@/lib/channelAds/orders");
       await fulfillChannelSharePaid(shareOrderId, orderId);
     }
-    // 파트너 패킷 구매(카드) 결제면 패킷 지급(granted_at 단일 전이로 멱등).
-    const packetOrderId = meta?.packet_order_id;
-    if (typeof packetOrderId === "string") {
-      const { fulfillPacketOrderPaid } = await import("@/lib/partner/packets");
-      await fulfillPacketOrderPaid(packetOrderId, orderId);
-    }
+    // (패킷 구매 주문 분기는 0112 패킷 제도 종료로 제거 — 과거 주문은 partner_packet_orders 에 기록만 남는다.)
 
     return { status: "PAID", productName: order.product_name, amount: order.amount };
   }
