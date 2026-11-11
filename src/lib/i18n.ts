@@ -1,13 +1,26 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 export type Locale = "ko" | "en";
 
 export const LOCALE_COOKIE = "locale";
 
-/** Reads the locale from the cookie (server). Defaults to Korean. */
+/**
+ * Reads the locale (server). 우선순위: 언어 토글 쿠키 → 브라우저 Accept-Language.
+ * 쿠키가 없으면 브라우저 기본 언어가 한국어가 아닐 때 영어로 시작한다(외국 사용자 기본 영어, 2026-11-11).
+ */
 export async function getLocale(): Promise<Locale> {
   const store = await cookies();
-  return store.get(LOCALE_COOKIE)?.value === "en" ? "en" : "ko";
+  const saved = store.get(LOCALE_COOKIE)?.value;
+  if (saved === "en") return "en";
+  if (saved === "ko") return "ko";
+  try {
+    const accept = (await headers()).get("accept-language") ?? "";
+    const first = accept.split(",")[0]?.trim().toLowerCase() ?? "";
+    if (first && !first.startsWith("ko")) return "en";
+  } catch {
+    // headers() 를 쓸 수 없는 컨텍스트(정적 렌더 등) — 한국어 기본.
+  }
+  return "ko";
 }
 
 export const translations = {

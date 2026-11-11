@@ -352,9 +352,21 @@ export type SiteLang = "ko" | "en";
  * 사이트 콘텐츠 언어 — 저장된 값이 있으면 그것을, 없으면(과거 생성 사이트)
  * 히어로·스토리 텍스트의 한글 포함 여부로 추정한다.
  */
+/**
+ * 사이트 크롬(메뉴·문의 폼 등) 언어. 명시적 "en" 은 그대로, 그 외엔 실제 콘텐츠에 한글이 있는지로 판정한다 —
+ * 한국어 UI 에서 만들었어도(language="ko") 본문이 태국어·영어 등 외국어면 영어 크롬을 쓴다(2026-11-11).
+ */
 export function siteLang(content: WebsiteContent): SiteLang {
-  if (content.language) return content.language === "en" ? "en" : "ko";
-  const probe = `${content.hero?.headline ?? ""}${content.hero?.shortDescription ?? ""}${content.story?.body ?? ""}`;
+  if (content.language === "en") return "en";
+  const probe = [
+    content.hero?.headline,
+    content.hero?.shortDescription,
+    content.hero?.businessName,
+    content.story?.body,
+    content.story?.title,
+  ]
+    .filter(Boolean)
+    .join(" ");
   if (!probe.trim()) return "ko";
   return /[가-힣]/.test(probe) ? "ko" : "en";
 }
