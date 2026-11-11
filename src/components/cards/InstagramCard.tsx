@@ -1,6 +1,18 @@
 import { forwardRef } from "react";
 import { CARD, IG } from "./cardTheme";
-import type { CardNewsResult, CardTextStyle } from "@/types/domain";
+import type {
+  CardNewsResult,
+  CardNewsStage,
+  CardTextStyle,
+} from "@/types/domain";
+
+/** 기승전결 단계 라벨(카드 내용 언어에 맞춰 선택). */
+const STAGE_LABEL: Record<CardNewsStage, { ko: string; en: string }> = {
+  ki: { ko: "기 · 시작", en: "Setup" },
+  seung: { ko: "승 · 전개", en: "Build-up" },
+  jeon: { ko: "전 · 전환", en: "Turn" },
+  gyeol: { ko: "결 · 마무리", en: "Ending" },
+};
 
 /** 가로 정렬 → CSS 값. */
 const alignToText = { left: "left", center: "center", right: "right" } as const;
@@ -18,8 +30,14 @@ const vAlignToJustify = {
 
 export type IGCardModel = (
   | { kind: "cover"; title: string; subtitle: string }
-  | { kind: "content"; index: number; heading: string; body: string }
-  | { kind: "cta"; text: string; handle: string }
+  | {
+      kind: "content";
+      index: number;
+      heading: string;
+      body: string;
+      stage?: CardNewsStage;
+    }
+  | { kind: "cta"; text: string; handle: string; logoUrl?: string | null }
 ) & { style?: CardTextStyle };
 
 /** Flattens a CardNewsResult into the ordered list of IG cards. */
@@ -32,9 +50,17 @@ export function toIGCards(cn: CardNewsResult): IGCardModel[] {
       index: i + 1,
       heading: s.heading,
       body: s.body,
+      stage: s.stage,
       style: st[i + 1],
     })),
-    { kind: "cta", text: cn.cta.text, handle: cn.cta.handle, style: st[cn.slides.length + 1] },
+    {
+      kind: "cta",
+      text: cn.cta.text,
+      handle: cn.cta.handle,
+      // 마지막 카드 로고 — showLogo 가 false 가 아니면 표시(기본 표시).
+      logoUrl: cn.showLogo === false ? null : (cn.logoUrl ?? null),
+      style: st[cn.slides.length + 1],
+    },
   ];
 }
 
@@ -226,7 +252,11 @@ export const InstagramCard = forwardRef<
                   alignSelf: alignToItems[align],
                 }}
               >
-                {String(card.index).padStart(2, "0")}
+                {card.stage
+                  ? /[가-힣]/.test(card.heading + card.body)
+                    ? STAGE_LABEL[card.stage].ko
+                    : STAGE_LABEL[card.stage].en
+                  : String(card.index).padStart(2, "0")}
               </div>
               <h2 style={{ ...txt(66, 1.15, "-0.02em"), fontWeight: 700, margin: 0 }}>
                 {card.heading}
@@ -239,6 +269,31 @@ export const InstagramCard = forwardRef<
 
           {card.kind === "cta" && (
             <>
+              {card.logoUrl && (
+                <div
+                  style={{
+                    marginBottom: 48,
+                    alignSelf: alignToItems[align],
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 220,
+                    height: 220,
+                    borderRadius: 48,
+                    background: photo ? "rgba(255,255,255,0.92)" : "#ffffff",
+                    border: `2px solid ${line}`,
+                    overflow: "hidden",
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={card.logoUrl}
+                    alt=""
+                    decoding="async"
+                    style={{ maxWidth: 180, maxHeight: 180, objectFit: "contain" }}
+                  />
+                </div>
+              )}
               <h2 style={{ ...txt(78, 1.12, "-0.02em"), fontWeight: 700, margin: 0 }}>
                 {card.text}
               </h2>

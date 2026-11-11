@@ -1125,6 +1125,7 @@ export async function saveCardNewsAction(
     cta?: unknown;
     cardStyles?: unknown;
     font?: unknown;
+    showLogo?: unknown;
   },
 ): Promise<ActionState> {
   const ko = (await getLocale()) === "ko";
@@ -1154,6 +1155,7 @@ export async function saveCardNewsAction(
   if (patch.cta !== undefined) parsed.cta = patch.cta;
   if (patch.cardStyles !== undefined) parsed.cardStyles = patch.cardStyles;
   if (patch.font !== undefined) parsed.font = patch.font;
+  if (typeof patch.showLogo === "boolean") parsed.showLogo = patch.showLogo;
 
   const admin = createAdminClient();
   const { error } = await admin
