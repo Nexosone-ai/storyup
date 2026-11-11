@@ -16,6 +16,8 @@ import {
   PoweredByStoryup,
 } from "@/components/website/templates/shared";
 import { renderBlogContent } from "@/lib/blog/renderContent";
+import { splitAlbumMarker } from "@/lib/blog/albumEmbed";
+import { MusicAlbumPlayer } from "@/components/website/templates/MusicAlbumPlayer";
 import { BlogCover } from "@/components/blog/BlogCover";
 import { BannerStrip } from "@/components/website/templates/BannerView";
 import { MarketplaceAdSlot } from "@/components/site/MarketplaceAdSlot";
@@ -74,6 +76,23 @@ export default async function PublicArticlePage({
   if (!post) notFound();
 
   const html = await renderBlogContent(post.content ?? "");
+  // 아티스트(음악) 사이트면 첫 음악 앨범 섹션을 글에서도 회전 LP 플레이어로 보여준다.
+  // 본문의 [[album]] 위치에 끼우고, 없으면 커버 아래(상단), [[album:off]]면 숨김.
+  const album = site.website.content.sections?.find(
+    (s) => s.type === "musicAlbum" && s.items.length > 0,
+  );
+  const albumSplit = splitAlbumMarker(html);
+  const albumPlayer =
+    album && album.type === "musicAlbum" && !albumSplit.off ? (
+      <div className="mt-8">
+        <MusicAlbumPlayer
+          compact
+          title={album.title}
+          coverImage={album.coverImage}
+          tracks={album.items}
+        />
+      </div>
+    ) : null;
   const name = site.website.content.hero?.businessName ?? site.business.name;
   const path = `/site/${slug}/blog/${postSlug}`;
   // 사이트 콘텐츠 언어에 맞춰 크롬 문구를 고른다
@@ -313,10 +332,27 @@ export default async function PublicArticlePage({
             className="mt-8 aspect-[16/7] w-full rounded-2xl"
           />
         )}
-        <div
-          className="prose mt-8 max-w-none"
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
+        {albumPlayer && albumSplit.parts.length >= 2 ? (
+          <>
+            <div
+              className="prose mt-8 max-w-none"
+              dangerouslySetInnerHTML={{ __html: albumSplit.parts[0] }}
+            />
+            {albumPlayer}
+            <div
+              className="prose mt-8 max-w-none"
+              dangerouslySetInnerHTML={{ __html: albumSplit.parts[1] }}
+            />
+          </>
+        ) : (
+          <>
+            {albumPlayer}
+            <div
+              className="prose mt-8 max-w-none"
+              dangerouslySetInnerHTML={{ __html: albumSplit.parts.join("") }}
+            />
+          </>
+        )}
 
         <BannerStrip
           banners={site.website.content.banners}

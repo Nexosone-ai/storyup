@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { ALBUM_MARKER } from "@/lib/blog/albumEmbed";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { Node, mergeAttributes } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
@@ -114,6 +115,7 @@ export function RichEditor({
   imageStyle,
   onImageStyleChange,
   ko,
+  albumAvailable = false,
 }: {
   content: string;
   onChange: (html: string) => void;
@@ -122,6 +124,8 @@ export function RichEditor({
   imageStyle: ImageStyleId;
   onImageStyleChange: (s: ImageStyleId) => void;
   ko: boolean;
+  /** 사이트에 음악 앨범 섹션이 있을 때 — 툴바에 '앨범 플레이어' 삽입 버튼을 보인다. */
+  albumAvailable?: boolean;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const slotRef = useRef(0);
@@ -219,6 +223,11 @@ export function RichEditor({
       .focus()
       .insertContent({ type: "audio", attrs: { src: url.trim() } })
       .run();
+  };
+
+  // 아티스트 앨범 플레이어 위치 마커 — 공개 글에서 이 단락 자리에 회전 LP 플레이어가 렌더된다.
+  const insertAlbum = () => {
+    editor.chain().focus().insertContent(`<p>${ALBUM_MARKER}</p>`).run();
   };
 
   const insertLink = () => {
@@ -531,6 +540,18 @@ export function RichEditor({
         <TB onClick={insertAudio} title={ko ? "음악/오디오" : "Music / audio"}>
           <span className="text-base leading-none">♪</span>
         </TB>
+        {albumAvailable && (
+          <TB
+            onClick={insertAlbum}
+            title={
+              ko
+                ? "앨범 플레이어(회전 LP)를 이 위치에 — 기본은 글 상단에 자동 표시"
+                : "Insert the album player here (shown at the top by default)"
+            }
+          >
+            <span className="text-base leading-none">💿</span>
+          </TB>
+        )}
 
         <Divider />
         <button

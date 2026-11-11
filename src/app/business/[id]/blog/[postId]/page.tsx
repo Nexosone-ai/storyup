@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { WebsiteContent } from "@/types/domain";
 import {
   getUser,
   getBusiness,
@@ -59,6 +60,11 @@ export default async function BlogEditorPage({
   const imagesRemaining =
     user && plan && imagesLimit !== null ? await imageRemaining(user.id, plan) : null;
 
+  // 아티스트(음악) 사이트면 글에 앨범 플레이어를 넣을 수 있다.
+  const albumAvailable = !!(
+    website?.content as unknown as WebsiteContent | null | undefined
+  )?.sections?.some((s) => s.type === "musicAlbum" && s.items.length > 0);
+
   return (
     <div className="space-y-8">
       <BlogEditor
@@ -73,6 +79,7 @@ export default async function BlogEditorPage({
         planId={plan?.id ?? "free"}
         imagesLimit={imagesLimit}
         imagesRemaining={imagesRemaining}
+        albumAvailable={albumAvailable}
       />
       <EventEditor
         businessId={id}
