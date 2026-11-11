@@ -1470,8 +1470,8 @@ export function WebsiteEditor({
                   if (locked) {
                     setNote(
                       ko
-                        ? "이 레이아웃은 Pro 플랜에서 사용할 수 있어요."
-                        : "This layout is available on the Pro plan.",
+                        ? "이 레이아웃은 유료 플랜에서 사용할 수 있어요."
+                        : "This layout is available on paid plans.",
                     );
                     return;
                   }
@@ -1480,8 +1480,8 @@ export function WebsiteEditor({
                 title={
                   locked
                     ? ko
-                      ? "Pro 플랜 전용"
-                      : "Pro plan only"
+                      ? "유료 플랜 전용"
+                      : "Paid plans only"
                     : ko
                       ? t.description
                       : t.descriptionEn

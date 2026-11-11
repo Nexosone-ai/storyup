@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { ALL_SITE_LAYOUTS } from "@/lib/plans";
 import Link from "next/link";
 import {
   getUser,
@@ -59,11 +60,12 @@ export default async function WebsitePage({
   } else if (!website) {
     body = <WebsiteGenerator businessId={id} />;
   } else {
-    // 플랜별 사용 가능한 레이아웃 수 (Free 1 · Basic 3 · Pro 9). 직원은 소유자 플랜 상속.
+    // 레이아웃(템플릿): 무료 1개, 유료 플랜(Basic·Lite·Pro·Partner, 구 Basic 포함)은 전부(2026-11-11). 직원은 소유자 플랜 상속.
     const user = await getUser();
     const plan = user ? await getUserPlan(user.id) : null;
     const planId = plan?.id ?? null;
-    const maxLayouts = plan?.siteLayouts ?? 1;
+    const maxLayouts =
+      plan && plan.id !== "free" ? ALL_SITE_LAYOUTS : (plan?.siteLayouts ?? 1);
     // 음악 앨범(mp3 업로드)은 유료 플랜만 — 저장 비용 통제.
     const musicAllowed =
       planId === "basic" ||

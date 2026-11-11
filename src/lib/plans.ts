@@ -156,6 +156,7 @@ export const PLANS: Plan[] = [
     limits: { sites: null, blogPosts: null, cardNews: null, shorts: null, video: null, aiImages: null },
     maxBusinesses: null,
     maxMembers: null,
+    siteLayouts: 9,
     domain: "custom",
     premiumImages: true,
     watermarkRemoved: true,
