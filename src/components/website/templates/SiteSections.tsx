@@ -740,13 +740,19 @@ function SectionBlock({
           />
         );
       return (
-        <section className={WRAP}>
+        <section className={WRAP} id="site-section-musicAlbum">
           <div className="mx-auto max-w-3xl px-5 py-16">
             <SectionHeader title={s.title ?? ""} base={base} T={T} />
+            {editTools && (
+              <p className="mb-4 rounded-lg bg-primary-soft/60 px-3 py-2 text-center text-xs text-muted">
+                💿 LP판 만들기: 아래 <b>앨범 커버</b>를 눌러 이미지를 올리고, 곡마다 <b>mp3 업로드</b>로 음원을 넣으세요.
+                곡은 맨 아래 <b>+ 곡 추가</b>로 늘립니다. 저장하면 사이트와 블로그 글에 회전 LP 플레이어로 보여요.
+              </p>
+            )}
             {Img && (
               <div className="mx-auto mb-5 max-w-xs">
                 <p className="mb-1.5 text-center text-xs font-medium text-muted">
-                  앨범 커버 (회전 LP)
+                  앨범 커버 (회전 LP) — 클릭해 이미지 올리기
                 </p>
                 <div className="relative aspect-square w-full overflow-hidden rounded-xl border border-border bg-surface-muted/40">
                   {Img({ path: `${base}.coverImage`, value: s.coverImage, aspect: "1:1" })}

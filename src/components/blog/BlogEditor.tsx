@@ -44,6 +44,7 @@ export function BlogEditor({
   imagesLimit = null,
   imagesRemaining = null,
   albumAvailable = false,
+  albumEditHref = null,
 }: {
   businessId: string;
   post: BlogPostRow;
@@ -65,6 +66,8 @@ export function BlogEditor({
   imagesRemaining?: number | null;
   /** 사이트에 음악 앨범 섹션이 있음 — 글에 앨범 플레이어(회전 LP) 표시·삽입 가능. */
   albumAvailable?: boolean;
+  /** 아티스트 사이트 — LP판 곡·커버 이미지 추가 화면(랜딩페이지 편집 ?focus=musicAlbum). */
+  albumEditHref?: string | null;
 }) {
   const ko = useLocale() === "ko";
   const [title, setTitle] = useState(post.title);
@@ -825,13 +828,37 @@ export function BlogEditor({
           onImageStyleChange={setImageStyle}
           ko={ko}
           albumAvailable={albumAvailable}
+          albumEditHref={albumEditHref}
         />
       </div>
-      {albumAvailable && (
+      {(albumAvailable || albumEditHref) && (
         <p className="-mt-2 text-xs text-muted">
-          {ko
-            ? "💿 내 사이트의 음악 앨범이 이 글 상단에 회전 LP 플레이어로 자동 표시돼요. 위치를 바꾸려면 툴바의 💿 버튼으로 원하는 자리에 넣고, 이 글에서 숨기려면 본문에 [[album:off]] 한 줄을 적어주세요."
-            : "💿 Your site's music album shows at the top of this post as a spinning LP player. Use the 💿 toolbar button to place it elsewhere, or write [[album:off]] in the body to hide it for this post."}
+          {albumAvailable
+            ? ko
+              ? "💿 내 사이트의 음악 앨범이 이 글 상단에 회전 LP 플레이어로 자동 표시돼요. 위치를 바꾸려면 툴바의 💿 버튼으로 원하는 자리에 넣고, 이 글에서 숨기려면 본문에 [[album:off]] 한 줄을 적어주세요."
+              : "💿 Your site's music album shows at the top of this post as a spinning LP player. Use the 💿 toolbar button to place it elsewhere, or write [[album:off]] in the body to hide it for this post."
+            : ko
+              ? "💿 아직 음악 앨범(LP판)이 없어요. 앨범을 만들면 글 상단에 회전 LP 플레이어가 자동으로 들어가요."
+              : "💿 No music album yet. Create one and a spinning LP player will appear at the top of your posts."}
+          {albumEditHref && (
+            <>
+              {" "}
+              {ko
+                ? "LP판에 곡·커버 이미지를 넣으려면 툴바의 ♫+ 버튼(또는 "
+                : "To add tracks and a cover image, use the ♫+ toolbar button (or "}
+              <a
+                href={albumEditHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-primary underline-offset-2 hover:underline"
+              >
+                {ko ? "랜딩페이지 편집 › 음악 앨범" : "Landing page editor › Music album"}
+              </a>
+              {ko
+                ? ")에서 앨범 커버를 클릭해 이미지를 올리고, 곡마다 mp3를 업로드한 뒤 저장하세요. 곡은 '+ 곡 추가'로 늘릴 수 있어요."
+                : "): click the album cover to upload an image, upload an mp3 for each track, add tracks with '+ Add track', then save."}
+            </>
+          )}
         </p>
       )}
 

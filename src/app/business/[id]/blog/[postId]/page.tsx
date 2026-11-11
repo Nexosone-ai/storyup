@@ -80,6 +80,9 @@ export default async function BlogEditorPage({
         imagesLimit={imagesLimit}
         imagesRemaining={imagesRemaining}
         albumAvailable={albumAvailable}
+        albumEditHref={
+          business.category === "Artist" ? `/business/${id}/website?focus=musicAlbum` : null
+        }
       />
       <EventEditor
         businessId={id}
