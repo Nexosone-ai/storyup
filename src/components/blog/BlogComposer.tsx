@@ -11,6 +11,7 @@ import { GeneratingScreen } from "@/components/ai/GeneratingScreen";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { createClient } from "@/lib/supabase/client";
 import { extractPdfText } from "@/lib/client/pdfText";
+import { parseYoutubeVideoId } from "@/lib/youtubeTranscript";
 import {
   createVoiceUploadUrl,
   createBlankBlogAction,
@@ -108,6 +109,9 @@ function mimeFromName(name: string): string | null {
 }
 
 const subscribeNoop = () => () => {};
+
+/** 참조 자료 입력이 유튜브 링크인지(진행 안내 문구 분기). */
+const isYoutubeUrl = (u: string) => parseYoutubeVideoId(u) !== null;
 const getCanRecord = () =>
   typeof MediaRecorder !== "undefined" &&
   !!navigator.mediaDevices?.getUserMedia;
@@ -135,16 +139,19 @@ export function BlogComposer({ businessId }: { businessId: string }) {
 
   // ── 참조 자료(글감) ── URL·파일에서 추출한 텍스트를 모아 생성 시 source로 넘긴다.
   const [refs, setRefs] = useState<
-    { id: string; label: string; text: string; kind: "url" | "file" }[]
+    { id: string; label: string; text: string; kind: "url" | "file" | "youtube" }[]
   >([]);
   const [refUrl, setRefUrl] = useState("");
   const [refBusy, setRefBusy] = useState(false);
+  /** 유튜브 원고를 읽는 중(영상 전사까지 가면 수십 초) — 안내 문구용. */
+  const [refVideoBusy, setRefVideoBusy] = useState(false);
   const refFileRef = useRef<HTMLInputElement | null>(null);
 
   const addRefUrl = async () => {
     const u = refUrl.trim();
     if (!u || refBusy) return;
     setRefBusy(true);
+    setRefVideoBusy(isYoutubeUrl(u));
     setError(null);
     try {
       const res = await fetch("/api/ai/blog-reference", {
@@ -164,7 +171,7 @@ export function BlogComposer({ businessId }: { businessId: string }) {
         ...r,
         {
           id: crypto.randomUUID(),
-          kind: "url",
+          kind: data.kind === "youtube" ? "youtube" : "url",
           label: data.name || u,
           text: data.text,
         },
@@ -174,6 +181,7 @@ export function BlogComposer({ businessId }: { businessId: string }) {
       setError(ko ? "주소를 불러오지 못했어요." : "Could not load the URL.");
     } finally {
       setRefBusy(false);
+      setRefVideoBusy(false);
     }
   };
 
@@ -629,8 +637,8 @@ export function BlogComposer({ businessId }: { businessId: string }) {
                 </span>
                 <span className="text-xs text-muted">
                   {ko
-                    ? "웹주소나 파일(txt·md·pdf)을 넣으면 그 내용을 근거로 글을 써요."
-                    : "Add a URL or file (txt/md/pdf) to ground the post in it."}
+                    ? "웹주소·유튜브 링크·파일(txt·md·pdf)을 넣으면 그 내용을 근거로 글을 써요. 유튜브는 영상에서 말한 원고를 읽어 와요(앞 30분까지)."
+                    : "Add a URL, a YouTube link, or a file (txt/md/pdf) to ground the post in it. For YouTube we read what is said in the video (first 30 min)."}
                 </span>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -644,7 +652,7 @@ export function BlogComposer({ businessId }: { businessId: string }) {
                       void addRefUrl();
                     }
                   }}
-                  placeholder="https://…"
+                  placeholder={ko ? "https://… (유튜브 링크 가능)" : "https://… (YouTube links work)"}
                   disabled={refBusy}
                   className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
                 />
@@ -655,7 +663,13 @@ export function BlogComposer({ businessId }: { businessId: string }) {
                   onClick={addRefUrl}
                   disabled={refBusy || !refUrl.trim()}
                 >
-                  {ko ? "주소 추가" : "Add URL"}
+                  {refBusy && refVideoBusy ? (
+                    <Spinner className="size-4" />
+                  ) : ko ? (
+                    "주소 추가"
+                  ) : (
+                    "Add URL"
+                  )}
                 </Button>
                 <input
                   ref={refFileRef}
@@ -683,6 +697,13 @@ export function BlogComposer({ businessId }: { businessId: string }) {
                   )}
                 </Button>
               </div>
+              {refBusy && refVideoBusy && (
+                <p className="text-xs text-muted">
+                  {ko
+                    ? "영상 원고를 읽는 중이에요… 자막이 없는 영상은 AI가 직접 들어서 옮기느라 30초 넘게 걸릴 수 있어요."
+                    : "Reading the video transcript… videos without captions are transcribed by AI and can take over 30 seconds."}
+                </p>
+              )}
               {refs.length > 0 && (
                 <ul className="space-y-1">
                   {refs.map((r) => (
@@ -690,7 +711,9 @@ export function BlogComposer({ businessId }: { businessId: string }) {
                       key={r.id}
                       className="flex items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs"
                     >
-                      {r.kind === "url" ? (
+                      {r.kind === "youtube" ? (
+                        <Icon.video className="size-3.5 shrink-0 text-muted" />
+                      ) : r.kind === "url" ? (
                         <Icon.link className="size-3.5 shrink-0 text-muted" />
                       ) : (
                         <Icon.file className="size-3.5 shrink-0 text-muted" />
