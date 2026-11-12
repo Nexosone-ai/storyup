@@ -88,6 +88,9 @@ export function CardNewsSlider({ item }: { item: ShowcaseCardItem }) {
                     (i === 0 ? (item.image ?? undefined) : undefined)
                   }
                   fontStack={cardFontStack(item.cardNews.font)}
+                  titleFontStack={
+                    item.cardNews.titleFont ? cardFontStack(item.cardNews.titleFont) : undefined
+                  }
                 />
               </div>
             )}

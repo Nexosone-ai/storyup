@@ -609,6 +609,8 @@ export interface CardNewsResult {
   cardStyles?: CardTextStyle[];
   /** 카드뉴스 전체 폰트 (기본 default). 사용자 편집값. */
   font?: CardFontId;
+  /** 제목(표지 제목·내용 소제목·마지막 카드 문구) 전용 폰트. 없으면 전체 폰트를 따른다. */
+  titleFont?: CardFontId;
   /**
    * 공유용 대표 이미지 URL — 렌더된 커버 카드(텍스트 포함)를 저장한 것.
    * /cards/{id} 공유 페이지의 og:image로 쓰여 SNS에서 글처럼 이미지가 먼저 보인다.

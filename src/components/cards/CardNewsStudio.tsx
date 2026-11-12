@@ -201,6 +201,7 @@ export function CardNewsStudio({
         cta: next.cta,
         cardStyles: next.cardStyles ?? [],
         font: next.font ?? "default",
+        titleFont: next.titleFont ?? null,
         showLogo: next.showLogo ?? true,
       });
     }, 900);
@@ -241,6 +242,12 @@ export function CardNewsStudio({
   const setFont = (font: CardFontId) =>
     editCard((d) => {
       d.font = font;
+    });
+  /** 제목 폰트 — null 이면 전체(본문) 폰트를 따른다. */
+  const setTitleFont = (font: CardFontId | null) =>
+    editCard((d) => {
+      if (font) d.titleFont = font;
+      else delete d.titleFont;
     });
 
   /**
@@ -1051,6 +1058,49 @@ export function CardNewsStudio({
               ))}
             </div>
 
+            {/* 제목 폰트 — 표지 제목·내용 소제목·마지막 카드 문구에만 적용(본문은 위 폰트). */}
+            <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-surface p-3">
+              <span className="mr-1 inline-flex items-center gap-1.5 text-sm font-semibold">
+                <Icon.pen className="size-4" />
+                {ko ? "제목 폰트" : "Title font"}
+              </span>
+              <button
+                type="button"
+                onClick={() => setTitleFont(null)}
+                disabled={busy}
+                className={
+                  "rounded-full border px-3 py-1 text-sm transition-colors disabled:opacity-50 " +
+                  (!data?.titleFont
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border text-foreground hover:border-primary/50")
+                }
+              >
+                {ko ? "본문과 같게" : "Same as body"}
+              </button>
+              {CARD_FONTS.map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setTitleFont(f.id)}
+                  disabled={busy}
+                  style={{ fontFamily: f.stack }}
+                  className={
+                    "rounded-full border px-3 py-1 text-sm transition-colors disabled:opacity-50 " +
+                    (data?.titleFont === f.id
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border text-foreground hover:border-primary/50")
+                  }
+                >
+                  {ko ? f.name : f.nameEn}
+                </button>
+              ))}
+              <span className="basis-full text-xs text-muted">
+                {ko
+                  ? "표지 제목·각 카드 소제목·마지막 카드 문구에 적용돼요."
+                  : "Applies to the cover title, each card's heading and the last card's line."}
+              </span>
+            </div>
+
             <div className="flex gap-4 overflow-x-auto rounded-2xl border border-border bg-surface-muted/40 p-4">
               {cards.map((card, i) => (
                 <div key={i} className="shrink-0">
@@ -1133,6 +1183,7 @@ export function CardNewsStudio({
                         handle={handle}
                         image={images[i]}
                         fontStack={cardFontStack(data?.font)}
+                titleFontStack={data?.titleFont ? cardFontStack(data.titleFont) : undefined}
                       />
                     </div>
                   </div>
@@ -1370,6 +1421,7 @@ export function CardNewsStudio({
                 handle={handle}
                 image={images[i]}
                 fontStack={cardFontStack(data?.font)}
+                titleFontStack={data?.titleFont ? cardFontStack(data.titleFont) : undefined}
               />
             ))}
           </div>
