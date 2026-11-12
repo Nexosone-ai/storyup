@@ -1,18 +1,9 @@
 import { forwardRef } from "react";
 import { CARD, IG } from "./cardTheme";
-import type {
-  CardNewsResult,
-  CardNewsStage,
-  CardTextStyle,
-} from "@/types/domain";
+import type { CardNewsResult, CardTextStyle } from "@/types/domain";
 
-/** 기승전결 단계 라벨(카드 내용 언어에 맞춰 선택). */
-const STAGE_LABEL: Record<CardNewsStage, { ko: string; en: string }> = {
-  ki: { ko: "기 · 시작", en: "Setup" },
-  seung: { ko: "승 · 전개", en: "Build-up" },
-  jeon: { ko: "전 · 전환", en: "Turn" },
-  gyeol: { ko: "결 · 마무리", en: "Ending" },
-};
+// 기승전결 스토리형 카드도 단계 라벨("승 · 전개" 등)은 카드에 찍지 않는다(2026-11-12 사용자 요청).
+// 단계는 생성 프롬프트·데이터(slide.stage)에만 남고, 카드에는 번호만 표시한다.
 
 /** 가로 정렬 → CSS 값. */
 const alignToText = { left: "left", center: "center", right: "right" } as const;
@@ -35,7 +26,6 @@ export type IGCardModel = (
       index: number;
       heading: string;
       body: string;
-      stage?: CardNewsStage;
     }
   | { kind: "cta"; text: string; handle: string; logoUrl?: string | null }
 ) & { style?: CardTextStyle };
@@ -50,7 +40,6 @@ export function toIGCards(cn: CardNewsResult): IGCardModel[] {
       index: i + 1,
       heading: s.heading,
       body: s.body,
-      stage: s.stage,
       style: st[i + 1],
     })),
     {
@@ -84,9 +73,11 @@ export const InstagramCard = forwardRef<
     image?: string;
     /** 카드뉴스 전체 폰트 스택 (cardFontStack). 없으면 기본 CARD.font. */
     fontStack?: string;
+    /** 제목(표지 제목·소제목·CTA 문구) 전용 폰트 스택. 없으면 fontStack 을 따른다. */
+    titleFontStack?: string;
   }
 >(function InstagramCard(
-  { card, total, pageNo, brandName, handle, image, fontStack },
+  { card, total, pageNo, brandName, handle, image, fontStack, titleFontStack },
   ref,
 ) {
   const photo = !!image;
@@ -231,7 +222,14 @@ export const InstagramCard = forwardRef<
                   alignSelf: alignToItems[align],
                 }}
               />
-              <h1 style={{ ...txt(92, 1.08, "-0.03em"), fontWeight: 700, margin: 0 }}>
+              <h1
+                style={{
+                  ...txt(92, 1.08, "-0.03em"),
+                  fontWeight: 700,
+                  margin: 0,
+                  fontFamily: titleFontStack,
+                }}
+              >
                 {card.title}
               </h1>
               <p style={{ ...txt(38, 1.5), color: sub, marginTop: 36 }}>
@@ -252,13 +250,16 @@ export const InstagramCard = forwardRef<
                   alignSelf: alignToItems[align],
                 }}
               >
-                {card.stage
-                  ? /[가-힣]/.test(card.heading + card.body)
-                    ? STAGE_LABEL[card.stage].ko
-                    : STAGE_LABEL[card.stage].en
-                  : String(card.index).padStart(2, "0")}
+                {String(card.index).padStart(2, "0")}
               </div>
-              <h2 style={{ ...txt(66, 1.15, "-0.02em"), fontWeight: 700, margin: 0 }}>
+              <h2
+                style={{
+                  ...txt(66, 1.15, "-0.02em"),
+                  fontWeight: 700,
+                  margin: 0,
+                  fontFamily: titleFontStack,
+                }}
+              >
                 {card.heading}
               </h2>
               <p style={{ ...txt(40, 1.6), color: sub, marginTop: 32 }}>
@@ -294,7 +295,14 @@ export const InstagramCard = forwardRef<
                   />
                 </div>
               )}
-              <h2 style={{ ...txt(78, 1.12, "-0.02em"), fontWeight: 700, margin: 0 }}>
+              <h2
+                style={{
+                  ...txt(78, 1.12, "-0.02em"),
+                  fontWeight: 700,
+                  margin: 0,
+                  fontFamily: titleFontStack,
+                }}
+              >
                 {card.text}
               </h2>
               <div

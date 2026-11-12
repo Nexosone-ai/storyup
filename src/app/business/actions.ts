@@ -1125,6 +1125,8 @@ export async function saveCardNewsAction(
     cta?: unknown;
     cardStyles?: unknown;
     font?: unknown;
+    /** 제목 폰트 id. null 이면 "본문과 같게"(저장값 제거). */
+    titleFont?: unknown;
     showLogo?: unknown;
   },
 ): Promise<ActionState> {
@@ -1155,6 +1157,8 @@ export async function saveCardNewsAction(
   if (patch.cta !== undefined) parsed.cta = patch.cta;
   if (patch.cardStyles !== undefined) parsed.cardStyles = patch.cardStyles;
   if (patch.font !== undefined) parsed.font = patch.font;
+  if (patch.titleFont === null) delete parsed.titleFont;
+  else if (typeof patch.titleFont === "string") parsed.titleFont = patch.titleFont;
   if (typeof patch.showLogo === "boolean") parsed.showLogo = patch.showLogo;
 
   const admin = createAdminClient();
