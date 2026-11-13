@@ -88,7 +88,8 @@ export const PLANS: Plan[] = [
     analyticsTier: "basic",
   },
   {
-    // 파트너 기본 상품(2026-11-09) — 파트너 공급가 ₩20,000(VAT 별도), 1계정 1사업장.
+    // 파트너 기본 상품(2026-11-09) — 파트너 공급가 ₩20,000(VAT 별도), 1사업장·3계정.
+    // 한도(월 제공량)만 작게 두고 기능은 Pro 수준(상세 홈페이지·AEO FAQ·예약 모듈·고급 분석·주간 리포트)을 포함.
     // 한도를 넘는 이용(블로그·카드뉴스·영상·이미지 추가, Pro 전환)은 담당 파트너 문의(업세일).
     id: "basic",
     name: { ko: "Basic", en: "Basic" },
@@ -98,15 +99,18 @@ export const PLANS: Plan[] = [
     limits: { sites: 1, blogPosts: 20, cardNews: 10, shorts: 10, video: 0, aiImages: 60 },
     premiumImages: true,
     maxBusinesses: 1,
-    maxMembers: 1,
+    maxMembers: 3,
     siteLayouts: 9,
     domain: "subdomain",
     watermarkRemoved: true,
     couponBlock: true,
     aiStrategy: true,
     seoTools: true,
-    report: "monthly",
-    analyticsTier: "detailed",
+    reservation: true,
+    fullHomepage: true,
+    report: "weekly",
+    analyticsTier: "advanced",
+    aeo: true,
   },
   {
     id: "pro",
