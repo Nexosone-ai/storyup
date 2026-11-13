@@ -1,7 +1,6 @@
 import "server-only";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { PLAN_PRICE_VERSION, type VatMode, type BillingType } from "./config";
-import { supplyPriceForPlan } from "./basePlans";
 import { parentPartnerOf } from "@/lib/partner";
 import { getHqProduct } from "@/lib/hq/products";
 import {
@@ -144,7 +143,7 @@ export async function listParentProductsFor(
 
 /**
  * 파트너 상품 생성/수정 — 호출 전 isCurrentUserPartner 확인. 세션 RLS 클라이언트(파트너 본인).
- * 기본요금은 저장 시점의 plans.ts 값을 스냅샷(base_price_krw, base_plan_version)한다.
+ * 원가는 저장 시점의 본사 상품 공급가(서브는 상위 판매가)를 스냅샷(base_price_krw)한다.
  * 판매가 하한은 두지 않는다(판매가<기본요금은 UI 경고만).
  */
 export async function upsertProduct(
@@ -196,24 +195,27 @@ export async function upsertProduct(
     // (화면에서도 숨기지만, 직접 호출로 공급가를 스냅샷·노출하는 것을 서버에서 막는다).
     if (await parentPartnerOf(partnerUserId))
       return { error: "서브파트너는 상위파트너 상품을 원가로 선택해야 합니다." };
-    // 일반 파트너 — 본사 상품(hq_products)에서 공급가·제공 항목을 스냅샷.
-    // 본사 상품을 못 찾으면(0112 전·레거시 basePlan) 종전처럼 base_plan_catalog/plans.ts 공급가 폴백.
+    // 일반 파트너 — 본사 상품(hq_products, 필수)에서 공급가·제공 항목을 스냅샷(PR3: 커스텀 폐지).
+    // hqProductId 가 없고 basePlan(basic|pro)만 오면 같은 key 의 본사 상품으로 해석(구 호출 호환).
     const hq = input.hqProductId
       ? await getHqProduct(input.hqProductId)
       : basePlan
         ? await getHqProduct(basePlan)
         : null;
-    if (input.hqProductId && (!hq || hq.status !== "active"))
-      return { error: "선택한 본사 상품을 찾을 수 없거나 판매 중이 아닙니다." };
-    if (hq) {
-      hqProductId = hq.id;
-      basePlan = hq.grantPlan;
-      basePrice = hq.supplyPriceKrw;
-      grantDays = hq.grantDays;
-      entitlements = hq.items;
-    } else {
-      basePrice = await supplyPriceForPlan(basePlan);
+    if (!hq) return { error: "본사 상품을 선택해주세요." };
+    // 판매 중지·보관된 본사 상품은 새로 연결할 수 없다. 이미 연결된 상품의 다른 항목 수정은 허용.
+    if (hq.status !== "active") {
+      const current = input.id
+        ? await getMyProduct(partnerUserId, input.id)
+        : null;
+      if (!current || current.hq_product_id !== hq.id)
+        return { error: "선택한 본사 상품이 판매 중이 아닙니다. 다른 본사 상품을 선택해주세요." };
     }
+    hqProductId = hq.id;
+    basePlan = hq.grantPlan;
+    basePrice = hq.supplyPriceKrw;
+    grantDays = hq.grantDays;
+    entitlements = hq.items;
   }
 
   const row = {

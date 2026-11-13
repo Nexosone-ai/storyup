@@ -3,6 +3,11 @@ import { notFound } from "next/navigation";
 import { B2B2C_ENABLED } from "@/lib/b2b2c/config";
 import { getOfferByToken, toPublicOffer } from "@/lib/b2b2c/offers";
 import { Card } from "@/components/ui/Card";
+import {
+  describeFulfillment,
+  parseEntitlementItems,
+  type GrantablePlan,
+} from "@/lib/partner/entitlementCatalog";
 
 // 고객별 오퍼는 검색엔진에 노출하지 않는다(토큰 기반 비공개).
 export const metadata: Metadata = {
@@ -28,6 +33,16 @@ export default async function OfferPage({
       : offer.sellPriceKrw; // 오퍼 단계는 세금 미확정 — 판매가만 제시
 
   const expired = offer.status === "expired" || offer.status === "void";
+  // 결제 후 제공(고객 문구) — 오퍼에 복사된 상품 구성 기준.
+  const grantPlan =
+    row.base_plan === "basic" || row.base_plan === "pro" || row.base_plan === "lite"
+      ? (row.base_plan as GrantablePlan)
+      : null;
+  const provides = describeFulfillment(
+    parseEntitlementItems(row.entitlements),
+    grantPlan ? { plan: grantPlan, days: row.grant_days ?? 30 } : null,
+    "customer",
+  );
 
   // 판매자 표기 — 파트너 스토어프론트(있으면).
   let store = null;
@@ -59,6 +74,19 @@ export default async function OfferPage({
         {offer.includedServices && (
           <div className="rounded-lg bg-surface-2 p-3 text-sm whitespace-pre-line">
             {offer.includedServices}
+          </div>
+        )}
+        {provides.length > 0 && (
+          <div className="text-sm">
+            <p className="font-semibold">결제 후 제공</p>
+            <ul className="mt-1.5 space-y-1 text-muted">
+              {provides.map((p) => (
+                <li key={p} className="flex gap-1.5">
+                  <span className="text-primary">✓</span>
+                  <span>{p}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
         <div className="flex items-center justify-between border-t border-border pt-4">
