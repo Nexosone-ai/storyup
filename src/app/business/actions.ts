@@ -1128,6 +1128,10 @@ export async function saveCardNewsAction(
     /** 제목 폰트 id. null 이면 "본문과 같게"(저장값 제거). */
     titleFont?: unknown;
     showLogo?: unknown;
+    /** 주인공(인물) 설정 — 배경 이미지 같은 인물 고정. 빈 문자열이면 제거. */
+    character?: unknown;
+    /** 배경 이미지 방향 'character' | 'object'. */
+    imageFocus?: unknown;
   },
 ): Promise<ActionState> {
   const ko = (await getLocale()) === "ko";
@@ -1160,6 +1164,13 @@ export async function saveCardNewsAction(
   if (patch.titleFont === null) delete parsed.titleFont;
   else if (typeof patch.titleFont === "string") parsed.titleFont = patch.titleFont;
   if (typeof patch.showLogo === "boolean") parsed.showLogo = patch.showLogo;
+  if (typeof patch.character === "string") {
+    const c = patch.character.trim().slice(0, 200);
+    if (c) parsed.character = c;
+    else delete parsed.character;
+  }
+  if (patch.imageFocus === "character" || patch.imageFocus === "object")
+    parsed.imageFocus = patch.imageFocus;
 
   const admin = createAdminClient();
   const { error } = await admin

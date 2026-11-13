@@ -221,13 +221,40 @@ export class ClaudeProvider implements AIProvider {
   async generateImageSubject(input: {
     category: string;
     text: string;
-    kind?: "still-life" | "scene";
+    kind?: "still-life" | "scene" | "character";
+    character?: string;
     allowPeople?: boolean;
     language?: PromptLanguage;
   }): Promise<string> {
     const scene = input.kind === "scene";
     const allowPeople = input.allowPeople === true;
     const ko = (input.language ?? "ko") !== "en";
+    // 카드뉴스 — 주인공 인물이 중심인 장면(같은 인물을 매 카드 고정).
+    if (input.kind === "character") {
+      const who = (input.character ?? "").trim().slice(0, 200);
+      const charSpec: PromptSpec = {
+        system:
+          '당신은 인물 중심 라이프스타일 사진의 촬영 지시문을 쓰는 아트 디렉터입니다. 반드시 {"subject": "..."} 형태의 순수 JSON만 반환하세요.',
+        user: `업종: ${input.category}
+카드 내용: ${input.text.slice(0, 300)}
+주인공: ${who || "(지정 없음 — 업종과 내용에 맞는 사업주 또는 손님 한 사람으로 정하세요)"}
+
+위 카드 내용을 '주인공이 직접 겪고 표현하는 한 장면'으로 영어 한 문장으로 묘사하세요.
+- 주인공 한 사람이 화면의 중심이며 얼굴과 표정이 보이는 미디엄 샷(허리 위)으로.
+- 주인공의 겉모습(나이대·성별·헤어·옷차림)은 위 설정을 빠짐없이 그대로 영어로 옮기세요 — 모든 카드에서 같은 인물로 보여야 합니다.
+- 카드 내용의 감정·행동(고민, 발견, 기쁨, 대화 등)과 업종에 맞는 장소를 함께 담으세요.${
+          ko
+            ? "\n- 주인공과 등장 인물은 반드시 한국인(동양인)으로 묘사하세요. 서양인·백인으로 묘사하지 마세요."
+            : ""
+        }
+- 글자·숫자·로고·간판은 포함하지 마세요.
+- 예: "${ko ? "a Korean woman in her 30s with a short bob haircut and a beige apron, a cafe owner," : "a woman in her 30s with a short bob haircut and a beige apron, a cafe owner,"} smiling with relief while handing a latte to a regular customer at the counter of her cozy cafe"
+
+{"subject": "..."} JSON으로만 응답하세요.`,
+      };
+      const r = await this.complete<{ subject: string }>(charSpec, 300);
+      return r.subject;
+    }
     const spec: PromptSpec = {
       system:
         '당신은 사진 촬영 지시문을 쓰는 아트 디렉터입니다. 반드시 {"subject": "..."} 형태의 순수 JSON만 반환하세요.',

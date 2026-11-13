@@ -30,12 +30,17 @@ export async function POST(request: Request) {
   let subject = "";
   let slotKey = "";
   let aspect: ImageAspect = "3:4";
+  // 이미지 방향 — 기본 인물 중심. character = 주인공 설정(매 카드 같은 인물).
+  let focus: "character" | "object" = "character";
+  let character = "";
   try {
     const body = await request.json();
     businessId = String(body.businessId);
     subject = String(body.subject ?? "").slice(0, 300);
     slotKey = String(body.slotKey ?? "");
     if (ASPECTS.includes(body.aspect)) aspect = body.aspect;
+    if (body.focus === "object") focus = "object";
+    character = String(body.character ?? "").trim().slice(0, 200);
   } catch {
     return NextResponse.json(
       { error: ko ? "잘못된 요청입니다." : "Invalid request." },
@@ -67,11 +72,27 @@ export async function POST(request: Request) {
     );
 
   try {
-    // 한글 카드 문구를 영문 피사체 묘사로 변환 (이미지 모델은 한글을 이해하지 못함)
+    // 한글 카드 문구를 영문 피사체 묘사로 변환 (이미지 모델은 한글을 이해하지 못함).
+    // 인물 중심이면 주인공(같은 인물)이 카드 내용을 겪는 장면으로, 사물 중심이면 정물로.
+    const language = ko ? "ko" : "en";
     const scene = await getAIProvider()
-      .generateImageSubject({ category: business.category, text: subject })
-      .catch(() => subject);
-    const prompt = buildCardImagePrompt(business.category, scene, ko ? "ko" : "en");
+      .generateImageSubject(
+        focus === "character"
+          ? {
+              category: business.category,
+              text: subject,
+              kind: "character",
+              character,
+              language,
+            }
+          : { category: business.category, text: subject },
+      )
+      .catch(() =>
+        focus === "character"
+          ? `${ko ? "a Korean " : "a "}person, the main character of a ${business.category} business story, ${character || ""}`
+          : subject,
+      );
+    const prompt = buildCardImagePrompt(business.category, scene, language, focus);
     // 카드 배경도 플랜별 프로바이더(Basic=fal, Pro/파트너=Gemini).
     const premium = premiumImagesFor(await getUserPlan(user.id));
     const { b64, mime } = await generateImageResilient(prompt, aspect, { premium });

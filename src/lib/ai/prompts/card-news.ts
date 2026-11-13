@@ -36,6 +36,9 @@ export function cardNewsPrompt(input: CardNewsPromptInput): PromptSpec {
 - 표지 title은 스크롤을 멈추게 하는 후킹 문구, subtitle은 이야기의 한 줄 요약.
 - 마무리(CTA) text는 이야기의 여운을 잇는 행동 유도 문구.
 - 사용자 스토리가 있으면 그 스토리를 중심으로 쓰고 블로그 글은 보조로만 참고합니다. 없는 사실·수치는 지어내지 않습니다.
+- character: 이 이야기의 '주인공 한 사람'을 이미지로 그릴 수 있게 한 문장으로 설정합니다(나이대·성별·직업/역할·헤어·옷차림 등 겉모습). 실존 인물·유명인 이름은 쓰지 않습니다. 사업주나 손님 등 이야기에 맞는 인물로 정하고, 모든 카드 이미지에 같은 인물로 등장합니다.${
+      language === "en" ? "" : " 한국인으로 설정합니다."
+    }
 - 과장/허위 없이, 브랜드 톤을 지킵니다.
 - ${languageRule(language)}
 - 반드시 아래 JSON 스키마만 순수 JSON으로 반환하세요. slides는 정확히 4개, stage 값은 "ki","seung","jeon","gyeol" 순서입니다.`;
@@ -65,7 +68,8 @@ ${input.articleContent}
     { "stage": "jeon", "heading": "전환", "body": "기본 멘트" },
     { "stage": "gyeol", "heading": "마무리", "body": "기본 멘트" }
   ],
-  "cta": { "text": "행동 유도 문구", "handle": "${input.handle}" }
+  "cta": { "text": "행동 유도 문구", "handle": "${input.handle}" },
+  "character": "주인공 겉모습 한 문장 (예: 단발머리에 베이지 앞치마를 두른 30대 여성 카페 사장)"
 }`;
 
   return { system, user };
