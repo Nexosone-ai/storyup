@@ -48,7 +48,30 @@ export default async function LandingPage() {
     <div className="flex min-h-dvh flex-col bg-background">
       <MarketingNav />
 
-      {/* 최상단 메인 슬라이드 — 15초 모션 릴(음소거 자동재생·반복) */}
+      {/* Showcase — 사용자가 만든 공개 포트폴리오. 메인 최상단에 배치(2026-11-13 요청) — 릴·히어로 등 소개 내용은 그 아래. */}
+      <section
+        id="showcase"
+        className="border-b border-border bg-surface-muted/50 px-6 py-16 sm:px-8 sm:py-20"
+      >
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-12 text-center">
+            <h2 className="font-[family-name:var(--font-display)] text-3xl font-semibold sm:text-4xl">
+              {L.showcaseT1}
+              <span className="brand-gradient-text-soft">{L.showcaseT2}</span>
+            </h2>
+            <p className="mt-3 text-muted">{L.showcaseSub}</p>
+          </div>
+          <ShowcaseTabs
+            sites={siteItems}
+            posts={postItems}
+            cards={cardItems}
+            t={L.showcase}
+            ko={ko}
+          />
+        </div>
+      </section>
+
+      {/* 메인 슬라이드 — 15초 모션 릴(음소거 자동재생·반복) */}
       <section className="w-full bg-[#0B1030]">
         <div className="relative aspect-video max-h-[86svh] w-full overflow-hidden">
           <iframe
@@ -173,29 +196,6 @@ export default async function LandingPage() {
               </p>
             </Link>
           </div>
-        </div>
-      </section>
-
-      {/* Showcase — 사용자가 만든 공개 포트폴리오 */}
-      <section
-        id="showcase"
-        className="border-t border-border bg-surface-muted/50 px-6 py-24 sm:px-8"
-      >
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-12 text-center">
-            <h2 className="font-[family-name:var(--font-display)] text-3xl font-semibold sm:text-4xl">
-              {L.showcaseT1}
-              <span className="brand-gradient-text-soft">{L.showcaseT2}</span>
-            </h2>
-            <p className="mt-3 text-muted">{L.showcaseSub}</p>
-          </div>
-          <ShowcaseTabs
-            sites={siteItems}
-            posts={postItems}
-            cards={cardItems}
-            t={L.showcase}
-            ko={ko}
-          />
         </div>
       </section>
 
