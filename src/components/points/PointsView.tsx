@@ -9,6 +9,7 @@ import {
   type BillingState,
 } from "@/components/points/SubscribePanel";
 import { B2B2C_ENABLED } from "@/lib/b2b2c/config";
+import { upsellSentence } from "@/lib/upsell";
 import type { PointTx } from "@/lib/points";
 
 function fmtDate(iso: string, ko: boolean) {
@@ -88,13 +89,6 @@ function UsageRow({
   );
 }
 
-/** 제공량 초과 시 건당 차감 포인트 — 관리자 화면(service_prices) 단가. */
-export interface OveragePrices {
-  site: number;
-  blogPost: number;
-  cardNews: number;
-  aiImage: number;
-}
 
 export function PointsView({
   userId,
@@ -103,7 +97,6 @@ export function PointsView({
   billing,
   transactions,
   payments,
-  overage,
   customerName,
   customerEmail,
 }: {
@@ -113,7 +106,6 @@ export function PointsView({
   billing: BillingState;
   transactions: PointTx[];
   payments: PaymentItem[];
-  overage: OveragePrices;
   customerName: string;
   customerEmail: string;
 }) {
@@ -212,26 +204,12 @@ export function PointsView({
                 />
                 {/* 이미지는 딜리버리에 포함(무과금)이라 별도 사용량 미터를 표시하지 않는다. */}
               </div>
-              {(() => {
-                const amt = (n: number) =>
-                  n > 0
-                    ? `${n.toLocaleString()} UP`
-                    : ko
-                      ? "무료"
-                      : "Free";
-                const items = [
-                  `${ko ? "랜딩페이지" : "Landing page"} ${amt(overage.site)}`,
-                  `${ko ? "블로그" : "Blog"} ${amt(overage.blogPost)}`,
-                  `${ko ? "카드뉴스" : "Card news"} ${amt(overage.cardNews)}`,
-                ].join(" · ");
-                return (
-                  <p className="text-xs text-muted">
-                    {ko
-                      ? `제공량을 초과하면 건당 UP이 자동 차감됩니다. (${items})`
-                      : `Past your quota, UP is deducted per item. (${items})`}
-                  </p>
-                );
-              })()}
+              {/* 제공량 초과분은 UP으로 구매하지 않는다(UP은 AI 영상 전용) — 파트너 문의로 안내. */}
+              <p className="text-xs text-muted">
+                {ko
+                  ? `제공량을 모두 사용하면 생성이 멈춰요. ${upsellSentence(true)} UP은 AI 영상 만들기에만 쓰여요.`
+                  : `Generation pauses once your quota is used up. ${upsellSentence(false)} UP is used only for AI videos.`}
+              </p>
             </Card>
           </section>
         );

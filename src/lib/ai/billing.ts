@@ -11,9 +11,9 @@ import { consumeFreeBlogIfApplicable } from "@/lib/freeAccess";
 
 /**
  * AI 서비스 과금 — 모든 AI 라우트가 공용으로 사용한다.
- * 1) 요금제 월 제공량(usage_events) 우선: 한도 내 무료, 초과분은 포인트 차감.
- * 2) 0012 마이그레이션 전이거나 제공량 대상이 아닌 서비스는
- *    기존 service_prices(관리자 구성) 경로로 과금한다.
+ * 1) 플랜 제공량 대상(랜딩페이지·블로그·카드뉴스·이미지)은 usage_events 로만 센다:
+ *    한도 내 통과, 한도 도달 시 PlanLimitError(담당 파트너 문의). **UP을 쓰지 않는다.**
+ * 2) 그 외 서비스(AI 영상 등)는 service_prices(관리자 구성) 단가로 UP 차감.
  * 차감은 DB 함수 spend_points(advisory lock)로 동시 요청 이중지출을 막는다.
  */
 
@@ -54,9 +54,12 @@ export async function chargeAiUsage(
 
   const kind = QUOTA_KIND[service];
   if (kind) {
+    // 블로그·카드뉴스는 플랜 제공량으로만 관리 — UP 과금 경로로 절대 내려가지 않는다.
     const quota = await consumeQuota(userId, kind, description, ko);
     if (quota) return quota;
-    // null = 제공량 시스템 미구축 → 레거시 경로로 폴백
+    // null = usage_events 조회 실패(마이그레이션 전/일시 장애) → 막지 않고 통과(감사 로그만)
+    console.error("[billing] quota unavailable, passing through", service);
+    return noop;
   }
 
   return chargeLegacy(userId, service, description, ko);
@@ -81,11 +84,12 @@ export async function chargeWebsiteGeneration(
     .maybeSingle();
   if (!error && existing) return noop; // 재생성 — 이미 보유분
 
+  // 플랜 포함 개수(Basic·Pro 1개)를 넘기면 PlanLimitError — UP으로 추가 구매 불가.
   const owned = await countUserWebsites(userId);
   const quota = await consumeQuota(userId, "site", description, ko, owned);
   if (quota) return quota;
-
-  return chargeLegacy(userId, "AI_WEBSITE", description, ko);
+  console.error("[billing] site quota unavailable, passing through");
+  return noop;
 }
 
 /**

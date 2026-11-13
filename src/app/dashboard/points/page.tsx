@@ -2,8 +2,7 @@ import { redirect } from "next/navigation";
 import { getUser, getProfileName } from "@/lib/queries";
 import { getMyTransactions, getMyPayments } from "@/lib/points";
 import { getPointBreakdown } from "@/lib/payments/service";
-import { getSubscriptionOverview, SERVICE_BY_KIND } from "@/lib/subscription";
-import { getServicePrices } from "@/lib/payments/prices";
+import { getSubscriptionOverview } from "@/lib/subscription";
 import { getSubscriptionRow } from "@/lib/payments/billing";
 import { getPendingBankTransfer } from "@/lib/payments/bankTransfer";
 import { isBillingConfigured, isPaymentsConfigured } from "@/lib/payments/portone";
@@ -23,7 +22,6 @@ export default async function PointsPage() {
     subRow,
     pendingBankTransfer,
     profileName,
-    servicePrices,
   ] = await Promise.all([
     getPointBreakdown(user.id),
     getMyTransactions(user.id),
@@ -32,12 +30,6 @@ export default async function PointsPage() {
     getSubscriptionRow(user.id),
     getPendingBankTransfer(user.id),
     getProfileName(),
-    getServicePrices([
-      SERVICE_BY_KIND.site,
-      SERVICE_BY_KIND.blog_post,
-      SERVICE_BY_KIND.card_news,
-      SERVICE_BY_KIND.ai_image,
-    ]),
   ]);
 
   return (
@@ -66,12 +58,6 @@ export default async function PointsPage() {
           : null,
       }}
       transactions={transactions}
-      overage={{
-        site: servicePrices[SERVICE_BY_KIND.site] ?? 0,
-        blogPost: servicePrices[SERVICE_BY_KIND.blog_post] ?? 0,
-        cardNews: servicePrices[SERVICE_BY_KIND.card_news] ?? 0,
-        aiImage: servicePrices[SERVICE_BY_KIND.ai_image] ?? 0,
-      }}
       payments={payments.map((p) => ({
         id: p.id,
         orderId: p.order_id,
