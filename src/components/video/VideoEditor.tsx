@@ -352,6 +352,8 @@ export function VideoEditor({
           businessId,
           ticket.path,
           `${title?.trim() || "영상"} (편집본)`,
+          "video",
+          ticket.bucket,
         );
         if (reg.error) throw new Error(reg.error);
         setSaved(true);

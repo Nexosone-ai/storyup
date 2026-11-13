@@ -159,6 +159,7 @@ export function ShortsPanel({
         ticket.path,
         `${title?.trim() || slugName()}${label ? ` ${label}` : ""}`,
         "shorts",
+        ticket.bucket,
       );
       if (reg.error || !reg.url) throw new Error(reg.error ?? "save failed");
       setSiteSave({ state: "saved", url: reg.url });

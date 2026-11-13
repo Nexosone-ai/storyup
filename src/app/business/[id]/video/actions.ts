@@ -24,22 +24,40 @@ const MAX_CONCURRENT = 2;
 const VIDEO_BUCKET = "site-images"; // 공개 버킷(원본 제공) — '이어서 만들기' 프레임 등.
 /** 영상 전용 공개 버킷 — 쇼츠·편집본. site-images 는 10MB 제한이라 영상은 따로 둔다(200MB). */
 const VIDEOS_BUCKET = "site-videos";
-const VIDEOS_BUCKET_LIMIT = "200MB";
+// 프로젝트 전체 업로드 한도(기본 50MB)를 넘는 버킷 한도는 생성이 거부된다 — 50MB 로 요청하고,
+// 그래도 거부되면 한도 없이(=프로젝트 전역 한도) 만든다. 18초 쇼츠·편집본은 보통 수 MB.
+const VIDEOS_BUCKET_LIMIT = "50MB";
+/** site-videos 를 쓸 수 없을 때의 폴백 — 기존 공개 이미지 버킷(10MB). */
+const FALLBACK_VIDEO_BUCKET = VIDEO_BUCKET;
+const UPLOAD_BUCKETS = new Set([VIDEOS_BUCKET, FALLBACK_VIDEO_BUCKET]);
 /** 내 영상 종류 — 'video' AI 영상·편집본, 'shorts' 카드뉴스 쇼츠. */
 export type UserVideoKind = "video" | "shorts";
 
-/** 영상 버킷 멱등 생성(공개). 목록/생성 실패해도 이미 있으면 서명은 동작한다. */
-async function ensureVideosBucket(admin: ReturnType<typeof createAdminClient>) {
+/**
+ * 영상 버킷 멱등 생성(공개). 있으면 true. 한도 요청이 거부되면 한도 없이 재시도한다.
+ * 실패 원인은 로그로 남긴다(조용히 삼키면 '업로드 준비 실패'만 보여 원인 추적이 어렵다).
+ */
+async function ensureVideosBucket(
+  admin: ReturnType<typeof createAdminClient>,
+): Promise<boolean> {
   try {
     const { data: buckets } = await admin.storage.listBuckets();
-    if (!buckets?.some((b) => b.name === VIDEOS_BUCKET)) {
-      await admin.storage.createBucket(VIDEOS_BUCKET, {
-        public: true,
-        fileSizeLimit: VIDEOS_BUCKET_LIMIT,
-      });
-    }
-  } catch {
-    /* noop */
+    if (buckets?.some((b) => b.name === VIDEOS_BUCKET)) return true;
+    const first = await admin.storage.createBucket(VIDEOS_BUCKET, {
+      public: true,
+      fileSizeLimit: VIDEOS_BUCKET_LIMIT,
+    });
+    if (!first.error) return true;
+    console.error("[video] create site-videos (50MB) failed", first.error.message);
+    const second = await admin.storage.createBucket(VIDEOS_BUCKET, { public: true });
+    if (!second.error) return true;
+    console.error("[video] create site-videos (no limit) failed", second.error.message);
+    // 동시 요청이 먼저 만든 경우 — 다시 확인.
+    const { data: again } = await admin.storage.listBuckets();
+    return !!again?.some((b) => b.name === VIDEOS_BUCKET);
+  } catch (e) {
+    console.error("[video] ensure site-videos failed", e);
+    return false;
   }
 }
 
@@ -255,16 +273,22 @@ export async function createEditedVideoUploadUrl(
 
   const safeExt = /^(mp4|webm)$/i.test(ext) ? ext.toLowerCase() : "mp4";
   const admin = createAdminClient();
-  await ensureVideosBucket(admin);
   const folder = kind === "shorts" ? "shorts" : "edited-videos";
   const path = `${businessId}/${folder}/${Date.now()}-${Math.random()
     .toString(36)
     .slice(2, 8)}.${safeExt}`;
-  const { data, error } = await admin.storage
-    .from(VIDEOS_BUCKET)
-    .createSignedUploadUrl(path);
-  if (error || !data) return { error: "업로드 준비에 실패했습니다." };
-  return { path: data.path, token: data.token, bucket: VIDEOS_BUCKET };
+  // 1순위 site-videos(50MB). 버킷을 못 만들거나 서명이 실패하면 기존 공개 이미지 버킷(10MB)으로.
+  const buckets = (await ensureVideosBucket(admin))
+    ? [VIDEOS_BUCKET, FALLBACK_VIDEO_BUCKET]
+    : [FALLBACK_VIDEO_BUCKET];
+  for (const bucket of buckets) {
+    const { data, error } = await admin.storage
+      .from(bucket)
+      .createSignedUploadUrl(path);
+    if (!error && data) return { path: data.path, token: data.token, bucket };
+    console.error("[video] signed upload url failed", bucket, error?.message);
+  }
+  return { error: "업로드 준비에 실패했습니다. 잠시 후 다시 시도해주세요." };
 }
 
 /**
@@ -316,6 +340,8 @@ export async function registerEditedVideo(
   path: string,
   title: string,
   kind: UserVideoKind = "video",
+  /** 업로드한 버킷(티켓의 bucket). 허용 목록 밖이면 거부. */
+  bucket: string = VIDEOS_BUCKET,
 ): Promise<RegisterVideoState> {
   const supabase = await createClient();
   const {
@@ -330,10 +356,11 @@ export async function registerEditedVideo(
   if (!path.startsWith(`${businessId}/${folder}/`))
     return { error: "잘못된 경로입니다." };
 
+  if (!UPLOAD_BUCKETS.has(bucket)) return { error: "잘못된 저장소입니다." };
   const admin = createAdminClient();
   const {
     data: { publicUrl },
-  } = admin.storage.from(VIDEOS_BUCKET).getPublicUrl(path);
+  } = admin.storage.from(bucket).getPublicUrl(path);
 
   const { error } = await supabase.from("agency_deliverables").insert({
     business_id: businessId,
