@@ -139,19 +139,41 @@ export function buildLogoPrompt(category: string, scene: string): string {
   ].join(" ");
 }
 
-/** Builds a photographic image prompt for a card backdrop. scene은 영문 피사체 묘사. */
+// 카드뉴스 인물 중심 — 주인공 한 사람이 장면의 중심(2026-11-13 방향 전환: 정물 → 인물).
+// 카드 위·아래에 글자가 얹히므로 얼굴은 프레임 중앙 부근, 위아래는 차분한 여백을 남긴다.
+const CHARACTER_SCENE_FRAMING =
+  "The person is the clear focal point of the image, medium waist-up shot with the face and natural expression clearly visible near the center of the frame, " +
+  "realistic anatomy and natural hands, candid storytelling moment, softly blurred background that shows the setting, " +
+  "bright soft natural light, warm inviting tones, calm uncluttered areas near the top and bottom of the frame, " +
+  "high-end editorial lifestyle photography.";
+
+/**
+ * 카드뉴스 배경 사진 프롬프트. scene은 영문 피사체 묘사.
+ * focus 'character'(기본) = 주인공 인물 중심 라이프스타일 사진, 'object' = 기존 오버헤드 정물.
+ */
 export function buildCardImagePrompt(
   category: string,
   scene: string,
   language: PromptLanguage = "ko",
+  focus: "character" | "object" = "character",
 ): string {
+  if (focus === "object")
+    return [
+      `Overhead close-up still-life photography for a ${category} business:`,
+      `${scene.trim().slice(0, 220)}.`,
+      STILL_LIFE_FRAMING,
+      peopleEthnicity(language),
+      NO_TEXT,
+    ].join(" ");
   return [
-    `Overhead close-up still-life photography for a ${category} business:`,
-    `${scene.trim().slice(0, 220)}.`,
-    STILL_LIFE_FRAMING,
+    `Candid lifestyle editorial photograph centered on one person, for a ${category} business story:`,
+    `${scene.trim().slice(0, 320)}.`,
+    CHARACTER_SCENE_FRAMING,
     peopleEthnicity(language),
     NO_TEXT,
-  ].join(" ");
+  ]
+    .filter(Boolean)
+    .join(" ");
 }
 
 /**

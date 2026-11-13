@@ -591,6 +591,9 @@ export interface CardTextStyle {
   vAlign?: CardVAlign;
 }
 
+/** 카드뉴스 배경 이미지 방향. 없으면 인물 중심(character). */
+export type CardImageFocus = "character" | "object";
+
 export interface CardNewsResult {
   cover: { title: string; subtitle: string };
   slides: CardNewsSlide[]; // 3–4 content slides
@@ -612,6 +615,13 @@ export interface CardNewsResult {
   font?: CardFontId;
   /** 제목(표지 제목·내용 소제목·마지막 카드 문구) 전용 폰트. 없으면 전체 폰트를 따른다. */
   titleFont?: CardFontId;
+  /**
+   * 이야기의 주인공(인물) 설정 — AI 가 생성 시 함께 정하고 사용자가 고칠 수 있다.
+   * 카드 배경 이미지가 모두 '같은 인물'로 그려지도록 매 카드 프롬프트에 그대로 넣는다.
+   */
+  character?: string;
+  /** 배경 이미지 방향 — 'character'(인물 중심, 기본) | 'object'(사물·공간 정물). */
+  imageFocus?: CardImageFocus;
   /**
    * 공유용 대표 이미지 URL — 렌더된 커버 카드(텍스트 포함)를 저장한 것.
    * /cards/{id} 공유 페이지의 og:image로 쓰여 SNS에서 글처럼 이미지가 먼저 보인다.

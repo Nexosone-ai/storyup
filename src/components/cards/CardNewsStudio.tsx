@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Label, Select, Textarea } from "@/components/ui/Field";
+import { Input, Label, Select, Textarea } from "@/components/ui/Field";
 import { Spinner } from "@/components/ui/Spinner";
 import { Icon } from "@/components/ui/icons";
 import { GuideSteps, CopyButton } from "@/components/ui/GuideCard";
@@ -26,6 +26,7 @@ import type {
   CardFontId,
   CardTextAlign,
   CardVAlign,
+  CardImageFocus,
 } from "@/types/domain";
 
 interface PostOption {
@@ -203,6 +204,8 @@ export function CardNewsStudio({
         font: next.font ?? "default",
         titleFont: next.titleFont ?? null,
         showLogo: next.showLogo ?? true,
+        character: next.character ?? "",
+        imageFocus: next.imageFocus ?? "character",
       });
     }, 900);
   };
@@ -346,6 +349,9 @@ export function CardNewsStudio({
     ).catch(() => undefined);
   };
 
+  /** 배경 이미지 방향(기본 인물 중심) — 저장값 없으면 character. */
+  const imageFocus: CardImageFocus = data?.imageFocus ?? "character";
+
   const generateImages = async () => {
     if (!cards.length) return;
     setError(null);
@@ -362,6 +368,9 @@ export function CardNewsStudio({
           body: JSON.stringify({
             businessId,
             subject: cardImageSubject(card),
+            // 인물 중심(기본) — 주인공 설정을 매 카드에 같이 보내 같은 인물로 그린다.
+            focus: imageFocus,
+            character: data?.character ?? "",
             aspect: "3:4",
             slotKey: `card:${dataPostId ?? "x"}:${i}`,
           }),
@@ -823,6 +832,74 @@ export function CardNewsStudio({
 
       {data && (
         <>
+          {showCards && (
+            <Card className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold">
+                  {ko ? "배경 이미지 방향" : "Background image focus"}
+                </p>
+                <div className="inline-flex rounded-lg border border-border p-0.5">
+                  {(
+                    [
+                      ["character", ko ? "인물 중심" : "People"],
+                      ["object", ko ? "사물·공간 중심" : "Objects"],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() =>
+                        editCard((d) => {
+                          d.imageFocus = id;
+                        })
+                      }
+                      aria-pressed={imageFocus === id}
+                      className={
+                        imageFocus === id
+                          ? "rounded-md bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground"
+                          : "rounded-md px-3 py-1 text-xs font-medium text-muted hover:text-foreground"
+                      }
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {imageFocus === "character" ? (
+                <div>
+                  <Label htmlFor="cn-character">
+                    {ko ? "주인공 (모든 카드에 같은 인물로 나와요)" : "Main character (same person on every card)"}
+                  </Label>
+                  <Input
+                    id="cn-character"
+                    value={data.character ?? ""}
+                    maxLength={200}
+                    onChange={(e) =>
+                      editCard((d) => {
+                        d.character = e.target.value;
+                      })
+                    }
+                    placeholder={
+                      ko
+                        ? "예) 단발머리에 베이지 앞치마를 두른 30대 여성 카페 사장"
+                        : "e.g. a cafe owner in her 30s with a short bob and a beige apron"
+                    }
+                  />
+                  <p className="mt-1 text-xs text-muted">
+                    {ko
+                      ? "AI가 이야기에 맞춰 주인공을 정해 두었어요. 나이대·성별·옷차림을 바꾼 뒤 'AI 이미지 생성'을 누르면 그 인물이 각 카드 장면에 등장해요."
+                      : "AI picked a main character for the story. Edit age, gender or outfit, then generate images to feature that person in each card."}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-muted">
+                  {ko
+                    ? "사람 없이 사물·음식·공간을 위에서 내려다본 정물 사진으로 만들어요."
+                    : "Generates overhead still-life photos of objects, food or spaces without people."}
+                </p>
+              )}
+            </Card>
+          )}
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               {showCards && (

@@ -86,6 +86,12 @@ export async function generateAndSaveCardNews(args: {
       if (!s.stage && i < STAGES.length) s.stage = STAGES[i];
     });
     if (args.story?.trim()) result.story = args.story.trim();
+    // 주인공 설정 — 배경 이미지 '같은 인물' 고정용. 비정상 값은 버린다(이미지 생성 시 AI 가 대체).
+    result.character =
+      typeof result.character === "string" && result.character.trim()
+        ? result.character.trim().slice(0, 200)
+        : undefined;
+    result.imageFocus = "character";
 
     // 마지막(CTA) 카드 로고 — 사이트 헤더 로고(websites.content.hero.logo)를 기본으로 넣는다.
     const { data: site } = await supabase

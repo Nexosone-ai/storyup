@@ -94,12 +94,15 @@ export interface AIProvider {
   /**
    * 이미지 생성용 영문 피사체 한 문장을 만든다 (사람 없는 장면).
    * 한글 키워드는 이미지 모델이 이해하지 못해 피사체 없는 이미지가 나온다.
-   * kind: still-life(카드뉴스·블로그 커버용 정물) | scene(랜딩페이지용 공간/현장).
+   * kind: still-life(블로그 커버 등 정물) | scene(랜딩페이지용 공간/현장)
+   *     | character(카드뉴스 — 주인공 인물이 중심인 장면, character 로 같은 인물 고정).
    */
   generateImageSubject(input: {
     category: string;
     text: string;
-    kind?: "still-life" | "scene";
+    kind?: "still-life" | "scene" | "character";
+    /** kind=character 일 때 주인공 겉모습 설정(한/영). 매 카드 같은 인물로 묘사한다. */
+    character?: string;
     /** true면 사용자가 요청한 사람·인물·행동을 장면에 충실히 포함(기본 false=사람 배제). */
     allowPeople?: boolean;
     /** 콘텐츠 언어 — ko면 등장 인물을 한국인(동양인)으로 묘사(기본 ko). */
