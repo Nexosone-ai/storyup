@@ -214,7 +214,15 @@ export function RichEditor({
         : "Paste a YouTube link (plays inline in the post):",
     );
     if (!url?.trim()) return;
-    editor.chain().focus().setYoutubeVideo({ src: url.trim() }).run();
+    setErr(null);
+    // 유튜브 주소가 아니면 편집기가 조용히 무시하므로(setYoutubeVideo=false) 이유를 알려준다.
+    const ok = editor.chain().focus().setYoutubeVideo({ src: url.trim() }).run();
+    if (!ok)
+      setErr(
+        ko
+          ? "유튜브 영상 주소가 아니라서 넣지 못했어요. youtube.com 또는 youtu.be 로 시작하는 영상 주소를 붙여넣어 주세요. 다른 글·사이트 주소는 글자를 선택한 뒤 링크 버튼으로 연결할 수 있어요."
+          : "That is not a YouTube video link. Paste a youtube.com or youtu.be video URL. For other pages, select text and use the link button.",
+      );
   };
 
   const insertAudio = () => {
