@@ -2,6 +2,7 @@ import { MarketingNav } from "@/components/marketing/MarketingNav";
 import { Footer } from "@/components/marketing/Footer";
 import { HeroDemo } from "@/components/marketing/HeroDemo";
 import { ShowcaseTabs } from "@/components/marketing/ShowcaseTabs";
+import { PromoVideo } from "@/components/marketing/PromoVideo";
 import {
   toSiteItem,
   toPostItem,
@@ -48,7 +49,12 @@ export default async function LandingPage() {
     <div className="flex min-h-dvh flex-col bg-background">
       <MarketingNav />
 
-      {/* Showcase — 사용자가 만든 공개 포트폴리오. 메인 최상단에 배치(2026-11-13 요청) — 릴·히어로 등 소개 내용은 그 아래. */}
+      {/* 홍보 영상 — 메인 제일 위(2026-11-13 요청). 음소거 자동재생·반복, 소리 켜기 버튼. */}
+      <section className="w-full bg-black">
+        <PromoVideo src="/videos/storyup-promo.mp4" ko={ko} />
+      </section>
+
+      {/* Showcase — 사용자가 만든 공개 포트폴리오. 홍보 영상 바로 아래 — 릴·히어로 등 소개 내용은 그 아래. */}
       <section
         id="showcase"
         className="border-b border-border bg-surface-muted/50 px-6 py-16 sm:px-8 sm:py-20"
