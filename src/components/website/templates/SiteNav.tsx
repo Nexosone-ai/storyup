@@ -21,7 +21,7 @@ export interface NavItem {
 
 export function buildSiteNavItems(
   content: WebsiteContent,
-  opts: { siteSlug?: string; blogHref?: string; showContact?: boolean },
+  opts: { siteSlug?: string; blogHref?: string; videosHref?: string; showContact?: boolean },
 ): NavItem[] {
   const lang = siteLang(content);
   const L = SITE_UI[lang];
@@ -45,6 +45,8 @@ export function buildSiteNavItems(
   }
   if (opts.blogHref)
     items.push({ label: L.blog, href: opts.blogHref, primary: true });
+  // 공개 영상(쇼츠·AI 영상)이 있을 때만 '영상' 메뉴.
+  if (opts.videosHref) items.push({ label: L.videos, href: opts.videosHref });
   return items;
 }
 
@@ -52,6 +54,7 @@ export function SiteNav({
   content,
   siteSlug,
   blogHref,
+  videosHref,
   editHref,
   showContact = false,
   tone = "light",
@@ -60,6 +63,7 @@ export function SiteNav({
   content: WebsiteContent;
   siteSlug?: string;
   blogHref?: string;
+  videosHref?: string;
   editHref?: string;
   showContact?: boolean;
   tone?: "light" | "dark";
@@ -68,7 +72,7 @@ export function SiteNav({
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const lang = siteLang(content);
-  const items = buildSiteNavItems(content, { siteSlug, blogHref, showContact });
+  const items = buildSiteNavItems(content, { siteSlug, blogHref, videosHref, showContact });
 
   // 현재 페이지(정확 경로 일치)면 메뉴를 강조한다. 홈(base)·앵커 링크는 제외.
   const isActive = (href: string) =>
@@ -104,13 +108,15 @@ export function SiteNav({
       <span className="hidden items-center gap-5 sm:flex">
         {items.map((it, i) => renderLink(it, i))}
         {editHref && <SiteEditLink href={editHref} lang={lang} />}
+        {editHref && <SiteDashboardLink lang={lang} tone={tone} />}
       </span>
 
       {/* 모바일 햄버거 */}
       <span className="relative sm:hidden">
         {editHref && (
-          <span className="mr-3">
+          <span className="mr-3 inline-flex items-center gap-2">
             <SiteEditLink href={editHref} lang={lang} />
+            <SiteDashboardLink lang={lang} tone={tone} />
           </span>
         )}
         <button
@@ -156,5 +162,21 @@ export function SiteNav({
         )}
       </span>
     </nav>
+  );
+}
+
+/** 사이트 주인이 자기 사이트를 볼 때 '편집' 옆에 놓이는 대시보드 바로가기 — 작업 중 언제든 복귀. */
+function SiteDashboardLink({ lang, tone }: { lang: "ko" | "en"; tone: "light" | "dark" }) {
+  return (
+    <Link
+      href="/dashboard"
+      className={
+        tone === "dark"
+          ? "inline-flex shrink-0 items-center rounded-full border border-white/40 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10"
+          : "inline-flex shrink-0 items-center rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-surface-muted"
+      }
+    >
+      {lang === "en" ? "Dashboard" : "대시보드"}
+    </Link>
   );
 }

@@ -9,6 +9,8 @@ import {
   pollVideoAction,
   generateCharacterAction,
   createVideoFrameUploadUrl,
+  setVideoPublicAction,
+  deleteVideoAction,
 } from "@/app/business/[id]/video/actions";
 import { VideoEditor } from "@/components/video/VideoEditor";
 import { VIDEO_LENGTHS, videoLengthById } from "@/lib/videoLength";
@@ -59,9 +61,13 @@ interface Pricing {
 }
 interface VideoItem {
   id: string;
+  /** 'video' AI 영상·편집본, 'shorts' 카드뉴스 쇼츠. */
+  kind?: "video" | "shorts";
   title: string | null;
   url: string;
   createdAt: string;
+  /** 공개 사이트(/site/<slug>/videos) 게시 여부. */
+  isPublic?: boolean;
 }
 interface PendingJob {
   id: string;
@@ -75,6 +81,7 @@ export function VideoStudio({
   engineReady,
   videos,
   pendingJobs,
+  siteSlug,
   ko,
 }: {
   businessId: string;
@@ -82,9 +89,36 @@ export function VideoStudio({
   engineReady: boolean;
   videos: VideoItem[];
   pendingJobs: PendingJob[];
+  /** 공개 사이트 슬러그(발행된 경우) — '내 페이지에서 보기' 링크. */
+  siteSlug?: string | null;
   ko: boolean;
 }) {
   const router = useRouter();
+  // 내 영상 관리(공개 토글·삭제) 진행 상태 + 결과 메시지.
+  const [manageBusy, setManageBusy] = useState<string | null>(null);
+  const [manageMsg, setManageMsg] = useState<string | null>(null);
+  const togglePublic = async (v: VideoItem) => {
+    setManageBusy(v.id);
+    setManageMsg(null);
+    const res = await setVideoPublicAction(businessId, v.id, !(v.isPublic !== false));
+    setManageBusy(null);
+    if (res.error) setManageMsg(res.error);
+    else router.refresh();
+  };
+  const removeVideo = async (v: VideoItem) => {
+    const ok = window.confirm(
+      ko
+        ? "이 영상을 내 영상 목록과 내 페이지에서 삭제할까요? 되돌릴 수 없어요."
+        : "Delete this video from your list and your page? This cannot be undone.",
+    );
+    if (!ok) return;
+    setManageBusy(v.id);
+    setManageMsg(null);
+    const res = await deleteVideoAction(businessId, v.id);
+    setManageBusy(null);
+    if (res.error) setManageMsg(res.error);
+    else router.refresh();
+  };
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
@@ -473,16 +507,63 @@ export function VideoStudio({
         </div>
       )}
 
-      {/* 내 영상 */}
+      {/* 내 영상 — AI 영상·편집본 + 카드뉴스 쇼츠. 공개 사이트 '영상'에 게시/숨김·삭제. */}
       {videos.length > 0 && (
         <div>
-          <h2 className="mb-2 text-sm font-semibold">{ko ? "내 영상" : "My videos"}</h2>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold">{ko ? "내 영상" : "My videos"}</h2>
+            {siteSlug ? (
+              <a
+                href={`/site/${siteSlug}/videos`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-medium text-primary underline underline-offset-2"
+              >
+                {ko ? "내 페이지에서 보기 ↗" : "View on my page ↗"}
+              </a>
+            ) : (
+              <span className="text-xs text-muted">
+                {ko
+                  ? "랜딩페이지를 발행하면 내 페이지 '영상'에 공개돼요."
+                  : "Publish your landing page to show these on your site."}
+              </span>
+            )}
+          </div>
+          {manageMsg && <p className="mb-2 text-xs text-danger">{manageMsg}</p>}
           <ul className="grid gap-3 sm:grid-cols-2">
             {videos.map((v) => (
               <li key={v.id} className="rounded-xl border border-border bg-surface p-3">
-                {v.title && <p className="truncate text-sm font-medium">{v.title}</p>}
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 rounded-full bg-surface-muted px-2 py-0.5 text-[10px] font-semibold text-muted">
+                    {v.kind === "shorts" ? (ko ? "쇼츠" : "Short") : ko ? "AI 영상" : "AI video"}
+                  </span>
+                  {v.title && <p className="min-w-0 truncate text-sm font-medium">{v.title}</p>}
+                  <span
+                    className={`ml-auto shrink-0 text-[10px] font-semibold ${v.isPublic !== false ? "text-primary" : "text-muted"}`}
+                  >
+                    {v.isPublic !== false ? (ko ? "내 페이지 공개" : "On my page") : ko ? "숨김" : "Hidden"}
+                  </span>
+                </div>
                 <video src={v.url} controls className="mt-2 w-full rounded-lg bg-black" />
                 <div className="mt-2 flex flex-wrap items-center gap-3 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => togglePublic(v)}
+                    disabled={manageBusy === v.id}
+                    className="font-medium text-primary underline underline-offset-2 disabled:opacity-50"
+                  >
+                    {v.isPublic !== false
+                      ? ko ? "내 페이지에서 숨기기" : "Hide from my page"
+                      : ko ? "내 페이지에 공개" : "Show on my page"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeVideo(v)}
+                    disabled={manageBusy === v.id}
+                    className="text-danger underline-offset-2 hover:underline disabled:opacity-50"
+                  >
+                    {ko ? "삭제" : "Delete"}
+                  </button>
                   <a
                     href={v.url}
                     download
@@ -506,16 +587,17 @@ export function VideoStudio({
                   >
                     편집
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => continueFrom(v)}
-                    disabled={extractingId !== null || busy}
-                    className="inline-flex items-center gap-1 font-medium text-primary underline underline-offset-2 disabled:opacity-50"
-                  >
-                    {extractingId === v.id && <Spinner className="size-3.5" />}
-                    {extractingId === v.id ? "불러오는 중…" : "이어서 만들기"}
-                  </button>
-                  <span className="text-muted">랜딩·블로그·SNS에 붙여 사용</span>
+                  {v.kind !== "shorts" && (
+                    <button
+                      type="button"
+                      onClick={() => continueFrom(v)}
+                      disabled={extractingId !== null || busy}
+                      className="inline-flex items-center gap-1 font-medium text-primary underline underline-offset-2 disabled:opacity-50"
+                    >
+                      {extractingId === v.id && <Spinner className="size-3.5" />}
+                      {extractingId === v.id ? "불러오는 중…" : "이어서 만들기"}
+                    </button>
+                  )}
                 </div>
               </li>
             ))}

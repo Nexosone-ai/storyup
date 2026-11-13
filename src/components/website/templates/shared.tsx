@@ -58,6 +58,10 @@ export interface TemplateProps {
   categories?: string[];
   /** 랜딩페이지에 보여줄 이 가게의 카드뉴스 (최신순). */
   cards?: import("@/components/marketing/showcaseData").ShowcaseCardItem[];
+  /** 랜딩페이지 '영상' 블록 — 공개된 쇼츠·AI 영상(최신순, 일부). */
+  videos?: import("@/types/domain").SiteVideoItem[];
+  /** 공개 영상 페이지(/site/<slug>/videos) 링크 — 영상이 있을 때만. 네비·'전체 보기'. */
+  videosHref?: string;
   scoped?: boolean;
   editable?: boolean;
   /** 공개 사이트 슬러그 — 있으면 Contact 섹션에 실제 문의 폼을 렌더링한다.
@@ -374,10 +378,10 @@ export function siteLang(content: WebsiteContent): SiteLang {
 /** 템플릿 크롬(내비게이션·섹션 제목 폴백)에 쓰는 고정 문구. */
 export const SITE_UI: Record<
   SiteLang,
-  { home: string; about: string; contact: string; blog: string; inquire: string; space: string; latestPosts: string; viewAll: string; directions: string; cardNews: string; openShare: string }
+  { home: string; about: string; contact: string; blog: string; inquire: string; space: string; latestPosts: string; viewAll: string; directions: string; cardNews: string; openShare: string; videos: string }
 > = {
-  ko: { home: "홈", about: "소개", contact: "연락처", blog: "블로그", inquire: "문의하기", space: "공간", latestPosts: "최신 글", viewAll: "전체 보기 →", directions: "오시는 길", cardNews: "카드뉴스", openShare: "공유 페이지 →" },
-  en: { home: "Home", about: "About", contact: "Contact", blog: "Blog", inquire: "Contact us", space: "Our Space", latestPosts: "Latest posts", viewAll: "View all →", directions: "Find us", cardNews: "Card news", openShare: "Open share page →" },
+  ko: { home: "홈", about: "소개", contact: "연락처", blog: "블로그", inquire: "문의하기", space: "공간", latestPosts: "최신 글", viewAll: "전체 보기 →", directions: "오시는 길", cardNews: "카드뉴스", openShare: "공유 페이지 →", videos: "영상" },
+  en: { home: "Home", about: "About", contact: "Contact", blog: "Blog", inquire: "Contact us", space: "Our Space", latestPosts: "Latest posts", viewAll: "View all →", directions: "Find us", cardNews: "Card news", openShare: "Open share page →", videos: "Videos" },
 };
 
 // ---- Contact 필드 정의 (세 템플릿 공용) ----

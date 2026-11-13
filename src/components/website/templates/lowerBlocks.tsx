@@ -12,6 +12,7 @@ import {
 import { BlogPreviewCards } from "./BlogPreview";
 import { InquiryForm } from "@/components/site/InquiryForm";
 import { CardNewsSlider } from "@/components/marketing/CardNewsSlider";
+import { SiteVideoGrid } from "@/components/site/SiteVideoGrid";
 import { BannerStrip } from "./BannerView";
 import { orderedLandingKeys } from "./landingOrder";
 import type { LandingSectionKey, WebsiteContent } from "@/types/domain";
@@ -68,6 +69,8 @@ type Shared = Pick<
   | "blogHref"
   | "latestPosts"
   | "cards"
+  | "videos"
+  | "videosHref"
   | "editable"
   | "siteSlug"
 > & { tone?: "default" | "soft" | "dark"; heading?: string };
@@ -149,6 +152,33 @@ export function CardsBlock({
             </div>
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+/** 랜딩 '영상' 블록 — 공개된 쇼츠·AI 영상(최신 6개) + 전체 보기. 영상이 없으면 렌더하지 않는다. */
+export function VideosBlock({
+  content,
+  videos,
+  videosHref,
+  heading = HEADING_DEFAULT,
+}: Shared) {
+  if (!videos || videos.length === 0) return null;
+  const lang = siteLang(content);
+  const L = SITE_UI[lang];
+  return (
+    <section className="border-t border-border">
+      <div className="mx-auto max-w-5xl px-5 py-16">
+        <div className="mb-8 flex items-end justify-between gap-4">
+          <h2 className={`text-2xl ${heading}`}>{L.videos}</h2>
+          {videosHref && (
+            <Link href={videosHref} className="text-sm font-medium text-primary">
+              {L.viewAll}
+            </Link>
+          )}
+        </div>
+        <SiteVideoGrid videos={videos.slice(0, 6)} ko={lang === "ko"} compact />
       </div>
     </section>
   );

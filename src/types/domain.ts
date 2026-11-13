@@ -358,6 +358,7 @@ export const LANDING_SECTION_KEYS = [
   "gallery",
   "blog",
   "cards",
+  "videos",
   "map",
   "contact",
 ] as const;
@@ -630,4 +631,13 @@ export interface BusinessInterviewInput {
   target_customer: string;
   strengths: string;
   tone: BrandTone;
+}
+
+/** 공개 사이트 '영상'(쇼츠·AI 영상) 항목 — agency_deliverables(kind shorts|video, is_public). */
+export interface SiteVideoItem {
+  id: string;
+  kind: "shorts" | "video";
+  title: string | null;
+  url: string;
+  createdAt: string;
 }

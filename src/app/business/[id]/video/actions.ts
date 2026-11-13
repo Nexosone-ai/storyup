@@ -21,7 +21,27 @@ import { buildCharacterPrompt } from "@/lib/ai/image/prompt";
 import { storeGeneratedImage } from "@/lib/ai/imageStore";
 
 const MAX_CONCURRENT = 2;
-const VIDEO_BUCKET = "site-images"; // 공개 버킷(원본 제공) — 편집본은 edited-videos/ 하위.
+const VIDEO_BUCKET = "site-images"; // 공개 버킷(원본 제공) — '이어서 만들기' 프레임 등.
+/** 영상 전용 공개 버킷 — 쇼츠·편집본. site-images 는 10MB 제한이라 영상은 따로 둔다(200MB). */
+const VIDEOS_BUCKET = "site-videos";
+const VIDEOS_BUCKET_LIMIT = "200MB";
+/** 내 영상 종류 — 'video' AI 영상·편집본, 'shorts' 카드뉴스 쇼츠. */
+export type UserVideoKind = "video" | "shorts";
+
+/** 영상 버킷 멱등 생성(공개). 목록/생성 실패해도 이미 있으면 서명은 동작한다. */
+async function ensureVideosBucket(admin: ReturnType<typeof createAdminClient>) {
+  try {
+    const { data: buckets } = await admin.storage.listBuckets();
+    if (!buckets?.some((b) => b.name === VIDEOS_BUCKET)) {
+      await admin.storage.createBucket(VIDEOS_BUCKET, {
+        public: true,
+        fileSizeLimit: VIDEOS_BUCKET_LIMIT,
+      });
+    }
+  } catch {
+    /* noop */
+  }
+}
 
 export interface CharacterState {
   url?: string;
@@ -210,16 +230,20 @@ export async function pollVideoAction(jobId: string): Promise<PollState> {
 export interface UploadTicketState {
   path?: string;
   token?: string;
+  /** 업로드할 버킷(클라이언트가 uploadToSignedUrl 에 그대로 사용). */
+  bucket?: string;
   error?: string;
 }
 
 /**
- * 편집본 업로드용 서명 URL 발급 — 영상 바이트는 서버(Vercel 본문 한도)를 거치지 않고
- * 브라우저가 Storage에 직접 올린다. 소유자만, 공개 버킷의 edited-videos/ 하위.
+ * 내 영상(편집본·카드뉴스 쇼츠) 업로드용 서명 URL 발급 — 영상 바이트는 서버(Vercel 본문 한도)를
+ * 거치지 않고 브라우저가 Storage(site-videos, 공개)에 직접 올린다. 소유자만.
+ * kind 'video' → edited-videos/, 'shorts' → shorts/ 하위.
  */
 export async function createEditedVideoUploadUrl(
   businessId: string,
   ext: string,
+  kind: UserVideoKind = "video",
 ): Promise<UploadTicketState> {
   const supabase = await createClient();
   const {
@@ -231,14 +255,16 @@ export async function createEditedVideoUploadUrl(
 
   const safeExt = /^(mp4|webm)$/i.test(ext) ? ext.toLowerCase() : "mp4";
   const admin = createAdminClient();
-  const path = `${businessId}/edited-videos/${Date.now()}-${Math.random()
+  await ensureVideosBucket(admin);
+  const folder = kind === "shorts" ? "shorts" : "edited-videos";
+  const path = `${businessId}/${folder}/${Date.now()}-${Math.random()
     .toString(36)
     .slice(2, 8)}.${safeExt}`;
   const { data, error } = await admin.storage
-    .from(VIDEO_BUCKET)
+    .from(VIDEOS_BUCKET)
     .createSignedUploadUrl(path);
   if (error || !data) return { error: "업로드 준비에 실패했습니다." };
-  return { path: data.path, token: data.token };
+  return { path: data.path, token: data.token, bucket: VIDEOS_BUCKET };
 }
 
 /**
@@ -281,11 +307,15 @@ export interface RegisterVideoState {
   error?: string;
 }
 
-/** 업로드된 편집본을 '내 영상'(agency_deliverables)에 등록. */
+/**
+ * 업로드된 영상(편집본·쇼츠)을 '내 영상'(agency_deliverables)에 등록 — 기본 공개(is_public,
+ * 0114) 라 사용자의 공개 사이트 '영상'에 바로 보인다.
+ */
 export async function registerEditedVideo(
   businessId: string,
   path: string,
   title: string,
+  kind: UserVideoKind = "video",
 ): Promise<RegisterVideoState> {
   const supabase = await createClient();
   const {
@@ -295,26 +325,81 @@ export async function registerEditedVideo(
   const business = await getBusiness(businessId);
   if (!business) return { error: "권한이 없습니다." };
 
-  // 경로 변조 방지 — 반드시 이 사업장의 edited-videos/ 하위여야 한다.
-  if (!path.startsWith(`${businessId}/edited-videos/`))
+  // 경로 변조 방지 — 반드시 이 사업장의 edited-videos/ 또는 shorts/ 하위여야 한다.
+  const folder = kind === "shorts" ? "shorts" : "edited-videos";
+  if (!path.startsWith(`${businessId}/${folder}/`))
     return { error: "잘못된 경로입니다." };
 
   const admin = createAdminClient();
   const {
     data: { publicUrl },
-  } = admin.storage.from(VIDEO_BUCKET).getPublicUrl(path);
+  } = admin.storage.from(VIDEOS_BUCKET).getPublicUrl(path);
 
   const { error } = await supabase.from("agency_deliverables").insert({
     business_id: businessId,
-    kind: "video",
-    title: title.slice(0, 80) || "편집 영상",
+    kind,
+    title: title.slice(0, 80) || (kind === "shorts" ? "쇼츠" : "편집 영상"),
     url: publicUrl,
     created_by: user.id,
   });
   if (error) return { error: "저장에 실패했습니다(권한 확인)." };
 
   revalidatePath(`/business/${businessId}/video`);
-  // 콘텐츠 스튜디오(쇼츠 편집 단계)에서도 편집본을 저장하므로 함께 갱신.
+  // 콘텐츠 스튜디오(쇼츠·편집 단계)에서도 저장하므로 함께 갱신.
   revalidatePath(`/business/${businessId}/marketing`);
   return { ok: true, url: publicUrl };
+}
+
+// ---------------- 내 영상 관리(공개 여부·삭제) ----------------
+
+export interface VideoManageState {
+  ok?: boolean;
+  error?: string;
+}
+
+/** 내 영상의 공개 사이트 게시 여부 변경(소유자 RLS). 0114 미적용이면 컬럼 오류 → 안내. */
+export async function setVideoPublicAction(
+  businessId: string,
+  deliverableId: string,
+  isPublic: boolean,
+): Promise<VideoManageState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "로그인이 필요합니다." };
+  const { data, error } = await supabase
+    .from("agency_deliverables")
+    .update({ is_public: isPublic })
+    .eq("id", deliverableId)
+    .eq("business_id", businessId)
+    .select("id")
+    .maybeSingle();
+  if (error) return { error: "변경에 실패했습니다. 잠시 후 다시 시도해주세요." };
+  if (!data) return { error: "영상을 찾을 수 없습니다(권한 확인)." };
+  revalidatePath(`/business/${businessId}/marketing`);
+  return { ok: true };
+}
+
+/** 내 영상 삭제(소유자 RLS) — 목록·공개 사이트에서 모두 사라진다. 스토리지 파일은 보존. */
+export async function deleteVideoAction(
+  businessId: string,
+  deliverableId: string,
+): Promise<VideoManageState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "로그인이 필요합니다." };
+  const { data, error } = await supabase
+    .from("agency_deliverables")
+    .delete()
+    .eq("id", deliverableId)
+    .eq("business_id", businessId)
+    .select("id")
+    .maybeSingle();
+  if (error) return { error: "삭제에 실패했습니다." };
+  if (!data) return { error: "영상을 찾을 수 없습니다(권한 확인)." };
+  revalidatePath(`/business/${businessId}/marketing`);
+  return { ok: true };
 }
