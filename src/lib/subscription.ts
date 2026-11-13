@@ -7,7 +7,6 @@ import {
   type Plan,
   type PlanId,
 } from "@/lib/plans";
-import { getServicePrice } from "@/lib/payments/prices";
 import { upsellSentence } from "@/lib/upsell";
 
 /**
@@ -165,7 +164,7 @@ export function countPlanUsage(
 }
 
 export interface QuotaCharge {
-  /** 차감된 포인트 (0 = 월 제공량 내). */
+  /** 차감된 포인트 — 플랜 제공량(랜딩·블로그·카드뉴스·이미지)은 UP을 쓰지 않으므로 항상 0. */
   charged: number;
   /** 생성 실패 시 호출 — 사용량과 차감 포인트를 되돌린다. */
   refund: () => Promise<void>;
@@ -196,8 +195,42 @@ export class InsufficientPointsError extends Error {
 }
 
 /**
- * 제공량 초과분 과금은 관리자 화면(service_prices)을 단일 소스로 쓴다.
+ * 플랜 제공량 초과 — 랜딩페이지·블로그·카드뉴스·AI 이미지는 UP으로 추가 구매하지 않는다
+ * (UP은 AI 영상 전용). 한도에 닿으면 생성을 막고 담당 파트너 문의(업세일)로 안내한다.
+ * 기존 호출부(instanceof InsufficientPointsError → 402/에러 메시지)를 그대로 타도록 하위 클래스로 둔다.
+ */
+export class PlanLimitError extends InsufficientPointsError {
+  constructor(
+    public readonly kind: UsageKind,
+    public readonly limit: number,
+    ko: boolean,
+  ) {
+    super(ko, "quota");
+    const n = limit.toLocaleString();
+    const tail = upsellSentence(ko);
+    this.message =
+      kind === "site"
+        ? ko
+          ? `랜딩페이지는 현재 플랜에 ${n}개 포함돼 있고 이미 모두 사용 중이에요. 다른 비즈니스에 랜딩페이지를 더 만들려면 ${tail}`
+          : `Your plan includes ${n} landing page(s) and they are all in use. ${tail}`
+        : kind === "blog_post"
+          ? ko
+            ? `이번 달 블로그 제공량(${n}개)을 모두 사용했어요. ${tail}`
+            : `You've used this month's blog quota (${n}). ${tail}`
+          : kind === "card_news"
+            ? ko
+              ? `이번 달 카드뉴스 제공량(${n}개)을 모두 사용했어요. ${tail}`
+              : `You've used this month's card news quota (${n}). ${tail}`
+            : ko
+              ? `이번 달 AI 이미지 제공량(${n}장)을 모두 사용했어요. ${tail}`
+              : `You've used this month's AI image quota (${n}). ${tail}`;
+    this.name = "PlanLimitError";
+  }
+}
+
+/**
  * kind → service_prices.service 키 매핑. (billing.ts QUOTA_KIND의 역방향)
+ * 제공량 초과분을 UP으로 과금하던 시절의 키 — 지금은 표시·관리 화면 참조용으로만 남는다.
  */
 export const SERVICE_BY_KIND: Record<UsageKind, string> = {
   site: "AI_WEBSITE",
@@ -214,9 +247,10 @@ const KIND_LIMIT: Record<UsageKind, (p: Plan) => number | null> = {
 };
 
 /**
- * 월 제공량 1건 소비. 한도 내면 무료, 초과면 포인트 차감(spend_points).
- * 시스템 미구축(마이그레이션 전) 등으로 판단이 불가능하면 null을 반환해
- * 호출부가 기존 과금 경로로 폴백하게 한다.
+ * 플랜 제공량 1건 소비. 한도 내면 사용량 기록 후 통과, 한도에 닿았으면 PlanLimitError.
+ * 제공량 초과분을 UP으로 자동 차감하지 않는다(UP은 AI 영상 전용, 2026-11-13 결정) —
+ * 추가 이용은 담당 파트너 문의(업세일)로 안내한다.
+ * usage_events 조회가 실패(마이그레이션 전)하면 null을 반환해 호출부가 판단한다.
  * @param usedOverride kind='site'처럼 월 카운트가 아닌 기준(보유 개수)을 쓸 때 전달.
  */
 export async function consumeQuota(
@@ -236,63 +270,25 @@ export async function consumeQuota(
   if (consumed === null) return null;
 
   const limit = KIND_LIMIT[kind](plan);
-  let cost = 0;
   if (limit !== null) {
     const used = usedOverride ?? consumed;
-    // 초과분 단가는 관리자 화면(service_prices)에서 조회 — 0이면 무료.
-    if (used >= limit) cost = await getServicePrice(SERVICE_BY_KIND[kind]);
-  }
-
-  if (cost > 0) {
-    const { error } = await admin.rpc("spend_points", {
-      p_user: userId,
-      p_amount: cost,
-      p_reason: description,
-      p_type: "AI_USAGE",
-      p_ref_type: "quota_overage",
-      p_ref_id: null,
-    });
-    if (error) {
-      if (error.message?.includes("INSUFFICIENT_POINTS")) {
-        // 사용자에게 필요한 UP과 현재 잔액을 함께 알려준다
-        const { data: txs } = await admin
-          .from("point_transactions")
-          .select("amount")
-          .eq("user_id", userId);
-        const balance = (txs ?? []).reduce((s, t) => s + t.amount, 0);
-        throw new InsufficientPointsError(ko, "quota", { needed: cost, balance });
-      }
-      console.error("[subscription] spend_points failed", kind, error);
-      return null;
-    }
+    // 한도 도달 — UP 차감 없이 막고 파트너 문의로 안내(랜딩 2개째·월 제공량 소진).
+    if (used >= limit) throw new PlanLimitError(kind, limit, ko);
   }
 
   const { data: event, error: evErr } = await admin
     .from("usage_events")
-    .insert({ user_id: userId, kind, charged: cost })
+    .insert({ user_id: userId, kind, charged: 0 })
     .select("id")
     .single();
   if (evErr)
     console.error("[subscription] usage_events insert failed", kind, evErr);
 
   return {
-    charged: cost,
+    charged: 0,
     refund: async () => {
       if (event?.id)
         await admin.from("usage_events").delete().eq("id", event.id);
-      if (cost > 0) {
-        const { error: refundErr } = await admin
-          .from("point_transactions")
-          .insert({
-            user_id: userId,
-            amount: cost,
-            reason: `${description} 실패 — 크레딧 환급`,
-            type: "REFUND",
-            ref_type: "service_refund",
-          });
-        if (refundErr)
-          console.error("[subscription] refund failed", kind, refundErr);
-      }
     },
   };
 }
