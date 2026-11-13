@@ -837,7 +837,7 @@ export function ShortsPanel({
                   {siteSave.state === "saved" && (
                     <span className="font-medium text-primary">
                       {ko
-                        ? "내 페이지(사이트 '영상')에도 저장했어요. 콘텐츠 스튜디오 6단계 '내 영상'에서 숨기거나 지울 수 있어요."
+                        ? "내 페이지(사이트 '영상' 메뉴)에도 저장했어요. 콘텐츠 스튜디오 6단계 '내 영상'에서 다시 보고, 숨기거나 지울 수 있어요."
                         : "Also saved to your site's Videos. Manage it under My videos (step 6)."}
                     </span>
                   )}

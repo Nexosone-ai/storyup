@@ -101,12 +101,26 @@ export default async function MarketingPage({
     }
   }
 
+  // 내 영상(쇼츠·AI 영상) — 유료 플랜이면 AI 영상 포함 여부와 무관하게 조회(쇼츠는 Basic·Lite 도 저장).
+  const myVideos =
+    user && !isFreePlan
+      ? (await listDeliverables(id))
+          .filter((d) => d.kind === "video" || d.kind === "shorts")
+          .map((d) => ({
+            id: d.id,
+            kind: d.kind === "shorts" ? ("shorts" as const) : ("video" as const),
+            title: d.title,
+            url: d.url,
+            createdAt: d.createdAt,
+            isPublic: d.isPublic,
+          }))
+      : [];
+
   // AI 동영상(6단계) — 플랜이 제공할 때만 조회(무료는 업그레이드 안내, 쿼리 생략).
   let video: StudioVideoData | null = null;
   if (user && plan.limits.video !== 0) {
-    const [pricing, deliverables, pendingRes] = await Promise.all([
+    const [pricing, pendingRes] = await Promise.all([
       getVideoPricing(user.id),
-      listDeliverables(id),
       supabase
         .from("video_jobs")
         .select("id, prompt, created_at")
@@ -119,16 +133,7 @@ export default async function MarketingPage({
       pricing: { price: pricing.price, balance: pricing.balance },
       engineReady: videoEngineConfigured(),
       // 내 영상 = AI 영상·편집본(video) + 카드뉴스 쇼츠(shorts). 공개 사이트 게시 여부 포함.
-      videos: deliverables
-        .filter((d) => d.kind === "video" || d.kind === "shorts")
-        .map((d) => ({
-          id: d.id,
-          kind: d.kind === "shorts" ? ("shorts" as const) : ("video" as const),
-          title: d.title,
-          url: d.url,
-          createdAt: d.createdAt,
-          isPublic: d.isPublic,
-        })),
+      videos: myVideos,
       pendingJobs: (pendingRes.data ?? []).map((j) => ({
         id: j.id,
         prompt: j.prompt,
@@ -223,6 +228,7 @@ export default async function MarketingPage({
           shortsYoutube={shortsYoutube}
           isFreePlan={isFreePlan}
           video={video}
+          myVideos={myVideos}
           channelAdsEnabled={CHANNEL_ADS_ENABLED}
           initialStep={initialStep}
           initialPostId={initialPostId}
