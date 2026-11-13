@@ -12,6 +12,7 @@ import type { ShortsQuota, ShortsYoutube } from "@/components/cards/ShortsPanel"
 import { MarketingHub } from "@/components/marketing/MarketingHub";
 import { VideoEditor } from "@/components/video/VideoEditor";
 import { VideoStudio } from "@/components/video/VideoStudio";
+import { MyVideosPanel, type MyVideoItem } from "@/components/video/MyVideosPanel";
 import type { CardNewsResult } from "@/types/domain";
 import { UPSELL_SERVICE, upsellCtaLabel, upsellHref, upsellSentence, type UpsellService } from "@/lib/upsell";
 
@@ -72,6 +73,8 @@ export function ContentStudio(props: {
   isFreePlan: boolean;
   /** AI 동영상 데이터(null = 플랜 미제공 → 업그레이드 안내). */
   video: StudioVideoData | null;
+  /** 내 영상(쇼츠·AI 영상) — AI 영상이 없는 유료 플랜도 6단계에서 보고 관리한다. */
+  myVideos?: MyVideoItem[];
   channelAdsEnabled: boolean;
   /** 서버가 계산한 초기 단계·글(SSR/클라이언트 일치). */
   initialStep: number;
@@ -360,13 +363,23 @@ export function ContentStudio(props: {
             />
           </div>
         ) : (
-          upgrade(
-            ko ? "AI 영상은 이 플랜에 포함되어 있지 않아요." : "AI video isn't included in this plan.",
-            ko
-              ? `AI 동영상·관련 영상 10편은 별도 제작 서비스예요. ${upsellSentence(true)}`
-              : `AI video is a separate production service. ${upsellSentence(false)}`,
-            UPSELL_SERVICE.AI_VIDEO,
-          )
+          <div className="space-y-4">
+            {(props.myVideos?.length ?? 0) > 0 && (
+              <MyVideosPanel
+                businessId={businessId}
+                videos={props.myVideos ?? []}
+                siteSlug={props.siteSlug}
+                ko={ko}
+              />
+            )}
+            {upgrade(
+              ko ? "AI 영상은 이 플랜에 포함되어 있지 않아요." : "AI video isn't included in this plan.",
+              ko
+                ? `AI 동영상·관련 영상 10편은 별도 제작 서비스예요. ${upsellSentence(true)}`
+                : `AI video is a separate production service. ${upsellSentence(false)}`,
+              UPSELL_SERVICE.AI_VIDEO,
+            )}
+          </div>
         ))}
     </div>
   );
