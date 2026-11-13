@@ -257,6 +257,7 @@ const SECTION_LABELS: Record<LandingSectionKey, { ko: string; en: string }> = {
   gallery: { ko: "갤러리", en: "Gallery" },
   blog: { ko: "최신 글", en: "Blog" },
   cards: { ko: "카드뉴스", en: "Card news" },
+  videos: { ko: "영상 (쇼츠·AI 영상)", en: "Videos" },
   map: { ko: "오시는 길", en: "Location" },
   contact: { ko: "연락처·문의", en: "Contact" },
 };

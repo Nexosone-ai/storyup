@@ -12,6 +12,7 @@ import {
   GalleryBlock,
   BlogBlock,
   CardsBlock,
+  VideosBlock,
   MapBlock,
   ContactBlock,
   FooterBlock,
@@ -79,6 +80,7 @@ export function ElegantTemplate(props: TemplateProps) {
     gallery: <GalleryBlock {...props} heading={h} />,
     blog: <BlogBlock {...props} heading={h} />,
     cards: <CardsBlock {...props} heading={h} />,
+    videos: <VideosBlock {...props} heading={h} />,
     map: <MapBlock {...props} heading={h} />,
     contact: <ContactBlock {...props} heading={h} />,
   };
@@ -91,7 +93,7 @@ export function ElegantTemplate(props: TemplateProps) {
             <SiteLogo src={hero.logo} fallback={hero.image} />
             {T({ path: "hero.businessName", value: hero.businessName, as: "span", className: "truncate text-lg tracking-wide", style: serif })}
           </span>
-          <SiteNav content={content} siteSlug={siteSlug} blogHref={blogHref} editHref={editHref} showContact={showContact} tone="light" />
+          <SiteNav content={content} siteSlug={siteSlug} blogHref={blogHref} videosHref={props.videosHref} editHref={editHref} showContact={showContact} tone="light" />
         </div>
       </header>
 

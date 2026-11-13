@@ -118,7 +118,17 @@ export default async function MarketingPage({
     video = {
       pricing: { price: pricing.price, balance: pricing.balance },
       engineReady: videoEngineConfigured(),
-      videos: deliverables.filter((d) => d.kind === "video"),
+      // 내 영상 = AI 영상·편집본(video) + 카드뉴스 쇼츠(shorts). 공개 사이트 게시 여부 포함.
+      videos: deliverables
+        .filter((d) => d.kind === "video" || d.kind === "shorts")
+        .map((d) => ({
+          id: d.id,
+          kind: d.kind === "shorts" ? ("shorts" as const) : ("video" as const),
+          title: d.title,
+          url: d.url,
+          createdAt: d.createdAt,
+          isPublic: d.isPublic,
+        })),
       pendingJobs: (pendingRes.data ?? []).map((j) => ({
         id: j.id,
         prompt: j.prompt,

@@ -5,6 +5,11 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { reserveShortsQuota } from "@/app/business/actions";
+import {
+  createEditedVideoUploadUrl,
+  registerEditedVideo,
+} from "@/app/business/[id]/video/actions";
+import { createClient } from "@/lib/supabase/client";
 import { uploadShortToYoutube } from "@/lib/shorts/youtubeUpload";
 import type { PlanId } from "@/lib/plans";
 import { upsellSentence } from "@/lib/upsell";
@@ -130,6 +135,45 @@ export function ShortsPanel({
   // 방금 만든 영상(유튜브 업로드용) + 업로드 상태. 편집본(blobOverride)이 있으면 그것을 우선 쓴다.
   const [lastBlob, setLastBlob] = useState<Blob | null>(null);
   const [lastExt, setLastExt] = useState("mp4");
+  // 내 페이지(공개 사이트 '영상') 저장 상태 — 렌더 직후 자동 저장, 실패 시 버튼으로 재시도.
+  const [siteSave, setSiteSave] = useState<
+    { state: "idle" } | { state: "saving" } | { state: "saved"; url: string } | { state: "failed"; error: string }
+  >({ state: "idle" });
+
+  /** 쇼츠를 Storage 에 직접 올리고 '내 영상'(공개 사이트 영상)으로 등록한다. */
+  const saveToSite = async (blob: Blob, ext: string, label?: string) => {
+    setSiteSave({ state: "saving" });
+    try {
+      const ticket = await createEditedVideoUploadUrl(businessId, ext, "shorts");
+      if (ticket.error || !ticket.path || !ticket.token)
+        throw new Error(ticket.error ?? (ko ? "업로드 준비에 실패했어요." : "Could not prepare upload."));
+      const supabase = createClient();
+      const { error: upErr } = await supabase.storage
+        .from(ticket.bucket ?? "site-videos")
+        .uploadToSignedUrl(ticket.path, ticket.token, blob, {
+          contentType: blob.type || (ext === "webm" ? "video/webm" : "video/mp4"),
+        });
+      if (upErr) throw new Error(ko ? "업로드에 실패했어요." : "Upload failed.");
+      const reg = await registerEditedVideo(
+        businessId,
+        ticket.path,
+        `${title?.trim() || slugName()}${label ? ` ${label}` : ""}`,
+        "shorts",
+      );
+      if (reg.error || !reg.url) throw new Error(reg.error ?? "save failed");
+      setSiteSave({ state: "saved", url: reg.url });
+    } catch (e) {
+      setSiteSave({
+        state: "failed",
+        error:
+          e instanceof Error && e.message
+            ? e.message
+            : ko
+              ? "내 페이지 저장에 실패했어요."
+              : "Could not save to your page.",
+      });
+    }
+  };
   const shareBlob = blobOverride?.blob ?? lastBlob;
   const shareExt = blobOverride?.ext ?? lastExt;
   const showMake = !view || view === "make";
@@ -329,6 +373,8 @@ export function ShortsPanel({
           ? "쇼츠를 저장했어요! 유튜브 쇼츠·틱톡·릴스에 올려보세요."
           : "Saved! Upload it to YouTube Shorts, TikTok, or Reels.",
       );
+      // 6) 내 페이지(공개 사이트 '영상')에도 저장 — 실패해도 쇼츠 자체는 완료.
+      void saveToSite(result.blob, result.ext);
     } catch (e) {
       const code = e instanceof Error ? e.message : "";
       setError(
@@ -779,6 +825,37 @@ export function ShortsPanel({
                   />
                 </div>
               )}
+              {siteSave.state !== "idle" && (
+                <p className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                  {siteSave.state === "saving" && (
+                    <span className="inline-flex items-center gap-1.5 text-muted">
+                      <Spinner className="size-3.5" />
+                      {ko ? "내 페이지에 저장하는 중…" : "Saving to your page…"}
+                    </span>
+                  )}
+                  {siteSave.state === "saved" && (
+                    <span className="font-medium text-primary">
+                      {ko
+                        ? "내 페이지(사이트 '영상')에도 저장했어요. 콘텐츠 스튜디오 6단계 '내 영상'에서 숨기거나 지울 수 있어요."
+                        : "Also saved to your site's Videos. Manage it under My videos (step 6)."}
+                    </span>
+                  )}
+                  {siteSave.state === "failed" && (
+                    <>
+                      <span className="text-danger">{siteSave.error}</span>
+                      {lastBlob && (
+                        <button
+                          type="button"
+                          onClick={() => saveToSite(lastBlob, lastExt)}
+                          className="font-medium text-primary underline underline-offset-2"
+                        >
+                          {ko ? "내 페이지에 다시 저장" : "Retry save"}
+                        </button>
+                      )}
+                    </>
+                  )}
+                </p>
+              )}
               <p className="mt-2 text-[11px] leading-relaxed text-muted">
                 {ko
                   ? "브라우저에서 바로 만들어요. 만드는 동안 탭을 닫지 말아주세요. (mp4를 지원하지 않는 브라우저는 webm으로 저장됩니다)"
@@ -791,6 +868,7 @@ export function ShortsPanel({
             <>
               {/* 공유 전용 뷰: 만든(또는 편집한) 쇼츠 다시 받기 */}
               {view === "share" && (
+                <>
                 <div className="mt-4 flex flex-wrap items-center gap-3">
                   <Button
                     variant="outline"
@@ -805,6 +883,21 @@ export function ShortsPanel({
                     {ko ? "쇼츠 다운로드" : "Download short"}
                     {blobOverride ? (ko ? " (편집본)" : " (edited)") : ""}
                   </Button>
+                  {blobOverride && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={siteSave.state === "saving"}
+                      onClick={() =>
+                        saveToSite(blobOverride.blob, blobOverride.ext, ko ? "(편집본)" : "(edited)")
+                      }
+                    >
+                      {siteSave.state === "saving" ? (
+                        <Spinner className="size-4" />
+                      ) : null}
+                      {ko ? "편집본을 내 페이지에 저장" : "Save edited to my page"}
+                    </Button>
+                  )}
                   <span className="text-xs text-muted">
                     {shareBlob
                       ? ko
@@ -815,6 +908,15 @@ export function ShortsPanel({
                         : "Make a short first."}
                   </span>
                 </div>
+                {view === "share" && siteSave.state === "saved" && (
+                  <p className="mt-2 text-xs font-medium text-primary">
+                    {ko ? "내 페이지(사이트 '영상')에 저장했어요." : "Saved to your site's Videos."}
+                  </p>
+                )}
+                {view === "share" && siteSave.state === "failed" && (
+                  <p className="mt-2 text-xs text-danger">{siteSave.error}</p>
+                )}
+                </>
               )}
 
               {/* 유튜브 자동 업로드 (Pro + 구글 연결) */}

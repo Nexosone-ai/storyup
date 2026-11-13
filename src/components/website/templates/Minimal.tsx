@@ -15,7 +15,7 @@ import { BlogPreviewCards } from "./BlogPreview";
 import { SiteSections } from "./SiteSections";
 import { InquiryForm } from "@/components/site/InquiryForm";
 import { CardNewsSlider } from "@/components/marketing/CardNewsSlider";
-import { LandingSections } from "./lowerBlocks";
+import { LandingSections, VideosBlock } from "./lowerBlocks";
 
 export function MinimalTemplate(props: TemplateProps) {
   const {
@@ -151,6 +151,7 @@ export function MinimalTemplate(props: TemplateProps) {
           </section>
         </>
       ) : null,
+    videos: <VideosBlock {...props} />,
     cards:
       cards && cards.length > 0 ? (
         <>
@@ -230,7 +231,7 @@ export function MinimalTemplate(props: TemplateProps) {
           />
           {T({ path: "hero.businessName", value: hero.businessName, as: "span", className: "truncate text-sm font-semibold uppercase tracking-[0.2em]" })}
         </span>
-        <SiteNav content={content} siteSlug={siteSlug} blogHref={blogHref} editHref={editHref} showContact={showContact} tone="light" />
+        <SiteNav content={content} siteSlug={siteSlug} blogHref={blogHref} videosHref={props.videosHref} editHref={editHref} showContact={showContact} tone="light" />
       </header>
 
       <section className="mx-auto max-w-2xl px-6 pb-16 pt-10 sm:pt-20">

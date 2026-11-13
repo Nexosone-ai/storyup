@@ -343,7 +343,7 @@ export function VideoEditor({
           throw new Error(ticket.error ?? "업로드 준비에 실패했어요.");
         const supabase = createClient();
         const { error: upErr } = await supabase.storage
-          .from("site-images")
+          .from(ticket.bucket ?? "site-videos")
           .uploadToSignedUrl(ticket.path, ticket.token, blob, {
             contentType: blob.type || "video/mp4",
           });

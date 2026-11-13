@@ -1008,6 +1008,8 @@ export interface Database {
           url: string;
           created_by: string | null;
           created_at: string;
+          /** 0114 — 공개 사이트 게시 여부(기본 true). */
+          is_public: boolean;
         };
         Insert: {
           id?: string;
@@ -1018,6 +1020,7 @@ export interface Database {
           url: string;
           created_by?: string | null;
           created_at?: string;
+          is_public?: boolean;
         };
         Update: Partial<
           Database["public"]["Tables"]["agency_deliverables"]["Insert"]

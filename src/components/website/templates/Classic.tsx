@@ -12,6 +12,7 @@ import {
   GalleryBlock,
   BlogBlock,
   CardsBlock,
+  VideosBlock,
   MapBlock,
   ContactBlock,
   FooterBlock,
@@ -99,6 +100,7 @@ export function ClassicTemplate(props: TemplateProps) {
     gallery: <GalleryBlock {...props} />,
     blog: <BlogBlock {...props} />,
     cards: <CardsBlock {...props} />,
+    videos: <VideosBlock {...props} />,
     map: <MapBlock {...props} />,
     contact: <ContactBlock {...props} />,
   };
@@ -115,6 +117,7 @@ export function ClassicTemplate(props: TemplateProps) {
             content={content}
             siteSlug={siteSlug}
             blogHref={blogHref}
+            videosHref={props.videosHref}
             editHref={editHref}
             showContact={showContact}
             tone="light"

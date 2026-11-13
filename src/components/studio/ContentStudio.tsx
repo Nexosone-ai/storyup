@@ -26,7 +26,14 @@ export interface StudioPost {
 export interface StudioVideoData {
   pricing: { price: number; balance: number };
   engineReady: boolean;
-  videos: { id: string; title: string | null; url: string; createdAt: string }[];
+  videos: {
+    id: string;
+    kind: "video" | "shorts";
+    title: string | null;
+    url: string;
+    createdAt: string;
+    isPublic: boolean;
+  }[];
   pendingJobs: { id: string; prompt: string; createdAt: string }[];
 }
 
@@ -119,7 +126,7 @@ export function ContentStudio(props: {
   const cardsOk = cardState.hasData && cardState.dataPostId === postId;
   const shortsOk = !!shortsClip || (props.shortsQuota?.used ?? 0) > 0;
   const editedOk = !!editedClip;
-  const videoOk = (props.video?.videos.length ?? 0) > 0;
+  const videoOk = (props.video?.videos ?? []).some((v) => v.kind === "video");
 
   const steps: StudioStep[] = [
     { n: 1, label: ko ? "글 선택" : "Pick a post", done: postOk, hint: ko ? "발행된 블로그 글 고르기" : "Choose a published post" },
@@ -348,6 +355,7 @@ export function ContentStudio(props: {
               engineReady={props.video.engineReady}
               videos={props.video.videos}
               pendingJobs={props.video.pendingJobs}
+              siteSlug={props.siteSlug}
               ko={ko}
             />
           </div>

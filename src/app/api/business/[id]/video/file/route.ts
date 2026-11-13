@@ -52,7 +52,7 @@ export async function GET(
     .eq("id", deliverableId)
     .eq("business_id", businessId)
     .maybeSingle();
-  if (!row || row.kind !== "video" || !row.url)
+  if (!row || (row.kind !== "video" && row.kind !== "shorts") || !row.url)
     return new Response("not found", { status: 404 });
   if (!isAllowedVideoUrl(row.url)) return new Response("forbidden", { status: 403 });
 

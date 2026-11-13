@@ -8,6 +8,7 @@ import {
   getSiteCards,
 } from "@/lib/queries";
 import { SiteRenderer } from "@/components/website/SiteRenderer";
+import { getSiteVideos } from "@/lib/siteVideos";
 import { TrackPageView } from "@/components/site/TrackPageView";
 import { AutoAdsLoader } from "@/components/site/AutoAdsLoader";
 import { adsenseClientFor } from "@/lib/adsense";
@@ -89,6 +90,9 @@ export default async function PublicSitePage({
     slug,
     c.hero?.businessName ?? site.business.name,
   );
+  // 랜딩페이지 "영상" 섹션 — 이 가게가 저장한 쇼츠·AI 영상(공개분, 최신순).
+  const videos = await getSiteVideos(site.business.id, 12);
+  const videosHref = videos.length > 0 ? `/site/${slug}/videos` : undefined;
   const baseUrl = siteBaseUrl(site.primaryDomain, slug);
   // 검색·AI 답변엔진(AEO)용 구조화 데이터
   const jsonLd = {
@@ -123,6 +127,8 @@ export default async function PublicSitePage({
         sectionPosts={sectionPosts}
         categories={blogCategories}
         cards={cards}
+        videos={videos}
+        videosHref={videosHref}
         siteSlug={slug}
         editHref={editHref}
       />

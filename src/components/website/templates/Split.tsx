@@ -15,7 +15,7 @@ import { BlogPreviewCards } from "./BlogPreview";
 import { SiteSections } from "./SiteSections";
 import { InquiryForm } from "@/components/site/InquiryForm";
 import { CardNewsSlider } from "@/components/marketing/CardNewsSlider";
-import { LandingSections } from "./lowerBlocks";
+import { LandingSections, VideosBlock } from "./lowerBlocks";
 
 export function SplitTemplate(props: TemplateProps) {
   const {
@@ -143,6 +143,7 @@ export function SplitTemplate(props: TemplateProps) {
           </div>
         </section>
       ) : null,
+    videos: <VideosBlock {...props} />,
     cards:
       cards && cards.length > 0 ? (
         <section className="border-b border-border">
@@ -223,6 +224,7 @@ export function SplitTemplate(props: TemplateProps) {
             content={content}
             siteSlug={siteSlug}
             blogHref={blogHref}
+            videosHref={props.videosHref}
             editHref={editHref}
             showContact={showContact}
             tone="light"

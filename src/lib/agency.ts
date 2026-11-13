@@ -418,6 +418,8 @@ export interface Deliverable {
   title: string | null;
   url: string;
   createdAt: string;
+  /** 공개 사이트(/site/<slug>/videos) 게시 여부 — 0114 is_public(컬럼 없으면 true). */
+  isPublic: boolean;
 }
 
 /** 파트너가 산출물(영상 URL 등)을 고객 사업장에 전달. owns_business(RLS)로 권한 체크. */
@@ -450,9 +452,10 @@ export async function addDeliverable(args: {
 /** 사업장의 전달 산출물 목록(소유자·배정 파트너 RLS). */
 export async function listDeliverables(businessId: string): Promise<Deliverable[]> {
   const supabase = await createClient();
+  // select("*") — 0114(is_public) 적용 전 DB 에서도 조회가 깨지지 않게.
   const { data } = await supabase
     .from("agency_deliverables")
-    .select("id, kind, title, url, created_at")
+    .select("*")
     .eq("business_id", businessId)
     .order("created_at", { ascending: false })
     .limit(100);
@@ -462,6 +465,7 @@ export async function listDeliverables(businessId: string): Promise<Deliverable[
     title: d.title,
     url: d.url,
     createdAt: d.created_at,
+    isPublic: (d as { is_public?: boolean | null }).is_public !== false,
   }));
 }
 
