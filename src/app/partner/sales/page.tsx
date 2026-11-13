@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { getUser } from "@/lib/queries";
 import { isCurrentUserPartner, isSubPartner, listPartnerClients } from "@/lib/partner";
 import { B2B2C_ENABLED } from "@/lib/b2b2c/config";
-import { getBasePlanCatalog } from "@/lib/b2b2c/basePlans";
+import { listHqProducts, stripSupplyPrice } from "@/lib/hq/products";
+import { describeFulfillment } from "@/lib/partner/entitlementCatalog";
 import { getMyStorefront } from "@/lib/b2b2c/storefront";
 import { listMyProducts, listParentProductsFor } from "@/lib/b2b2c/products";
 import { listMyOffers } from "@/lib/b2b2c/offers";
@@ -15,20 +16,13 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-/** 파트너 화면에는 본사 공급가를 내려보내지 않는다(원가 비노출, 2026-11-11). */
-function stripSupply<T extends { supplyPriceKrw: number }>(info: T) {
-  const { supplyPriceKrw: _supply, ...rest } = info;
-  void _supply;
-  return rest;
-}
-
 export default async function PartnerSalesPage() {
   if (!B2B2C_ENABLED) notFound();
   const user = await getUser();
   if (!user || !(await isCurrentUserPartner())) notFound();
 
-  // 서브파트너에게는 본사 가격정책(공급가·기준 요금제)을 노출하지 않는다 —
-  // 서브의 원가는 상위파트너 판매가뿐이므로 카탈로그를 조회조차 하지 않는다.
+  // 서브파트너에게는 본사 상품(공급가·구성)을 노출하지 않는다 —
+  // 서브의 원가는 상위파트너 판매가뿐이므로 본사 상품을 조회조차 하지 않는다.
   const amSub = await isSubPartner(user.id);
 
   const [
@@ -37,7 +31,7 @@ export default async function PartnerSalesPage() {
     clients,
     offers,
     invoices,
-    baseCatalog,
+    hqProducts,
     parentProducts,
   ] = await Promise.all([
     getMyStorefront(user.id),
@@ -45,7 +39,7 @@ export default async function PartnerSalesPage() {
     listPartnerClients(user.id),
     listMyOffers(user.id),
     listMyInvoices(user.id),
-    amSub ? Promise.resolve(null) : getBasePlanCatalog(),
+    amSub ? Promise.resolve([]) : listHqProducts({ activeOnly: true }),
     listParentProductsFor(user.id),
   ]);
 
@@ -80,14 +74,18 @@ export default async function PartnerSalesPage() {
             }
           : null
       }
-      basePlans={
-        baseCatalog
-          ? {
-              basic: stripSupply(baseCatalog.basic),
-              pro: stripSupply(baseCatalog.pro),
-            }
-          : null
-      }
+      hqProducts={hqProducts.map(stripSupplyPrice).map((h) => ({
+        id: h.id,
+        name: h.name,
+        description: h.description,
+        includedServices: h.includedServices,
+        // '결제 시 제공' 불릿(파트너 문구) — 공급가 없음.
+        fulfillment: describeFulfillment(
+          h.items,
+          h.grantPlan ? { plan: h.grantPlan, days: h.grantDays } : null,
+          "partner",
+        ),
+      }))}
       isSub={amSub}
       parentProducts={parentProducts.map((p) => ({
         id: p.id,
@@ -101,6 +99,7 @@ export default async function PartnerSalesPage() {
         description: p.description,
         includedServices: p.included_services,
         basePlan: p.base_plan,
+        hqProductId: p.hq_product_id,
         parentProductId: p.parent_product_id,
         sellPriceKrw: p.sell_price_krw,
         vatMode: p.vat_mode,

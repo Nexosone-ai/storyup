@@ -32,6 +32,8 @@ interface Product {
   description: string | null;
   includedServices: string | null;
   basePlan: string | null;
+  /** 연결된 본사 상품 id(0112). */
+  hqProductId: string | null;
   parentProductId: string | null;
   sellPriceKrw: number;
   vatMode: string;
@@ -69,11 +71,13 @@ interface Settlement {
   held: number;
   paid: number;
 }
-interface BasePlanInfo {
-  plan: "basic" | "pro";
-  displayName: string;
-  summary: string | null;
+/** 본사 상품(판매중) — 공급가는 전달하지 않는다. fulfillment = '결제 시 제공' 불릿. */
+interface HqProductOpt {
+  id: string;
+  name: string;
+  description: string | null;
   includedServices: string | null;
+  fulfillment: string[];
 }
 /** 서브파트너가 연결할 수 있는 상위파트너 상품(요약). 가격(원가)은 전달하지 않는다. */
 interface ParentProductOpt {
@@ -87,8 +91,8 @@ type Tab = "store" | "products" | "offers" | "invoices" | "settlement";
 
 export function PartnerSalesView(props: {
   storefront: Storefront | null;
-  /** 본사 기준 요금제(포함 내역만 — 공급가는 파트너에게 노출하지 않음). 서브파트너에게는 전달되지 않는다(null). */
-  basePlans: { basic: BasePlanInfo; pro: BasePlanInfo } | null;
+  /** 판매중 본사 상품(공급가 제외). 서브파트너에게는 빈 배열. */
+  hqProducts: HqProductOpt[];
   isSub: boolean;
   parentProducts: ParentProductOpt[];
   products: Product[];
@@ -114,7 +118,7 @@ export function PartnerSalesView(props: {
         <p className="eyebrow mb-2">파트너 판매</p>
         <h1 className="text-2xl font-semibold tracking-tight">상품 · 판매 관리</h1>
         <p className="mt-1.5 text-muted">
-          기존 요금제 위에 내 판매가를 붙여 상품을 만듭니다. 상품을 &lsquo;판매
+          본사 상품 위에 내 판매가를 붙여 상품을 만듭니다. 상품을 &lsquo;판매
           시작&rsquo;하면 내 공개 스토어 페이지에서 고객이 직접 구매하고(결제 시
           계정 자동 등업), 개별 고객에겐 오퍼·청구서도 제시할 수 있습니다. 수납은
           STORYUP이 하고 차액은 정산됩니다.
@@ -143,7 +147,7 @@ export function PartnerSalesView(props: {
       {tab === "products" && (
         <ProductsTab
           products={props.products}
-          basePlans={props.basePlans}
+          hqProducts={props.hqProducts}
           isSub={props.isSub}
           parentProducts={props.parentProducts}
         />
@@ -283,12 +287,12 @@ function StoreTab({
 // ---------------- 상품 ----------------
 function ProductsTab({
   products,
-  basePlans,
+  hqProducts,
   isSub,
   parentProducts,
 }: {
   products: Product[];
-  basePlans: { basic: BasePlanInfo; pro: BasePlanInfo } | null;
+  hqProducts: HqProductOpt[];
   isSub: boolean;
   parentProducts: ParentProductOpt[];
 }) {
@@ -300,17 +304,17 @@ function ProductsTab({
       {!creating && !editing && (
         <>
           <Button onClick={() => setCreating(true)}>+ 새 상품</Button>
-          {isSub || !basePlans ? (
+          {isSub ? (
             <ParentProductReference parentProducts={parentProducts} />
           ) : (
-            <BasePlanReference basePlans={basePlans} />
+            <HqProductReference hqProducts={hqProducts} />
           )}
         </>
       )}
       {(creating || editing) && (
         <ProductForm
           product={editing}
-          basePlans={basePlans}
+          hqProducts={hqProducts}
           isSub={isSub}
           parentProducts={parentProducts}
           onDone={() => {
@@ -382,55 +386,70 @@ function StatusToggle({ id, status }: { id: string; status: string }) {
   );
 }
 
-// 본사가 제공하는 기준 요금제(포함 내역) — 파트너가 상품을 구성할 때 참조. 공급가는 노출하지 않는다.
-function basePlanBullets(info: BasePlanInfo): string[] {
-  return (info.includedServices ?? "")
+/** 포함 내역 텍스트 → 불릿. */
+function lineBullets(text: string | null): string[] {
+  return (text ?? "")
     .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
 }
 
-function BasePlanReference({
-  basePlans,
-}: {
-  basePlans: { basic: BasePlanInfo; pro: BasePlanInfo };
-}) {
+/** 본사 상품 한 장(이름·요약·포함 내역·결제 시 제공). 공급가는 없다. */
+function HqProductSummary({ p }: { p: HqProductOpt }) {
+  const inc = lineBullets(p.includedServices);
+  return (
+    <>
+      <p className="font-semibold">{p.name}</p>
+      {p.description && <p className="mt-1 text-xs text-muted">{p.description}</p>}
+      {inc.length > 0 && (
+        <ul className="mt-2 space-y-0.5 text-xs text-muted">
+          {inc.map((b, i) => (
+            <li key={i} className="flex gap-1.5">
+              <span className="text-primary">·</span>
+              <span>{b}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {p.fulfillment.length > 0 && (
+        <div className="mt-2 border-t border-border pt-2">
+          <p className="text-xs font-medium">결제 시 제공</p>
+          <ul className="mt-1 space-y-0.5 text-xs text-muted">
+            {p.fulfillment.map((f) => (
+              <li key={f} className="flex gap-1.5">
+                <span className="text-primary">·</span>
+                <span>{f}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </>
+  );
+}
+
+// 본사가 제공하는 판매용 상품 — 파트너가 상품을 구성할 때 참조. 공급가는 노출하지 않는다.
+function HqProductReference({ hqProducts }: { hqProducts: HqProductOpt[] }) {
   return (
     <Card className="space-y-3 p-5">
       <div>
-        <p className="font-semibold">본사 제공 기준 요금제</p>
+        <p className="font-semibold">본사 상품</p>
         <p className="mt-0.5 text-xs text-muted">
-          아래는 STORYUP 본사가 제공하는 기준 상품입니다. 이 구성을 연결해 내
-          판매가를 정해 상품을 만드세요. (포함 내용은 본사가 업데이트할 수 있습니다.)
+          STORYUP 본사가 제공하는 판매용 상품입니다. 이 중 하나를 연결하고 내 판매가를 정해 상품을
+          만드세요. 고객이 결제하면 &lsquo;결제 시 제공&rsquo; 항목이 자동으로 지급돼요(작업권은 나에게).
         </p>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {(["basic", "pro"] as const).map((plan) => {
-          const info = basePlans[plan];
-          const bullets = basePlanBullets(info);
-          return (
-            <div
-              key={plan}
-              className="rounded-lg border border-border bg-surface-2 p-4"
-            >
-              <p className="font-semibold">{info.displayName}</p>
-              {info.summary && (
-                <p className="mt-1 text-xs text-muted">{info.summary}</p>
-              )}
-              {bullets.length > 0 && (
-                <ul className="mt-2 space-y-1 text-xs text-muted">
-                  {bullets.map((b, i) => (
-                    <li key={i} className="flex gap-1.5">
-                      <span className="text-primary">·</span>
-                      <span>{b}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
+      {hqProducts.length === 0 ? (
+        <p className="text-sm text-muted">지금 판매 중인 본사 상품이 없습니다. 본사에 문의해주세요.</p>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {hqProducts.map((p) => (
+            <div key={p.id} className="rounded-lg border border-border bg-surface-2 p-4">
+              <HqProductSummary p={p} />
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </Card>
   );
 }
@@ -477,13 +496,13 @@ function ParentProductReference({
 
 function ProductForm({
   product,
-  basePlans,
+  hqProducts,
   isSub,
   parentProducts,
   onDone,
 }: {
   product: Product | null;
-  basePlans: { basic: BasePlanInfo; pro: BasePlanInfo } | null;
+  hqProducts: HqProductOpt[];
   isSub: boolean;
   parentProducts: ParentProductOpt[];
   onDone: () => void;
@@ -494,7 +513,8 @@ function ProductForm({
   const [includedServices, setIncluded] = useState(
     product?.includedServices ?? "",
   );
-  const [basePlan, setBasePlan] = useState(product?.basePlan ?? "");
+  // 본사 상품(필수). 연결된 상품이 판매 중지돼 목록에 없으면 다시 골라야 한다.
+  const [hqProductId, setHqProductId] = useState(product?.hqProductId ?? "");
   const [parentProductId, setParentProductId] = useState(
     product?.parentProductId ?? "",
   );
@@ -514,12 +534,19 @@ function ProductForm({
   const selectedParent = isSub
     ? parentProducts.find((p) => p.id === parentProductId)
     : undefined;
-  const baseInfo =
-    !isSub && basePlans && basePlan === "basic"
-      ? basePlans.basic
-      : !isSub && basePlans && basePlan === "pro"
-        ? basePlans.pro
-        : null;
+  const selectedHq = !isSub
+    ? hqProducts.find((h) => h.id === hqProductId)
+    : undefined;
+  // 연결된 본사 상품이 지금 판매 목록에 없음(판매 중지·보관) — 기존 연결 유지 안내.
+  const hqMissing = !isSub && !!product?.hqProductId && !selectedHq && hqProductId === product.hqProductId;
+
+  const pickHq = (id: string) => {
+    setHqProductId(id);
+    const h = hqProducts.find((x) => x.id === id);
+    // 새 상품이면 이름·포함 내역을 본사 상품으로 채워 둔다(직접 고칠 수 있음).
+    if (h && !name.trim()) setName(h.name);
+    if (h && !includedServices.trim()) setIncluded(h.includedServices ?? "");
+  };
   const sellNum = Number(sellPrice) || 0;
 
   const save = () =>
@@ -529,12 +556,16 @@ function ProductForm({
         setMsg("상위파트너 상품을 선택해주세요.");
         return;
       }
+      if (!isSub && !hqProductId) {
+        setMsg("본사 상품을 선택해주세요.");
+        return;
+      }
       const res = await saveProductAction({
         id: product?.id,
         name,
         description: description || null,
         includedServices: includedServices || null,
-        basePlan: isSub ? null : ((basePlan || null) as "basic" | "pro" | null),
+        hqProductId: isSub ? null : hqProductId,
         parentProductId: isSub ? parentProductId : null,
         sellPriceKrw: sellNum,
         vatMode: vatMode as "included" | "excluded",
@@ -591,14 +622,17 @@ function ProductForm({
             </>
           ) : (
             <>
-              <Label>연결 요금제</Label>
-              <Select
-                value={basePlan}
-                onChange={(e) => setBasePlan(e.target.value)}
-              >
-                <option value="">요금제 미연동(커스텀)</option>
-                <option value="basic">Basic</option>
-                <option value="pro">Pro</option>
+              <Label required>본사 상품</Label>
+              <Select value={hqProductId} onChange={(e) => pickHq(e.target.value)}>
+                <option value="">선택</option>
+                {hqMissing && (
+                  <option value={hqProductId}>(판매 중지된 본사 상품 — 현재 연결 유지)</option>
+                )}
+                {hqProducts.map((h) => (
+                  <option key={h.id} value={h.id}>
+                    {h.name}
+                  </option>
+                ))}
               </Select>
             </>
           )}
@@ -623,23 +657,25 @@ function ProductForm({
           )}
         </div>
       )}
-      {!isSub && baseInfo && (
-        <div className="space-y-2 rounded-lg bg-surface-2 p-3 text-sm">
-          <p className="font-semibold">{baseInfo.displayName}</p>
-          {baseInfo.summary && (
-            <p className="text-xs text-muted">{baseInfo.summary}</p>
-          )}
-          {basePlanBullets(baseInfo).length > 0 && (
-            <ul className="space-y-0.5 text-xs text-muted">
-              {basePlanBullets(baseInfo).map((b, i) => (
-                <li key={i} className="flex gap-1.5">
-                  <span className="text-primary">·</span>
-                  <span>{b}</span>
-                </li>
-              ))}
-            </ul>
+      {!isSub && selectedHq && (
+        <div className="rounded-lg bg-surface-2 p-3 text-sm">
+          <HqProductSummary p={selectedHq} />
+          {selectedHq.includedServices && (
+            <button
+              type="button"
+              onClick={() => setIncluded(selectedHq.includedServices ?? "")}
+              className="mt-2 text-xs font-medium text-primary underline underline-offset-2"
+            >
+              포함 내역 불러오기 (위 &lsquo;포함 서비스&rsquo;에 덮어쓰기)
+            </button>
           )}
         </div>
+      )}
+      {hqMissing && (
+        <p className="text-xs text-warning">
+          연결된 본사 상품이 판매 중지됐어요. 지금 연결은 유지되지만, 다른 본사 상품으로 바꾸려면 목록에서
+          고르세요.
+        </p>
       )}
       <div className="grid grid-cols-2 gap-3">
         <div>

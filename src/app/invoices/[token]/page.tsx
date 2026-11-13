@@ -5,6 +5,11 @@ import { getInvoiceByToken, toPublicInvoice } from "@/lib/b2b2c/invoices";
 import { getPublicStorefrontByOwner } from "@/lib/b2b2c/storefront";
 import { Card } from "@/components/ui/Card";
 import { InvoiceCheckout } from "@/components/b2b2c/InvoiceCheckout";
+import {
+  describeFulfillment,
+  parseEntitlementItems,
+  type GrantablePlan,
+} from "@/lib/partner/entitlementCatalog";
 
 // 고객별 청구서는 검색엔진에 노출하지 않는다(토큰 기반 비공개).
 export const metadata: Metadata = {
@@ -34,6 +39,21 @@ export default async function InvoicePage({
   const inv = toPublicInvoice(row);
   // 파트너 브랜드 헤더(로고·이름) — 공개 스토어프론트가 있으면 결제창에 표시.
   const store = await getPublicStorefrontByOwner(row.partner_user_id);
+  // 결제 후 제공(고객 문구) — 발행 시점 스냅샷 기준. '작업권' 단어는 쓰지 않는다.
+  const snap = (row.product_snapshot ?? {}) as {
+    basePlan?: string | null;
+    grantDays?: number;
+    entitlements?: unknown;
+  };
+  const grantPlan =
+    snap.basePlan === "basic" || snap.basePlan === "pro" || snap.basePlan === "lite"
+      ? (snap.basePlan as GrantablePlan)
+      : null;
+  const provides = describeFulfillment(
+    parseEntitlementItems(snap.entitlements),
+    grantPlan ? { plan: grantPlan, days: snap.grantDays ?? 30 } : null,
+    "customer",
+  );
 
   const total =
     inv.vatMode === "excluded" ? inv.sellPriceKrw + inv.taxKrw : inv.sellPriceKrw;
@@ -78,6 +98,20 @@ export default async function InvoicePage({
         {inv.includedServices && (
           <div className="rounded-lg bg-surface-2 p-3 text-sm whitespace-pre-line">
             {inv.includedServices}
+          </div>
+        )}
+
+        {provides.length > 0 && (
+          <div className="text-sm">
+            <p className="font-semibold">결제 후 제공</p>
+            <ul className="mt-1.5 space-y-1 text-muted">
+              {provides.map((p) => (
+                <li key={p} className="flex gap-1.5">
+                  <span className="text-primary">✓</span>
+                  <span>{p}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 
