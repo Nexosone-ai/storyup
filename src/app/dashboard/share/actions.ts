@@ -81,6 +81,34 @@ export async function revokeShareAction(id: string): Promise<ShareActionState> {
   return { ok: true };
 }
 
+/**
+ * 공유행 없이 대행 연결(partner_clients)로만 담당 중인 파트너의 접근 해제(소유자 본인).
+ * 파트너 고객 등록·추천 링크로 연결된 경우 — 공유행이 있으면 revokeShareAction 을 쓴다.
+ */
+export async function revokePartnerLinkAction(
+  partnerUserId: string,
+): Promise<ShareActionState> {
+  const { user } = await sessionUser();
+  if (!user) return { error: "로그인이 필요합니다." };
+  if (!partnerUserId) return { error: "파트너를 찾을 수 없어요." };
+
+  const admin = createAdminClient();
+  const { data: deleted, error } = await admin
+    .from("partner_clients")
+    .delete()
+    .eq("partner_user_id", partnerUserId)
+    .eq("client_user_id", user.id)
+    .select("id");
+  if (error) {
+    console.error("[share] revoke partner link failed", error);
+    return { error: "접근 권한 해제에 실패했어요. 잠시 후 다시 시도해주세요." };
+  }
+  if (!deleted?.length) return { error: "담당 파트너 연결을 찾을 수 없어요." };
+
+  revalidatePath("/dashboard/share");
+  return { ok: true, message: "담당 파트너의 접근을 해제했어요." };
+}
+
 /** 파트너가 초대 수락 — partner_clients 링크 생성 → 소유자 사업장 접근. */
 export async function acceptShareAction(id: string): Promise<ShareActionState> {
   const { user } = await sessionUser();
