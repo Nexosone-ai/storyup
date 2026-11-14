@@ -69,8 +69,38 @@ ${input.articleContent}
     { "stage": "gyeol", "heading": "마무리", "body": "기본 멘트" }
   ],
   "cta": { "text": "행동 유도 문구", "handle": "${input.handle}" },
-  "character": "주인공 겉모습 한 문장 (예: 단발머리에 베이지 앞치마를 두른 30대 여성 카페 사장)"
+  "character": "주인공 겉모습 한 문장 (예: 단발머리에 베이지 앞치마를 두른 30대 여성 카페 사장)",
+  "story": "기 - 승 - 전 - 결을 ' - '로 이은 한 줄 스토리 (사용자 스토리가 있으면 그대로)"
 }`;
 
+  return { system, user };
+}
+
+/**
+ * 스토리 가안 — 선택한 블로그 글로 기·승·전·결 한 줄 스토리를 만든다(카드 생성 전 미리보기·수정용).
+ * 형식: "기 - 승 - 전 - 결" (각 단계 한 구절, ' - ' 로 연결).
+ */
+export function cardStoryPrompt(input: CardNewsPromptInput): PromptSpec {
+  const language = input.language ?? "ko";
+  const system = `당신은 인스타그램 카드뉴스 스토리 작가입니다.
+주어진 블로그 글 '그 자체'의 내용으로 카드뉴스 4장(기·승·전·결)의 스토리 가안을 한 줄로 씁니다.
+
+규칙:
+- 기: 주인공·상황·공감되는 시작. 승: 문제·고민이 커지는 전개. 전: 전환점(발견·해결·변화). 결: 결과와 남기고 싶은 메시지.
+- 각 단계는 짧은 한 구절(${language === "en" ? "under 12 words" : "25자 이내"})로, 네 구절을 " - " 로 이어 한 줄로 씁니다.
+- 반드시 이 블로그 글의 주제·제품·서비스를 다룹니다. 글에 없는 다른 상품·주제로 바꾸지 않습니다.
+- 글에 없는 사실·수치·효능은 지어내지 않고, 과장하지 않습니다.
+- ${languageRule(language)}
+- 반드시 {"story": "..."} 형태의 순수 JSON만 반환하세요.`;
+  const user = `사업 이름: ${input.businessName}
+브랜드 톤: ${input.brandTone}
+
+블로그 글 제목: ${input.articleTitle}
+요약: ${input.articleSummary}
+본문:
+${input.articleContent.slice(0, 8000)}
+
+아래 JSON 으로만 응답하세요:
+{ "story": "기 구절 - 승 구절 - 전 구절 - 결 구절" }`;
   return { system, user };
 }

@@ -172,8 +172,15 @@ export function CardNewsStudio({
   const [error, setError] = useState<string | null>(null);
   // 공유 후 안내(PC에서 이미지 다운로드·작성창 안내, 링크 복사 완료 등)
   const [shareMsg, setShareMsg] = useState<string | null>(null);
-  // 기승전결 스토리 입력(선택) — 재생성 시 저장된 값을 프리필.
+  // 기승전결 스토리 입력(선택) — 스토리는 '글별'이다. storyPostId = 지금 칸의 스토리가 속한 글.
+  // 다른 글을 고르면 이전 글의 스토리를 비우고(그 글의 카드가 있으면 그 스토리) 선택한 글로 가안을 만든다.
   const [story, setStory] = useState(initial?.cardNews?.story ?? "");
+  const [storyPostId, setStoryPostId] = useState<string | null>(
+    initial?.cardNews?.story ? (initial?.blogPostId ?? null) : null,
+  );
+  /** 가안을 만들 글 id(요청 중) — effect 가 이 값으로 /api/ai/card-story 를 부른다. */
+  const [draftFor, setDraftFor] = useState<string | null>(null);
+  const [storyError, setStoryError] = useState<string | null>(null);
 
   const igRefs = useRef<Array<HTMLDivElement | null>>([]);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -300,6 +307,66 @@ export function CardNewsStudio({
   }, [data, dataPostId, cardNewsId]);
   const slugName = () => handle.replace(/^@/, "") || "storyup";
 
+  // 카드 단계가 보일 때, 스토리 칸이 다른 글의 것이면 선택한 글 기준으로 바꾼다(렌더 중 상태 보정).
+  if (showCards && postId && storyPostId !== postId) {
+    setStoryPostId(postId);
+    setStoryError(null);
+    if (dataPostId === postId && data?.story) {
+      setStory(data.story);
+    } else {
+      setStory("");
+      setDraftFor(postId);
+    }
+  }
+
+  useEffect(() => {
+    if (!draftFor) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/ai/card-story", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ businessId, blogPostId: draftFor }),
+        });
+        const json = (await res.json().catch(() => ({}))) as { story?: string; error?: string };
+        if (cancelled) return;
+        if (res.ok && json.story) {
+          const drafted = json.story;
+          // 기다리는 동안 사용자가 직접 적었다면 덮어쓰지 않는다.
+          setStory((prev) => (prev.trim() ? prev : drafted));
+        } else {
+          setStoryError(
+            json.error ??
+              (ko
+                ? "스토리 가안을 만들지 못했어요. 직접 적거나 비워 두면 글에서 뽑아요."
+                : "Couldn't draft a story. Write one, or leave it empty."),
+          );
+        }
+      } catch {
+        if (!cancelled)
+          setStoryError(
+            ko ? "스토리 가안을 만들지 못했어요." : "Couldn't draft a story.",
+          );
+      } finally {
+        if (!cancelled) setDraftFor(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [draftFor, businessId, ko]);
+  const storyBusy = !!draftFor;
+
+  /** '가안 다시 만들기' — 지금 칸을 비우고 선택한 글로 새 가안. */
+  const redraftStory = () => {
+    if (!postId || draftFor) return;
+    setStoryError(null);
+    setStory("");
+    setStoryPostId(postId);
+    setDraftFor(postId);
+  };
+
   const generate = async () => {
     if (!postId) return;
     setError(null);
@@ -325,6 +392,8 @@ export function CardNewsStudio({
       setData(cn);
       setImages([]); // reset backdrops for the new set
       setDataPostId(postId);
+      setStoryPostId(postId);
+      if (!story.trim() && cn.story) setStory(cn.story);
       if (json.cardNewsId) setCardNewsId(json.cardNewsId as string);
     } catch (e) {
       setError(
@@ -782,15 +851,33 @@ export function CardNewsStudio({
           </p>
         )}
         <div>
-          <Label htmlFor="cn-story">
-            {ko
-              ? "스토리 (선택) — 기·승·전·결 4장으로 카드가 만들어져요"
-              : "Story (optional) — cards follow a setup → build-up → turn → ending arc"}
-          </Label>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Label htmlFor="cn-story">
+              {ko
+                ? "스토리 (선택) — 기·승·전·결 4장으로 카드가 만들어져요"
+                : "Story (optional) — cards follow a setup → build-up → turn → ending arc"}
+            </Label>
+            <button
+              type="button"
+              onClick={redraftStory}
+              disabled={!postId || storyBusy || loading}
+              className="inline-flex items-center gap-1 text-xs font-medium text-primary underline underline-offset-2 disabled:opacity-50"
+            >
+              {storyBusy ? <Spinner /> : <Icon.sparkles className="size-3.5" />}
+              {storyBusy
+                ? ko
+                  ? "선택한 글로 가안 만드는 중…"
+                  : "Drafting from the post…"
+                : ko
+                  ? "선택한 글로 가안 다시 만들기"
+                  : "Redraft from the post"}
+            </button>
+          </div>
           <Textarea
             id="cn-story"
             rows={3}
             value={story}
+            disabled={storyBusy && !story}
             onChange={(e) => setStory(e.target.value)}
             placeholder={
               ko
@@ -803,10 +890,11 @@ export function CardNewsStudio({
               ? "카드마다 기본 멘트를 AI가 써 주고, 생성 후 카드를 눌러 바꿀 수 있어요. 마지막 카드에는 내 로고가 기본으로 들어가요."
               : "AI drafts each card's copy; click a card after generating to edit. Your logo goes on the last card by default."}
           </p>
+          {storyError && <p className="mt-1 text-xs text-danger">{storyError}</p>}
         </div>
         {error && <p className="text-sm text-danger">{error}</p>}
         <div data-tour="card-actions" className="flex flex-wrap gap-2">
-          <Button onClick={generate} disabled={loading || imgBusy}>
+          <Button onClick={generate} disabled={loading || imgBusy || storyBusy}>
             {loading ? <Spinner /> : <Icon.sparkles className="size-[18px]" />}
             {data
               ? ko
