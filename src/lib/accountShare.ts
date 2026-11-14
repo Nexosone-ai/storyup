@@ -7,39 +7,98 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
  */
 
 export interface OwnerShareRow {
+  /** account_shares.id, 또는 공유행 없이 partner_clients 로만 연결된 경우 `link:<partnerUserId>`. */
   id: string;
   partnerEmail: string;
   partnerName: string | null;
   status: "pending" | "accepted" | "revoked";
   createdAt: string;
+  /** share = 초대/공유행, link = 파트너 등록·추천 링크로 생긴 대행 연결(partner_clients)만 있음. */
+  source: "share" | "link";
+  partnerUserId: string | null;
+  /** 파트너 공개 소개(스토어프론트, 활성일 때만) — 표시 이름·소개·연락처·소개 페이지. */
+  storefront: {
+    slug: string;
+    displayName: string;
+    intro: string | null;
+    contact: string | null;
+  } | null;
 }
 
-/** 소유자가 공유한 파트너 목록(내가 만든 초대). */
+/**
+ * 나를 담당하는 파트너 — 공유행(account_shares) + 대행 연결(partner_clients) 합집합.
+ * 파트너 고객 등록·추천 링크 연결 중 일부는 공유행 없이 partner_clients 만 있어
+ * 공유행만 보면 '담당 파트너 없음'으로 잘못 보인다.
+ */
 export async function listOwnerShares(ownerId: string): Promise<OwnerShareRow[]> {
   const admin = createAdminClient();
-  const { data } = await admin
-    .from("account_shares")
-    .select("id, partner_email, partner_user_id, status, created_at")
-    .eq("owner_user_id", ownerId)
-    .neq("status", "revoked")
-    .order("created_at", { ascending: false });
+  const [{ data }, { data: links }] = await Promise.all([
+    admin
+      .from("account_shares")
+      .select("id, partner_email, partner_user_id, status, created_at")
+      .eq("owner_user_id", ownerId)
+      .neq("status", "revoked")
+      .order("created_at", { ascending: false }),
+    admin
+      .from("partner_clients")
+      .select("partner_user_id, created_at")
+      .eq("client_user_id", ownerId)
+      .order("created_at", { ascending: true }),
+  ]);
   const rows = data ?? [];
-  const partnerIds = rows.map((r) => r.partner_user_id).filter((v): v is string => !!v);
-  const names = new Map<string, string | null>();
+  const shared = new Set(
+    rows.map((r) => r.partner_user_id).filter((v): v is string => !!v),
+  );
+  const linkOnly = (links ?? []).filter((l) => !shared.has(l.partner_user_id));
+
+  const partnerIds = [
+    ...shared,
+    ...linkOnly.map((l) => l.partner_user_id),
+  ];
+  const profiles = new Map<string, { name: string | null; email: string | null }>();
+  const stores = new Map<string, OwnerShareRow["storefront"]>();
   if (partnerIds.length) {
-    const { data: profs } = await admin
-      .from("profiles")
-      .select("user_id, name")
-      .in("user_id", partnerIds);
-    (profs ?? []).forEach((p) => names.set(p.user_id, p.name));
+    const [{ data: profs }, { data: fronts }] = await Promise.all([
+      admin.from("profiles").select("user_id, name, email").in("user_id", partnerIds),
+      admin
+        .from("partner_storefronts")
+        .select("partner_user_id, slug, display_name, intro, contact")
+        .in("partner_user_id", partnerIds)
+        .eq("status", "active"),
+    ]);
+    (profs ?? []).forEach((p) => profiles.set(p.user_id, { name: p.name, email: p.email }));
+    (fronts ?? []).forEach((f) =>
+      stores.set(f.partner_user_id, {
+        slug: f.slug,
+        displayName: f.display_name,
+        intro: f.intro,
+        contact: f.contact,
+      }),
+    );
   }
-  return rows.map((r) => ({
-    id: r.id,
-    partnerEmail: r.partner_email,
-    partnerName: r.partner_user_id ? (names.get(r.partner_user_id) ?? null) : null,
-    status: r.status,
-    createdAt: r.created_at,
-  }));
+
+  return [
+    ...rows.map((r) => ({
+      id: r.id,
+      partnerEmail: r.partner_email,
+      partnerName: r.partner_user_id ? (profiles.get(r.partner_user_id)?.name ?? null) : null,
+      status: r.status,
+      createdAt: r.created_at,
+      source: "share" as const,
+      partnerUserId: r.partner_user_id,
+      storefront: r.partner_user_id ? (stores.get(r.partner_user_id) ?? null) : null,
+    })),
+    ...linkOnly.map((l) => ({
+      id: `link:${l.partner_user_id}`,
+      partnerEmail: profiles.get(l.partner_user_id)?.email ?? "",
+      partnerName: profiles.get(l.partner_user_id)?.name ?? null,
+      status: "accepted" as const,
+      createdAt: l.created_at,
+      source: "link" as const,
+      partnerUserId: l.partner_user_id,
+      storefront: stores.get(l.partner_user_id) ?? null,
+    })),
+  ];
 }
 
 export interface IncomingShareRow {
