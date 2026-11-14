@@ -44,7 +44,11 @@ import {
 import { blogFaqPrompt, type BlogFaqPromptInput } from "./prompts/faq";
 import { blogSeoPrompt, type BlogSeoPromptInput } from "./prompts/seo";
 import { designEditPrompt, type DesignEditPromptInput } from "./prompts/design";
-import { cardNewsPrompt, type CardNewsPromptInput } from "./prompts/card-news";
+import {
+  cardNewsPrompt,
+  cardStoryPrompt,
+  type CardNewsPromptInput,
+} from "./prompts/card-news";
 import type { PdfLandingExtract } from "@/lib/pdfImport";
 import { normalizeLandingExtract } from "@/lib/pdfImport";
 
@@ -216,6 +220,10 @@ export class ClaudeProvider implements AIProvider {
 
   generateCardNews(input: CardNewsPromptInput) {
     return this.complete<CardNewsResult>(cardNewsPrompt(input), 1500);
+  }
+
+  generateCardStory(input: CardNewsPromptInput) {
+    return this.complete<{ story: string }>(cardStoryPrompt(input), 400);
   }
 
   async generateImageSubject(input: {

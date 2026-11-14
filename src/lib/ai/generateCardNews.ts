@@ -85,7 +85,12 @@ export async function generateAndSaveCardNews(args: {
     result.slides.forEach((s, i) => {
       if (!s.stage && i < STAGES.length) s.stage = STAGES[i];
     });
-    if (args.story?.trim()) result.story = args.story.trim();
+    // 스토리 — 사용자가 넣은 값 우선, 없으면 모델이 이 글로 쓴 가안(다음 재생성 때 프리필).
+    result.story = args.story?.trim()
+      ? args.story.trim()
+      : typeof result.story === "string" && result.story.trim()
+        ? result.story.trim().slice(0, 500)
+        : undefined;
     // 주인공 설정 — 배경 이미지 '같은 인물' 고정용. 비정상 값은 버린다(이미지 생성 시 AI 가 대체).
     result.character =
       typeof result.character === "string" && result.character.trim()

@@ -91,6 +91,9 @@ export interface AIProvider {
 
   generateCardNews(input: CardNewsPromptInput): Promise<CardNewsResult>;
 
+  /** 카드뉴스 기승전결 스토리 가안(한 줄, "기 - 승 - 전 - 결") — 선택한 글 기준. */
+  generateCardStory(input: CardNewsPromptInput): Promise<{ story: string }>;
+
   /**
    * 이미지 생성용 영문 피사체 한 문장을 만든다 (사람 없는 장면).
    * 한글 키워드는 이미지 모델이 이해하지 못해 피사체 없는 이미지가 나온다.
